@@ -544,7 +544,7 @@ export function Caption({
         )}
         {fact && <span className="contents @max-[480px]/draft:hidden">{fact}</span>}
         {variants && <VariantSwitch variants={variants} />}
-        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+        <span className="ml-auto flex min-w-0 items-center gap-0.5">
           {open && children}
           {items.length > 0 && <More items={items} busy={busy} />}
         </span>

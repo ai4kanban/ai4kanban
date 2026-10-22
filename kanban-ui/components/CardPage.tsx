@@ -1599,7 +1599,7 @@ export function CardPage({
             left of colour is spent on the two sections that mean something: mint where the
             work is already done, ember where an answer is wanted. An alert is a rung louder
             than either. Depth inside a section is a step DOWN — the run log's well. */}
-        <div className="h-full overflow-y-auto bg-nb-paper">
+        <div className="h-full overflow-y-auto overflow-x-hidden bg-nb-paper">
           {/* The app's own line about how this board is being run (#175) — the same one the
               board screen draws. */}
           {Strip && <Strip {...chrome} at="head" />}
