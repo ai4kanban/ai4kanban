@@ -10,6 +10,7 @@ import { FiInbox } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
+import { HeaderCount } from "./header-motion";
 import { useSignalsRow } from "./signals-row";
 
 // Where the button was pressed from, so a second press goes back there. Lives for this window only.
@@ -27,7 +28,7 @@ export function TriageButton() {
     <Button
       variant="ghost"
       size="xs"
-      className={cn("nb-tip nb-tip-below shrink-0 max-md:h-9", lit ? "gap-1 px-2" : "w-7 px-0 max-md:w-9")}
+      className={cn("nb-tip nb-tip-below nb-count min-w-7 shrink-0 gap-0 max-md:h-9 max-md:min-w-9", lit ? "px-2" : "px-0")}
       aria-label={label}
       data-tip={label}
       aria-pressed={here}
@@ -52,7 +53,7 @@ export function TriageButton() {
       }
     >
       <FiInbox className="text-[14px]" aria-hidden />
-      {lit && <span className="text-[11.5px] font-[800] leading-none">{count > 99 ? "99+" : count}</span>}
+      <HeaderCount n={count} cap />
     </Button>
   );
 }

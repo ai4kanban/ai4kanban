@@ -62,6 +62,7 @@ import { notificationGroup, type CloudEventState, type NotificationGroup } from 
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE } from "./chrome";
+import { HeaderCount } from "./header-motion";
 import { Loading, QUIET_BTN } from "./settings";
 
 /**
@@ -87,7 +88,7 @@ export function BellButton() {
       size="xs"
       // Icon-only while empty, so the row spends no width on a control with nothing to
       // say; the count is what widens it.
-      className={cn("nb-tip nb-tip-below shrink-0 max-md:h-9", lit ? "gap-1 px-2" : "w-7 px-0 max-md:w-9")}
+      className={cn("nb-tip nb-tip-below nb-count min-w-7 shrink-0 gap-0 max-md:h-9 max-md:min-w-9", lit ? "px-2" : "px-0")}
       aria-label={label}
       data-tip={label}
       aria-pressed={rail.open}
@@ -103,7 +104,7 @@ export function BellButton() {
       }
     >
       <FiBell className="text-[14px]" aria-hidden />
-      {lit && <span className="text-[11.5px] font-[800] leading-none">{unread}</span>}
+      <HeaderCount n={unread} />
     </Button>
   );
 }

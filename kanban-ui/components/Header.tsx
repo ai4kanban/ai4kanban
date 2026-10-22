@@ -8,6 +8,7 @@ import { Configuration, ConfigurationButton } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { ProjectPath, UpdateChip } from "./desktop";
 import { GitHubLink } from "./GitHubLink";
+import { HeaderTips } from "./header-motion";
 import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
 import { BellButton } from "./Notifications";
@@ -133,7 +134,7 @@ export function Header({
       {/* `data-controls`: in the app's title bar these are given 12px between
           them rather than 8, since a row of hard shadows needs more air beside
           the traffic lights than it does on a page. */}
-      <div data-controls className="a4k-nodrag flex shrink-0 items-center gap-2">
+      <HeaderTips data-controls className="a4k-nodrag flex shrink-0 items-center gap-2">
         {/* A newer version, when there is one (#372) — its own chip rather than a
             segment of the cluster, since it comes and goes and the cluster's shape
             should not. It leads the group beside the repository: those two are the
@@ -169,7 +170,7 @@ export function Header({
             `md:` branch would paint two. */}
         <Configuration agent={agent} onError={onError} />
         <CreateTask projectRoot={projectRoot} />
-      </div>
+      </HeaderTips>
     </header>
   );
 }

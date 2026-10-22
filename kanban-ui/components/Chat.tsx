@@ -136,15 +136,13 @@ export function ChatButton() {
         <LuMessagesSquare className="text-[14px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">{c.label}</span>
       </Button>
-      {rail.unread && (
-        <>
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -right-[3px] -top-[3px] size-[9px] rounded-full border-[1.5px] border-nb-ink bg-nb-accent"
-          />
-          <span className="sr-only">{c.unread}</span>
-        </>
-      )}
+      {/* Always mounted so it can fade in (app/globals.css). */}
+      <span
+        aria-hidden
+        data-on={rail.unread || undefined}
+        className="nb-dot pointer-events-none absolute -right-[3px] -top-[3px] size-[9px] rounded-full border-[1.5px] border-nb-ink bg-nb-accent"
+      />
+      {rail.unread && <span className="sr-only">{c.unread}</span>}
     </div>
   );
 }

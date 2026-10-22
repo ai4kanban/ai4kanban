@@ -293,6 +293,71 @@ body {
   top: auto;
   bottom: calc(100% + 6px);
 }
+/* The top row's tips wait a beat; once one is up, the next shows at once
+   (components/header-motion.tsx). Keyboard focus never waits. */
+@media (hover: hover) {
+  [data-tip-delay]:not([data-tip-warm])
+    .nb-tip:hover:not(:focus-visible, :has(> :focus-visible), [data-tip-held])::after {
+    transition-delay: 400ms;
+  }
+}
+
+/* The top row's counts (#1947): lighting up grows the block and fades the number in
+   instead of the whole row jumping. */
+.nb-count {
+  transition:
+    transform 120ms,
+    box-shadow 120ms,
+    background-color 200ms ease,
+    color 200ms ease,
+    padding 200ms ease;
+}
+.nb-count-n {
+  display: inline-grid;
+  grid-template-columns: 0fr;
+  transition:
+    grid-template-columns 200ms ease,
+    margin 200ms ease;
+}
+.nb-count-n[data-on] {
+  grid-template-columns: 1fr;
+  margin-left: 4px;
+}
+.nb-count-n > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    opacity 160ms ease,
+    scale 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.nb-count-n[data-on] > span,
+.nb-dot[data-on] {
+  opacity: 1;
+  scale: 1;
+}
+.nb-dot {
+  opacity: 0;
+  scale: 0.4;
+  transition:
+    opacity 160ms ease,
+    scale 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nb-count {
+    transition:
+      transform 120ms,
+      box-shadow 120ms;
+  }
+  .nb-count-n,
+  .nb-count-n > span,
+  .nb-dot {
+    transition: none;
+  }
+}
 /* Dropdowns are components/ui/select.tsx (shadcn Select restyled to this
    language) — no shared class here. Its open-list animation is the nbPopIn
    keyframe below. */
