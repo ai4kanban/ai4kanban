@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { usePhone } from "@/lib/media";
+import { useLeaving, usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 
@@ -24,15 +24,27 @@ import { useSwipeBack } from "@/lib/swipe-back";
 // be one — and the ring of scrim left around it is the only way out, which is not a way
 // out a thumb can find. So the panel takes the screen, its title bar carries the ✕ that
 // cancels, and its buttons pin to the foot (DialogButtons in agent-shared.tsx).
-export function Dialog({
-  title,
-  onClose,
-  children,
-  width = 520,
-  height,
-  flush = false,
-  deck = false,
-}: {
+//
+// On a wide window it plays its way in and out (#1959). Given `open`, the owner keeps it
+// mounted and a reopen mid-exit turns it round; left out, a close plays out before `onClose`.
+export function Dialog({ open, onClose, ...props }: DialogProps & { open?: boolean }) {
+  const phone = usePhone();
+  const [shut, setShut] = useState(false);
+  const { drawn, leaving } = useLeaving((open ?? true) && !shut, phone ? 0 : 150);
+  useEffect(() => {
+    if (shut && !drawn) onClose();
+  }, [shut, drawn, onClose]);
+  if (!drawn) return null;
+  return (
+    <DialogFrame
+      {...props}
+      leaving={leaving}
+      onClose={leaving ? () => {} : open === undefined ? () => setShut(true) : onClose}
+    />
+  );
+}
+
+type DialogProps = {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
@@ -46,7 +58,18 @@ export function Dialog({
   flush?: boolean;
   // A stack of cards the child draws itself out of `DialogCard`s, on a phone too.
   deck?: boolean;
-}) {
+};
+
+function DialogFrame({
+  title,
+  onClose,
+  children,
+  width = 520,
+  height,
+  flush = false,
+  deck = false,
+  leaving,
+}: DialogProps & { leaving: boolean }) {
   const phone = usePhone();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -87,8 +110,8 @@ export function Dialog({
           {children}
         </div>
       ) : (
-        <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
-          <div ref={surface} className="relative" style={size} onClick={(e) => e.stopPropagation()}>
+        <div className="nb-scrim a4k-scrim" data-leaving={leaving || undefined} style={{ alignItems: "center" }} onClick={onClose}>
+          <div ref={surface} className="a4k-dialog relative" style={size} onClick={(e) => e.stopPropagation()}>
             {children}
           </div>
         </div>
@@ -118,7 +141,7 @@ export function Dialog({
   const panel = (
       <div
         ref={surface}
-        className="nb-panel relative flex flex-col"
+        className="nb-panel a4k-dialog relative flex flex-col"
         style={size}
         onClick={(e) => e.stopPropagation()}
       >
@@ -138,7 +161,7 @@ export function Dialog({
   );
 
   return createPortal(
-    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
+    <div className="nb-scrim a4k-scrim" data-leaving={leaving || undefined} style={{ alignItems: "center" }} onClick={onClose}>
       {panel}
     </div>,
     document.body,

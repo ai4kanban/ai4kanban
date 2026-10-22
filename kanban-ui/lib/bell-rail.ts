@@ -84,6 +84,8 @@ const NOTHING: NotificationCenter = {
 
 export interface BellRail {
   open: boolean;
+  /** The last open or fold was a press, so the rail slides — the chat rail's rule (#1959). */
+  slide?: boolean;
   /** The first read has landed. Until it does, nothing below is the account's answer — the
    *  blank says "not signed in" because that is what a blank says, and the rail draws that
    *  it is still looking rather than a state it has not been told. */
@@ -146,6 +148,7 @@ export function useBellRail({
   onOpenRun(sessionId: string): void;
 }): BellRail {
   const [open, setOpen] = useState(false);
+  const [slide, setSlide] = useState(false);
   const [cloud, setCloud] = useState<NotificationCenter>(NOTHING);
   const [ready, setReady] = useState(false);
   const [filled, setFilled] = useState<WatchFill | null>(null);
@@ -387,6 +390,7 @@ export function useBellRail({
   );
 
   const toggle = useCallback(() => {
+    setSlide(true);
     setOpen((was) => {
       const next = !was;
       // Folding is reading it: the line said why those rows arrived quietly, and they are
@@ -405,6 +409,7 @@ export function useBellRail({
   }, [firstPage]);
 
   const fold = useCallback(() => {
+    setSlide(true);
     setOpen(false);
     setFilled(null);
     firstPage();
@@ -416,6 +421,7 @@ export function useBellRail({
   }, [firstPage]);
 
   const unfold = useCallback(() => {
+    setSlide(true);
     setOpen(true);
     try {
       window.localStorage.setItem(OPEN_KEY, "1");
@@ -426,6 +432,7 @@ export function useBellRail({
 
   return {
     open,
+    slide,
     ready,
     toggle,
     fold,

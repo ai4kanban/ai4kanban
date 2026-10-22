@@ -185,6 +185,23 @@ export const configDialog = {
     for (const fn of requestSubs) fn();
   },
 };
+// Whether the dialog is up, for the gear's pressed look — the gear lives outside this tree.
+let shown = false;
+const shownSubs = new Set<() => void>();
+function setShown(on: boolean) {
+  shown = on;
+  for (const fn of shownSubs) fn();
+}
+function useShown() {
+  return useSyncExternalStore(
+    (fn) => {
+      shownSubs.add(fn);
+      return () => shownSubs.delete(fn);
+    },
+    () => shown,
+    () => false,
+  );
+}
 function useOpenRequest() {
   return useSyncExternalStore(
     (fn) => {
@@ -202,12 +219,14 @@ function useOpenRequest() {
  *  hidden by a `md:` class would still paint — while the gear itself is desktop-only. */
 export function ConfigurationButton() {
   const c = useCopy().configuration;
+  const open = useShown();
   return (
     <button
       type="button"
       className={TOOL_BTN}
       data-tip={c.open}
       aria-label={c.open}
+      aria-pressed={open}
       onClick={() => configDialog.open("general")}
     >
       <FiSettings size={15} aria-hidden />
@@ -244,6 +263,11 @@ export function Configuration({
     setOpen(true);
   }, [request]);
 
+  useEffect(() => {
+    setShown(open);
+    return () => setShown(false);
+  }, [open]);
+
   // The welcome tour asked for from General takes the screen, so the dialog steps aside.
   useEffect(() => welcomeTour.onOpen(() => setOpen(false)), []);
 
@@ -276,146 +300,145 @@ export function Configuration({
 
   return (
     <>
-      {open && (
-        <Dialog
-          title={c.title}
-          onClose={() => {
-            setOpen(false);
-            // Re-read the settings on the server. Every field in here is seeded
-            // from a prop when it mounts, and closing unmounts them — so without
-            // this the next open would redraw the page's first paint and a
-            // setting saved a moment ago would look lost, while the file has it.
-            // On close rather than on each save: nothing on screen shows these
-            // settings while the dialog is up, and a refresh per keystroke-blur
-            // would re-read the whole board for nobody.
-            router.refresh();
-          }}
-          // Wide enough to put a field's help beside its control rather than under
-          // it (see Field below), which is what kept the harness pane scrolling.
-          width={1040}
-          height="min(760px, calc(100dvh - 2rem))"
-          flush
+      <Dialog
+        open={open}
+        title={c.title}
+        onClose={() => {
+          setOpen(false);
+          // Re-read the settings on the server. Every field in here is seeded
+          // from a prop when it mounts, and closing unmounts them — so without
+          // this the next open would redraw the page's first paint and a
+          // setting saved a moment ago would look lost, while the file has it.
+          // On close rather than on each save: nothing on screen shows these
+          // settings while the dialog is up, and a refresh per keystroke-blur
+          // would re-read the whole board for nobody.
+          router.refresh();
+        }}
+        // Wide enough to put a field's help beside its control rather than under
+        // it (see Field below), which is what kept the harness pane scrolling.
+        width={1040}
+        height="min(760px, calc(100dvh - 2rem))"
+        flush
+      >
+        {/* The section list. A quiet vertical nav on the wash, the active entry
+            in the ember tint — the same active language as the harness rows.
+
+            Two groups on the desktop (#742), each captioned. On a phone the nav is one
+            horizontal strip: a caption in a row of entries would read as an entry, so the
+            headings drop and the groups run on in order, still all reachable by scroll.
+            The group keeps its accessible name there through `aria-label`. */}
+        <nav
+          aria-label={c.sections}
+          className="flex w-[200px] shrink-0 flex-col gap-5 border-r border-nb-ink/10 bg-nb-cream p-3 max-sm:w-full max-sm:flex-row max-sm:gap-1 max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
         >
-          {/* The section list. A quiet vertical nav on the wash, the active entry
-              in the ember tint — the same active language as the harness rows.
+          {NAV_GROUPS.map((group) => {
+            const entries = sections.filter((entry) => entry.group === group);
+            if (!entries.length) return null;
+            return (
+              <div
+                key={group}
+                role="group"
+                aria-label={c.navGroup[group]}
+                className="flex flex-col gap-1 max-sm:shrink-0 max-sm:flex-row"
+              >
+                <h3 className={`${CAPTION} mb-0.5 px-3 text-nb-ink-soft/70 max-sm:hidden`}>
+                  {c.navGroup[group]}
+                </h3>
+                {entries.map(({ id, icon: Icon }) => {
+                  const on = id === section;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-current={on}
+                      onClick={() => setSection(id)}
+                      className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 nb-focus max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap ${
+                        on
+                          ? "bg-nb-accent-soft text-nb-accent-deep"
+                          : "text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
+                      }`}
+                    >
+                      <Icon className="shrink-0 text-[15px]" aria-hidden />
+                      {c.section[id]}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </nav>
 
-              Two groups on the desktop (#742), each captioned. On a phone the nav is one
-              horizontal strip: a caption in a row of entries would read as an entry, so the
-              headings drop and the groups run on in order, still all reachable by scroll.
-              The group keeps its accessible name there through `aria-label`. */}
-          <nav
-            aria-label={c.sections}
-            className="flex w-[200px] shrink-0 flex-col gap-5 border-r border-nb-ink/10 bg-nb-cream p-3 max-sm:w-full max-sm:flex-row max-sm:gap-1 max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
-          >
-            {NAV_GROUPS.map((group) => {
-              const entries = sections.filter((entry) => entry.group === group);
-              if (!entries.length) return null;
-              return (
-                <div
-                  key={group}
-                  role="group"
-                  aria-label={c.navGroup[group]}
-                  className="flex flex-col gap-1 max-sm:shrink-0 max-sm:flex-row"
-                >
-                  <h3 className={`${CAPTION} mb-0.5 px-3 text-nb-ink-soft/70 max-sm:hidden`}>
-                    {c.navGroup[group]}
-                  </h3>
-                  {entries.map(({ id, icon: Icon }) => {
-                    const on = id === section;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        aria-current={on}
-                        onClick={() => setSection(id)}
-                        className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 nb-focus max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap ${
-                          on
-                            ? "bg-nb-accent-soft text-nb-accent-deep"
-                            : "text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
-                        }`}
-                      >
-                        <Icon className="shrink-0 text-[15px]" aria-hidden />
-                        {c.section[id]}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </nav>
+        {/* The panes. Every one stays mounted and the inactive ones hide: the
+            fields hold optimistic state seeded from the server's first paint,
+            so unmounting on a section switch would throw away a value saved a
+            moment ago. The dialog's fixed height keeps the panes steady;
+            a pane taller than it scrolls here. */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-sm:p-4 max-sm:pb-8">
+          {/* What the board is set up with, in three groups on one pane (see General.tsx):
+              the coding-agent setup (#174), how a delivery is built (#303) and the
+              language this machine reads in (#334). Mounted only while it is the section
+              on screen — the setup group spawns a process to ask what `akb` on the PATH
+              is, and that answer should be the one from a moment ago. */}
+          {section === "general" && <GeneralPanel onError={onError} />}
+          {/* The runtimes this board owns (#468) — one row each, **Global default** first,
+              and under an open row the whole of what that row runs as.
 
-          {/* The panes. Every one stays mounted and the inactive ones hide: the
-              fields hold optimistic state seeded from the server's first paint,
-              so unmounting on a section switch would throw away a value saved a
-              moment ago. The dialog's fixed height keeps the panes steady;
-              a pane taller than it scrolls here. */}
-          <div className="min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-sm:p-4 max-sm:pb-8">
-            {/* What the board is set up with, in three groups on one pane (see General.tsx):
-                the coding-agent setup (#174), how a delivery is built (#303) and the
-                language this machine reads in (#334). Mounted only while it is the section
-                on screen — the setup group spawns a process to ask what `akb` on the PATH
-                is, and that answer should be the one from a moment ago. */}
-            {section === "general" && <GeneralPanel onError={onError} />}
-            {/* The runtimes this board owns (#468) — one row each, **Global default** first,
-                and under an open row the whole of what that row runs as.
-
-                Always mounted, unlike the panes below it: every box in here holds optimistic
-                state seeded from the server's first paint, and unmounting on a section switch
-                would throw away a value saved a moment ago. */}
-            <div hidden={section !== "runtimes"}>
-              <RuntimesPanel agent={agent} onError={onError} />
-            </div>
-            {/* The team (#420, #422) — everyone working on the board, the rule each one
-                carries, what it remembers, its settings and, for an agent this project
-                added, its own AGENT.md. Mounted only while it is the section on screen: it
-                asks the board for its roster when it draws, and that roster carries the
-                switches and the rules as they read right now. */}
-            {/* The workflows a card runs through and the agents they assign, in one pane
-                (#715, #944) — the workflow, its three stages, who runs each, and the selected
-                agent's whole page beside the list. Mounted only while it is the section on
-                screen: it asks the board for its workflows, their candidates and the roster
-                when it draws, and all three move as agents are added. */}
-            {section === "workflows" && (
-              <WorkflowsPanel
-                info={agent}
-                onRuntimes={() => setSection("runtimes")}
-                onError={onError}
-              />
-            )}
-            {section === "memories" && (
-              <MemoriesPanel openOn={pickAgent} onOpened={() => setPickAgent("")} onError={onError} />
-            )}
-            {/* The agents that belong to the BOARD rather than to any workflow — the
-                discussion, material triage, follow-up suggestions,
-                parked tasks, feedback and the memory pruner. Each keeps the agent, the
-                runtime, the rule, the trigger and the switch it has always had. */}
-            {section === "upkeep" && (
-              <AgentsPanel
-                info={agent}
-                openOn={pickAgent}
-                onPicked={() => setPickAgent("")}
-                onRuntimes={() => setSection("runtimes")}
-                onError={onError}
-              />
-            )}
-            {/* The workspace this board lives in (#317) — its name, the machines that run its
-                work, the export, leaving Cloud and the deletion. Mounted only while it is the
-                section on screen: it asks the service what the workspace holds right now. */}
-            {section === "workspace" && cloudBoard && <WorkspacePanel onError={onError} />}
-            {/* Cloud and Notifications (#326, #886). One instance for both, so the account and
-                a sign-in waiting in the browser carry across a switch between them. */}
-            {(section === "cloud" || section === "notifications" || section === "billing") && (
-              <CloudPanel
-                tab={section}
-                openOn={pickAgent}
-                onOpened={() => setPickAgent("")}
-                onError={onError}
-              />
-            )}
+              Always mounted, unlike the panes below it: every box in here holds optimistic
+              state seeded from the server's first paint, and unmounting on a section switch
+              would throw away a value saved a moment ago. */}
+          <div hidden={section !== "runtimes"}>
+            <RuntimesPanel agent={agent} onError={onError} />
           </div>
-        </Dialog>
-      )}
-      {/* The board's storage moving (#614). Outside the `open` above on purpose: the move is
+          {/* The team (#420, #422) — everyone working on the board, the rule each one
+              carries, what it remembers, its settings and, for an agent this project
+              added, its own AGENT.md. Mounted only while it is the section on screen: it
+              asks the board for its roster when it draws, and that roster carries the
+              switches and the rules as they read right now. */}
+          {/* The workflows a card runs through and the agents they assign, in one pane
+              (#715, #944) — the workflow, its three stages, who runs each, and the selected
+              agent's whole page beside the list. Mounted only while it is the section on
+              screen: it asks the board for its workflows, their candidates and the roster
+              when it draws, and all three move as agents are added. */}
+          {section === "workflows" && (
+            <WorkflowsPanel
+              info={agent}
+              onRuntimes={() => setSection("runtimes")}
+              onError={onError}
+            />
+          )}
+          {section === "memories" && (
+            <MemoriesPanel openOn={pickAgent} onOpened={() => setPickAgent("")} onError={onError} />
+          )}
+          {/* The agents that belong to the BOARD rather than to any workflow — the
+              discussion, material triage, follow-up suggestions,
+              parked tasks, feedback and the memory pruner. Each keeps the agent, the
+              runtime, the rule, the trigger and the switch it has always had. */}
+          {section === "upkeep" && (
+            <AgentsPanel
+              info={agent}
+              openOn={pickAgent}
+              onPicked={() => setPickAgent("")}
+              onRuntimes={() => setSection("runtimes")}
+              onError={onError}
+            />
+          )}
+          {/* The workspace this board lives in (#317) — its name, the machines that run its
+              work, the export, leaving Cloud and the deletion. Mounted only while it is the
+              section on screen: it asks the service what the workspace holds right now. */}
+          {section === "workspace" && cloudBoard && <WorkspacePanel onError={onError} />}
+          {/* Cloud and Notifications (#326, #886). One instance for both, so the account and
+              a sign-in waiting in the browser carry across a switch between them. */}
+          {(section === "cloud" || section === "notifications" || section === "billing") && (
+            <CloudPanel
+              tab={section}
+              openOn={pickAgent}
+              onOpened={() => setPickAgent("")}
+              onError={onError}
+            />
+          )}
+        </div>
+      </Dialog>
+      {/* The board's storage moving (#614). Outside the dialog on purpose: the move is
           started from the Cloud pane and outlives the dialog, and the page it draws covers
           the whole window rather than sitting in one. */}
       <CloudMigration />

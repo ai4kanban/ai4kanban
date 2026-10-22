@@ -59,9 +59,10 @@ export const PULSE_DOT_INK =
  *  the centre of the row.
  *
  *  It carries the tip too (#655): a tool is an icon and nothing else, so the only
- *  thing that says what it does is the bubble under it. Give it a `data-tip`. */
+ *  thing that says what it does is the bubble under it. Give it a `data-tip`, and
+ *  `aria-pressed` while what it opened is up. */
 export const TOOL_BTN =
-  "nb-tip nb-tip-below relative inline-flex h-full w-7 max-md:w-9 shrink-0 cursor-pointer items-center justify-center text-nb-ink transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]";
+  "nb-tip nb-tip-below relative inline-flex h-full w-7 max-md:w-9 shrink-0 cursor-pointer items-center justify-center text-nb-ink transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] aria-pressed:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]";
 
 /** The line between two segments of one framed control — the tools in a cluster.
  *

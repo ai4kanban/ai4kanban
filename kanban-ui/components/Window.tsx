@@ -359,15 +359,22 @@ export function Window({
   const besideFlip = useFlip(chatBeside, glide ? 220 : 0);
   const overFlip = useFlip(chatOver, glide ? 220 : 0);
   const chatOut = besideFlip === "out" && !bell.open && !sideOpen && !chat.overlay;
+  // The bell slides the same way (#1959), and gives way to the chat taking its place.
+  const bellGlide = !!bell.slide && !still;
+  const bellOver = bell.open && bell.overlay && !sideOpen;
+  const bellFlip = useFlip(bellBeside, bellGlide ? 220 : 0);
+  const bellOverFlip = useFlip(bellOver, bellGlide ? 220 : 0);
+  const bellOut = bellFlip === "out" && !bell.open && !sideOpen && !bell.overlay && !chatBeside;
+  const outRail = chatOut ? "chat" : bellOut ? "bell" : null;
   const panes = useRef<HTMLDivElement>(null);
   // Folding, the body takes the rail's share as the rail goes to nothing — its own and the
   // rail's together, so the left rail never moves.
   useLayoutEffect(() => {
     const el = panes.current;
-    if (!chatOut || !el) return;
+    if (!outRail || !el) return;
     const grow = (id: string) => Number(el.querySelector<HTMLElement>(`[data-panel][id="${id}"]`)?.style.flexGrow) || 0;
-    el.style.setProperty("--nb-body-grow", String(grow("body") + grow("chat")));
-  }, [chatOut]);
+    el.style.setProperty("--nb-body-grow", String(grow("body") + grow(outRail)));
+  }, [outRail]);
   const finding = phone && query.trim().length > 0;
   const covered = finding || cover !== null;
   const slot = useMemo(() => ({ show: side.show, covered }), [side.show, covered]);
@@ -410,7 +417,13 @@ export function Window({
           rail stays the width you left it. */}
       <div
         ref={panes}
-        className={`min-h-0 flex-1 ${besideFlip === "in" && chatBeside ? "nb-glide" : chatOut ? "nb-glide-out" : ""}`}
+        className={`min-h-0 flex-1 ${
+          (besideFlip === "in" && chatBeside) || (bellFlip === "in" && bellBeside)
+            ? "nb-glide"
+            : outRail
+              ? "nb-glide-out"
+              : ""
+        }`}
       >
         {/* One group, two draggable panels, so both handlers are called: each reads its own
             panel's width and writes it down, and ignores a layout it didn't cause. */}
@@ -484,7 +497,7 @@ export function Window({
                 {side.pane?.node}
               </ResizablePanel>
             </>
-          ) : bellBeside ? (
+          ) : bellBeside || bellOut ? (
             <>
               <ResizableHandle aria-label={c.resize.bell} onDoubleClick={bell.onDoubleClick} />
               <ResizablePanel
@@ -528,9 +541,9 @@ export function Window({
         >
           {side.pane?.node}
         </div>
-      ) : bell.open && bell.overlay ? (
+      ) : bellOver || (bellOverFlip === "out" && bell.overlay && !chatOver) ? (
         <div
-          className="fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
+          className={`fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream ${slideClass(bellOverFlip)}`}
           style={{ bottom: phone ? PHONE_TABS_H : 0, borderLeft: "1.5px solid var(--color-nb-ink)" }}
         >
           <BellPane rail={bell} />
@@ -538,13 +551,7 @@ export function Window({
       ) : (
         (chatOver || (overFlip === "out" && chat.overlay)) && (
           <div
-            className={`fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream ${
-              overFlip === "in"
-                ? "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]"
-                : overFlip === "out"
-                  ? "animate-[nbSlideOutRight_180ms_ease-in_forwards]"
-                  : ""
-            }`}
+            className={`fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream ${slideClass(overFlip)}`}
             style={{ bottom: phone ? PHONE_TABS_H : 0, borderLeft: "1.5px solid var(--color-nb-ink)" }}
           >
             <ChatPane rail={chat} />
@@ -564,6 +571,15 @@ export function Window({
     </CardEventsProvider>
     </BellProvider>
   );
+}
+
+/** A rail laid over the window sliding in or out from the right. */
+function slideClass(flip: "in" | "out" | null): string {
+  return flip === "in"
+    ? "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]"
+    : flip === "out"
+      ? "animate-[nbSlideOutRight_180ms_ease-in_forwards]"
+      : "";
 }
 
 /** For `ms` after `on` flips, which way it went — so something can play its way in, or stay

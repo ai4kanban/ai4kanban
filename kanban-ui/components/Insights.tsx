@@ -54,17 +54,16 @@ export function Insights({ row = false }: { row?: boolean }) {
         className={TOOL_BTN}
         data-tip={c.open}
         aria-label={c.open}
+        aria-pressed={open}
         onClick={() => setOpen(true)}
       >
         <FiTrendingUp size={15} aria-hidden />
       </button>
       )}
 
-      {open && (
-        <Dialog title={c.title} onClose={() => setOpen(false)} width={760}>
-          <InsightsBody />
-        </Dialog>
-      )}
+      <Dialog open={open} title={c.title} onClose={() => setOpen(false)} width={760}>
+        <InsightsBody />
+      </Dialog>
     </>
   );
 }

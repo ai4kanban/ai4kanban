@@ -26,7 +26,7 @@ import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
 import { workflows } from "@/lib/window-state";
-import { usePhone } from "@/lib/media";
+import { useLeaving, usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
@@ -752,6 +752,8 @@ export function Sessions() {
   // this button has to carry, and the reason its corner mark is no longer about live work
   // alone.
   const stuck = useMemo(() => unhandledFlows(runFlows(sessions)).length, [sessions]);
+  // Stays drawn while it plays its way out, like Dialog (#1959).
+  const shown = useLeaving(panel.open, usePhone() ? 0 : 150);
 
   return (
     <>
@@ -762,6 +764,7 @@ export function Sessions() {
           stuck > 0 ? c.openUnhandled(stuck) : runningCount > 0 ? c.openRunning(runningCount) : c.open
         }
         aria-label={c.open}
+        aria-pressed={panel.open}
         // The middle tool in the header's cluster (components/chrome.tsx): no
         // frame of its own, a hairline on each side of it.
         className={TOOL_BTN}
@@ -799,7 +802,7 @@ export function Sessions() {
           )
         )}
       </button>
-      {panel.open && <SessionsDialog sessions={sessions} onStarted={kick} />}
+      {shown.drawn && <SessionsDialog sessions={sessions} onStarted={kick} leaving={shown.leaving} />}
     </>
   );
 }
@@ -815,8 +818,10 @@ export function Sessions() {
 function SessionsDialog({
   sessions,
   onStarted,
+  leaving,
 }: {
   sessions: SessionView[];
+  leaving: boolean;
   // Called when the dialog itself put a run into the registry (Resume), so
   // the poll wakes at once and the new run joins the list without a wait.
   onStarted: () => void;
@@ -854,7 +859,7 @@ function SessionsDialog({
 
   if (!mounted) return null;
 
-  const parts = { flows, selectedId, selected, log, flow, onStarted };
+  const parts = { flows, selectedId, selected, log, flow, onStarted, leaving };
   return createPortal(
     roomy && !sceneFailed ? (
       <RunsOffice {...parts} onSceneFailed={() => setSceneFailed(true)} />
@@ -873,6 +878,7 @@ interface RunsParts {
   log: SessionView | null;
   flow: RunFlow | null;
   onStarted: () => void;
+  leaving: boolean;
 }
 
 // --- the office ---------------------------------------------------------------
@@ -889,6 +895,7 @@ function RunsOffice({
   flow,
   onStarted,
   onSceneFailed,
+  leaving,
 }: RunsParts & { onSceneFailed: () => void }) {
   const t = useCopy();
   const c = t.runs.panel;
@@ -999,11 +1006,16 @@ function RunsOffice({
   }, []);
 
   return (
-    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={() => sessionsPanel.close()}>
+    <div
+      className="nb-scrim a4k-scrim"
+      data-leaving={leaving || undefined}
+      style={{ alignItems: "center" }}
+      onClick={() => sessionsPanel.close()}
+    >
       <div
         ref={surface}
         data-runs-office
-        className="nb-panel relative overflow-hidden"
+        className="nb-panel a4k-dialog relative overflow-hidden"
         // The same frame as Configuration: both are the board's big dialogs. Here every
         // pixel of its interior is the room — no header, no padding, nothing to switch.
         style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}
@@ -1313,6 +1325,7 @@ function RunsPanes({
   flow,
   onStarted,
   note,
+  leaving,
 }: RunsParts & { note: boolean }) {
   const t = useCopy();
   const c = t.runs.panel;
@@ -1332,12 +1345,17 @@ function RunsPanes({
   }, []);
 
   return (
-    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={() => sessionsPanel.close()}>
+    <div
+      className="nb-scrim a4k-scrim"
+      data-leaving={leaving || undefined}
+      style={{ alignItems: "center" }}
+      onClick={() => sessionsPanel.close()}
+    >
       <div
         // overflow-hidden clips the list column's edge-to-edge cream fill to the
         // panel radius — without it the square fill pokes past the rounded corner.
         ref={surface}
-        className="nb-panel flex flex-col overflow-hidden"
+        className="nb-panel a4k-dialog flex flex-col overflow-hidden"
         style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}
         aria-label={c.heading}
         onClick={(e) => e.stopPropagation()}
