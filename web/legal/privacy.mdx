@@ -2,12 +2,12 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, turn AI4Kanban Cloud on for a board, and subscribe to Pro."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, the AI4Kanban Cloud preview, and the Pro subscription."
-effective: 2026-10-16
+effective: 2026-10-22
 ---
 
 <TLDR title="The short version">
 
-- **This site counts two things.** A page was loaded, and a download button was pressed — so we can see whether the landing page works. No cookies, no accounts, nothing stored in your browser, and no identifier of any kind, so one visit is never tied to another. It is static files served by Cloudflare.
+- **This site counts two things.** A page was loaded, and a download button was pressed — so we can see whether the landing page works. No cookies, no accounts, and no identifier of any kind, so one visit is never tied to another. The only thing it keeps in your browser is the language you pick, so it stops offering you one. It is static files served by Cloudflare.
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out.
 - **Anonymous usage reporting is on by default**, in the app and in the `akb` command. It sends which features are used and which of them fail — counts and the names of events, never a word you wrote — tied to a random install id and to nothing about you. It never carries your code, your card text, your project names, or your file paths. The app discloses it in a step you answer before your first board opens, and you can turn it off there, in **Configuration → General**, or with `akb telemetry off`.
 - **AI4Kanban Cloud is an invite-only preview** that relays a board's task events — a review to approve, a question to answer — to the people who can act on them, and the decisions they make, on servers we run in Frankfurt. On a board you share, a review reaches its members and a question reaches its owners. [What Cloud is](/cloud).
@@ -38,7 +38,9 @@ The parts of the Service handle data very differently, so the sections that foll
 `ai4kanban.dev` is a static website. Every page is a file built ahead of time and served by Cloudflare Pages; there is no application server behind it and no database.
 
 - **We count page loads and download presses, and nothing else.** There is no analytics product on this site — no third-party script, no session recorder, no dashboard. The counter is a few lines of our own that post to `t.ai4kanban.dev`, the endpoint the app reports to, and the whole of what it sends is the table below. It answers one question: of the people who reach a page with a download button, how many press it.
-- **No cookies.** The site sets no cookies of any kind, essential or otherwise, and stores nothing in your browser — no local storage, no identifier. There is no cookie banner because there is nothing to consent to.
+- **No cookies.** The site sets no cookies of any kind, essential or otherwise, and keeps no identifier in your browser. There is no cookie banner because the two things it does keep there, below, are settings you made yourself.
+- **Your language choice.** Once you pick a language — the link or × on the language bar, or the footer's language menu — the site keeps that language's code in your browser's local storage, so the bar is not offered again. It is not an identifier, it is never sent to us or anyone, and clearing your browser's data removes it.
+- **The demo.** The [`/demo`](/demo) page runs the app's own screens, and like the app it remembers their layout and what you typed into them in your browser's storage. That stays on your machine and is never sent anywhere.
 - **No advertising or tracking pixels.** There are no ad networks, no data brokers, no retargeting tags, and no third-party trackers embedded in any page.
 - **No accounts.** There is nothing to sign up for on this site. The training page's booking form and the contact form are the two places it asks for your email address, and each is described in its own section below.
 
@@ -390,7 +392,7 @@ For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 - **Legitimate interests** — keeping the Service secure and working, preventing abuse, including the rate limits on the booking and contact forms, telling an account in the preview that the preview is ending or that these pages have materially changed, understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens, and the two counts this site keeps, which carry no identifier and so are about no one in particular.
 - **Legal obligation** — when a law applies to us.
 
-We rely on **consent** for nothing today: there is no marketing email, no non-essential cookie, and nothing the site stores in your browser to consent to. Anonymous usage reporting is optional and disclosed before your first board opens, and it rests on legitimate interests rather than on consent, so **turning it off is the choice you make and we do not ask you for one again**.
+We rely on **consent** for nothing today: there is no marketing email, no non-essential cookie, and nothing the site keeps in your browser beyond the language and demo settings you made yourself, which only shape what you see. Anonymous usage reporting is optional and disclosed before your first board opens, and it rests on legitimate interests rather than on consent, so **turning it off is the choice you make and we do not ask you for one again**.
 
 ## How we share information
 
@@ -406,7 +408,7 @@ We share information only in these limited cases:
 
 ## Cookies and tracking
 
-The site sets no cookies and stores nothing in your browser. The two things it counts are described above, and neither carries an identifier of any kind.
+The site sets no cookies. It keeps the language you picked, and the demo's layout and what you typed into it, in your browser's storage, as described under [Visiting the site](#visiting-the-site); none of it is an identifier and none of it is sent to us. The two things it counts are described above, and neither carries an identifier of any kind.
 
 Cloud's sign-in is not a browser cookie either. Signing in happens once per machine and the session is stored locally by the app, kept out of your repository, and used by both the app and the `akb` command. Signing out removes it.
 
