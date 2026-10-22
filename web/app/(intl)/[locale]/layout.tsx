@@ -4,6 +4,7 @@ import { PageView } from "@/components/PageView";
 import { getCopy } from "@/i18n";
 import { inter } from "@/lib/fonts";
 import { htmlLang, pageMetadata, siteIcons } from "@/lib/metadata";
+import { LOCALE_SUGGEST_SCRIPT } from "@/lib/locale-suggest";
 import { BASE_URL } from "@/lib/site";
 import { TRANSLATED_LOCALES, isTranslatedLocale } from "@/lib/i18n";
 import "../../globals.css";
@@ -41,7 +42,12 @@ export default async function IntlRootLayout({
   if (!isTranslatedLocale(locale)) notFound();
 
   return (
-    <html lang={htmlLang(locale)} className={inter.variable}>
+    // suppressHydrationWarning: LOCALE_SUGGEST_SCRIPT marks <html> before React.
+    <html
+      suppressHydrationWarning
+      lang={htmlLang(locale)}
+      className={inter.variable}
+    >
       <head>
         {/* Same domain shepherding as the English layout — see (en)/layout.tsx. */}
         <script
@@ -49,6 +55,7 @@ export default async function IntlRootLayout({
             __html: `if(location.hostname.endsWith(".pages.dev")||location.hostname.endsWith("kanbanskill.cc")){location.replace("https://ai4kanban.dev"+location.pathname+location.search+location.hash)}`,
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: LOCALE_SUGGEST_SCRIPT }} />
       </head>
       <body className="font-sans antialiased">
         {children}

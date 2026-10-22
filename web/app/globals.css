@@ -60,6 +60,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The language bar above the header: lib/locale-suggest.ts sets data-suggest. */
+[data-locale-banner] {
+  display: none;
+}
+html[data-suggest="en"] [data-locale-banner="en"],
+html[data-suggest="zh"] [data-locale-banner="zh"],
+html[data-suggest="es"] [data-locale-banner="es"],
+html[data-suggest="ja"] [data-locale-banner="ja"],
+html[data-suggest="fr"] [data-locale-banner="fr"] {
+  display: block;
+}
+
 /* The header's Resources panel: rises and grows in; only fades with reduced motion. */
 @keyframes menu-in {
   from {

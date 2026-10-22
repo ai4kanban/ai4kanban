@@ -3,6 +3,7 @@ import { PageView } from "@/components/PageView";
 import { getCopy } from "@/i18n";
 import { inter } from "@/lib/fonts";
 import { htmlLang, pageMetadata, siteIcons } from "@/lib/metadata";
+import { LOCALE_SUGGEST_SCRIPT } from "@/lib/locale-suggest";
 import { BASE_URL } from "@/lib/site";
 import "../globals.css";
 
@@ -34,7 +35,12 @@ export default function EnglishRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang={htmlLang("en")} className={inter.variable}>
+    // suppressHydrationWarning: LOCALE_SUGGEST_SCRIPT marks <html> before React.
+    <html
+      suppressHydrationWarning
+      lang={htmlLang("en")}
+      className={inter.variable}
+    >
       <head>
         {/* Send *.pages.dev and the old kanbanskill.cc domain to the current one.
             Raw inline script so it runs during HTML parse (no flash, no dependency
@@ -46,6 +52,7 @@ export default function EnglishRootLayout({
             __html: `if(location.hostname.endsWith(".pages.dev")||location.hostname.endsWith("kanbanskill.cc")){location.replace("https://ai4kanban.dev"+location.pathname+location.search+location.hash)}`,
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: LOCALE_SUGGEST_SCRIPT }} />
       </head>
       <body className="font-sans antialiased">
         {children}

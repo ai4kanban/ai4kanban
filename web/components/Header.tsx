@@ -8,7 +8,6 @@ import {
   FiBookOpen,
   FiCompass,
   FiDownload,
-  FiGlobe,
   FiGrid,
 } from "react-icons/fi";
 import { Button } from "./ui/Button";
@@ -17,13 +16,10 @@ import { GITHUB_URL } from "./content";
 import { Dropdown } from "./Dropdown";
 import { MobileNav } from "./MobileNav";
 import { hairline } from "./styles";
+import { LocaleBanners } from "./LocaleBanner";
 import {
-  LOCALES,
-  LOCALE_NAMES,
-  LOCALE_TAGS,
   localeHref,
   localePath,
-  localesFor,
   publishedIn,
   stripLocale,
   type Locale,
@@ -51,26 +47,6 @@ function useScrolled() {
   return scrolled;
 }
 
-// The browser's first language, when this page has a copy in it and it is not
-// the one being read. Decided after mount: the static HTML has no browser.
-function useSuggestedLocale(locale: Locale, path: string) {
-  const [suggested, setSuggested] = useState<Locale | null>(null);
-
-  useEffect(() => {
-    const first = (navigator.languages?.[0] ?? navigator.language ?? "")
-      .split("-")[0]
-      .toLowerCase();
-    const match = LOCALES.find((l) => l === first);
-    setSuggested(
-      match && match !== locale && localesFor(path).includes(match)
-        ? match
-        : null,
-    );
-  }, [locale, path]);
-
-  return suggested;
-}
-
 // The chrome on top of every page.
 export function Header({
   c,
@@ -91,115 +67,106 @@ export function Header({
   const templates = publishedIn("/templates", locale);
   const pricing = publishedIn("/pricing", locale);
   const path = stripLocale(usePathname() ?? "");
-  const suggested = useSuggestedLocale(locale, path);
 
   return (
-    // Sticky, so the menus get a z-index over the page. The rule is transparent
-    // rather than absent at the top so the row doesn't jump when it appears.
-    <header
-      className={`sticky top-0 z-30 border-b transition-colors duration-150 ${
-        scrolled
-          ? `${hairline} bg-elev/85 backdrop-blur-md`
-          : `border-transparent ${overlay ? "bg-transparent" : "bg-elev/85 backdrop-blur-md"}`
-      }`}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
-        <a href={localePath(locale, "")} className="text-ink no-underline">
-          <Logo size="sm" />
-        </a>
-
-        {/* Phone: the two actions stay out in the row, everything else is
-            behind the menu. The swap is at `lg`: French labels overflow `md`. */}
-        <div className="flex items-center gap-2.5 lg:hidden">
-          <GitHubButton label={c.shared.footer.github} />
-          <Button
-            href={localeHref(locale, "/download")}
-            variant="ink"
-            size="icon"
-            aria-label={nav.download}
-          >
-            <FiDownload className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <MobileNav c={c} locale={locale} />
-        </div>
-
-        <nav className="hidden items-center text-[0.95rem] text-muted lg:flex lg:gap-x-4 xl:gap-x-6">
-          {/* The docs and the blog are English-only, so they never take a
-              locale prefix. */}
-          <a href="/docs" className="transition-colors hover:text-ink">
-            {nav.docs}
+    <>
+      <LocaleBanners locale={locale} path={path} />
+      {/* Sticky, so the menus get a z-index over the page. The rule is transparent
+          rather than absent at the top so the row doesn't jump when it appears. */}
+      <header
+        className={`sticky top-0 z-30 border-b transition-colors duration-150 ${
+          scrolled
+            ? `${hairline} bg-elev/85 backdrop-blur-md`
+            : `border-transparent ${overlay ? "bg-transparent" : "bg-elev/85 backdrop-blur-md"}`
+        }`}
+      >
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
+          <a href={localePath(locale, "")} className="text-ink no-underline">
+            <Logo size="sm" />
           </a>
-          {pricing && (
-            <a
-              href={localeHref(locale, "/pricing")}
-              className="transition-colors hover:text-ink"
-            >
-              {nav.pricing}
-            </a>
-          )}
-          <Dropdown
-            label={nav.resources}
-            hover
-            width="w-[340px]"
-            summaryClass="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink group-open:text-ink"
-            panelClass={`menu-in relative mt-1 rounded-xl border bg-elev p-1.5 shadow-[0_16px_40px_-16px_rgba(36,35,31,0.3)] ${hairline}`}
-          >
-            <span
-              aria-hidden="true"
-              className={`absolute -top-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-tl-[3px] border-l border-t bg-elev ${hairline}`}
-            />
-            <ResourceLink
-              href="/blog"
-              title={nav.blog}
-              note={nav.blogNote}
-              Icon={FiBookOpen}
-              tint="bg-accent/10 text-accent-deep"
-            />
-            {templates && (
-              <ResourceLink
-                href={localeHref(locale, "/templates")}
-                title={nav.templates}
-                note={nav.templatesNote}
-                Icon={FiGrid}
-                tint="bg-nb-peach-soft text-nb-peach-ink"
-              />
-            )}
-            {training && (
-              <ResourceLink
-                href={localeHref(locale, "/training")}
-                title={nav.training}
-                note={nav.trainingNote}
-                Icon={FiCompass}
-                tint="bg-growth/10 text-growth"
-              />
-            )}
-          </Dropdown>
-          {suggested && (
-            <a
-              href={localePath(suggested, path)}
-              lang={LOCALE_TAGS[suggested]}
-              hrefLang={LOCALE_TAGS[suggested]}
-              className="flex items-center gap-1.5 transition-colors hover:text-ink"
-            >
-              <FiGlobe className="h-4 w-4" aria-hidden="true" />
-              {LOCALE_NAMES[suggested]}
-            </a>
-          )}
-          {/* The one place to get the product, and its source beside it. */}
-          <div className="flex items-center gap-2.5">
+
+          {/* Phone: the two actions stay out in the row, everything else is
+              behind the menu. The swap is at `lg`: French labels overflow `md`. */}
+          <div className="flex items-center gap-2.5 lg:hidden">
             <GitHubButton label={c.shared.footer.github} />
             <Button
               href={localeHref(locale, "/download")}
               variant="ink"
-              size="sm"
+              size="icon"
+              aria-label={nav.download}
             >
               <FiDownload className="h-4 w-4" aria-hidden="true" />
-              {nav.download}
             </Button>
+            <MobileNav c={c} locale={locale} />
           </div>
-        </nav>
-      </div>
-    </header>
+
+          <nav className="hidden items-center text-[0.95rem] text-muted lg:flex lg:gap-x-4 xl:gap-x-6">
+            {/* The docs and the blog are English-only, so they never take a
+                locale prefix. */}
+            <a href="/docs" className="transition-colors hover:text-ink">
+              {nav.docs}
+            </a>
+            {pricing && (
+              <a
+                href={localeHref(locale, "/pricing")}
+                className="transition-colors hover:text-ink"
+              >
+                {nav.pricing}
+              </a>
+            )}
+            <Dropdown
+              label={nav.resources}
+              hover
+              width="w-[340px]"
+              summaryClass="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink group-open:text-ink"
+              panelClass={`menu-in relative mt-1 rounded-xl border bg-elev p-1.5 shadow-[0_16px_40px_-16px_rgba(36,35,31,0.3)] ${hairline}`}
+            >
+              <span
+                aria-hidden="true"
+                className={`absolute -top-[5px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-tl-[3px] border-l border-t bg-elev ${hairline}`}
+              />
+              <ResourceLink
+                href="/blog"
+                title={nav.blog}
+                note={nav.blogNote}
+                Icon={FiBookOpen}
+                tint="bg-accent/10 text-accent-deep"
+              />
+              {templates && (
+                <ResourceLink
+                  href={localeHref(locale, "/templates")}
+                  title={nav.templates}
+                  note={nav.templatesNote}
+                  Icon={FiGrid}
+                  tint="bg-nb-peach-soft text-nb-peach-ink"
+                />
+              )}
+              {training && (
+                <ResourceLink
+                  href={localeHref(locale, "/training")}
+                  title={nav.training}
+                  note={nav.trainingNote}
+                  Icon={FiCompass}
+                  tint="bg-growth/10 text-growth"
+                />
+              )}
+            </Dropdown>
+            {/* The one place to get the product, and its source beside it. */}
+            <div className="flex items-center gap-2.5">
+              <GitHubButton label={c.shared.footer.github} />
+              <Button
+                href={localeHref(locale, "/download")}
+                variant="ink"
+                size="sm"
+              >
+                <FiDownload className="h-4 w-4" aria-hidden="true" />
+                {nav.download}
+              </Button>
+            </div>
+          </nav>
+        </div>
+      </header>
+    </>
   );
 }
 

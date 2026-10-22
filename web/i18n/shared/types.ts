@@ -79,7 +79,16 @@ export type SharedCopy = {
     x: string;
   };
   code: { copy: string; copied: string; copyAria: string; copiedAria: string };
-  language: { label: string };
+  language: {
+    label: string;
+    /** The bar above the header offering this language, written in it. Phones
+     *  take `offerShort`, which must fit one row at 393px beside `switchTo`. */
+    offer: string;
+    offerShort: string;
+    switchTo: string;
+    /** Only read out loud: the bar's close button. */
+    dismiss: string;
+  };
   /** The "vs" separator between two product chips. */
   vs: string;
   /** The accent eyebrow above a comparison page's closing verdict. */

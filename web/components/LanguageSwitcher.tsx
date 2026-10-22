@@ -61,6 +61,8 @@ export function LanguageSwitcher({
             href={localePath(l, path)}
             hrefLang={LOCALE_TAGS[l]}
             lang={LOCALE_TAGS[l]}
+            // Remembered, so the bar above the header stops offering one.
+            data-locale-choice={l}
             className="block rounded-lg px-3 py-2 text-[0.9rem] font-medium text-muted no-underline transition-colors hover:bg-code hover:text-ink"
           >
             {LOCALE_NAMES[l]}
