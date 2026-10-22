@@ -234,6 +234,11 @@ export default function DraftSlice({ kind }: { kind: string }) {
   const view = useRef<HTMLDivElement>(null);
   const live = useLive(view);
   const clipped = useClipped(view);
+  const drawn = !!fit;
+  // Tells the home page's frame it can show this slice and start the next.
+  useEffect(() => {
+    if (drawn && parent !== window) parent.postMessage("draft-ready", location.origin);
+  }, [drawn]);
   return (
     <div
       ref={view}

@@ -33,7 +33,7 @@ body{overflow-x:clip}
 .wf-links{flex-direction:row;flex-wrap:wrap;align-items:center;gap:.75rem 1.25rem;margin-top:1rem}
 @media (max-width:639px){
 .wf-mat{flex:1;min-height:0}
-.wf-mat>div:last-child,.wf-mat [role=img],.wf-mat iframe{height:100%}
+.wf-mat>div:last-child,.wf-mat [role=img],.wf-mat .wf-frame{height:100%}
 }
 @media (min-width:640px){
 .wf-pin{height:240svh}
