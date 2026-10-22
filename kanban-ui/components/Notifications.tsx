@@ -54,6 +54,7 @@ import { FiBell, FiBellOff, FiCheck, FiChevronRight, FiSlash, FiX } from "react-
 import type { NotificationsCopy } from "@/i18n/notifications/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useBell } from "@/lib/card-event";
+import { clearOpening, markOpening } from "@/lib/card-opening";
 import { LEAVES_SHEET } from "@/lib/create-open";
 import type { BellRail, PageState } from "@/lib/bell-rail";
 import { statusLabel } from "@/lib/notification-status";
@@ -209,7 +210,10 @@ export function BellPane({ rail }: { rail: BellRail }) {
                     key={row.eventId}
                     row={row}
                     c={c}
-                    onOpen={() => void rail.openRow(row.eventId)}
+                    onOpen={async (el) => {
+                      markOpening(el, `/${row.taskId}`);
+                      if (!(await rail.openRow(row.eventId).catch(() => false))) clearOpening(el);
+                    }}
                   />
                 ))}
                 {center.more && (
@@ -347,11 +351,11 @@ function Tab({
  *  changed under it, and nothing else. The time is what says the list runs newest first, so
  *  the order needs no heading of its own. Unread is an accent dot and ink-weight text; read is
  *  the soft ink everything settled wears. */
-function Row({ row, c, onOpen }: { row: NotificationRow; c: NotificationsCopy; onOpen: () => void }) {
+function Row({ row, c, onOpen }: { row: NotificationRow; c: NotificationsCopy; onOpen: (el: Element) => void }) {
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={(e) => onOpen(e.currentTarget)}
       className="flex w-full cursor-pointer items-start gap-2 px-2 py-[9px] text-left hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]"
       style={{ borderBottom: `1px solid ${HAIRLINE}` }}
     >

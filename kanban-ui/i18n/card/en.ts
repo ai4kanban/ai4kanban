@@ -250,7 +250,7 @@ const en: CardCopy = {
     lineAdded: "added ",
     lineRemoved: "removed ",
   },
-  opening: { reading: "Reading the card…", failed: "The card could not be read.", retry: "Retry" },
+  opening: { failed: "The card could not be read.", retry: "Retry" },
   mockup: {
     play: "Play",
     pause: "Pause",

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { setLanguageAction } from "@/app/actions";
 import { AppActions } from "@/components/app-actions";
+import { CardOpening } from "@/components/card-opening";
 import { NavEdge, SwipeBack } from "@/components/desktop";
 import { DropGuard } from "@/components/drop-guard";
 import { getCopy } from "@/i18n";
@@ -89,6 +90,7 @@ export default async function RootLayout({
           {/* A file dropped anywhere the app has no use for it does nothing (#511) — here
               rather than on a screen, because what it guards is the window. */}
           <DropGuard />
+          <CardOpening />
           <TipHold />
           {/* The window has to be movable from every page, including the ones
               with no header — "there is no board here" is a whole screen with no

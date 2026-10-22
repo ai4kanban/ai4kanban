@@ -623,8 +623,8 @@ body {
     opacity: 0;
   }
 }
-/* A card or a screen on its way (#906): skeleton lines with a slow sheen, a breathing mark,
-   and a short fade for what replaces them. All static for less motion. */
+/* A screen on its way (#906): skeleton lines with a slow sheen, a breathing mark, and a
+   short fade for what replaces them. All static for less motion. */
 .a4k-skel {
   position: relative;
   overflow: hidden;
@@ -655,11 +655,29 @@ body {
     opacity: 0.12;
   }
 }
+/* What a card page is being opened from (lib/card-opening.ts), once the open is slow. */
+[data-opening] {
+  cursor: progress;
+  animation: a4kOpening 1.4s ease-in-out 300ms infinite;
+}
+@keyframes a4kOpening {
+  50% {
+    opacity: 0.5;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .a4k-skel::after,
   .a4k-reveal,
   .a4k-breathe {
     animation: none;
+  }
+  [data-opening] {
+    animation: a4kOpeningStill 0s 300ms forwards;
+  }
+}
+@keyframes a4kOpeningStill {
+  to {
+    opacity: 0.5;
   }
 }
 

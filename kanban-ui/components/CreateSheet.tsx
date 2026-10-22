@@ -23,7 +23,7 @@ import type { Starting } from "@/lib/create-open";
 import type { PlanPick } from "@/app/actions";
 import { BecameLine } from "./became";
 import { Button } from "./button";
-import { OpenFailed, Skeleton } from "./CardOpening";
+import { OpenFailed, Skeleton } from "./load-states";
 import { Transcript, Pasted, Pick, useBoardChanged } from "./Chat";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { MessageBox } from "./composer";

@@ -92,6 +92,8 @@ export interface BellRail {
   ready: boolean;
   toggle(): void;
   fold(): void;
+  /** Leave it up, folded for the next page drawn. */
+  foldNext(): void;
   /** Open it, wherever it stood — what the Dock badge's click asks for (#483). */
   unfold(): void;
   /** The window is too narrow for the rail to stand beside the board, so it covers it. */
@@ -110,8 +112,8 @@ export interface BellRail {
   filled: WatchFill | null;
   /** Open a row: mark it read, and go to that card. Also what a clicked system notification
    *  lands on, and those DO come from other boards — so it switches the app first when the
-   *  event is not this board's. */
-  openRow(eventId: string): Promise<void>;
+   *  event is not this board's. True when it went to a card on this board. */
+  openRow(eventId: string): Promise<boolean>;
   /** Mark one tab's rows read at once, or every tab's when no group is named. The rows stay;
    *  only the count empties. */
   readAll(group?: NotificationGroup): Promise<void>;
@@ -340,28 +342,29 @@ export function useBellRail({
       // is the only place that says what went wrong in it.
       if (isRunRow(eventId)) {
         openRunRow(eventId);
-        return;
+        return false;
       }
       // Only the page the click was made on moves (#1954): gone elsewhere meanwhile, it stays.
       const from = window.location.href;
       const where = await openNotificationAction(eventId);
       kickRef.current();
-      if (window.location.href !== from) return;
+      if (window.location.href !== from) return false;
       // A board no longer on this machine has nowhere to go. The row is marked read and
       // stays put, saying so, rather than opening whatever card wears that number on the
       // board in front of the user — the checkout can come back.
-      if (!where?.boardPath) return;
+      if (!where?.boardPath) return false;
       if (!samePath(where.boardPath, projectRoot)) {
         await switchProject(where.boardPath, where.taskId);
-        return;
+        return false;
       }
       // The same project can hold a second board (#407), and #12 there is not #12 here.
       const open = boardRef.current;
       if (where.boardDir && open && !samePath(where.boardDir, open)) {
         await switchBoard(where.boardDir);
-        return;
+        return false;
       }
       onOpenCard(where.taskId);
+      return true;
     },
     [onOpenCard, openRunRow, projectRoot],
   );
@@ -420,6 +423,14 @@ export function useBellRail({
     }
   }, [firstPage]);
 
+  const foldNext = useCallback(() => {
+    try {
+      window.localStorage.setItem(OPEN_KEY, "0");
+    } catch {
+      // storage unavailable
+    }
+  }, []);
+
   const unfold = useCallback(() => {
     setSlide(true);
     setOpen(true);
@@ -436,6 +447,7 @@ export function useBellRail({
     ready,
     toggle,
     fold,
+    foldNext,
     unfold,
     overlay,
     center,

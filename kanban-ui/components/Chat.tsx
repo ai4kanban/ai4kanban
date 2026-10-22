@@ -50,7 +50,7 @@ import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { BecameLine } from "./became";
 import { Button } from "./button";
-import { OpenFailed } from "./CardOpening";
+import { OpenFailed } from "./load-states";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { fitHeight, MessageBox } from "./composer";
 import { ContextRing } from "./context-ring";

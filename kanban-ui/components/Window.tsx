@@ -35,6 +35,7 @@ import {
   switchBoard,
   switchProject,
   useBellRail,
+  type BellRail,
 } from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
 import { BodySlotProvider } from "@/lib/body-slot";
@@ -177,14 +178,18 @@ export function Window({
   // another board is what can lead out of this project, which is why it needs the router.
   const router = useRouter();
   // Held in a ref because the bell is built from this callback: at phone width the bell is
-  // the whole screen, so a row opening a card has to take the list off first — otherwise
-  // the card it opened is behind the list that opened it (#357).
-  const foldBellRef = useRef<() => void>(() => {});
+  // the whole screen, so the card a row opens arrives with the list folded (#357). It stays
+  // up until then, showing the row being opened.
+  const bellRef = useRef<Pick<BellRail, "fold" | "foldNext"> | null>(null);
   const goToCard = useCallback(
     (taskId: number) => {
-      if (phone) foldBellRef.current();
+      const path = `/${taskId}`;
+      if (phone) {
+        if (path === window.location.pathname) bellRef.current?.fold();
+        else bellRef.current?.foldNext();
+      }
       createSheet.close();
-      router.push(`/${taskId}`);
+      router.push(path);
     },
     [phone, router],
   );
@@ -210,12 +215,12 @@ export function Window({
     // A run row leads to the run, not to its card: the card page cannot say which of its
     // runs went wrong, and the log is the one place that does.
     onOpenRun: (sessionId) => {
-      if (phone) foldBellRef.current();
+      if (phone) bellRef.current?.fold();
       sessionsPanel.openLog(sessionId);
     },
   });
   const testCases = useTestCasesRow();
-  foldBellRef.current = bell.fold;
+  bellRef.current = bell;
   // A notification clicked outside the window opens its own row: the same read mark, and
   // the same switch to that row's board when it is not the one on screen.
   const openRow = bell.openRow;
@@ -223,7 +228,7 @@ export function Window({
     useCallback(
       (eventId: string) => {
         createSheet.close();
-        openRow(eventId);
+        void openRow(eventId);
       },
       [openRow],
     ),

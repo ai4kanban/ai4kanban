@@ -14,7 +14,6 @@ import { sessionsPanel } from "./sessions";
 import { Button } from "./button";
 import { Dialog } from "./Dialog";
 import { BoardRefreshContext } from "@/lib/board-refresh";
-import { cardOpen } from "@/lib/card-open";
 import { useNewCardSet } from "@/lib/new-cards";
 import {
   BlockedChip,
@@ -83,7 +82,6 @@ export function BoardCard({
   return (
     <Link
       href={cardHref(card.id)}
-      onClick={() => cardOpen.rememberTitle(card.id, card.title)}
       // Column flex + `mt-auto` on the badge row: in the queue's grid the cards
       // in a row stretch to the tallest one, and a one-line title would leave
       // its badges floating mid-card. This pins them to the bottom edge. No
