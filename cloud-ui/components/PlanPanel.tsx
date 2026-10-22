@@ -148,7 +148,7 @@ export function PlanPanel({
   const resumable = state === "canceled" && !!billing?.resumable;
   const unpaid = state === "free" || state === "expired";
   const trialEnd = unpaid && !grant ? (billing?.trialEnd ?? null) : null;
-  const days = trialEnd ? Math.max(1, Math.ceil((Date.parse(trialEnd) - Date.now()) / 86_400_000)) : 0;
+  const days = trialEnd ? daysLeft(trialEnd) : 0;
   const shown = trialEnd ? "trialing" : unpaid && billing?.mayTrial ? "untried" : grant && unpaid ? "gifted" : state;
 
   // Back from Get Pro or the pricing page's trial button (#1937), say why nothing started.
@@ -310,4 +310,8 @@ export function PlanPanel({
       {body}
     </section>
   );
+}
+
+function daysLeft(end: string): number {
+  return Math.max(1, Math.ceil((Date.parse(end) - Date.now()) / 86_400_000));
 }
