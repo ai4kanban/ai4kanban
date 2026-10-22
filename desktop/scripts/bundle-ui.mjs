@@ -57,10 +57,25 @@ if (link) {
   process.exit(1);
 }
 
+// Next traces only files under the project, so a board UI whose node_modules is a link
+// to another checkout leaves a server with none of its packages (0.11.0 shipped that).
+const missing = missingPackages(from);
+if (missing.length) {
+  console.error(`bundle-ui: the build left no ${missing.join(", ")} in ${path.relative(desktop, from)}/node_modules`);
+  console.error(`bundle-ui: install the board UI for real, not through a link — \`cd ${path.relative(desktop, ui)} && npm ci\``);
+  process.exit(1);
+}
+
 fs.rmSync(to, { recursive: true, force: true });
 fs.mkdirSync(path.dirname(to), { recursive: true });
 fs.cpSync(from, to, { recursive: true });
 console.log(`bundle-ui: ${path.relative(desktop, to)} ready`);
+
+function missingPackages(root) {
+  return ["next", "react", "react-dom", "styled-jsx"].filter(
+    (name) => !fs.existsSync(path.join(root, "node_modules", name, "package.json")),
+  );
+}
 
 function findSymlink(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

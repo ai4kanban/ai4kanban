@@ -35,8 +35,11 @@ exports.default = async function afterPack(context) {
   const to = path.join(resources, "server");
   fs.rmSync(to, { recursive: true, force: true });
   fs.cpSync(from, to, { recursive: true });
-  if (!fs.existsSync(path.join(to, "node_modules"))) {
-    throw new Error(`after-pack: the copy at ${to} has no node_modules — the app would not start.`);
+  const missing = ["next", "react", "react-dom", "styled-jsx"].filter(
+    (name) => !fs.existsSync(path.join(to, "node_modules", name, "package.json")),
+  );
+  if (missing.length) {
+    throw new Error(`after-pack: the copy at ${to} has no ${missing.join(", ")} — the app would not start.`);
   }
   console.log(`  • board server copied  to=${to}`);
 
