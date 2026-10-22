@@ -27,6 +27,15 @@ export async function skillState(): Promise<SkillState> {
   return rules.readSkillState ? rules.readSkillState() : UNKNOWN_SKILL;
 }
 
+/** Bring the skill in this project up to date, writing only folders that are behind. Asked
+ *  as a project opens and when the Setup group checks. Rules older than that move only read. */
+export async function ensureSkill(): Promise<{ skill: SkillState; failed: boolean }> {
+  const rules = await boardRules();
+  if (!rules.ensureSkillInstalled) return { skill: await skillState(), failed: false };
+  const res = rules.ensureSkillInstalled();
+  return { skill: res.state.folders.length ? res.state : UNKNOWN_SKILL, failed: !res.ok };
+}
+
 /** The `akb` on this machine's PATH against the copy this board runs on. Spawns a process,
  *  so it is asked for when the panel opens and never on the board's poll. */
 export async function commandState(): Promise<CommandState | null> {

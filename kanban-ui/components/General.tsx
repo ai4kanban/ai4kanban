@@ -2,7 +2,7 @@
 
 // Configuration → General: the settings groups that never needed a pane each.
 //
-// Setup (#174) is two rows — the skill in this project, the `akb` command on the PATH.
+// Setup (#174) shows only when the skill or the `akb` command needs the user (#1984).
 // Delivery (#303, #416) is two switches. Runs (#394) is the silence limit. Privacy (#293)
 // is the usage-reporting switch. Language (#334) is one control. The welcome tour (#1500) is
 // one button. A pane each was a sidebar
@@ -23,7 +23,7 @@ import { TourGroup } from "./WelcomeTour";
 export function GeneralPanel({ onError }: { onError?: (msg: string) => void }) {
   return (
     <div className="flex flex-col gap-6">
-      <SetupGroup onError={onError} />
+      <SetupGroup />
       <DeliveryGroup onError={onError} />
       <RunsGroup onError={onError} />
       <PrivacyGroup onError={onError} />

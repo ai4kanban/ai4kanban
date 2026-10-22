@@ -531,7 +531,6 @@ const en: ConfigurationCopy = {
     checking: "Checking…",
     checkAgain: "Check again",
     writing: "Writing…",
-    writeAgain: "Write the skill again",
     skillRow: "AI4Kanban skill",
     commandRow: "akb command",
     status: {
@@ -563,23 +562,7 @@ const en: ConfigurationCopy = {
       },
     },
     button: { add: "Add the skill", addRest: "Add the rest", update: "Update the skill" },
-    addFailed: "couldn't add the skill",
-    details: "Technical details",
-    writtenBy: (version) => `Skill files written by AI4Kanban ${version}`,
-    folder: {
-      absent: (agent) => `nothing here (${agent})`,
-      linked: "a link into a source checkout — left alone",
-      unknown: (agent) => `installed, though it doesn't say which version (${agent})`,
-      stale: (version, carries, agent) => `${version}, older than ${carries} (${agent})`,
-      ready: (version, agent) => `${version} (${agent})`,
-    },
-    receipt: {
-      ok: "Done — your coding agent can drive this board.",
-      nothing: "Nothing was written.",
-      wrote: (path, files) => `\`${path}/\` — wrote ${files}`,
-      refreshed: (path, files) => `\`${path}/\` — refreshed ${files}`,
-    },
-    reviewDiff: "Changes project files. Review `git diff` before committing.",
+    notWritten: "Couldn't add the skill to this project. Check that the project folder is writable.",
     behind: {
       runThis: "Run this in a terminal to use the current AI4Kanban flows:",
       copy: "Copy",

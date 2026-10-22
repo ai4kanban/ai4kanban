@@ -1,64 +1,42 @@
 "use client";
 
-// The coding agent skill, added from Configuration → General (#174).
+// The Setup group of Configuration → General (#174, #1984).
 //
-// A board no longer arrives with it. Installing scaffolds `docs/kanban/` and stops there,
-// so this group is the one thing that makes a project readable by Claude Code or Codex —
-// and it is plainly optional: nothing about the board stops working without it.
+// Opening a project already writes its skill, so this group shows only when the skill or the
+// `akb` command needs the user: just the failing row, one reason, and its button.
 //
-// Two rows, because there are two things to have: the skill in this project, and the `akb`
-// command on the PATH. Each row says what it is and what state it is in, and carries the
-// button that fixes it. Nothing above them repeats that in a sentence.
+// The skill button writes files in the project and nothing else. A global install is the
+// user's to type, so outside the app the `akb` row hands over the line and never runs it.
 //
-// ── What this screen knows, and what it doesn't ─────────────────────────────
-// It knows there is a skill, which folders it lands in, and how current each one is. It
-// does NOT know what a skill folder holds — that is the board's own rules, and this asks
-// them. So the files can move or change (#213 moves the command out of the repo) and this
-// group keeps working without a line changed here.
-//
-// The button writes files in the project and nothing else. When the `akb` on the user's
-// PATH is behind the copy this board runs, or missing, it hands over the line that fixes
-// that and never runs it: a global install is the user's to type, the same way `akb update`
-// names the line rather than replacing itself.
-//
-// The desktop app is the exception (#780). It carries its own `akb` and links it up on
-// first launch, so the row there answers out of the app's own state and has a button for
-// everything it can put right. The npm line never appears in it: typing it would put a
-// second command on the machine, updating apart from the app from then on. A browser tab
-// and Linux — where an AppImage has no lasting path to link to — keep that line as their
-// only answer.
+// The desktop app is the exception (#780): it carries its own `akb`, so the row there answers
+// out of the app's own state and never shows the npm line — that would put a second command
+// on the machine. A browser tab and Linux keep the line as their only answer.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiCopy, FiRefreshCw } from "react-icons/fi";
 import { installSkillAction, skillStateAction } from "@/app/actions";
 import type { ConfigurationCopy } from "@/i18n/configuration/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/types";
+import type { CommandState, SkillState } from "@/lib/types";
 import { Button } from "./button";
 import { type CommandInstall, commandRowState, type CommandRowState, InstallCommand, readCommandInstall } from "./desktop";
 import { Group, Note, Panel, QUIET_BTN, Row, Status } from "./settings";
-import { sayFailure } from "@/lib/start-failure";
 
-/** The **Setup** group of Configuration → General. It reads its own state when it first
- *  draws — the board's poll never carries it, since one of the two answers spawns a
- *  process. */
-export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
+/** The **Setup** group. It reads its own state when it first draws — the board's poll never
+ *  carries it, since the command check spawns a process. */
+export function SetupGroup() {
   const c = useCopy().configuration.skill;
   const caption = useCopy().configuration.general.setup;
   const [skill, setSkill] = useState<SkillState | null>(null);
+  // The last write into the project failed — on open, on a check, or on the button.
+  const [failed, setFailed] = useState(false);
   const [command, setCommand] = useState<CommandState | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [installing, setInstalling] = useState(false);
-  // What the last press wrote, folder by folder. Cleared by nothing: it is the receipt for
-  // the press, and it stands until the dialog closes.
-  const [done, setDone] = useState<SkillInstall | null>(null);
-  // Where the app's own `akb` stands. Null in a browser and on Linux, where the app has no
-  // say and the line to type below is the answer.
+  // Where the app's own `akb` stands. Null in a browser and on Linux.
   const [appCommand, setAppCommand] = useState<CommandInstall | null>(null);
-  // What the app's button last found. It sits under the rows because the row it belongs to
-  // has no width for a sentence.
+  // What the app's button last found. It sits under the rows because the row has no width.
   const [commandNote, setCommandNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -66,9 +44,9 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
     try {
       const [res, install] = await Promise.all([skillStateAction(), readCommandInstall()]);
       setSkill(res.skill);
+      setFailed(res.failed);
       setCommand(res.command);
       setAppCommand(install);
-      setLoadError(res.error ?? null);
     } finally {
       setChecking(false);
     }
@@ -81,29 +59,31 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
   const install = async () => {
     if (installing) return;
     setInstalling(true);
-    setDone(null);
     try {
       const res = await installSkillAction();
-      setDone(res);
-      setSkill(res.state.folders.length ? res.state : skill);
-      if (!res.ok) onError?.(sayFailure(res, c.addFailed));
-      // The command on the PATH can't have changed, but the folders have — re-read so the
-      // list under the button is what is on disk rather than what was there a click ago.
-      await load();
-    } catch (e) {
-      onError?.(e instanceof Error ? e.message : String(e));
+      if (res.state.folders.length) setSkill(res.state);
+      setFailed(!res.ok);
+    } catch {
+      setFailed(true);
     } finally {
       setInstalling(false);
     }
   };
 
-  const missing = skill?.folders.some((folder) => folder.state === "absent") ?? false;
-  const skillNeedsWork = !!skill && (!skill.installed || skill.outdated || missing);
-  // In the app, the row answers out of the app's own state; everywhere else out of the
-  // `akb` the board found on the PATH.
+  // Nothing to say until the first check is back, so the group never flashes in.
+  if (!skill) return null;
+
+  const skillNeedsWork =
+    failed ||
+    (skill.folders.length > 0 &&
+      (!skill.installed || skill.outdated || skill.folders.some((folder) => folder.state === "absent")));
+  // In the app, the row answers out of the app's own state; everywhere else out of the `akb`
+  // the board found on the PATH. Rules too old to say leave it out.
   const row = commandRowState(appCommand);
-  const commandReady = !checking && (row ? row === "ready" : !!command && !command.behind);
+  const commandNeedsWork = row ? row !== "ready" : !!command?.behind;
   const note = appNote(row, appCommand, c);
+
+  if (!skillNeedsWork && !commandNeedsWork && !commandNote) return null;
 
   return (
     <Group
@@ -122,40 +102,36 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
     >
       <Panel>
         <div aria-live="polite">
-          <Row label={c.skillRow}>
-            <Status ready={!!skill && !skillNeedsWork}>
-              {skill ? skillStatus(skill, c) : c.checking}
-            </Status>
-            {skillNeedsWork && (
+          {skillNeedsWork && (
+            <Row label={c.skillRow}>
+              <Status ready={false}>{skillStatus(skill, c)}</Status>
               <Button size="sm" disabled={installing || !skill.folders.length} onClick={() => void install()}>
                 {installing ? c.writing : buttonLabel(skill, c)}
               </Button>
-            )}
-          </Row>
+            </Row>
+          )}
 
-          <Row label={c.commandRow}>
-            <Status ready={commandReady}>{commandStatus(row, command, checking, c)}</Status>
-            {/* The desktop app can point the PATH at the copy it carries. In a browser, on
-                Linux, and where another `akb` comes first, this draws nothing and the line
-                to type below is the answer. */}
-            <InstallCommand
-              install={appCommand}
-              onDone={(state, ok) => {
-                setAppCommand(state);
-                // The PATH has changed under the rest of the group: what the skill row says
-                // is read from the command itself, and it has to be asked again.
-                if (ok) void load();
-              }}
-              onNote={setCommandNote}
-            />
-          </Row>
+          {(commandNeedsWork || commandNote) && (
+            <Row label={c.commandRow}>
+              <Status ready={!commandNeedsWork}>{commandStatus(row, command, c)}</Status>
+              {/* The desktop app can point the PATH at the copy it carries. Elsewhere this
+                  draws nothing and the line to type below is the answer. */}
+              <InstallCommand
+                install={appCommand}
+                onDone={(state, ok) => {
+                  setAppCommand(state);
+                  if (ok) void load();
+                }}
+                onNote={setCommandNote}
+              />
+            </Row>
+          )}
         </div>
       </Panel>
 
-      {loadError && <Note icon={<FiAlertCircle />}>{loadError}</Note>}
+      {skillNeedsWork && failed && <Note icon={<FiAlertCircle />}>{c.notWritten}</Note>}
 
-      {/* What the app's own `akb` needs, when it needs anything. */}
-      {!checking && note && (
+      {note && (
         <Note icon={<FiAlertCircle />}>
           <Rich>{note}</Rich>
         </Note>
@@ -167,40 +143,8 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
         </Note>
       )}
 
-      {/* The line that fixes an `akb` this board can't reach — a browser tab, or Linux.
-          Never in the app, which carries its own copy: typing it there would install a
-          second one. Never run for the user either: a global install is theirs to type. */}
-      {!checking && !row && command?.behind && <CommandLine line={command.line} copy={c} />}
-
-      {done && <Receipt result={done} copy={c} />}
-
-      {skill?.folders.length ? (
-        <details className="group mt-3">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-ink nb-focus [&::-webkit-details-marker]:hidden">
-            <FiChevronDown className="transition-transform duration-100 group-open:rotate-180" aria-hidden />
-            {c.details}
-          </summary>
-          <div className="mt-2 pl-5">
-            <p className="mb-1.5 text-[11.5px] text-nb-ink-soft">{c.writtenBy(skill.version)}</p>
-            <ul className="flex flex-col gap-1.5">
-              {skill.folders.map((folder) => (
-                <FolderRow key={folder.path} folder={folder} carries={skill.version} copy={c} />
-              ))}
-            </ul>
-            {!skillNeedsWork && (
-              <div className="mt-2.5 flex items-center gap-3 max-sm:flex-col max-sm:items-start">
-                <Button size="sm" variant="ghost" disabled={installing} onClick={() => void install()}>
-                  <FiRefreshCw className="text-[13px]" aria-hidden />
-                  {installing ? c.writing : c.writeAgain}
-                </Button>
-                <p className="text-[11.5px] leading-relaxed text-nb-ink-soft">
-                  <Rich>{c.reviewDiff}</Rich>
-                </p>
-              </div>
-            )}
-          </div>
-        </details>
-      ) : null}
+      {/* A browser tab or Linux: the line that fixes an `akb` this board can't reach. */}
+      {!row && command?.behind && <CommandLine line={command.line} copy={c} />}
     </Group>
   );
 }
@@ -225,13 +169,7 @@ const APP_STATUS = {
   otherFirst: "otherFirst",
 } as const;
 
-function commandStatus(
-  row: CommandRowState | null,
-  command: CommandState | null,
-  checking: boolean,
-  c: SkillCopy,
-): string {
-  if (checking) return c.checking;
+function commandStatus(row: CommandRowState | null, command: CommandState | null, c: SkillCopy): string {
   if (row) return c.app.status[APP_STATUS[row]];
   if (!command) return c.commandStatus.unchecked;
   if (!command.onPath) return c.commandStatus.notFound;
@@ -265,80 +203,6 @@ function buttonLabel(skill: SkillState, c: SkillCopy): string {
   if (!skill.installed) return c.button.add;
   if (skill.folders.some((folder) => folder.state === "absent")) return c.button.addRest;
   return c.button.update;
-}
-
-// One folder, and what is in it. The state words are the board's own answer, not a guess
-// this screen makes from a file listing.
-function FolderRow({ folder, carries, copy }: { folder: SkillFolder; carries: string; copy: SkillCopy }) {
-  const there = folder.state !== "absent";
-  return (
-    <li className="flex items-start gap-2 text-[12px] leading-relaxed">
-      <span
-        className="mt-[6px] size-[6px] shrink-0 rounded-full"
-        style={{
-          background: there ? "var(--color-nb-mint-ink)" : "color-mix(in srgb, var(--color-nb-ink) 25%, transparent)",
-        }}
-        aria-hidden
-      />
-      <span className="min-w-0">
-        <code className="font-mono text-[11.5px] text-nb-ink">{folder.path}/</code>{" "}
-        <span className="text-nb-ink-soft">— {folderWords(folder, carries, copy)}</span>
-      </span>
-    </li>
-  );
-}
-
-function folderWords(folder: SkillFolder, carries: string, c: SkillCopy): string {
-  switch (folder.state) {
-    case "absent":
-      return c.folder.absent(folder.agent);
-    case "linked":
-      return c.folder.linked;
-    case "unknown":
-      return c.folder.unknown(folder.agent);
-    case "stale":
-      return c.folder.stale(folder.version, carries, folder.agent);
-    default:
-      return c.folder.ready(folder.version, folder.agent);
-  }
-}
-
-// What the press wrote, folder by folder — in the board's words, so a change to what a
-// skill folder holds shows up here with nothing edited on this screen.
-function Receipt({ result, copy }: { result: SkillInstall; copy: SkillCopy }) {
-  const ok = result.ok;
-  return (
-    <div
-      className="mt-3 rounded-[9px] px-3 py-2"
-      aria-live="polite"
-      style={{ background: ok ? "var(--color-nb-mint-soft)" : "var(--color-nb-peach-soft)" }}
-    >
-      <p
-        className="flex items-start gap-2 text-[12.5px] font-[700]"
-        style={{ color: ok ? "var(--color-nb-mint-ink)" : "var(--color-nb-peach-ink)" }}
-      >
-        {ok ? <FiCheck className="mt-[2px] shrink-0" aria-hidden /> : <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />}
-        {ok ? copy.receipt.ok : sayFailure(result, copy.receipt.nothing)}
-      </p>
-      {result.wrote.length > 0 && (
-        <ul className="mt-1.5 flex flex-col gap-1">
-          {result.wrote.map((w) => (
-            <li key={w.path} className="text-[12px] leading-relaxed text-nb-ink">
-              <Rich code="font-mono text-[11.5px]">
-                {(w.refreshed ? copy.receipt.refreshed : copy.receipt.wrote)(w.path, String(w.files))}
-              </Rich>{" "}
-              <span className="text-nb-ink-soft">({w.agent})</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {result.skipped.map((s) => (
-        <p key={s.path} className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">
-          <code className="font-mono text-[11.5px]">{s.path}/</code> — {s.why}
-        </p>
-      ))}
-    </div>
-  );
 }
 
 // The line that puts a current `akb` on the PATH. One sentence and the command, because

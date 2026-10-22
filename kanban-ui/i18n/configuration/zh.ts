@@ -605,7 +605,6 @@ const zh: ConfigurationCopy = {
     checking: "正在检查…",
     checkAgain: "重新检查",
     writing: "正在写入…",
-    writeAgain: "重新写入 Skill",
     skillRow: "AI4Kanban Skill",
     commandRow: "akb 命令",
     status: {
@@ -636,23 +635,7 @@ const zh: ConfigurationCopy = {
       },
     },
     button: { add: "添加 Skill", addRest: "补齐其余", update: "更新 Skill" },
-    addFailed: "Skill 添加失败",
-    details: "技术细节",
-    writtenBy: (version) => `Skill 文件由 AI4Kanban ${version} 写入`,
-    folder: {
-      absent: (agent) => `这里没有内容（${agent}）`,
-      linked: "指向源码目录的链接，保持不变",
-      unknown: (agent) => `已安装，但没有写明版本（${agent}）`,
-      stale: (version, carries, agent) => `${version}，比 ${carries} 旧（${agent}）`,
-      ready: (version, agent) => `${version}（${agent}）`,
-    },
-    receipt: {
-      ok: "已完成，编码 Agent 现在可以操作这个看板了。",
-      nothing: "没有写入任何内容。",
-      wrote: (path, files) => `\`${path}/\`：写入了 ${files}`,
-      refreshed: (path, files) => `\`${path}/\`：更新了 ${files}`,
-    },
-    reviewDiff: "会修改项目文件。提交前请先看 `git diff`。",
+    notWritten: "Skill 未能写入这个项目，请检查项目文件夹是否可写。",
     behind: {
       runThis: "在终端中运行以下命令，即可使用当前版本的 AI4Kanban 流程：",
       copy: "复制",

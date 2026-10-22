@@ -176,7 +176,7 @@ import {
   setRuntimeSetting,
 } from "@/lib/runtimes";
 import { setHarnessSecret } from "@/lib/secrets";
-import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
+import { commandState, ensureSkill, installSkill, UNKNOWN_SKILL } from "@/lib/skill";
 import {
   agents as boardAgents,
   createAgent,
@@ -1614,16 +1614,15 @@ export async function deleteGlobalMemoryAction(name: string): Promise<WriteResul
 // are the board's own move; these say when, and turn a failure into a value the panel can
 // show rather than a crash page.
 
-/** Where the skill stands in this project, plus how the `akb` on this machine compares to
- *  the copy the board runs on. Asked when the Skill section opens — the command check
- *  spawns a process, so it never rides along with the board's poll. */
-export async function skillStateAction(): Promise<{ skill: SkillState; command: CommandState | null; error?: string }> {
-  try {
-    const [skill, command] = await Promise.all([skillState(), commandState()]);
-    return { skill, command };
-  } catch (e) {
-    return { skill: UNKNOWN_SKILL, command: null, error: e instanceof Error ? e.message : String(e) };
-  }
+/** Where the skill stands in this project — brought up to date first — plus how the `akb`
+ *  on this machine compares to the copy the board runs on. Asked when the Setup group opens:
+ *  the command check spawns a process, so it never rides along with the board's poll. */
+export async function skillStateAction(): Promise<{ skill: SkillState; failed: boolean; command: CommandState | null }> {
+  const [skill, command] = await Promise.all([
+    ensureSkill().catch(() => ({ skill: UNKNOWN_SKILL, failed: true })),
+    commandState().catch(() => null),
+  ]);
+  return { ...skill, command };
 }
 
 /** Add the skill to this project, or bring an older copy up to date. It writes files in

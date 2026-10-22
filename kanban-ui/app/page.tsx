@@ -5,7 +5,7 @@ import { boardScreen } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { ScreenMachine } from "@/lib/screen";
-import { skillState, UNKNOWN_SKILL } from "@/lib/skill";
+import { ensureSkill, UNKNOWN_SKILL } from "@/lib/skill";
 import { usageDisclosureOwed, welcomeTourOwed } from "@/lib/telemetry";
 
 // Read the board on the server for the first paint (no loading flash); the
@@ -26,15 +26,15 @@ export default async function Page() {
   // agent setting and the words it is sent live in the CLI (lib/cli.ts), so these are read
   // rather than called inline. A board with no copy of the rules to load still draws: the
   // fields fall back to what an unconfigured board would show, and the run itself is what
-  // says the rules are missing. The skill is read here too — only whether it is there
-  // (#174), a file check cheap enough for the first paint.
+  // says the rules are missing. Opening the project also brings its skill up to date
+  // (#1984); a write that fails only shows in Configuration → General.
   // …plus whether this machine still owes the usage-reporting disclosure (#293). Read here
   // rather than in the browser so the step is up in the first paint: the board flashing past
   // before a step nobody can skip would be the board being taken away again.
   const [agent, instruction, skill, disclosure, tour] = await Promise.all([
     agentInfo().catch(() => NO_AGENT),
     setupInstruction().catch(() => ""),
-    skillState().catch(() => UNKNOWN_SKILL),
+    ensureSkill().catch(() => ({ skill: UNKNOWN_SKILL, failed: true })),
     usageDisclosureOwed().catch(() => false),
     welcomeTourOwed().catch(() => false),
   ]);
@@ -42,7 +42,7 @@ export default async function Page() {
     projectRoot: repoRoot(),
     agent,
     setupInstruction: instruction,
-    skillInstalled: skill.installed,
+    skillInstalled: skill.skill.installed,
     desktop: isDesktop(),
     usageDisclosure: disclosure,
     welcomeTour: tour,

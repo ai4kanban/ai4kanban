@@ -454,7 +454,6 @@ export type ConfigurationCopy = {
     checking: string;
     checkAgain: string;
     writing: string;
-    writeAgain: string;
     /** The group's two rows: the skill in this project, the command on the PATH. */
     skillRow: string;
     commandRow: string;
@@ -492,23 +491,8 @@ export type ConfigurationCopy = {
       };
     };
     button: { add: string; addRest: string; update: string };
-    addFailed: string;
-    details: string;
-    writtenBy: (version: string) => string;
-    folder: {
-      absent: (agent: string) => string;
-      linked: string;
-      unknown: (agent: string) => string;
-      stale: (version: string | null, carries: string, agent: string) => string;
-      ready: (version: string | null, agent: string) => string;
-    };
-    receipt: {
-      ok: string;
-      nothing: string;
-      wrote: (path: string, files: string) => string;
-      refreshed: (path: string, files: string) => string;
-    };
-    reviewDiff: string;
+    /** Under the skill row when the skill could not be written into the project. */
+    notWritten: string;
     /** The line to type where no button can put a current `akb` on the PATH — a browser,
      *  Linux, or an `akb` that came from somewhere else. */
     behind: { runThis: string; copy: string };

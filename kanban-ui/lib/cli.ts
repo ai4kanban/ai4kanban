@@ -626,6 +626,7 @@ export interface BoardRules {
   // added them, and the panel says so rather than the whole dialog failing to draw.
   readSkillState?(root?: string): SkillState;
   installSkill?(root?: string, only?: "present"): SkillInstall;
+  ensureSkillInstalled?(root?: string): SkillInstall;
   readCommandState?(): CommandState;
 
   // the Cloud sign-in (#326) — which account this MACHINE acts as, held outside every
