@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { LanguageProvider } from "@/components/language";
 import { TipHold } from "@/components/tip-hold";
 import { LANGUAGE_TAGS } from "@/lib/format/machine/types";
+import { TAB_ICON } from "@/lib/tab-icon";
 import { languageFor } from "../lib/reader";
 import "./globals.css";
 
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
   title: "AI4Kanban",
   description: "AI4Kanban",
   robots: { index: false, follow: false },
+  icons: { icon: TAB_ICON },
 };
 
 export const dynamic = "force-dynamic";

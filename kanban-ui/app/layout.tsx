@@ -11,24 +11,10 @@ import { AgentTitlesProvider } from "@/lib/agent-name";
 import { agentTitles } from "@/lib/agents";
 import { insetTitleBar, isDesktop } from "@/lib/desktop";
 import { machineLanguage } from "@/lib/language";
+import { TAB_ICON } from "@/lib/tab-icon";
 import { DEFAULT_LANGUAGE, LANGUAGE_TAGS } from "@/lib/types";
 import "./globals.css";
 import "./markdown.css";
-
-// The tab icon is the same mark as `components/Logo.tsx`, in this app's ember
-// rather than the site's azure, inlined rather than served: the board runs from
-// a local dev server with no `public/`, and a data URI keeps it to zero
-// requests and zero files. Same three columns as web/public/logo-mark.svg, and
-// the same bare block the header wears — no ink frame, no shadow. Those are the
-// site's mark; a 16px tab is the last place either survives.
-const ICON =
-  "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
-  "<rect width='64' height='64' rx='15' fill='%23dd4f1e'/>" +
-  "<g transform='translate(12.16 12.16) scale(0.661)' fill='%23ffffff'>" +
-  "<rect x='5' y='8' width='12' height='44' rx='3.5'/>" +
-  "<rect x='24' y='8' width='12' height='35' rx='3.5'/>" +
-  "<rect x='43' y='8' width='12' height='26' rx='3.5'/>" +
-  "</g></svg>";
 
 // A phone renders the board at its own width (#357). Without this it lays the page out at
 // desktop width and shrinks the result, which is the whole reason the text was unreadable —
@@ -46,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: c.chrome.window.title,
     description: c.chrome.window.description,
-    icons: { icon: ICON },
+    icons: { icon: TAB_ICON },
   };
 }
 
