@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { FiSidebar } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { LEAVES_SHEET } from "@/lib/create-open";
+import { railFold, useRailFolded } from "@/lib/rail-width";
 import type { AgentInfo } from "@/lib/types";
 import { ChatButton } from "./Chat";
 import { ToolCluster } from "./chrome";
@@ -122,6 +124,7 @@ export function Header({
         >
           <LogoMark />
         </Link>
+        <RailToggle />
         <span className="a4k-nodrag flex min-w-0 flex-1 md:hidden">
           <HeaderFind />
         </span>
@@ -172,5 +175,24 @@ export function Header({
         <CreateTask projectRoot={projectRoot} />
       </HeaderTips>
     </header>
+  );
+}
+
+/** Folds the rail away and back (#1949). Beside the mark, so it stays put whichever way the
+ *  rail is; there is no rail to fold under `md`. */
+function RailToggle() {
+  const c = useCopy().chrome.header;
+  const folded = useRailFolded();
+  return (
+    <button
+      type="button"
+      onClick={railFold.toggle}
+      aria-label={c.sidebar}
+      aria-pressed={!folded}
+      data-tip={folded ? c.showSidebar : c.hideSidebar}
+      className="nb-tip nb-tip-below a4k-nodrag inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink transition-[background-color,transform] duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] active:scale-[0.94] nb-focus motion-reduce:transition-none motion-reduce:active:scale-100 max-md:hidden"
+    >
+      <FiSidebar size={15} aria-hidden />
+    </button>
   );
 }

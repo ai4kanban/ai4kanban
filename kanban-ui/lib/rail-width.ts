@@ -1,7 +1,10 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 
 const KEY = "kanban-ui.rail-width";
+const FOLD_KEY = "kanban-ui.rail-folded";
+/** How long the rail takes to fold away or come back from the header's button. */
+export const RAIL_FOLD_MS = 200;
 
 /** What the rail opens at: wide enough that a title says something before it
  *  truncates, narrow enough to still read as chrome. */
@@ -17,6 +20,44 @@ function save(px: number) {
   } catch {
     // storage unavailable — the width lasts as long as the window does
   }
+}
+
+// Whether the rail is folded away (#1949). The header's button and the panel are drawn apart
+// (components/Header.tsx, components/Window.tsx), so the state sits here between them.
+let folded: boolean | null = null;
+const listeners = new Set<() => void>();
+
+function readFolded(): boolean {
+  if (folded === null) {
+    try {
+      folded = window.localStorage.getItem(FOLD_KEY) === "1";
+    } catch {
+      folded = false;
+    }
+  }
+  return folded;
+}
+
+function setFolded(next: boolean) {
+  if (readFolded() === next) return;
+  folded = next;
+  try {
+    window.localStorage.setItem(FOLD_KEY, next ? "1" : "0");
+  } catch {}
+  for (const l of listeners) l();
+}
+
+export const railFold = { toggle: () => setFolded(!readFolded()) };
+
+export function useRailFolded(): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    readFolded,
+    () => false,
+  );
 }
 
 // How wide you have dragged the rail, remembered across reloads.
@@ -46,7 +87,25 @@ export function useRailWidth() {
     // The panel clamps to its own floor and ceiling, so a width saved by an
     // older build can't leave the rail somewhere it cannot be dragged back from.
     if (saved > 0) panel.current?.resize(saved);
+    // After the width, so unfolding comes back to it.
+    if (readFolded()) panel.current?.collapse();
   }, [panel]);
+
+  // The button folds with a slide; a drag never does, or the rail would trail the pointer.
+  const isFolded = useRailFolded();
+  const [sliding, setSliding] = useState(false);
+  useEffect(() => {
+    const p = panel.current;
+    // The hydrating render still says unfolded; the mount above has already folded it.
+    if (!p || isFolded !== readFolded() || p.isCollapsed() === isFolded) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce) setSliding(true);
+    if (isFolded) p.collapse();
+    else p.expand();
+    if (reduce) return;
+    const timer = setTimeout(() => setSliding(false), RAIL_FOLD_MS + 50);
+    return () => clearTimeout(timer);
+  }, [isFolded, panel]);
 
   // Only a drag is worth writing down, or the arrow keys that do the same thing.
   // The group also reports a layout on mount and whenever the window changes
@@ -59,6 +118,8 @@ export function useRailWidth() {
       // panel has finished settling on it: held arrow keys would otherwise write
       // down the step before last.
       requestAnimationFrame(() => {
+        // Dragged under the floor folds the rail, and dragged back out unfolds it.
+        setFolded(panel.current?.isCollapsed() ?? false);
         const px = panel.current?.getSize().inPixels;
         if (px) save(px);
       });
@@ -70,7 +131,10 @@ export function useRailWidth() {
   // does that part itself, and reports it as something other than a user
   // interaction — so the reset is written down here, or the width you just
   // cleared would be back on the next load.
-  const onDoubleClick = useCallback(() => save(RAIL_W), []);
+  const onDoubleClick = useCallback(() => {
+    save(RAIL_W);
+    setFolded(false);
+  }, []);
 
-  return { panel, onLayoutChanged, onDoubleClick };
+  return { panel, onLayoutChanged, onDoubleClick, sliding };
 }

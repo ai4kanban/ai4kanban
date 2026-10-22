@@ -18,6 +18,11 @@ export type ChromeCopy = {
     triageWaiting: (n: number) => string;
     /** New idea's tooltip, shown once a narrow window has dropped its label. */
     newIdea: string;
+    /** The button that folds the rail away (#1949): what a screen reader reads, then its
+     *  tooltip while the rail is up and while it is folded. */
+    sidebar: string;
+    hideSidebar: string;
+    showSidebar: string;
   };
   /** Only read out loud: the drag handles that widen a pane. */
   resize: { rail: string; chat: string; bell: string; side: string };

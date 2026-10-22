@@ -13,6 +13,9 @@ const zh: ChromeCopy = {
     triage: "待筛选",
     triageWaiting: (n) => `待筛选 · ${n} 条待处理`,
     newIdea: "把想法变成任务",
+    sidebar: "侧边栏",
+    hideSidebar: "收起侧边栏",
+    showSidebar: "展开侧边栏",
   },
   resize: { rail: "调整侧栏宽度", chat: "调整讨论宽度", bell: "调整通知栏宽度", side: "调整详情宽度" },
   cardLink: {

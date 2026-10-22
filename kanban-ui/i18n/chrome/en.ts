@@ -13,6 +13,9 @@ const en: ChromeCopy = {
     triage: "Triage",
     triageWaiting: (n) => `Triage · ${n} waiting`,
     newIdea: "Turn an idea into tasks",
+    sidebar: "Sidebar",
+    hideSidebar: "Hide sidebar",
+    showSidebar: "Show sidebar",
   },
   resize: { rail: "Resize the rail", chat: "Resize the discussion", bell: "Resize notifications", side: "Resize details" },
   cardLink: {

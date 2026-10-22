@@ -690,6 +690,11 @@ body {
   }
 }
 
+/* The header's button folds the rail with a slide (#1949); a drag sets the width directly. */
+[data-rail-sliding] > [data-panel] {
+  transition: flex-grow 200ms ease-out;
+}
+
 /* A touch screen has no hover, so a tip that only answers one says nothing at
    all — and a mark whose whole message is its tip is then a mark that means
    nothing. `:focus` rather than `:focus-visible`: a tap focuses without the

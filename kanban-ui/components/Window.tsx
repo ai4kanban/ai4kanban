@@ -161,7 +161,7 @@ export function Window({
   // the whole body, and a rail that stays up over what it just opened is a rail nobody can
   // get out from behind (#357).
   const phone = usePhone();
-  const { panel, onLayoutChanged, onDoubleClick } = useRailWidth();
+  const { panel, onLayoutChanged, onDoubleClick, sliding } = useRailWidth();
   // The chat rail follows what this window is showing (#242). Only a card's pages draw it
   // (#1081); elsewhere it stays folded whatever was remembered, and its poll still keeps the
   // page under it fresh.
@@ -392,6 +392,7 @@ export function Window({
             panel's width and writes it down, and ignores a layout it didn't cause. */}
         <ResizablePanelGroup
           orientation="horizontal"
+          data-rail-sliding={sliding || undefined}
           onLayoutChanged={(layout, meta) => {
             onLayoutChanged(layout, meta);
             chat.onLayoutChanged(layout, meta);
@@ -404,6 +405,7 @@ export function Window({
             defaultSize={RAIL_W}
             minSize={RAIL_MIN}
             maxSize={RAIL_MAX}
+            collapsible
             groupResizeBehavior="preserve-pixel-size"
             style={PANE_CLIP}
           >

@@ -31,7 +31,7 @@
 // list there either — see ChatRow and lib/discussion-list.ts.
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   FiArchive,
   FiChevronRight,
@@ -110,6 +110,21 @@ export function Rail({
   const c = useCopy().rail;
   const { query, setQuery, matches } = useCardSearch();
   const searching = query.trim().length > 0;
+  // The match ↑/↓ have moved to in the search box (#1949), back to none on every new set.
+  const [lit, setLit] = useState(-1);
+  const [litFor, setLitFor] = useState(matches);
+  if (litFor !== matches) {
+    setLitFor(matches);
+    setLit(-1);
+  }
+  const litId = matches?.[lit]?.id;
+  const moveLit = (by: number) => {
+    const n = matches?.length ?? 0;
+    if (n) setLit((at) => (at < 0 ? (by > 0 ? 0 : n - 1) : (at + by + n) % n));
+  };
+  useEffect(() => {
+    if (litId !== undefined) document.getElementById(matchId(litId))?.scrollIntoView({ block: "nearest" });
+  }, [litId]);
   // Every conversation this board is holding (#496, #633). What is typed in the box above
   // never takes one away — it searches cards.
   const discussions = useDiscussions();
@@ -128,6 +143,7 @@ export function Rail({
   // press that did nothing (#610). Click it away; the next archive replaces it.
   const [archiveFailed, setArchiveFailed] = useState<string | null>(null);
   const { archive } = discussions;
+  const chatRows = useLeavingRows(discussions.rows);
   const archiveRow = useCallback(
     async (target: ChatTarget) => {
       setArchiveFailed(null);
@@ -143,14 +159,24 @@ export function Rail({
 
   return (
     <div {...LEAVES_SHEET} className="flex h-full flex-col py-2 pl-3 pr-1">
-      <SearchBox value={query} onChange={setQuery} />
+      <SearchBox
+        value={query}
+        onChange={setQuery}
+        lit={litId === undefined ? undefined : matchId(litId)}
+        onMove={moveLit}
+        onOpen={() => {
+          if (litId !== undefined) document.getElementById(matchId(litId))?.click();
+        }}
+      />
       {/* What is typed puts the matches where the conversations sit. All cards stays:
           it is the board rather than a row of the list, and taking it away would
           be taking away the way out of a search. */}
       <nav
-        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto"
+        id="rail-list"
+        className="relative flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto"
         aria-label={searching ? c.matching : c.discussions.heading}
       >
+        <RailMark list="list" />
         {/* A memory page is neither a card nor the board, so All cards is not where
             you are while one is open. */}
         <RailRow
@@ -171,6 +197,8 @@ export function Rail({
                 href={`/${card.id}`}
                 label={card.title}
                 id={card.id}
+                domId={matchId(card.id)}
+                lit={card.id === litId}
                 active={onPage && card.id === activeId}
                 running={running.has(card.id)}
                 onOpen={() => armAgentHalf(card.id, query)}
@@ -189,15 +217,16 @@ export function Rail({
         {discussions.rows.length > 0 && (
           <>
             <RailLabel text={c.discussions.heading} count={discussions.rows.length} />
-            {discussions.rows.map((row) => (
+            {chatRows.map(({ row, leaving, fresh }) => (
               <ChatRow
                 key={row.id}
+                leaving={leaving}
+                fresh={fresh}
                 name={row.name || c.discussions.unnamed}
                 cardId={row.cardId}
                 active={
-                  row.cardId === undefined
-                    ? row.target === shown
-                    : onPage && row.cardId === activeId
+                  !leaving &&
+                  (row.cardId === undefined ? row.target === shown : onPage && row.cardId === activeId)
                 }
                 answering={row.answering}
                 startFailed={typeof row.target === "string" ? startFailures[row.target] : undefined}
@@ -224,7 +253,8 @@ export function Rail({
       {/* The ways out of the list, at the foot with Memory and outside what scrolls: none is
           one of the open cards, and no amount of typing above should take one away. Triage
           moved to the top row (#1510). */}
-      <div className="mt-0.5 flex shrink-0 flex-col gap-0.5">
+      <div className="relative mt-0.5 flex shrink-0 flex-col gap-0.5">
+        <RailMark list="foot" />
         <RailRow
           href="/archive"
           label={c.archive.row}
@@ -308,7 +338,8 @@ function MemoryPanel({
           open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
-        <nav id="memory-files" inert={!open} className="min-h-0 overflow-y-auto" aria-label={c.heading}>
+        <nav id="memory-files" inert={!open} className="relative min-h-0 overflow-y-auto" aria-label={c.heading}>
+          <RailMark list="memory" />
           {/* The rows' own breathing room is inside the scroller, not padding on it: padding
               is floor a 0fr track can't shrink past, and closed has to close all the way. */}
           <div className="flex flex-col gap-0.5 py-1">
@@ -350,26 +381,34 @@ function OwnerRows({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] px-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink"
+        className={`flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] px-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink ${ROW_MOTION}`}
       >
         <FiChevronRight
           size={13}
           aria-hidden
-          className={`shrink-0 transition-transform duration-150 ease-out ${open ? "rotate-90" : ""}`}
+          className={`shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
         />
         <span className="truncate">{name}</span>
       </button>
-      {open && (
-        <div className="flex flex-col gap-0.5 pl-3.5 pt-0.5">
-          {owner.files.length > 0 ? (
-            <MemoryFileRows agent={owner.agent} files={owner.files} active={marked} />
-          ) : (
-            // Rows that all lead nowhere would read as files that failed to load, rather
-            // than as an agent nothing has been written under yet.
-            <p className="px-2.5 pb-1 text-[12px] leading-snug text-nb-ink-soft">{c.empty}</p>
-          )}
+      {/* Slides like the panel around it, so stays mounted while closed. */}
+      <div
+        inert={!open}
+        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none ${
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-0.5 pl-3.5 pt-0.5">
+            {owner.files.length > 0 ? (
+              <MemoryFileRows agent={owner.agent} files={owner.files} active={marked} />
+            ) : (
+              // Rows that all lead nowhere would read as files that failed to load, rather
+              // than as an agent nothing has been written under yet.
+              <p className="px-2.5 pb-1 text-[12px] leading-snug text-nb-ink-soft">{c.empty}</p>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -449,8 +488,39 @@ function MemoryFileRows({
  *
  *  The ✕ appears only with something to clear, and clearing is also Escape: the
  *  search is a detour off the rail's own list and both ways back are cheap. */
-function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function SearchBox({
+  value,
+  onChange,
+  lit,
+  onMove,
+  onOpen,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  /** The DOM id of the match ↑/↓ are on, if any. */
+  lit?: string;
+  onMove: (by: number) => void;
+  onOpen: () => void;
+}) {
   const c = useCopy().rail;
+  const box = useRef<HTMLInputElement>(null);
+  // `/` from anywhere that isn't taking text (#1949).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+      const at = e.target as HTMLElement | null;
+      if (at?.closest("input, textarea, select, [contenteditable=''], [contenteditable='true']")) return;
+      // Not from under a dialog or sheet, nor while the rail is hidden.
+      if (document.querySelector("[data-a4k-overlay], [role=dialog]")) return;
+      const input = box.current;
+      if (!input || input.offsetParent === null) return;
+      e.preventDefault();
+      input.focus();
+      input.select();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   return (
     <div className="relative mb-1.5 shrink-0">
       <FiSearch
@@ -459,11 +529,21 @@ function SearchBox({ value, onChange }: { value: string; onChange: (v: string) =
         className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-nb-ink-soft"
       />
       <input
+        ref={box}
         type="text"
+        role="combobox"
+        aria-expanded={value.trim().length > 0}
+        aria-controls="rail-list"
+        aria-autocomplete="list"
+        aria-activedescendant={lit}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape") onChange("");
+          else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            onMove(e.key === "ArrowDown" ? 1 : -1);
+          } else if (e.key === "Enter" && !e.nativeEvent.isComposing) onOpen();
         }}
         placeholder={c.search}
         aria-label={c.search}
@@ -502,12 +582,17 @@ function RailRow({
   icon,
   title,
   active,
+  lit = false,
+  domId,
   running = false,
   onOpen,
 }: {
   href: string;
   label: string;
   id?: number;
+  /** Where ↑/↓ in the search box have moved to. */
+  lit?: boolean;
+  domId?: string;
   count?: number;
   /** What leads the row when it carries no card number. The board's own row is columns; a
    *  memory row is a file. */
@@ -523,17 +608,17 @@ function RailRow({
   return (
     <div className="group relative">
       <Link
+        id={domId}
         href={href}
         onClick={() => {
           if (id !== undefined) cardOpen.rememberTitle(id, label);
           onOpen?.();
         }}
         title={running ? c.runningRow(label) : (title ?? label)}
-        className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 pr-2 text-left text-[12.5px] ${
-          active
-            ? "bg-nb-paper font-[700] shadow-[inset_0_0_0_1.5px_var(--color-nb-ink)]"
-            : "font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
-        }`}
+        data-rail-open={active || undefined}
+        className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 pr-2 text-left text-[12.5px] ${ROW_MOTION} ${
+          active ? "font-[700]" : `font-[600] text-nb-ink-soft ${ROW_HOVER}`
+        } ${lit && !active ? "bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] text-nb-ink" : ""}`}
       >
         {id === undefined ? (
           (icon ?? <FiColumns size={13} className="shrink-0" aria-hidden />)
@@ -584,10 +669,16 @@ function ChatRow({
   active,
   answering,
   startFailed,
+  leaving = false,
+  fresh = false,
   onOpen,
   onArchive,
 }: {
   name: string;
+  /** Gone from the list, and folding shut before it is dropped. */
+  leaving?: boolean;
+  /** Arrived after the rail was drawn, so it fades in. */
+  fresh?: boolean;
   /** The card this conversation is about, or undefined for a discussion. */
   cardId?: number;
   /** This window is showing this conversation — that card's page, or this discussion's
@@ -634,18 +725,22 @@ function ChatRow({
       )}
     </>
   );
-  const shape = `flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] pl-2.5 pr-7 text-left text-[12.5px] ${
-    active
-      ? "bg-nb-paper font-[700] shadow-[inset_0_0_0_1.5px_var(--color-nb-ink)]"
-      : "font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
+  const shape = `flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] pl-2.5 pr-7 text-left text-[12.5px] ${ROW_MOTION} ${
+    active ? "font-[700]" : `font-[600] text-nb-ink-soft ${ROW_HOVER}`
   }`;
   // The mark's own words: the row is the only place this refusal is left, so the hover is
   // where it is read (#706).
   const hover = answering ? c.discussions.answeringRow(name) : (startFailed ?? name);
   return (
-    <div className="group relative">
+    <div
+      inert={leaving}
+      className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none ${
+        leaving ? "grid-rows-[0fr] overflow-hidden opacity-0" : "grid-rows-[1fr]"
+      } ${fresh ? "animate-[nbFadeIn_200ms_ease-out] motion-reduce:animate-none" : ""}`}
+    >
+    <div className="group relative min-h-0 min-w-0">
       {cardId === undefined ? (
-        <button type="button" onClick={onOpen} title={hover} className={shape}>
+        <button type="button" onClick={onOpen} title={hover} data-rail-open={active || undefined} className={shape}>
           {inside}
         </button>
       ) : (
@@ -656,6 +751,7 @@ function ChatRow({
             onOpen();
           }}
           title={hover}
+          data-rail-open={active || undefined}
           className={shape}
         >
           {inside}
@@ -667,7 +763,7 @@ function ChatRow({
             type="button"
             title={c.discussions.menu(name)}
             aria-label={c.discussions.menu(name)}
-            className="absolute right-1 top-1/2 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-[5px] text-nb-ink opacity-0 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:opacity-100 group-hover:opacity-60 group-hover:hover:opacity-100 data-[state=open]:opacity-100"
+            className="absolute right-1 top-1/2 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-[5px] text-nb-ink opacity-0 transition-[opacity,background-color] duration-150 ease-out motion-reduce:transition-none hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:opacity-100 group-hover:opacity-60 group-hover:hover:opacity-100 data-[state=open]:opacity-100"
           >
             <FiMoreHorizontal size={13} aria-hidden />
           </button>
@@ -676,6 +772,7 @@ function ChatRow({
           <DropdownMenuItem onSelect={onArchive}>{c.discussions.archive}</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
     </div>
   );
 }
@@ -697,4 +794,107 @@ function RailLabel({ text, count }: { text: string; count: number }) {
       </span>
     </div>
   );
+}
+
+const ROW_HOVER = "hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]";
+/** A row's hover and press (#1949): short, and none at all for less motion. */
+const ROW_MOTION =
+  "transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100";
+
+const matchId = (id: number) => `rail-match-${id}`;
+
+/** Where each list's mark last stood. Every page draws its own window, so the mark is drawn
+ *  anew on each one and slides on from here. */
+const markAt = new Map<string, string>();
+
+/** The open row's paper and outline, one layer per list that slides to whichever row there
+ *  is open rather than the mark jumping (#1949). It finds the row by `data-rail-open`. */
+function RailMark({ list: name }: { list: string }) {
+  const mark = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = mark.current;
+    const list = el?.parentElement;
+    if (!el || !list) return;
+    // A re-run on a mark already placed leaves it where it is, mid-slide or not.
+    let shown = el.style.opacity === "1";
+    const last = markAt.get(name);
+    if (last && !shown) {
+      el.style.cssText = last;
+      el.style.transitionProperty = "none";
+      el.getBoundingClientRect();
+      shown = true;
+    }
+    const place = () => {
+      const row = list.querySelector<HTMLElement>("[data-rail-open]");
+      const folded = row?.closest("[inert]");
+      if (!row || (folded && list.contains(folded))) {
+        el.style.opacity = "0";
+        shown = false;
+        markAt.delete(name);
+        return;
+      }
+      const l = list.getBoundingClientRect();
+      const r = row.getBoundingClientRect();
+      // Arriving from nowhere fades in where the row is; only a move between rows slides.
+      el.style.transitionProperty = shown ? "transform, opacity" : "opacity";
+      el.style.transform = `translateY(${r.top - l.top + list.scrollTop}px)`;
+      el.style.left = `${r.left - l.left + list.scrollLeft}px`;
+      el.style.width = `${r.width}px`;
+      el.style.height = `${r.height}px`;
+      el.style.opacity = "1";
+      shown = true;
+      markAt.set(name, el.style.cssText);
+    };
+    place();
+    const resized = new ResizeObserver(place);
+    resized.observe(list);
+    const changed = new MutationObserver(place);
+    changed.observe(list, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-rail-open", "inert"],
+    });
+    // A fold or a row closing above moves the open row after the change that started it.
+    list.addEventListener("transitionend", place);
+    return () => {
+      resized.disconnect();
+      changed.disconnect();
+      list.removeEventListener("transitionend", place);
+    };
+  }, [name]);
+  return (
+    <span
+      ref={mark}
+      aria-hidden
+      className="pointer-events-none absolute left-0 top-0 rounded-[8px] bg-nb-paper opacity-0 shadow-[inset_0_0_0_1.5px_var(--color-nb-ink)] duration-200 ease-out motion-reduce:!transition-none"
+    />
+  );
+}
+
+const LEAVE_MS = 200;
+
+/** The rows as drawn: rows that have just gone stay where they were for a fold-away, and rows
+ *  that turn up after the first draw are marked to fade in (#1949). */
+function useLeavingRows<T extends { id: string }>(rows: T[]): { row: T; leaving: boolean; fresh: boolean }[] {
+  const [first] = useState(() => new Set(rows.map((r) => r.id)));
+  const [prev, setPrev] = useState(rows);
+  const [gone, setGone] = useState<{ row: T; at: number }[]>([]);
+  if (prev !== rows) {
+    const ids = new Set(rows.map((r) => r.id));
+    const left = prev.flatMap((row, at) => (ids.has(row.id) ? [] : [{ row, at }]));
+    setPrev(rows);
+    setGone((was) => [...was.filter((g) => !ids.has(g.row.id)), ...left]);
+  }
+  useEffect(() => {
+    if (!gone.length) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = setTimeout(() => setGone([]), reduce ? 0 : LEAVE_MS);
+    return () => clearTimeout(timer);
+  }, [gone]);
+  const out = rows.map((row) => ({ row, leaving: false, fresh: !first.has(row.id) }));
+  for (const g of [...gone].sort((a, b) => a.at - b.at)) {
+    out.splice(Math.min(g.at, out.length), 0, { row: g.row, leaving: true, fresh: false });
+  }
+  return out;
 }
