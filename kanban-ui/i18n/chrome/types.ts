@@ -35,6 +35,7 @@ export type ChromeCopy = {
     /** The list when this board is the only one opened so far. */
     onlyThisOne: string;
     openFolder: string;
+    newProject: string;
     /** The folder badge's tooltip in the app, where it opens the list. Takes the
      *  board's own folder. */
     badge: (boardDir: string) => string;
@@ -49,6 +50,13 @@ export type ChromeCopy = {
     /** The dot on a project an agent is still working in. */
     runningHere: string;
     forget: string;
+  };
+  /** The projects menu's New project dialog (#1978): the launcher's form, in a dialog. */
+  newProject: {
+    title: string;
+    projectName: string;
+    location: string;
+    create: string;
   };
   /** The board badge inside the folder chip (#407): which of this project's boards is
    *  open, and the switcher onto the others. */

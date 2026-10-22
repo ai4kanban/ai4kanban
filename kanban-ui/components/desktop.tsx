@@ -28,16 +28,18 @@
 // call below checks first.
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiPlus, FiTerminal, FiX } from "react-icons/fi";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { getBoardsAction } from "@/app/actions";
 import type { BoardEntry } from "@/lib/cli";
 import type { NotificationAlert } from "@/lib/notifications";
 import { atFirstView, dismissTopLayer, SWIPE_BACK, watchViews } from "@/lib/swipe-back";
+import { DialogButtons } from "./agent-shared";
 import { Button } from "./button";
 import { CHROME } from "./chrome";
+import { Dialog } from "./Dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -200,6 +202,8 @@ interface AppBridge {
      *  since — what `discardBoard` below is offered on. Absent in an app older
      *  than that, where the board was never made without being asked for. */
     boardJustMade?: boolean;
+    /** Where a New project form starts. Absent in an app older than #1978. */
+    newProjectHome?: string;
   }>;
   projects(): Promise<ProjectEntry[]>;
   openProject(dir: string): Promise<string | null>;
@@ -215,6 +219,11 @@ interface AppBridge {
   openBoardWindow?(dir: string): Promise<string | null>;
   forgetProject(dir: string): Promise<ProjectEntry[]>;
   pickRepo(): Promise<string | null>;
+  /** Ask which folder a new project goes in, starting at `from` (#546). Null when cancelled. */
+  pickLocation?(from: string): Promise<string | null>;
+  /** Make the folder and its repository, then open it in this window. A refusal is a
+   *  finished sentence and has written nothing. Optional — an app older than #546. */
+  createProject?(request: { name: string; parent: string }): Promise<{ ok: true; dir: string } | { ok: false; error: string }>;
   createBoard(): Promise<{ ok: boolean; error?: string }>;
   /** Wrong folder: remove the board opening it made, put the folder back as it was,
    *  and ask which project was meant. Optional — an older app makes no board unasked. */
@@ -543,6 +552,8 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
 function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children: React.ReactNode }) {
   const c = useCopy().chrome.projects;
   const [projects, setProjects] = useState<ProjectEntry[] | null>(null);
+  const [making, setMaking] = useState(false);
+  const makingRef = useRef(false);
 
   // Every answer ends the "reading…" line, including no answer at all: the app
   // says it is the app (KANBAN_DESKTOP=1, read on the server), so a window with
@@ -559,44 +570,155 @@ function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children
     // run that has since finished, a folder since deleted), and nobody is
     // looking at it the rest of the time. The last answer stays on screen while
     // the new one is fetched, so reopening doesn't flash "reading…".
-    <DropdownMenu onOpenChange={(o) => o && reload()}>
-      <DropdownMenuTrigger asChild>
+    <>
+      <DropdownMenu onOpenChange={(o) => o && reload()}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            title={c.badge(projectRoot)}
+            className={`${PART} ${PRESSABLE} max-w-full`}
+          >
+            {children}
+          </button>
+        </DropdownMenuTrigger>
+        {/* No width of its own: the panel is as wide as its longest path, up to
+            what the window can hold, and paths past that ellipsise. A fixed width
+            was either too wide for `~/x` or too narrow for a real checkout. */}
+        <DropdownMenuContent
+          align="start"
+          className="max-w-[min(28rem,calc(100vw-1.5rem))]"
+          // The dialog opens once the menu is done handing focus back, or the menu takes it
+          // off the name field.
+          onCloseAutoFocus={(e) => {
+            if (!makingRef.current) return;
+            e.preventDefault();
+            makingRef.current = false;
+            setMaking(true);
+          }}
+        >
+          <DropdownMenuLabel>{c.heading}</DropdownMenuLabel>
+          <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden">
+            {projects === null && <Line muted>{c.reading}</Line>}
+            {projects?.length === 0 && <Line muted>{c.onlyThisOne}</Line>}
+            {projects?.map((p) => (
+              <ProjectRow
+                key={p.path}
+                project={p}
+                onOpen={() => openProjectFrom(p.path)}
+                onForget={() => {
+                  bridge()
+                    ?.forgetProject(p.path)
+                    .then(setProjects)
+                    .catch(reload);
+                }}
+              />
+            ))}
+          </div>
+          <DropdownMenuSeparator />
+          {bridge()?.createProject && (
+            <DropdownMenuItem
+              className="gap-2 py-2"
+              onSelect={() => {
+                makingRef.current = true;
+              }}
+            >
+              <FiPlus aria-hidden className="size-[1em] shrink-0" /> {c.newProject}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem className="gap-2 py-2" onSelect={() => void bridge()?.pickRepo()}>
+            <FiFolder aria-hidden className="size-[1em] shrink-0" /> {c.openFolder}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <NewProjectDialog open={making} onClose={() => setMaking(false)} />
+    </>
+  );
+}
+
+const FIELD =
+  "w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 nb-field";
+
+/** The launcher's New project form (#546) as a dialog over the board (#1978). The app checks
+ *  the name and makes the folder, so both forms refuse the same things in the same words; on
+ *  success it opens the new project in this window and the page goes with it. */
+function NewProjectDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const c = useCopy().chrome.newProject;
+  const [name, setName] = useState("");
+  const [where, setWhere] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setName("");
+    setError(null);
+    setWorking(false);
+    bridge()
+      ?.info()
+      .then((info) => setWhere(info.newProjectHome ?? ""))
+      .catch(() => {});
+  }, [open]);
+
+  const pick = () => {
+    bridge()
+      ?.pickLocation?.(where)
+      .then((picked) => picked && setWhere(picked))
+      .catch(() => {});
+  };
+
+  const create = () => {
+    const app = bridge();
+    if (!app?.createProject || working) return;
+    setError(null);
+    setWorking(true);
+    app
+      .createProject({ name, parent: where })
+      .then((made) => {
+        if (made.ok) return;
+        setError(made.error);
+        setWorking(false);
+      })
+      .catch(() => setWorking(false));
+  };
+
+  const close = working ? () => {} : onClose;
+  return (
+    <Dialog open={open} onClose={close} title={c.title} width={460}>
+      <div className="flex flex-col gap-2.5">
+        <input
+          autoFocus
+          className={`${FIELD} ${name ? "font-[700]" : ""}`}
+          placeholder={c.projectName}
+          aria-label={c.projectName}
+          value={name}
+          disabled={working}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) create();
+          }}
+        />
         <button
           type="button"
-          title={c.badge(projectRoot)}
-          className={`${PART} ${PRESSABLE} max-w-full`}
+          title={c.location}
+          aria-label={c.location}
+          disabled={working}
+          onClick={pick}
+          className="flex w-full cursor-pointer items-center gap-2 rounded-[10px] border border-nb-ink/20 px-3 py-2 text-nb-ink-soft hover:border-nb-ink hover:text-nb-ink disabled:cursor-default"
         >
-          {children}
+          <FiFolder aria-hidden className="shrink-0" size={14} />
+          {/* rtl so a long path keeps its end; the mark makes it read left to right again. */}
+          <span dir="rtl" className="min-w-0 flex-1 truncate text-left font-mono text-[11px]">
+            {where && `\u202A${where}`}
+          </span>
         </button>
-      </DropdownMenuTrigger>
-      {/* No width of its own: the panel is as wide as its longest path, up to
-          what the window can hold, and paths past that ellipsise. A fixed width
-          was either too wide for `~/x` or too narrow for a real checkout. */}
-      <DropdownMenuContent align="start" className="max-w-[min(28rem,calc(100vw-1.5rem))]">
-        <DropdownMenuLabel>{c.heading}</DropdownMenuLabel>
-        <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden">
-          {projects === null && <Line muted>{c.reading}</Line>}
-          {projects?.length === 0 && <Line muted>{c.onlyThisOne}</Line>}
-          {projects?.map((p) => (
-            <ProjectRow
-              key={p.path}
-              project={p}
-              onOpen={() => openProjectFrom(p.path)}
-              onForget={() => {
-                bridge()
-                  ?.forgetProject(p.path)
-                  .then(setProjects)
-                  .catch(reload);
-              }}
-            />
-          ))}
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="gap-2 py-2" onSelect={() => void bridge()?.pickRepo()}>
-          <FiFolderPlus aria-hidden className="size-[1em] shrink-0" /> {c.openFolder}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        {error && (
+          <p role="alert" className="rounded-[8px] bg-nb-peach-soft p-3 text-[13px] leading-relaxed text-nb-peach-ink">
+            {error}
+          </p>
+        )}
+        <DialogButtons onClose={close} onConfirm={create} confirmLabel={c.create} disabled={working} />
+      </div>
+    </Dialog>
   );
 }
 

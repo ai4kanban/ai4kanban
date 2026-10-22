@@ -707,7 +707,7 @@ async function pickRepo(w: Win | null): Promise<string | null> {
   return w.board;
 }
 
-/** Where the launcher's New project form starts (#546): beside the project opened last,
+/** Where a New project form starts (#546) — the launcher's and the projects menu's: beside the project opened last,
  *  which is where the next one usually belongs, and home on a machine with none. */
 function newProjectHome(): string {
   const last = store.lastRepo() ?? store.projects()[0]?.path;
@@ -1052,6 +1052,7 @@ ipcMain.handle(CHANNELS.info, (e): AppInfo => {
     boardDir: w?.board ?? null,
     downloadsUrl: DOWNLOADS_URL,
     boardJustMade: Boolean(w?.made && w.made.dir === w.board && !w.made.boardExisted),
+    newProjectHome: newProjectHome(),
   };
 });
 

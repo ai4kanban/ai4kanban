@@ -26,6 +26,7 @@ const zh: ChromeCopy = {
     reading: "正在读取你的项目…",
     onlyThisOne: "目前只有这一个。",
     openFolder: "打开文件夹…",
+    newProject: "新建项目…",
     badge: (boardDir) => `${boardDir} · 点击查看你的项目`,
     missing: (path) => `${path} · 文件夹已不存在`,
     missingLabel: "文件夹已不存在",
@@ -33,6 +34,12 @@ const zh: ChromeCopy = {
     openWindow: "在新窗口中打开",
     runningHere: "这里有任务正在运行",
     forget: "从列表中移除这个项目，磁盘上的文件不受影响",
+  },
+  newProject: {
+    title: "新建项目",
+    projectName: "项目名称",
+    location: "存放位置——点击更改",
+    create: "创建",
   },
   boards: {
     heading: "看板",

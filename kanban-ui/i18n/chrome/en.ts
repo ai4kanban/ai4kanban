@@ -26,6 +26,7 @@ const en: ChromeCopy = {
     reading: "Reading your projects…",
     onlyThisOne: "Only this one so far.",
     openFolder: "Open folder…",
+    newProject: "New project…",
     badge: (boardDir) => `${boardDir} — click for your projects`,
     missing: (path) => `${path} — the folder is gone`,
     missingLabel: "folder is gone",
@@ -33,6 +34,12 @@ const en: ChromeCopy = {
     openWindow: "Open in a new window",
     runningHere: "A run is going here",
     forget: "Take this project off the list — nothing on disk is touched",
+  },
+  newProject: {
+    title: "New project",
+    projectName: "Project name",
+    location: "Where it goes — click to change",
+    create: "Create",
   },
   boards: {
     heading: "Boards",

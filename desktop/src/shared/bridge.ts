@@ -19,6 +19,8 @@ export interface AppInfo {
    *  to it since. It is what lets the setup screen offer to take a wrong folder
    *  back — the only place `discardBoard` may be called from. */
   boardJustMade: boolean;
+  /** Where a New project form starts (#546, #1978). */
+  newProjectHome: string;
 }
 
 /** One line of the projects list. `name` is the folder's own name, which is what
