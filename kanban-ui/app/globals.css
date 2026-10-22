@@ -668,6 +668,67 @@ body {
   }
 }
 
+/* The card chat (#1950). A line arriving fades up into place; a control taking another's
+   place fades in from nothing, to whatever opacity it rests at. */
+@keyframes nbRise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes nbEnter {
+  from {
+    opacity: 0;
+  }
+}
+/* The caret after a reply still being written: the end of its last paragraph or list item. */
+.nb-caret > :not(ul, ol, pre, table):last-child::after,
+.nb-caret > :is(ul, ol):last-child > li:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--color-nb-ink);
+  animation: nbCaret 1s step-end infinite;
+}
+/* The chat rail beside the body opening and folding: the panels' widths glide, the rail's
+   from nothing and back. Only while it moves — a drag must follow the pointer. */
+.nb-glide [data-panel] {
+  transition: flex-grow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@starting-style {
+  .nb-glide [data-panel][id="chat"] {
+    flex-grow: 0;
+  }
+}
+.nb-glide-out [data-panel] {
+  transition: flex-grow 180ms ease-in;
+}
+/* The rail's contents keep their narrowest width meanwhile, so they slide rather than
+   reflow at every frame. */
+.nb-glide [data-panel][id="chat"] > div,
+.nb-glide-out [data-panel][id="chat"] > div {
+  min-width: 320px;
+}
+.nb-glide-out [data-panel][id="chat"] {
+  flex-grow: 0 !important;
+}
+.nb-glide-out [data-panel][id="body"] {
+  flex-grow: var(--nb-body-grow) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nb-caret > :not(ul, ol, pre, table):last-child::after,
+  .nb-caret > :is(ul, ol):last-child > li:last-child::after {
+    animation: none;
+  }
+  .nb-glide [data-panel],
+  .nb-glide-out [data-panel] {
+    transition: none;
+  }
+}
+
 /* ============================================================================
    Phone width (#357).
    ==========================================================================

@@ -43,7 +43,8 @@ import type { ChatCopy } from "@/i18n/chat/types";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { LEAVES_SHEET } from "@/lib/create-open";
-import type { BoardChange, ChatRail } from "@/lib/chat-rail";
+import type { BoardChange, ChatRail, Sending } from "@/lib/chat-rail";
+import { LESS_MOTION, useMatches } from "@/lib/media";
 import type { PictureBox } from "@/lib/picture-box";
 import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
@@ -51,13 +52,14 @@ import { BecameLine } from "./became";
 import { Button } from "./button";
 import { OpenFailed } from "./CardOpening";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
-import { MessageBox } from "./composer";
+import { fitHeight, MessageBox } from "./composer";
 import { ContextRing } from "./context-ring";
 import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { ImagePreview } from "./image-preview";
 import { Markdown } from "./Markdown";
 import { Caret, useTypewriter } from "./typewriter";
+import { Unfold } from "./unfold";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -184,6 +186,8 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
       ) : (
         <Transcript
           messages={messages}
+          sending={rail.sending}
+          loaded={!!read}
           changes={read?.chat?.modelChanges}
           live={rail.live}
           liveSince={read?.liveSince ?? null}
@@ -218,31 +222,29 @@ function FromDiscussion({ messages, cardId }: { messages: ChatMessage[]; cardId:
   const [open, setOpen] = useState(false);
   const Icon = open ? FiChevronDown : FiChevronRight;
   return (
-    <div className="flex flex-col gap-2 pb-2">
+    <div className="flex flex-col pb-2">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((was) => !was)}
-        className="flex h-[30px] w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-ink/5 px-2 text-left text-[12px] font-[600] text-nb-ink-soft hover:bg-nb-ink/10"
+        className="flex h-[30px] w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-ink/5 px-2 text-left text-[12px] font-[600] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-ink/10"
       >
         <Icon size={13} className="shrink-0" aria-hidden />
         <LuMessagesSquare size={12} className="shrink-0" aria-hidden />
         <span className="truncate">{c.fromDiscussion(messages.length)}</span>
       </button>
-      {open && (
-        <>
-          <div className="flex flex-col gap-2 pt-1">
-            {messages.map((m, i) => (
-              <Said key={i} message={{ ...m, images: undefined }} sent={null} canSend={false} onResend={noResend} imageSrc={noImage} />
-            ))}
-          </div>
+      <Unfold open={open}>
+        <div className="flex flex-col gap-2 pt-3">
+          {messages.map((m, i) => (
+            <Said key={i} message={{ ...m, images: undefined }} sent={null} canSend={false} onResend={noResend} imageSrc={noImage} />
+          ))}
           {cardId !== null && (
             <Became>
               <BecameLine card={{ id: cardId, title: "" }} link={false} />
             </Became>
           )}
-        </>
-      )}
+        </div>
+      </Unfold>
     </div>
   );
 }
@@ -295,13 +297,13 @@ function Head({ rail }: { rail: ChatRail }) {
                 setConfirming(false);
                 void rail.clear();
               }}
-              className="cursor-pointer rounded-[6px] px-1.5 py-1 text-[11px] font-[700] uppercase tracking-[0.04em]"
+              className="cursor-pointer rounded-[6px] px-1.5 py-1 text-[11px] font-[700] uppercase tracking-[0.04em] transition-transform duration-100 animate-[nbEnter_120ms_ease-out] active:scale-95 motion-reduce:animate-none motion-reduce:transition-none"
               style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
             >
               {c.clearConfirm}
             </button>
           ) : (
-            <IconButton label={c.clear} onClick={() => setConfirming(true)}>
+            <IconButton label={c.clear} onClick={() => setConfirming(true)} enter>
               <FiTrash2 size={13} aria-hidden />
             </IconButton>
           ))}
@@ -328,14 +330,27 @@ function CopyChat({ messages }: { messages: ChatMessage[] }) {
   );
 }
 
-function IconButton({ label, onClick, children }: { label: string; onClick(): void; children: React.ReactNode }) {
+function IconButton({
+  label,
+  onClick,
+  enter,
+  children,
+}: {
+  label: string;
+  onClick(): void;
+  /** Fades in where it takes another control's place. */
+  enter?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="grid size-6 cursor-pointer place-items-center rounded-[6px] text-nb-ink opacity-60 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:opacity-100"
+      className={`grid size-6 cursor-pointer place-items-center rounded-[6px] text-nb-ink opacity-60 transition-[transform,background-color,opacity] duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:opacity-100 active:scale-90 motion-reduce:transition-none ${
+        enter ? "animate-[nbEnter_120ms_ease-out] motion-reduce:animate-none" : ""
+      }`}
     >
       {children}
     </button>
@@ -350,6 +365,8 @@ function IconButton({ label, onClick, children }: { label: string; onClick(): vo
  *  middle of a sheet rather than in the rail. */
 export function Transcript({
   messages,
+  sending = null,
+  loaded = true,
   changes,
   live,
   liveSince,
@@ -363,6 +380,11 @@ export function Transcript({
   after,
 }: {
   messages: ChatMessage[];
+  /** The message on its way, drawn as the next one until the transcript has it (#1950). */
+  sending?: Sending | null;
+  /** The conversation has been read. What arrives after this slides in; what was there
+   *  when it opened does not. */
+  loaded?: boolean;
   /** Where the model changed (#272), woven in by when it happened. */
   changes?: ModelChange[];
   live: string | null;
@@ -388,17 +410,39 @@ export function Transcript({
   after?: React.ReactNode;
 }) {
   const c = useCopy().chat;
+  const still = useMatches(LESS_MOTION);
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  // The message on its way takes the slot the transcript's copy will land in, under the same
+  // key, so the swap redraws nothing.
+  const rows = sending
+    ? [...messages, { role: "you" as const, text: sending.text, at: 0, images: sending.images }]
+    : messages;
   // What is on screen, counted in messages: the pill says how many of them arrived while
   // the reader was up here reading something older.
-  const lines = messages.length + (live === null ? 0 : 1);
+  const lines = rows.length + (live === null ? 0 : 1);
   const [away, setAway] = useState(false);
   const wasAt = useRef(lines);
+  // Anything drawn past what the last render drew has just arrived. A reply landing takes
+  // the slot its live copy held, so only a new line counts.
+  const drawn = lines + (stopped === null ? 0 : 1);
+  const seen = useRef<number | null>(null);
+  const from = seen.current;
+  useLayoutEffect(() => {
+    seen.current = loaded ? drawn : null;
+  }, [loaded, drawn]);
+  const fresh = (i: number) => from !== null && i >= from;
+  // A smooth scroll to the foot passes through spots that are not the foot, and none of them
+  // means the reader went back up.
+  const gliding = useRef(false);
   const onScroll = () => {
     const el = box.current;
     if (!el) return;
     const atFoot = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+    if (gliding.current) {
+      if (atFoot) gliding.current = false;
+      return;
+    }
     stick.current = atFoot;
     if (atFoot) setAway(false);
     else if (!away) {
@@ -411,7 +455,8 @@ export function Transcript({
     if (!el) return;
     stick.current = true;
     setAway(false);
-    el.scrollTop = el.scrollHeight;
+    gliding.current = !still;
+    el.scrollTo({ top: el.scrollHeight, behavior: still ? "auto" : "smooth" });
   };
   // Before the browser paints, so a growing reply never shows a frame of the old scroll.
   useLayoutEffect(() => {
@@ -431,7 +476,7 @@ export function Transcript({
   }, []);
 
   const behind = away ? Math.max(0, lines - wasAt.current) : 0;
-  const nothing = messages.length === 0 && live === null && stopped === null;
+  const nothing = rows.length === 0 && live === null && stopped === null;
   // The app went away mid-reply (#1411): the transcript ends on the message that asked.
   const last = messages.at(-1);
   const cut = idle && live === null && stopped === null && last?.role === "you" ? last : null;
@@ -443,7 +488,7 @@ export function Transcript({
         empty
       ) : (
         <div className="flex flex-col gap-2 pb-2">
-          {messages.map((m, i) => (
+          {rows.map((m, i) => (
             <Fragment key={i}>
               {marksBefore(changes, messages, i).map((mark) => (
                 <Changed key={`m${mark.at}`} model={mark.model} />
@@ -453,23 +498,26 @@ export function Transcript({
                 sent={m.role === "agent" ? sentBefore(messages, i) : null}
                 canSend={canSend}
                 onResend={onResend}
-                imageSrc={imageSrc}
+                imageSrc={sending && i === messages.length ? sending.src : imageSrc}
+                arrive={fresh(i)}
               />
             </Fragment>
           ))}
-          {marksBefore(changes, messages, messages.length).map((mark) => (
-            <Changed key={`m${mark.at}`} model={mark.model} />
-          ))}
-          {live !== null && <Writing text={live} since={liveSince} />}
+          {!sending &&
+            marksBefore(changes, messages, messages.length).map((mark) => (
+              <Changed key={`m${mark.at}`} model={mark.model} />
+            ))}
+          {live !== null && <Writing text={live} since={liveSince} arrive={fresh(rows.length)} />}
           {/* A stopped reply reads as a finished one from the click: no pulse, no
               "writing", and the peach note the transcript will carry a moment later. */}
           {stopped !== null && (
             <Said
               message={{ role: "agent", text: stopped, at: 0, stoppedWhy: c.youStopped }}
-              sent={sentBefore(messages, messages.length)}
+              sent={sentBefore(rows, rows.length)}
               canSend={canSend}
               onResend={onResend}
               imageSrc={imageSrc}
+              arrive={fresh(rows.length)}
             />
           )}
           {cut && <CutShort canSend={canSend} onResend={() => onResend(cut.text, cut.images)} />}
@@ -477,7 +525,7 @@ export function Transcript({
         </div>
       )}
     </div>
-      {behind > 0 && <Jump count={behind} onClick={toFoot} />}
+      <Jump count={behind} onClick={toFoot} />
     </div>
   );
 }
@@ -487,16 +535,23 @@ export function Transcript({
  *  and it goes away the moment the foot is reached. */
 function Jump({ count, onClick }: { count: number; onClick(): void }) {
   const c = useCopy().chat;
+  // Kept on screen while it fades out, still saying what it said.
+  const [said, setSaid] = useState(count);
+  if (count > 0 && count !== said) setSaid(count);
+  const shown = count > 0;
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-1.5 flex justify-center">
       <button
         type="button"
         onClick={onClick}
         title={c.toFoot}
-        className="nb-outline pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-nb-paper px-2.5 py-[5px] text-[11px] font-[700]"
+        inert={!shown}
+        className={`nb-outline inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-nb-paper px-2.5 py-[5px] text-[11px] font-[700] transition-[opacity,transform,visibility] duration-150 ease-out active:scale-95 motion-reduce:transition-none ${
+          shown ? "pointer-events-auto" : "invisible translate-y-1 opacity-0"
+        }`}
       >
         <FiArrowDown size={12} aria-hidden />
-        {c.newLines(count)}
+        {c.newLines(said)}
       </button>
     </div>
   );
@@ -519,6 +574,7 @@ const Said = memo(
     canSend,
     onResend,
     imageSrc,
+    arrive = false,
   }: {
     message: ChatMessage;
     /** The message this reply answered — what "send again" sends again (#269), pictures
@@ -527,10 +583,13 @@ const Said = memo(
     canSend: boolean;
     onResend(text: string, images?: string[]): void;
     imageSrc(name: string): string;
+    /** It came in while the conversation was open, so it slides in. Read once, as it mounts. */
+    arrive?: boolean;
   }) {
     const c = useCopy().chat;
     const log = useCopy().runs.log;
     const [editing, setEditing] = useState(false);
+    const [rise] = useState(arrive);
     if (message.role === "you") {
       const shots = message.images ?? [];
       if (editing) {
@@ -549,7 +608,7 @@ const Said = memo(
         );
       }
       return (
-        <div className="group ml-6 mt-3 flex flex-col items-end first:mt-0">
+        <div className={`group ml-6 mt-3 flex flex-col items-end first:mt-0 ${rise ? RISE : ""}`}>
           <div className="max-w-full rounded-[10px] bg-nb-ink/5 p-2.5">
             {/* Above the words, in the order they went into the box. With no words the
                 pictures are the whole message and nothing is held open for text. */}
@@ -584,7 +643,7 @@ const Said = memo(
     const again = sent !== null && (message.stoppedWhy !== undefined || said === "");
     const spent = spentOn(message, log);
     return (
-      <div className={`group ${message.afterBackground ? "mt-3" : ""}`}>
+      <div className={`group ${message.afterBackground ? "mt-3" : ""} ${rise ? RISE : ""}`}>
         {message.text ? (
           <Reply text={message.text} copyCode ms={message.ms} fold={message.afterBackground ? c.afterBackground : undefined} />
         ) : (
@@ -640,6 +699,9 @@ const Said = memo(
     before.onResend === now.onResend &&
     before.imageSrc === now.imageSrc,
 );
+
+/** A line arriving in an open conversation: a short fade up into place. */
+const RISE = "animate-[nbRise_220ms_ease-out] motion-reduce:animate-none";
 
 const sameNames = (a: string[] | undefined, b: string[] | undefined): boolean =>
   (a ?? []).length === (b ?? []).length && (a ?? []).every((name, i) => name === b![i]);
@@ -700,10 +762,7 @@ function EditSent({
   }, []);
   // As tall as the words, the way the bubble was.
   useLayoutEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    if (box.current) fitHeight(box.current);
   }, [draft]);
   const words = draft.trim();
   const ready = words !== "" && canSend;
@@ -723,7 +782,7 @@ function EditSent({
             onCancel();
           }
         }}
-        className="block w-full resize-none overflow-hidden rounded-[10px] bg-nb-ink/5 px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink nb-field"
+        className="block w-full resize-none overflow-hidden rounded-[10px] bg-nb-ink/5 px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink transition-[height] duration-150 ease-out nb-field motion-reduce:transition-none"
       />
       <div className="mt-1 flex items-center justify-end gap-1">
         <Button variant="ghost" size="xs" onClick={onCancel}>
@@ -799,26 +858,51 @@ function Shot({ src }: { src: string }) {
  *  doing: the step it is on, drawn by the fold below, or — before the first step and while
  *  the answer itself comes in — this line. "Writing" over a run of tool calls said the one
  *  thing that wasn't happening. */
-function Writing({ text, since }: { text: string; since: number | null }) {
+function Writing({ text, since, arrive }: { text: string; since: number | null; arrive: boolean }) {
   const c = useCopy().chat;
   const ms = useElapsed(since);
+  const [rise] = useState(arrive);
+  const shown = useRevealed(text);
   // What has come back so far, which is what says where the turn is: nothing, a step, words.
-  const blocks = blocksOf(text);
+  // Words carry a caret at their end; until there are any, the line says it is thinking.
+  const blocks = blocksOf(shown);
   const onStep = blocks.at(-1)?.kind === "looked";
-  // A line its CLI printed is not the agent answering, so it doesn't turn THINKING into
-  // WRITING — a run that has only traced something so far has said nothing yet.
-  const started = blocks.some((block) => block.kind !== "note");
+  const saying = !onStep && split(blocks).answer.length > 0;
   return (
-    <div>
-      {blocks.length > 0 && <Reply text={text} ms={ms} live onStep={onStep} />}
-      {!onStep && (
+    <div className={rise ? RISE : undefined}>
+      {blocks.length > 0 && <Reply text={shown} ms={ms} live onStep={onStep} caret={saying} />}
+      {!onStep && !saying && (
         <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
           <span className={PULSE_DOT} aria-hidden />
-          {started ? c.writing : c.thinking}
+          {c.thinking}
         </span>
       )}
     </div>
   );
+}
+
+/** How long words that just arrived take to type out — one fast poll (lib/chat-rail.ts), so
+ *  the next read lands as they finish. */
+const REVEAL_MS = 350;
+const REVEAL_TICK_MS = 35;
+
+/** The reply as far as it has been typed out. A read brings a chunk at a time; this lets it
+ *  out evenly until the next one. A reply first seen part way is shown as far as it got. */
+function useRevealed(text: string): string {
+  const still = useMatches(LESS_MOTION);
+  const [shown, setShown] = useState(text.length);
+  const [pace, setPace] = useState({ to: text.length, step: 1 });
+  const to = text.length;
+  if (pace.to !== to) {
+    setPace({ to, step: Math.max(1, Math.ceil((to - shown) / (REVEAL_MS / REVEAL_TICK_MS))) });
+  }
+  const behind = !still && shown < to;
+  useEffect(() => {
+    if (!behind) return;
+    const timer = setTimeout(() => setShown((n) => Math.min(to, n + pace.step)), REVEAL_TICK_MS);
+    return () => clearTimeout(timer);
+  }, [behind, shown, to, pace.step]);
+  return behind ? text.slice(0, shown) : text;
 }
 
 /** What the agent wrote: the work it did, and the answer that came out of it. Everything up
@@ -834,6 +918,7 @@ function Reply({
   live,
   onStep,
   fold,
+  caret,
 }: {
   text: string;
   copyCode?: boolean;
@@ -843,26 +928,38 @@ function Reply({
   fold?: string;
   /** The agent is on a step right now, so the fold pulses the one it named last. */
   onStep?: boolean;
+  /** The words are still coming: a caret blinks after the last of them. */
+  caret?: boolean;
 }) {
-  const blocks = blocksOf(text);
-  let last = -1;
-  blocks.forEach((block, i) => {
-    if (block.kind === "looked") last = i;
-  });
-  // Everything up to the last step, plus the CLI's own notes wherever they landed — one
-  // printed after the answer must not take the answer down with it.
-  const work = blocks.filter((block, i) => i <= last || block.kind === "note");
-  const answer = blocks.filter((block, i) => i > last && block.kind === "said");
+  const { work, answer } = split(blocksOf(text));
   return (
     <div className="flex flex-col gap-2">
       {(work.length > 0 || fold) && <Work blocks={work} ms={ms} live={live} onStep={onStep} label={fold} />}
       {answer.map((block, i) =>
         block.kind === "said" ? (
-          <Markdown key={i} body={block.text} className="nb-sessionlog-md" copyCode={copyCode} />
+          <Markdown
+            key={i}
+            body={block.text}
+            className={caret && i === answer.length - 1 ? "nb-sessionlog-md nb-caret" : "nb-sessionlog-md"}
+            copyCode={copyCode}
+          />
         ) : null,
       )}
     </div>
   );
+}
+
+/** Everything up to the last step, plus the CLI's own notes wherever they landed — one
+ *  printed after the answer must not take the answer down with it — and the answer after. */
+function split(blocks: Block[]): { work: Block[]; answer: Block[] } {
+  let last = -1;
+  blocks.forEach((block, i) => {
+    if (block.kind === "looked") last = i;
+  });
+  return {
+    work: blocks.filter((block, i) => i <= last || block.kind === "note"),
+    answer: blocks.filter((block, i) => i > last && block.kind === "said"),
+  };
 }
 
 /** The fold over what the agent did before it answered: "Worked for 1m 5s" shut, and the
@@ -900,13 +997,13 @@ function Work({
         <FiChevronRight
           size={11}
           aria-hidden
-          className={`shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
+          className={`shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
         />
         <span className={`truncate text-[11.5px] ${open ? "font-[700]" : "font-[600] text-nb-ink-soft"}`}>
           {label ?? (time === undefined ? c.workHint : live ? c.working(time) : c.worked(time))}
         </span>
       </button>
-      {open && (
+      <Unfold open={open}>
         <div
           className="ml-[5px] flex flex-col gap-1.5 pl-[9px]"
           style={{ borderLeft: `1.5px solid color-mix(in srgb, var(--color-nb-ink) 14%, transparent)` }}
@@ -931,7 +1028,7 @@ function Work({
             ),
           )}
         </div>
-      )}
+      </Unfold>
       {!open && doing && (
         <div className="flex items-center gap-1.5 py-[3px]">
           <span className={PULSE_DOT} aria-hidden />

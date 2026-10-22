@@ -24,7 +24,7 @@
 
 import { useCopy } from "@/i18n/use-copy";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cloudCardLinkAction, getBoardsAction } from "@/app/actions";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 import {
@@ -40,7 +40,7 @@ import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib
 import { BodySlotProvider } from "@/lib/body-slot";
 import { createSheet } from "@/lib/create-open";
 import { BellProvider, CardEventsProvider } from "@/lib/card-event";
-import { usePhone } from "@/lib/media";
+import { LESS_MOTION, useMatches, usePhone } from "@/lib/media";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import { SideSlotProvider, useSideRail } from "@/lib/side-pane";
 import type { MemoryOwner } from "@/lib/types";
@@ -347,6 +347,23 @@ export function Window({
   const chatBeside = chat.open && !chat.overlay && !bell.open && !sideOpen;
   const bellBeside = bell.open && !bell.overlay && !sideOpen;
   const beside = sideBeside || chatBeside || bellBeside;
+  const chatOver = chat.open && chat.overlay && !bell.open && !sideOpen;
+  // The chat rail slides in and out when a press opened or folded it (#1950) — not when the
+  // window comes back with it up, and not when the bell takes its place.
+  const still = useMatches(LESS_MOTION);
+  const glide = !!chat.slide && !still && (chat.open || !polled.open);
+  const besideFlip = useFlip(chatBeside, glide ? 220 : 0);
+  const overFlip = useFlip(chatOver, glide ? 220 : 0);
+  const chatOut = besideFlip === "out" && !bell.open && !sideOpen && !chat.overlay;
+  const panes = useRef<HTMLDivElement>(null);
+  // Folding, the body takes the rail's share as the rail goes to nothing — its own and the
+  // rail's together, so the left rail never moves.
+  useLayoutEffect(() => {
+    const el = panes.current;
+    if (!chatOut || !el) return;
+    const grow = (id: string) => Number(el.querySelector<HTMLElement>(`[data-panel][id="${id}"]`)?.style.flexGrow) || 0;
+    el.style.setProperty("--nb-body-grow", String(grow("body") + grow("chat")));
+  }, [chatOut]);
   const finding = phone && query.trim().length > 0;
   const covered = finding || cover !== null;
   const slot = useMemo(() => ({ show: side.show, covered }), [side.show, covered]);
@@ -387,7 +404,10 @@ export function Window({
           can make for you once at 216px. `preserve-pixel-size` keeps that
           judgement: widening the window gives the new room to the body, and the
           rail stays the width you left it. */}
-      <div className="min-h-0 flex-1">
+      <div
+        ref={panes}
+        className={`min-h-0 flex-1 ${besideFlip === "in" && chatBeside ? "nb-glide" : chatOut ? "nb-glide-out" : ""}`}
+      >
         {/* One group, two draggable panels, so both handlers are called: each reads its own
             panel's width and writes it down, and ignores a layout it didn't cause. */}
         <ResizablePanelGroup
@@ -475,7 +495,7 @@ export function Window({
                 <BellPane rail={bell} />
               </ResizablePanel>
             </>
-          ) : chatBeside ? (
+          ) : chatBeside || chatOut ? (
             <>
               <ResizableHandle aria-label={c.resize.chat} onDoubleClick={chat.onDoubleClick} />
               <ResizablePanel
@@ -512,10 +532,15 @@ export function Window({
           <BellPane rail={bell} />
         </div>
       ) : (
-        chat.open &&
-        chat.overlay && (
+        (chatOver || (overFlip === "out" && chat.overlay)) && (
           <div
-            className="fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
+            className={`fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream ${
+              overFlip === "in"
+                ? "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]"
+                : overFlip === "out"
+                  ? "animate-[nbSlideOutRight_180ms_ease-in_forwards]"
+                  : ""
+            }`}
             style={{ bottom: phone ? PHONE_TABS_H : 0, borderLeft: "1.5px solid var(--color-nb-ink)" }}
           >
             <ChatPane rail={chat} />
@@ -535,4 +560,21 @@ export function Window({
     </CardEventsProvider>
     </BellProvider>
   );
+}
+
+/** For `ms` after `on` flips, which way it went — so something can play its way in, or stay
+ *  drawn while it plays its way out. A zero `ms` flips at once. */
+function useFlip(on: boolean, ms: number): "in" | "out" | null {
+  const [was, setWas] = useState(on);
+  const [flip, setFlip] = useState<"in" | "out" | null>(null);
+  if (was !== on) {
+    setWas(on);
+    setFlip(ms > 0 ? (on ? "in" : "out") : null);
+  }
+  useEffect(() => {
+    if (!flip) return;
+    const timer = setTimeout(() => setFlip(null), ms);
+    return () => clearTimeout(timer);
+  }, [flip, ms]);
+  return flip;
 }

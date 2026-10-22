@@ -17,7 +17,6 @@ const en: ChatCopy = {
   noAgent: "No coding agent to talk to.",
   noAgentFix: "Set one up in Configuration — the ⚙ in the top row.",
   thinking: "Thinking…",
-  writing: "writing",
   nothingCameBack: "nothing came back",
   worked: (time) => `Worked for ${time}`,
   working: (time) => `Working for ${time}`,

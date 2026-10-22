@@ -201,7 +201,8 @@ function Sheet({
   const messages = read?.chat?.messages ?? [];
   // A discussion with something in it is drawn as a conversation; one with nothing said is
   // still the empty screen the headline sits on.
-  const talking = discussing && (messages.length > 0 || rail.live !== null || rail.stopped !== null);
+  const talking =
+    discussing && (messages.length > 0 || !!rail.sending || rail.live !== null || rail.stopped !== null);
   // Where the plan goes. With room for both it stands BESIDE the conversation, and enlarging
   // it lays it OVER instead. With no room for both the conversation is served first (#669):
   // the plan is a COLLAPSED row pinned over the box, and opening it out lays it over the
@@ -243,6 +244,10 @@ function Sheet({
     // The box is the send's from here, so a sheet closed while it is in flight does not empty
     // the folder the message is being taken from.
     pictures.handOver();
+    // The words leave the box as they appear in the exchange above it (#1950), and come back
+    // to it on a refusal.
+    const typed = text;
+    clearDraft();
     const went = await rail.say(words, {
       discuss: true,
       images: shots,
@@ -252,10 +257,10 @@ function Sheet({
     setSending(false);
     if (!went) {
       pictures.takeBack();
+      setText(typed);
       return;
     }
     if (discussion) discussionTriage.delete(discussion);
-    clearDraft();
     onSent();
     pictures.sent();
     plan.refresh();
@@ -371,6 +376,7 @@ function Sheet({
                   ) : (
                     <Transcript
                       messages={messages}
+                      sending={rail.sending}
                       changes={read?.chat?.modelChanges}
                       live={rail.live}
                       liveSince={read?.liveSince ?? null}
@@ -630,7 +636,8 @@ function Composer({
             ? { onFiles: (files) => void pictures.dropFiles(files), hint: chat.dropRelease }
             : undefined
         }
-        head={<Pasted box={pictures} />}
+        // On their way they are drawn in the exchange, not here too.
+        head={rail.sending ? null : <Pasted box={pictures} />}
         disabled={shut}
         placeholder={closed ? c.plan.closed : talking ? c.answer : c.placeholder}
         label={closed ? c.plan.closed : talking ? c.answer : c.placeholder}

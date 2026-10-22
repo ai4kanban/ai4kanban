@@ -838,8 +838,8 @@ export interface DeliveryRecord {
   /** `files` only: the tracked files outside the board that were already changed when it
    *  started, by path, with a fingerprint of each. A change beyond these stops it (#874). */
   touched?: Record<string, string>
-  /** `files` only: the todos the card had not ticked when it started. Ticking one of these
-   *  is progress, not a record of an output file. */
+  /** `files` only: every todo on the card when it started. An `Output:` line among these
+   *  is an earlier delivery's. */
   planned?: string[]
   /** Why this delivery is in manual commit mode when the setting did not ask for it —
    *  no git, or no commit to fork from. The card page says it in these words. */

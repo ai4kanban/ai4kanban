@@ -18,7 +18,6 @@ export type ChatCopy = {
   noAgent: string;
   noAgentFix: string;
   thinking: string;
-  writing: string;
   nothingCameBack: string;
   /** The fold over what the agent did before answering (#270): how long the turn took,
    *  counting up while it is written and settled once it is done. */

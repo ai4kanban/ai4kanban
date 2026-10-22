@@ -156,7 +156,7 @@ export function MessageBox({
           autoFocus={autoFocus}
           placeholder={placeholder}
           aria-label={label}
-          className="w-full resize-none bg-transparent px-2.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60"
+          className="w-full resize-none bg-transparent px-2.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink transition-[height] duration-150 ease-out placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60 motion-reduce:transition-none"
         />
         {/* One rung, 28px tall end to end: what the owner puts on the left, the corner
             button on the right, and no gap of its own in between — the foot decides what
@@ -226,9 +226,7 @@ function useGrow(text: string) {
     // the three the box has always opened at.
     const rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, Math.floor((window.innerHeight - KEEP_PX) / line)));
     const ceiling = rows * line + pad;
-    el.style.height = "auto";
-    const wanted = el.scrollHeight;
-    el.style.height = `${Math.min(wanted, ceiling)}px`;
+    const wanted = fitHeight(el, ceiling);
     el.style.overflowY = wanted > ceiling ? "auto" : "hidden";
   }, []);
 
@@ -254,4 +252,23 @@ function useGrow(text: string) {
   }, [fit]);
 
   return box;
+}
+
+/** Size a text box to its words, up to `ceiling`, and answer how tall they want to be. The
+ *  measure needs `height: auto`, which is no height to glide from — so it is taken with the
+ *  transition off and the old height put back before the new one is set (#1950). */
+export function fitHeight(el: HTMLTextAreaElement, ceiling = Infinity): number {
+  const was = el.style.height;
+  el.style.transition = "none";
+  el.style.height = "auto";
+  const wanted = el.scrollHeight;
+  // The first fit has nothing to glide from.
+  if (was) {
+    el.style.height = was;
+    // Lands the old height before the transition comes back, so it glides from there.
+    void el.offsetHeight;
+  }
+  el.style.transition = "";
+  el.style.height = `${Math.min(wanted, ceiling)}px`;
+  return wanted;
 }

@@ -17,7 +17,6 @@ const zh: ChatCopy = {
   noAgent: "没有可以对话的 Agent。",
   noAgentFix: "请在「配置」（顶栏的 ⚙）中设置一个。",
   thinking: "思考中…",
-  writing: "正在回复",
   nothingCameBack: "没有返回任何内容",
   worked: (time) => `用时 ${time}`,
   working: (time) => `已用 ${time}`,

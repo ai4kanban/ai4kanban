@@ -13,7 +13,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { poll } from "@/lib/poll";
 import type { ChatRead } from "./chat";
 import { useCardChatRequest } from "./chat-open";
-import type { ChatTarget } from "./types";
+import type { ChatMessage, ChatTarget } from "./types";
 import { useMatches } from "./media";
 import type { PasteNote, PictureBox } from "./picture-box";
 import { overRail } from "./over-rail";
@@ -80,6 +80,18 @@ export interface BoardChange {
   cardGone: boolean;
 }
 
+/** A message sent and not yet read back (#1950): drawn at the foot from the click, until the
+ *  transcript holds the same line after where the conversation stood. */
+export interface Sending {
+  text: string;
+  images: string[];
+  /** Where its pictures are served from — the create sheet's box, for a Discuss send that
+   *  brings them over (#530). */
+  src(name: string): string;
+  /** How many messages the conversation held when it left. */
+  after: number;
+}
+
 export interface ChatRail {
   /** The conversation on screen: a card id, a discussion (#496), or null for the board's
    *  own. */
@@ -87,6 +99,9 @@ export interface ChatRail {
   /** The card's title, when this is a card's conversation. */
   cardTitle: string;
   open: boolean;
+  /** The last open or fold was a press, not the remembered state coming back — so the rail
+   *  slides (#1950). */
+  slide?: boolean;
   toggle(): void;
   fold(): void;
   /** The window is too narrow for the rail to stand beside the board, so it covers it. */
@@ -144,6 +159,8 @@ export interface ChatRail {
   recall(back: boolean): boolean;
   /** Why the last send never got off the ground. Cleared by the next one. */
   error: string | null;
+  /** The message on its way, until the transcript has it. */
+  sending?: Sending | null;
   /** Send what the box holds, with the pictures pasted into it (#441): they go with it and
    *  leave the box, and a refusal puts them back. */
   send(): Promise<void>;
@@ -193,6 +210,7 @@ export function useChatRail({
   const copy = useCopy();
   const c = copy.messages.chat;
   const [open, setOpen] = useState(false);
+  const [slide, setSlide] = useState(false);
   // Whether the rail on screen is the one Edit opened (#671) — what makes the same press
   // fold it away again. Any other way of folding it gives up the claim, so the next Edit
   // starts over at "show me this".
@@ -211,6 +229,7 @@ export function useChatRail({
   // How far back through this conversation's sent messages the arrows have walked, newest
   // at 0 — null while the box holds what the user typed rather than what they once sent.
   const [walked, setWalked] = useState<number | null>(null);
+  const [sending, setSending] = useState<Sending | null>(null);
 
   // Another card's page is another conversation, and nothing of the last one carries over
   // to it: not its messages, not the error its last send left. A half-typed message is the
@@ -227,6 +246,7 @@ export function useChatRail({
     setWalked(null);
     setPasted([]);
     setPasteNote(null);
+    setSending(null);
     byEdit.current = false;
   }
 
@@ -368,6 +388,14 @@ export function useChatRail({
   // conversation this window has never looked at is adopted as read instead — one held in a
   // terminal last week is not news.
   const chat = read?.chat ?? null;
+  const messageCount = useRef(0);
+  messageCount.current = chat?.messages.length ?? 0;
+  // The transcript has the line, so the one drawn from the click goes — read at render too,
+  // so the two are never on screen together.
+  const echoed = sending !== null && readBack(sending, chat?.messages ?? []);
+  useEffect(() => {
+    if (echoed) setSending(null);
+  }, [echoed]);
   useEffect(() => {
     if (!chat) return;
     if (open) seen.mark(chat.updatedAt);
@@ -376,6 +404,7 @@ export function useChatRail({
 
   const toggle = useCallback(() => {
     byEdit.current = false;
+    setSlide(true);
     setOpen((was) => {
       const now = !was;
       try {
@@ -388,6 +417,7 @@ export function useChatRail({
   }, []);
   const fold = useCallback(() => {
     byEdit.current = false;
+    setSlide(true);
     setOpen(() => {
       try {
         window.localStorage.setItem(OPEN_KEY, "0");
@@ -423,6 +453,7 @@ export function useChatRail({
       return;
     }
     byEdit.current = askedKind === "edit";
+    setSlide(true);
     setOpen(true);
     try {
       window.localStorage.setItem(OPEN_KEY, "1");
@@ -625,12 +656,26 @@ export function useChatRail({
     ) => {
       setError(null);
       setHeld(null);
-      const res = await sendChatAction(cardId, text, discuss, images, box, triage);
-      if (!res.ok) setError(sayFailure(res, c.sendFailed));
+      const mine: Sending = {
+        text: text.trim(),
+        images,
+        src: box ? (name) => `/create-image/${box}/${encodeURIComponent(name)}` : imageSrc,
+        after: messageCount.current,
+      };
+      setSending(mine);
+      // A server that cannot be reached is a refusal too: the line comes back off the
+      // exchange and the words go back in the box.
+      const res = await sendChatAction(cardId, text, discuss, images, box, triage).catch(
+        (): { ok: boolean; error?: string } => ({ ok: false }),
+      );
+      if (!res.ok) {
+        setError(sayFailure(res, c.sendFailed));
+        setSending((now) => (now === mine ? null : now));
+      }
       kickRef.current();
       return res.ok;
     },
-    [cardId, c],
+    [cardId, c, imageSrc],
   );
 
   // The rail's own box: the words in it and the pictures pasted against this conversation,
@@ -717,6 +762,7 @@ export function useChatRail({
     cardId,
     cardTitle,
     open,
+    slide,
     toggle,
     fold,
     overlay,
@@ -742,6 +788,7 @@ export function useChatRail({
     pictures,
     recall,
     error,
+    sending: echoed ? null : sending,
     send,
     say,
     markRead,
@@ -751,6 +798,16 @@ export function useChatRail({
     onLayoutChanged,
     onDoubleClick,
   };
+}
+
+/** The transcript holds the message on its way: the same words, as many pictures (a Discuss
+ *  send renames the ones it brings over), after where the conversation stood. A conversation
+ *  shorter than that was cleared under it, and there is nothing left to wait for. */
+function readBack(sending: Sending, messages: ChatMessage[]): boolean {
+  if (messages.length < sending.after) return true;
+  return messages
+    .slice(sending.after)
+    .some((m) => m.role === "you" && m.text === sending.text && (m.images?.length ?? 0) === sending.images.length);
 }
 
 /** The chat's own box — the one text box that hands Esc back to the rail. Marked with
