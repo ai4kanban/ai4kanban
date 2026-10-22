@@ -12,7 +12,7 @@ const en: ChromeCopy = {
     github: "AI4Kanban on GitHub",
     triage: "Triage",
     triageWaiting: (n) => `Triage · ${n} waiting`,
-    newIdea: "Turn an idea into tasks",
+    newIdea: "Share an idea, ask about progress, or move cards",
     sidebar: "Sidebar",
     hideSidebar: "Hide sidebar",
     showSidebar: "Show sidebar",

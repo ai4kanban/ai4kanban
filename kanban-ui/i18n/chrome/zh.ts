@@ -12,7 +12,7 @@ const zh: ChromeCopy = {
     github: "在 GitHub 上查看 AI4Kanban",
     triage: "待筛选",
     triageWaiting: (n) => `待筛选 · ${n} 条待处理`,
-    newIdea: "把想法变成任务",
+    newIdea: "说个想法、问进度或安排卡片",
     sidebar: "侧边栏",
     hideSidebar: "收起侧边栏",
     showSidebar: "展开侧边栏",

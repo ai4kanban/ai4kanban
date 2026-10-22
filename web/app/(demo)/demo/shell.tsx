@@ -122,12 +122,17 @@ function Header({ projectRoot, running, unread, card, chatOpen }: {
         <Button
           size="xs"
           data-demo="new-idea"
-          className="nb-tip nb-tip-below nb-tip-end nb-tip-narrow shrink-0"
-          aria-label={c.board.create.button}
+          className="nb-tip nb-tip-below nb-tip-end shrink-0"
           data-tip={c.chrome.header.newIdea}
         >
           <LuLightbulb className="text-[15px]" aria-hidden />
           <span>{c.board.create.button}</span>
+          <kbd
+            className="ml-0.5 hidden h-[17px] min-w-[17px] items-center justify-center rounded-[5px] bg-white/20 px-1 font-sans text-[10.5px] font-[800] leading-none md:inline-flex"
+            aria-hidden
+          >
+            N
+          </kbd>
         </Button>
       </div>
     </header>

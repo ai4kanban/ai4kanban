@@ -369,22 +369,40 @@ export function CreateTask({
     [freshen, projectRoot],
   );
 
-  // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow
-  // screens keep the button but drop its label — a bulb in the same square frame, still the
-  // same target.
+  // `N` from anywhere that isn't taking text, as the rail's `/` (#1964).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "n" || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+      const at = e.target as HTMLElement | null;
+      if (at?.closest("input, textarea, select, [contenteditable=''], [contenteditable='true']")) return;
+      if (open || document.querySelector("[data-a4k-overlay], [role=dialog]")) return;
+      e.preventDefault();
+      void openFresh();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, openFresh]);
+
+  // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357).
   const label = c.button;
   const tip = copy.chrome.header.newIdea;
   return (
     <div className="relative flex shrink-0 items-center">
       <Button
         size="xs"
-        className="nb-tip nb-tip-below nb-tip-end nb-tip-narrow shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
-        aria-label={label}
+        className="nb-tip nb-tip-below nb-tip-end shrink-0 max-md:h-9"
+        aria-keyshortcuts="N"
         data-tip={tip}
         onClick={() => void openFresh()}
       >
         <LuLightbulb className="text-[15px]" aria-hidden />
-        <span className="sr-only sm:not-sr-only">{label}</span>
+        <span>{label}</span>
+        <kbd
+          className="ml-0.5 hidden h-[17px] min-w-[17px] items-center justify-center rounded-[5px] bg-white/20 px-1 font-sans text-[10.5px] font-[800] leading-none md:inline-flex"
+          aria-hidden
+        >
+          N
+        </kbd>
       </Button>
 
       {error && (
