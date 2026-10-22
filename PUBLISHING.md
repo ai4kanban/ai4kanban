@@ -59,77 +59,50 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
 
 ## Release checklist
 
-1. `claude plugin validate .` passes, and `npm run lint` in `cli/` passes (the board's rules
-   typecheck).
-2. `node scripts/sync-version.mjs <new-version>`; commit and `git tag v<new-version>`.
-3. README, `README-zh.md`, and the guides reflect any behavior change.
-4. If `cloud/` or `cloud-ui/` changed, deploy them (table above). Then `npm publish` from `cli/` — smoke-test `npx ai4kanban@latest install` in a throwaway repo.
-5. Build the app (below) and check a run works end to end on macOS. Keep one build of this
-   code stamped a version *lower* than the release, outside `desktop/dist/` — it is the only
-   way to prove the published feed installs (#372), and it cannot be made after the release.
-   See `desktop/README.md`.
-6. `git push --follow-tags`, then create the GitHub release for `v<new-version>` and upload
-   this version's files from `desktop/dist/` — the folder keeps every past release's builds
-   too, so upload by name, not `dist/*`. Five traps, all silent:
-   - **`--follow-tags` doesn't push a lightweight tag.** `git tag v<x>` makes one, so the
-     push leaves the tag behind. `git ls-remote --tags origin | grep <x>`, and
-     `git push origin v<x>` if it isn't there.
-   - **Unset the proxies, like the deploy does.** `gh` uploads through
-     `127.0.0.1:7890` and the big files reset mid-transfer.
-   - **`gh release create` exits 0 even when an upload failed**, leaving a draft with some
-     of the assets. Count them before publishing: `gh release view v<x> --json assets -q
-     '.assets[].name' | wc -l` — 11 (seven build files and four `latest*.yml`). Then
-     `gh release edit v<x> --draft=false --latest`.
-   - **The four `latest*.yml` are what the in-app install reads** (#372). Drop one and every
-     user on that system gets the notice and no install; upload a wrong one and the install
-     404s for all of them. They come out of `desktop/dist/` with the builds and need no
-     editing — the only thing to get right is uploading them, and the count above is the
-     check.
-   - **Don't upload the `*.blockmap` files.** electron-builder writes one beside every dmg,
-     mac zip and the exe, for electron-updater's chunk-level download. This app's updater is
-     its own (`desktop/src/lib/update/`) and fetches whole files, so nothing ever reads them.
-     They are also what makes the count wrong: `dist/` holds 12 files for a version, and 5 of
-     them stay there.
-7. Deploy the landing page — last, and not optional. **If `telemetry/contract.ts` changed,
-   deploy the usage endpoint first**: it drops event names and fields it does not know, so a
-   site shipped ahead of it loses that count in silence for as long as the two are apart.
+Before you start: README, `README-zh.md` and the guides reflect any behavior change. Then:
 
-   Every asset name on a release carries the version, so the download page links straight at
-   this tag's files: `web/lib/release.ts` reads the root `VERSION` at build time and writes
-   `…/releases/download/v<version>/AI4Kanban-<version>-arm64.dmg` and its four siblings. Until
-   the deploy, ai4kanban.dev/download hands out the previous release; deploy it before the
-   release exists and the buttons 404. If a build's file name changes, that page's
-   `components/download/builds.ts` is the one place to change it.
+```
+node scripts/publish.mjs <new-version>            # stops for the macOS check
+node scripts/publish.mjs <new-version> --checked  # push, release, site
+```
 
-   The Windows installer is `AI4Kanban-Setup-<version>.exe` from v0.8.1 on, which is the name
-   `latest.yml` has always pointed at (`nsis.artifactName` in `electron-builder.yml`).
-   Releases published before that carry `AI4Kanban.Setup.<version>.exe` and keep it.
+It runs the whole release from a clone of the tag at `/tmp/rel-<new-version>`, and stops on
+the first failure with what to fix. Re-run the same command to continue from that step.
 
-   Build it from the tag, not from the working tree. `next build` compiles whatever is on
-   disk, so half-finished page work — yours or another session's — ships to production
-   under the release's name. Clone and build there:
-   `git clone --local <repo> /tmp/rel && cd /tmp/rel && git checkout v<x>`.
+**The macOS check is yours.** Open the clone's `desktop/dist/mac-arm64/AI4Kanban.app` and
+run a task end to end. Keep one build of this code stamped a version *lower* than the
+release, outside `desktop/dist/` — it is the only way to prove the published feed installs
+(#372), and it cannot be made after the release. See `desktop/README.md`.
 
-   **From that clone, `pnpm run deploy` misses production.** A tag checkout is a detached
-   HEAD, so wrangler names the branch `HEAD`, and Pages treats anything but `main` as a
-   preview — it prints "Deployment complete" and ai4kanban.dev keeps serving the old
-   release. Say the branch: `wrangler pages deploy out --project-name kanban-skill
-   --branch main --commit-dirty=true`. `wrangler pages deployment list --project-name
-   kanban-skill` shows Preview vs Production, and the real check is the live page —
-   `curl -s https://ai4kanban.dev/download | grep -o 'releases/download/v[0-9.]*'`.
+Why each step is the way it is — every one was a silent failure once:
 
-   Deploy from `web/`, not the clone's root. The site is no longer a pure static export:
-   `web/functions/` answers the newsletter's unsubscribe link, and its D1 binding comes from
-   `web/wrangler.jsonc`. A deploy run from anywhere else never reads that file and ships a
-   deployment whose `/unsubscribe` has no database.
+- **Annotated tag**: `git push --follow-tags` leaves a lightweight tag behind.
+- **Real installs in the clone**: a linked `node_modules` ships whatever the main checkout
+  holds; 0.11.0 shipped a board server with no `next` on all three systems.
+- **Each packaged board is started**: the Windows and Linux builds are otherwise untested.
+- **Services before the CLI and the site**: `cloud/` deploys before `npm publish`;
+  `telemetry/` before the site, which would otherwise lose new events in silence.
+- **Proxies unset for push, `gh` and `wrangler`**: big uploads reset mid-transfer.
+- **Release assets counted**: `gh release create` exits 0 when an upload failed. The
+  release carries 11 files — seven builds and four `latest*.yml`, which the in-app install
+  reads (#372); no `*.blockmap`, which nothing reads.
+- **Site deployed last, with `--branch main`, from `web/`**: the download page links this
+  tag's files, so it 404s until the release exists; a tag checkout makes Pages file the
+  deploy as a preview; and `web/wrangler.jsonc` is what gives `/unsubscribe` its database.
+  The script then checks the live page links the new tag.
+
+If a build's file name changes, update `ASSETS` in `scripts/publish.mjs` and
+`web/components/download/builds.ts`. The Windows installer is
+`AI4Kanban-Setup-<version>.exe` from v0.8.1 on; older releases carry
+`AI4Kanban.Setup.<version>.exe`.
 
 Nothing to do for `kanban-ui/` — it is frozen (below).
 
 ### npm publish on this machine
 
 The global `~/.npmrc` points at a read-only mirror with a dead token, so a bare
-`npm publish` fails. Publish through a temp npmrc built from `NPM_TOKEN` in the repo-root
-`.env` (gitignored, npm account `neverchanje`):
+`npm publish` fails. `scripts/publish.mjs` publishes through a temp npmrc built from
+`NPM_TOKEN` in the repo-root `.env` (gitignored, npm account `neverchanje`); by hand:
 
 ```
 set -a && . ./.env && set +a
