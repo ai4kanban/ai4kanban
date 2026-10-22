@@ -14,6 +14,15 @@ log(await p.ev(`({title:document.title,robots:document.querySelector('meta[name=
 for (let i = 1; i <= 8; i++) {
   const s = await ringed(); log(`step ${i}`, s); await p.sleep(400); await p.shot(`${OUT}/${names[i - 1]}.png`)
   if (i === 1) { await tap(800, 500); await p.sleep(800); log('clicked the board off the ring ->', await state()) }
+  if (i === 1) {
+    const b = await p.ev(`(()=>{const e=document.querySelector('[data-demo=new-idea]');const k=e.querySelector('kbd');const r=e.getBoundingClientRect();return {text:e.innerText.trim().replace(/\\n+/g,' '),kbd:k&&getComputedStyle(k).display!=='none'?k.textContent:null,tip:e.dataset.tip,x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2),box:{x:r.x,y:r.y}}})()`)
+    log('New idea button', b)
+    await p.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: b.x, y: b.y }); await p.sleep(600)
+    await p.shot(`${OUT}/01b-new-idea-hover.png`, { x: 1000, y: 0, width: 600, height: 110 })
+    await p.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 995 }); await p.sleep(300)
+    for (const type of ['keyDown', 'keyUp']) await p.send('Input.dispatchKeyEvent', { type, key: 'n', code: 'KeyN', text: type === 'keyDown' ? 'n' : undefined, windowsVirtualKeyCode: 78 })
+    await p.sleep(1500); log('pressed N ->', await state())
+  }
   if (i === 7) log('#39 status', await p.ev(`[...document.querySelectorAll('[data-demo-body] main *')].map(e=>e.childNodes.length<=2&&e.textContent.trim()).find(t=>/ready/i.test(t||''))||null`))
   if (i === 8) log('archive view', await p.ev(`document.querySelector('[data-demo-body] main')?.innerText.slice(0,300)`))
   await tap(s.ring.x, s.ring.y)

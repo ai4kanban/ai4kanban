@@ -121,6 +121,10 @@
 - [收起侧边栏，再只用键盘从搜索打开一张卡](local-ui/collapse-the-sidebar-and-find-a-card-by-keyboard/case.md)
 - [从看板打开一张卡片页](local-ui/open-a-card-page-from-the-board/case.md)
 - [扫过顶栏的按钮，打开再关上「运行历史」](local-ui/open-and-close-the-runs-dialog-from-the-header/case.md)
+- [从「新想法」按钮或 N 键开始一段讨论](local-ui/start-a-discussion-from-new-idea-or-the-n-key/case.md)
+- [在桌面应用的项目菜单里新建一个项目](local-ui/create-a-project-from-the-projects-menu/case.md)
+- [在浏览器标签栏上认出看板的飞鹤图标](local-ui/see-the-crane-on-the-board-s-tab/case.md)
+- [打开项目，skill 自动装好；只有出了问题，设置里才出现「安装」](local-ui/skill-is-installed-when-a-project-opens/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
