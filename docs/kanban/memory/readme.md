@@ -6,188 +6,186 @@ covers it, or a plain-words note.
 ## skill
 
 - **Board, setup, update**: `akb guide board`, `akb guide setup`, `akb guide update`.
-- **draft-first**: a standalone skill that has any coding agent draft a task's key parts for review in the browser before building; lives in its own repo, [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first).
-- **Blog drafts**: a delivered blog post lives only in its article file, linked by one Article asset on the card; going back to the outline unticks the dropped stage's todos instead of appending cleanup ones: `akb guide multi-stage-drafting`.
-- **Copywriting drafts**: the `copywriting` agent writes each page or file as its own asset, one `<Asset>` per page on the card, with languages as its variants.
-- **draft-first long drafts**: a draft over about 20 lines goes in a `.md` asset the review page draws as Markdown, so headings inside it no longer count as alternatives that block Confirm; the prompt helper asks for diffs, not sample outputs: `SKILL.md` in [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first).
-- **Daily loop** — refine, build, finish, reject or discard, test cases; planning never builds; only Coding gets a branch and worktree: `web/content/docs/daily-loop.mdx`, `akb guide implement`.
-- **Refine, next card, module map**: `akb guide refine`, `akb guide next-card`, `akb guide module-map`.
-- **Spec agents in refine**: a spec agent whose description matches the card always runs; it is skipped only for a reason its own description gives: `akb guide refine`.
-- **Competitor research**: a card that only names competitors gets a whole-product comparison and adds them to the competitors memory; feature planning compares but never adds new competitors — the list is yours. Such a card is not built; read it and archive it.
-- **Start now** builds a sentence, a plan or a triage item, writing its card as it starts: `akb guide implement`.
-- **Long drafts**: a planning agent's draft over about 20 lines goes in a card asset, one `<name>.<lang>.md` per language, leaving the card body to the summary and the open questions: `akb guide spec-agent`.
-- **Copy drafts**: the copywriting agent writes one `copy.<lang>.md` per published language, with labels and field names in that language, shown on the card as one `<Asset>` with language variants.
-- **Reject while the card chat replies**: `akb card reject` works mid-reply; the reply stops and the conversation is dropped with the card.
-- **Runs** — `akb` commands, stop, retry, resume, creation resume/discard, sub-runs, stopping what a run started, the planner following the Planning helper's runtime: `web/content/docs/runs.mdx`.
-- **Background tasks**: Claude Code runs and chats wait up to 2 hours on background work: `web/content/docs/connectors.mdx`.
-- **Several boards per repository**: `web/content/docs/index.mdx`.
-- **Triage**: `web/content/docs/triage.mdx`; follow-ups: `akb guide follow-up`.
-- **Dependencies**: `akb guide add-task`.
-- **Agents, workflows, specialists, Pro, rules, global memories, schedules, memory review, project description**: `web/content/docs/agents.mdx`, `akb guide describe-project`.
-- **Specialist drafts approved stage by stage**: `akb guide multi-stage-drafting`.
-- **Writing an agent**: `akb guide write-agent`.
+- **Daily loop** — refine, build, finish, reject or discard, test cases; planning never builds: `web/content/docs/daily-loop.mdx`.
+- **Start now** builds a sentence, a discussion's plan or a triage item, writing its card first: `akb guide implement`.
+- **Planning** — refine, resolve, next card, module map; matching spec agents always run, inside the card's one planning session: `akb guide refine`, `akb guide resolve`, `akb guide next-card`, `akb guide module-map`.
+- **Revising a card**: a revision that adds images, page copy or a screen has the matching spec agent produce it, and feedback on a draft revises that draft and its preview in place: `akb guide revise`.
+- **Long drafts**: a planning draft over about 20 lines goes in a card asset, one file per language: `akb guide spec-agent`.
+- **Card stages** (blog, slide deck, social post, product video, video clone): stages are listed on the card, each review is a todo, and the user moves on with Approve (`akb card approve <id>`) rather than a confirmation question: `akb guide multi-stage-drafting`.
+- **Cards finished in planning**: video, deck, social post, blog and video-clone cards end planning with every todo ticked and an Archive prompt, unless the workflow has a build agent; a delivered blog post lives only in its article file.
+- **Slide deck revisions**: a card chat reuses what it already loaded on later turns, and a deck change edits and checks only the affected pages; slide text lives only in the pages, so a storyboard needs no `copy`.
+- **Card embeds** — Asset labels, alt text and variants, Compare, Storyboard: `akb guide writing`.
+- **Runs** — stop, retry, resume, creation resume/discard, sub-runs, runtimes: `web/content/docs/runs.mdx`.
+- **Background tasks**: Claude Code runs and chats wait up to 2 hours on background work; a run's background commands end with it, a chat's survive the reply; quitting the desktop app ends replying chats.
+- **Several boards per repository**: `kanban-ui/README.md`.
+- **Triage**: `web/content/docs/triage.mdx`; follow-ups: `web/content/docs/follow-ups.mdx`, `akb guide follow-up`, `akb guide reflect`.
+- **Triage items**: file names are English slugs (`akb triage add --slug`) the card keeps; an item from a workflow's scheduled agent becomes that workflow's card.
+- **Auto-sort** asks only what is yours to decide; its cards check the code first and are archived with evidence when already done or obsolete.
+- **Direct requests** become a card as asked, with no duplicate check.
+- **Card source** lives in frontmatter `source:` (`akb raw create --source`, `--triage <source-id>`) and shows as a Source link.
+- **Dependencies**: `akb guide add-task`; a card cannot depend on its own group or a parent group (`akb raw validate` reports `dependency-cycle`); when a dependency lands or is rejected, a waiting card gets one revision to recheck its plan.
+- **Agents, workflows, specialists, Pro, rules, global memories, schedules, memory review, project description**: `web/content/docs/agents.mdx`, `web/content/docs/workflows.mdx`, `akb guide describe-project`.
+- **Writing an agent**: `akb guide write-agent`; `akb raw agent-file <agent> AGENT.md` prints any agent's file, built-ins included; trailing `#` comments are ignored as in YAML; old keys (`stage`, `kind`, `lead: true`, `hook: execute`) are refused with the line to change.
 - **Agent sections**: `akb guide writing`.
-- **Suggest follow-up work**: `akb guide reflect`.
-- **One planning session**: creating, refining, revising and answering a card stay in one session, each turn ends ready or with questions, and spec agents run inside it; only the build opens a new one: `akb guide refine`, `akb guide resolve`.
-- **Discussions** never edit code, judge the idea first and end in **Plan tasks** or **Start now**: `akb guide discuss-idea`, `web/content/docs/chat.mdx`.
-- **Card chat** makes a settled change without asking again: `web/content/docs/chat.mdx`.
-- **Asset labels**: images keep `<Asset>` labels to a few words; the caption goes in `alt` and illustrators draw it on the image.
-- **Copy drafts** read as the reader sees them — new text, ~~old~~ → new, or `Field: new value` — not a source diff.
-- **Software planner** belongs to Coding like other workflows' leads; a plan lead with nothing to show writes no `## By` section, and it draws a top-down mermaid diagram only when a sentence or two cannot explain a change no other spec agent covers.
-- **`akb` 无参数**: 执行 `akb` 或 `akb raw` 打印命令列表并以 0 退出，与 `--help` 相同。
-- **后台命令**: 运行正常结束时后台命令也结束，对话回复正常结束时保留；退出桌面应用会结束正在回复的对话和 Agent 测试；Windows 上 `taskkill` 失败也会结束。
-- **规划续用会话**: 一张卡的规划接着同一个会话走（从建卡会话分出，回答问题后续用上次规划的会话）；换了工具、工具不支持或会话已不存在时新开。讨论或终端里建的卡，卡片对话接上建卡时的会话。
-- **直接提的需求**: 照你说的建卡，不再查重。
-- **自动分拣**: 只问要不要你定、是否免规划，再定模块、优先级、ROI 和工作流；除非留给你或没有工作流能做，一律建卡。它建的卡在第一次规划（免规划的在开工）时先对照代码，已做到或已不存在的带依据归档。
-- **待筛选 slug**: 条目文件名是英文 slug（`akb triage add --slug` 可指定），建出的卡沿用它。
-- **卡片来源**: 记在 frontmatter `source:`（`akb raw create --source`、`--triage <source-id>`，`raw update --source` / `--add-source`），卡片页显示为「来源」链接；旧卡的 `## Source` 照样认。
-- **依赖成环**: 组内卡片不能（直接或间接）依赖它所在的组或上层组：`akb raw update` 拒绝，`akb raw validate` 报 `dependency-cycle` 并写出完整环路径。
-- **否决与丢弃**: 当场完成，不计入交付：`web/content/docs/daily-loop.mdx`。
-- **清理**: 离开看板 7 天的卡每天清掉附件、旧 mockup、对话和已结束的交付工作区（记忆或未关闭卡引用的附件保留）；归档的卡满 30 天删除。
-- **`akb raw list`**: `--archived` 列出看板落地并归档的卡（可加 `--since`、`--workflow`、`--json`）；`--stale` 列出搁置的卡，看板不会自动改写或丢弃它们。
-- **Copy & docs**: `copywriting` writes all copy outside the product's screens, user docs included; `ui-designer` writes its mockups' text; `illustrator` makes every image except screen mockups, shown on the card as the image alone with optional `alt`; copy whose wording needs your call is a draft you confirm before `ui-designer` places it.
-- **Old agent keys** (`stage`, `kind`, `lead: true`, `hook: execute`) are refused with the line to change; there are no post-execute hooks.
-- **负责人被拒用**: 开始卡片的报错和 `akb workflow list` 用一句话说明是哪个负责人、为什么、改哪一行。
-- **`akb raw agent-file <agent> AGENT.md`** 打印任何 agent（含内建）的规则文件。
-- **AGENT.md 行尾注释**: 像 YAML 一样忽略；值里要 `#` 时加引号。
-- **`akb workflow stage <id> --stage <stage> --on|--off <agent>`** switches one of a workflow's agents; `akb workflow duplicate` copies every agent.
-- **记忆审阅**: 没审过的对话在本机最久留 30 天；被拒绝或丢弃的卡不审，讨论也不审。
-- **建议后续任务**: 每轮至多 10 张、跨卡去重；「小改动」可选先问我（默认，进待筛选）、直接做完、不提。
-- **定时 Agent** 只看有没有新输入：待筛选里还有它上一轮放进的条目，也照常运行。
-- **自动细化**: 看板界面开着时，写过或改过的卡会自动细化一次；失败不重试，规则生效前的旧卡要手动细化。等你回答的卡执行 `akb card refine` 会说明在等回答。
-- **依赖落地后修订**: 依赖卡归档或被拒时，等它的卡自动排上一次修订（`akb raw schedule --action revise`）核对计划；已排了构建的把说明附进那次构建，构建或交付中的不受影响。
+- **Workflow agents**: each agent belongs to one workflow; copying a workflow copies its agents, and copying is the only way to change a built-in agent's instructions; `akb workflow stage <id> --stage <stage> --on|--off <agent>` switches one; a refused lead is named with the reason and the line to fix.
+- **Workflow choice**: a new card's workflow follows the work it delivers, falling back to the board default; each built-in's description says when to pick it, so a deck designed as HTML/TSX lands on Slide deck and a feed post (LinkedIn, X, carousel) on Social post — text-only unless the card asks for images or the platform needs them; `akb create --workflow <id>` sets it; `akb raw update <id> --workflow <id>` moves a card that has no run or delivery on it, sending it back to `todo` for a re-plan.
+- **Discussions** never edit code, judge the idea first and end in **Plan tasks** or **Start now**; one discussion can hold several plans (`akb raw plan drop` withdraws one): `akb guide discuss-idea`, `web/content/docs/chat.mdx`.
+- **Workflows without a worktree** end on a ticked `Output:` todo the delivery added, naming a file or folder with a directory (`./out/email/`); a bare file name, a ticked plan todo or an earlier delivery's `Output:` line is not an output.
+- **Card chat** makes a settled change without asking again and picks its runtime per conversation: `web/content/docs/chat.mdx`.
+- **Reject while the card chat replies**: `akb card reject` works mid-reply; the reply stops and the conversation is dropped.
+- **Planning sessions carry on**: a card's planning continues the session it was created or last planned in, starting fresh only when the tool changed or the session is gone.
 - **Planning questions** are written for someone who has not seen the board — no card ids, agent names or board terms.
-- **Planning QA** checks the facts a plan turns on against authoritative sources, and revises or stays open when it cannot settle one.
-- **Start now from a discussion** builds with its context; the discussion stays unchanged.
-- **Several plans per discussion**: **Plan tasks** hands them to one planning run, an unused plan returns to the discussion, and `akb raw plan drop` withdraws one.
-- **Workflow choice**: a new card picks its workflow by the work it delivers, falling back to the board default; `akb create --workflow <id>` sets it.
+- **Planning QA** checks the facts a plan turns on against authoritative sources, and stays open when it cannot settle one.
+- **Auto-refine**: with the board open, a card written or edited is refined once; a card waiting on answers says so.
+- **Suggest follow-up work**: at most 10 per round, deduplicated across cards; small fixes can be asked first (default), just done, or not suggested.
+- **Scheduled agents** run only on new input.
+- **Memory review**: unreviewed chats are kept up to 30 days; rejected or discarded cards and discussions are not reviewed.
+- **Cleanup**: cards gone from the board for 7 days lose attachments, old mockups, chats and finished delivery worktrees (assets memory or open cards reference stay); archived cards are deleted after 30 days.
+- **`akb raw list`**: `--archived` lists landed cards (`--since`, `--workflow`, `--json`); `--stale` lists parked cards, which the board never rewrites or drops.
+- **`akb` with no arguments** (or `akb raw`) prints the command list and exits 0.
+- **Releases removed**: no release command, `--release`, `releases.md` or changelog; `akb update` removes them from old boards.
+- **Board settings are per machine**: `.akb/boards/<board>/ui.config.json`, outside git and Cloud; the old `docs/kanban/ui.config.json` migrates on first read.
+- **Codex** runs without approvals or sandbox, your own `command` wins: `kanban-ui/README.md`; when the `codex` on PATH cannot start, the copy inside ChatGPT is used.
+- **Codex cost per reply**: a resumed or forked Codex chat or run is billed only that turn's tokens; earlier records the rollout can prove are corrected once when a chat or Insights opens.
+- **Specialist roles**: `copywriting` writes all copy outside the product's screens (one asset per page or file, languages as variants, shown as the reader sees it); `ui-designer` writes its mockups' text; `illustrator` makes every other image, and motion as a muted looping MP4 (GIF only where video cannot go).
+- **Spec sections** sit above the card's divider for review; a plan lead with nothing to show writes none, and draws a mermaid diagram only when a sentence cannot explain a change.
+- **prompt-writer** edits a prompt only where its agent lacks a needed instruction; **email-planner** covers any email, in its own format when it has a send script.
+- **Competitor research**: a card that only names competitors gets a whole-product comparison and adds them to the `competitors` memory, re-read after three months; feature planning never adds competitors. Such a card is read and archived, not built.
+- **Asset sources**: clips, covers and scripts use only self-made or generated, repository or open-licensed material; anything else (platform logos included) is asked first.
 - **`akb cloud image` / `akb cloud tts`** generate an image or narration on Pro credits; every agent can call them.
-- **Deck planning**: a slide deck card opens with a black-on-white wireframe storyboard plus three styled samples; stage 2 shows the final slides, and stage 3 puts the editable .pptx near the top of the card.
-- **Review todos**: video, slide deck, carousel and blog cards track each review as a todo ticked by a `[user]` answer; a change that makes a ticked todo stale adds a new one, and Archive is offered once all are ticked.
-- **Video script**: the first review is story, shots and exact lines; capture details and timing come after approval, and changing approved content reopens it. A retake restores and checks the shot's starting state first.
-- **Blog outline** shows the keyword-bearing title, section plan, SEO title and meta description; with a primary keyword, the planner reads the top-ranking pages first and builds around one to three points the post adds, keeping the research off the card.
-- **素材来源**: 剪辑、封面和脚本只用自制或生成的、仓库里的和开源许可的素材，其余（含平台标志）先提问；封面的模型和提示词与源文件放在一起。
-- **email-planner** covers any email, newsletters included; one with its own format and send script is written in that format, not TSX.
-- **prompt-writer** edits a prompt only where its agent lacks a needed instruction, within the prompts the card names; app-controlled mechanics never become agent duties.
-- **Codex** runs without approvals or sandbox; your own `command` wins: `kanban-ui/README.md`.
-- **Codex 回退**: PATH 上的 `codex` 起不来时（含 ChatGPT.app 26.928 起的新位置），改用 ChatGPT 里的那份，运行日志说明一句。
-- **看板设置每人本机一份**: `.akb/boards/<board>/ui.config.json`，不进 git、不上传 Cloud；旧的 `docs/kanban/ui.config.json` 首次读取时自动迁移。
-- **Spec 小节**: 所有 spec agent 的小节写在卡片分界线上方供你审阅；规划阶段的 lead agent 同样另写自己的小节。
-- **Competitor analysis** shares the `competitors` memory with `competitor-research`, and re-reads a competitor once its `last_read` is over three months old.
-- **动图**: 插图 Agent 默认交静音循环的 H.264 MP4 加首帧封面（`<Asset ... loop />`），GIF 只用于 README 等不能放视频的地方。
-- **定时 agent 的收件箱条目**：某工作流的定时 agent（如 Coding 的质检员）报进收件箱的条目（包括它的子运行报出的），整理时直接建成该工作流的卡片，不再由判断另选工作流或因「没有工作流能做」而忽略。
-- **版本已移除**: 看板不再有 release 命令、`--release`、`releases.md` 和更新日志；`akb update` 会删掉旧看板的 `releases.md` 和卡片的 `release` 字段，`.release-summaries/` 保留。
-- **Video clone**: a Pro workflow that turns a reference video made with code into an approved shot-by-shot recipe, then a reusable template that renders it; reproduced effects are kept for the next clone: `web/content/docs/agents.mdx`.
+- **All workflows are free**: every built-in and copied workflow runs and copies without Pro; without Pro or credits, agents fall back to local voices, layout or code-drawn images and no music, and say so on the card.
+- **Deck planning**: a wireframe storyboard plus three styled samples first, then the final slides as HTML/TSX pages; the delivered `.pptx` is one image per slide with speaker notes, not editable. `akb raw agent-file deck-planner scripts/pack-pptx.mjs` packs PNGs into a deck.
+- **Video script**: the first review is story, shots and exact lines; capture details and timing follow approval, and changing approved content reopens it.
+- **Blog outline** shows the title, section plan, SEO title and meta description; with a primary keyword the planner reads the top-ranking pages and builds around what the post adds.
+- **Video clone**: clones any video made with code into a beat-table template you fill with your own content without code changes; you approve a breakdown and a clone script against the source, get the clone side by side with it, and a score matched beat by beat: `web/content/docs/agents.mdx`.
+- **Video clone templates** render beat by beat into cached clips, so a change re-renders only what it touches; shared `prop` and `motion` templates are checked before building new ones (`akb cloud template list-tags --category prop`).
+- **Look-matched clones**: `ui-cloner` fixes the clone until it looks like the source, using the closest free font instead of the source's own, and the card compares the source with the final shot; `video-cloner` reuses a motion or prop whose style and timing match.
+- **UI templates**: `hero-tilted-screen` is in the shared catalog (`akb cloud template search --category ui`); agents use a template only when the request names it.
+- **Video templates**: a card naming a video template is built on it with no candidates offered; named props and motions go into their shots, and `hyperframes-editor` searches for others only when one may save work.
+- **Publishing clones**: the `UI clone` workflow and `video-clone` with `video-template-publisher` publish a reviewed clone to the shared catalog, reproduce it from an empty folder, and record its `get` command on the card.
+- **Template previews**: `akb cloud template preview <name>` keeps a preview already named `<name>-…` as it is.
+- **Template publish defaults**: `akb cloud template publish` reads a `template.md` with no `access` as `pro` and no `source` as original; publishing agents write `access: free` only when the card asks for a free template; a malformed value is still refused.
+- **Self-contained motions**: `card-widen`, `gather-into-icon` and `platform-orbit` from `akb cloud template get` render as their catalog clips with only the template's engine and your content; `platform-orbit` no longer ends in a logo.
+- **draft-first**: a standalone skill for drafting a task's key parts for review before building; long drafts go in `.md` assets: [ai4kanban/draft-first](https://github.com/ai4kanban/draft-first).
+- **Blog researcher**: the `blog-post` workflow researches the public facts, real-world solutions and counter-examples behind a post's angle before the outline and again while writing, saved as `research.md` beside the card; boards that already set up Blog post get it once, and turning it off just skips research: `web/content/docs/agents.mdx`.
+- **Blog post covers third-party platforms**: a titled article on its own page — the project's site, dev.to or Medium — is picked as a Blog post; a post read in a feed is a Social post.
+- **Blog post destinations**: a post is delivered as one copy per destination — a site folder, a CMS, dev.to or Medium — each in that destination's format and never written into another; the planner remembers each destination after its first publication, and a post published in several places points the others' canonical URL at the original.
+- **Social post illustrator**: `social-illustrator` makes a social post's images after the copy is approved — the image slots on a carousel's pages, or by default one image for the paragraph of a text-only post that most needs it; boards that already set up Social post get it once: `web/content/docs/agents.mdx`.
+- **Workflows in files**: every workflow is a `WORKFLOW.md` — the built-ins ship with `akb`, a board's own live in `docs/kanban/workflows/<id>/` and travel with the repo; ones saved in the board's settings move there by themselves on the next read.
+- **Live carousel templates**: the carousel template designer's visual slots take images, videos or animated React/HTML components; a live page exports a cover PNG plus a seamless H.264 MP4 loop (needs ffmpeg), pages follow the card's or target platform's ratio and default to 3:4, and the catalog previews a live page by its cover frame.
 
 ## local-ui
 
+- **Pro trial**: Configuration → Billing offers "Start 7-day free trial" / "免费试用 7 天" to an account that never had Pro, shows the days left while it runs, and offers Get Pro once it ends.
+- **Agent characters**: every built-in agent wears its own costume in the agent lists and in the runs office, walking (always facing the way it goes), typing at a desk whose screen shows its kind of work, and sitting on the sofa; a custom agent is the plain robot with its first character on its arm: `kanban-ui/character-design/README.md`.
 - **Desktop app** reopens the last repo, finds your coding agent, installs `akb` and updates in the background: `desktop/README.md`, `kanban-ui/README.md`. The browser board is deprecated: `akb guide local-ui`.
 - **First run and Finish setup**: `kanban-ui/README.md`.
-- **Card opens**: opening a card no longer waits behind the background run and discussion polls.
-- **Stale column**: cards untouched for over 5 days (not building) move to a third column, oldest first, showing how many days they have sat; a group counts as touched while any of its subtasks is edited or building.
-- **Markdown assets read as articles**: an `<Asset>` pointing at a `.md`/`.mdx` file shows the article on the card page, folded with Show full article, and in full on its own page; Source shows the file as written.
-- **Agent characters**: the built-in `project-writer`, `competitor-research`, `illustrator` and `qa-manager` agents now have their own pixel characters on the Agents page and in workflows instead of a lettered card.
-- **Asset versions**: one `<Asset>` can list versions of the same content (languages, devices) with `variants='{"<label>": "<src>", ...}'`; the caption shows the current version and a muted count as a quiet, borderless switch that opens a menu (`akb guide writing`). Every asset's caption copies the file's absolute path and opens it at full size from icons.
-- **Reject during a chat reply**: the card page's Reject stays available while its chat is replying; the reply stops with the card.
-- **Board, search, Insights, Memory, Archive, Test cases, New idea, Discuss, card buttons, Diff, run cost, resume**: `kanban-ui/README.md`, `web/content/docs/runs.mdx`.
+- **Board, search, Insights, Memory, Archive, Test cases, New idea, Discuss, card buttons, Diff, run cost, resume, assets, language, workflows, several boards**: `kanban-ui/README.md`, `web/content/docs/runs.mdx`.
+- **Switch workflow**: click the card page's Workflow item to move a card to another workflow; locked while a run or delivery is on it, and the card is re-planned.
+- **Workflow agents and schedules**, **global memory**: `web/content/docs/agents.mdx`; an agent's page lists the memories it uses and warns about a missing name.
+- **Runtimes**: `web/content/docs/runs.mdx`, `web/content/docs/connectors.mdx`.
+- **Stages on the card page**: one block shows the stages, where the card stands and, when a draft waits, **Approve, start <next stage>**.
+- **Build agent for planning-only workflows**: Configuration → Workflows → Execute has no picker: **Set up agent** makes (or takes back a leftover) `<workflow>-executor`, and the row's × **Remove agent** deletes it; set, the card builds after planning.
+- **Drafts on a card**: assets, storyboards and decks fold to one row and download or copy their path; a storyboard shows one shot at a time (‹ ›, ←/→); a deck slide may be an `.html`/`.tsx` page, and an enlarged deck pages with ‹ › and ←/→; Markdown assets read as articles; mermaid blocks draw as diagrams; mockups and images zoom.
+- **Downloads**: carousel, deck and product-video storyboards download as an ordered zip; right-click (long-press) a board image to copy or download it.
+- **Notifications** work signed out — cards waiting on you, deliveries that did not land, landings, stopped-short runs — survive a restart and load 30 at a time; signed in, the bell also carries every Cloud board's **To do** and **Landed**, each shown once.
+- **Stale column**: cards untouched for over 5 days (not building) move to their own column, oldest first; a group counts as touched while any subtask is.
 - **Group build-order map**: a group shows the order its cards build in.
 - **Phone**: a bottom tab bar (Board, More), one column at a time, card search on top.
-- **Discussions**: the discussion stays hidden once planning or building starts; a conversation stays on the agent that opened it, and changing the helper's runtime affects only new ones; **End discussion** stops its agent and everything it started.
-- **讨论载入失败**: 显示「讨论载入失败。」和「重试」；回复中途退出或崩溃的，重开后可「重新发送」。
-- **Back and Forward** show a card as it is on disk; the desktop app re-reads every page when you switch back to its window.
-- **重启保留界面状态**: 草稿、聊天栏开合与宽度、已庆祝的里程碑、已提示的运行提醒。
+- **Discussions** hide once planning or building starts, stay on the agent that opened them, and **End discussion** stops everything they started; a failed load offers Retry, and a reply cut short can be resent.
+- **Reject during a chat reply**: Reject stays available and stops the reply.
 - **Revise** opens the card's chat with the first line typed.
-- **Card assets** beyond the README's: slide decks with speaker notes, `.pptx` downloads, mockups labelled by device; an image's `alt` falls back to `label`.
-- **分镜「全部下载」**: 轮播图、幻灯片、产品视频可下载为按页序命名的 zip；托管看板没有。
-- **右键图片**: 右键（触屏长按）看板自己的图片可「复制图片」「下载图片」，沿用原文件名；外链图片保持浏览器原有右键。
-- **Stopped-short runs** on a card nobody has dealt with stay visible on the card and in **Unfinished**; a failed run's log leads with the board's reason.
-- **Notifications** load 30 at a time; counts still include everything.
-- **Global memory** in Configuration: `web/content/docs/agents.mdx`; an agent's page lists the ones it uses and warns about a name that doesn't exist.
-- **Workflows** explain themselves in the picker and `akb workflow list`; an unavailable one says why: `kanban-ui/README.md`.
-- **Agents per workflow**: each agent belongs to one workflow; copying a workflow copies its agents, and copying an agent is the only way to change a built-in agent's instructions.
-- **Workflow agents and schedules**: `web/content/docs/agents.mdx`.
+- **Back and Forward** show a card as it is on disk; the desktop app re-reads every page when you switch back to it; opening a card no longer waits on background polls.
+- **Restarts keep** drafts, the chat rail's state and width, celebrated milestones and shown run reminders.
+- **Stopped-short runs** on an unhandled card stay visible on it and in **Unfinished**; a failed run's log leads with the board's reason.
 - **Extra requirements**: a built-in helper's page has one box per workflow stage; an agent you added is told everything through its own `AGENT.md`.
-- **Runtimes**: `web/content/docs/runs.mdx`, `web/content/docs/connectors.mdx`.
+- **Agent names** fall back to the English title in other languages.
 - **Cloud settings** retry on their own when Cloud is unreachable; storing a board in Cloud is offered only to team accounts.
-- **Language** is per machine and applies without reload: `kanban-ui/README.md`; error messages follow it, raw diagnostics stay as they are.
-- **Bell** carries every Cloud board's **To do** and **Landed**, and this board's stopped-short runs even without Cloud; bell and chat share one side rail.
-- **Several boards**: `web/content/docs/index.mdx`; another board opens in a new window.
-- **Pro**: **Upgrade to Pro** in Configuration → Billing; cards on Pro workflows read **Needs Pro** without it and start once Pro is active, and `akb` refuses them too.
-- **Resume renewal**: a cancelled Pro plan still in its period turns renewal back on from Configuration → Billing, without the billing portal.
+- **Pro**: **Upgrade to Pro** in Configuration → Billing, which lists all 6 workflows under Free and folds the workflow list and credit costs behind each row; a cancelled plan still in its period resumes renewal there.
 - **Live sync**: signing in or out, buying Pro and editing workflows update every open screen at once.
-- **功能导览**: 新用户设置完成后、老用户升级后首次打开时弹出一次，可从帮助菜单、「配置 → 通用」或 Cloud 设置页重看。
-- **欢呼**: 一整组完成、当天第一个任务完成时；每件事每个浏览器一次，手机宽度不显示。
-- **待筛选来源**: Agent 写入的条目来源显示为该 Agent 名，可按来源筛选。
-- **循环视频**: `<Asset ... loop />` 静音循环、无控制条，进入视野播放、离开暂停；“减少动态效果”时停在首帧并显示播放按钮。
-- **Mermaid**: a ```` ```mermaid ```` block on a card is drawn as a diagram; one that does not parse shows as written.
-- **Mockup scripts**: `.tsx` and `.html` mockups run inline scripts with no network, so libraries are inlined; `ui-designer` and `illustrator` draw `.tsx` only and add script only when the motion needs it.
-- **缩放**: 卡片里的 mockup、图片及其预览页可放大、缩小、适应宽度并显示比例，放大后在预览区域内滚动。
-- **Focus**: a calm ink frame shows only on keyboard focus; text fields firm to an ink edge while typing, and an open dropdown keeps its frame with a flipped chevron.
-- **归档排序**: 归档页标题行可切换「交付时间 / 创建时间」，都是最近的在前，默认按交付时间。
-- **版本已移除**: 看板界面不再有版本选择器、筛选、徽章和建/关/放弃版本操作。
-- **反馈已移除**: 输入框下不再有「结束时分享给团队」开关和关联任务搜索，配置里不再有「伙伴反馈」开关。
+- **Feature tour** shows once after setup or an upgrade, and can be replayed from Help, Configuration → General or Cloud settings.
+- **Cheers** for a finished group and the day's first finished task, once per browser, not at phone width.
+- **Triage source**: items an agent wrote show that agent as source, filterable.
+- **Archive sort**: by delivery time (default) or creation time, newest first.
+- **Removed**: release picker, filters, badges and actions; the feedback-sharing toggle, linked-task search and partner-feedback setting.
+- **Agent avatars** draw instantly with their rows — no blank flash when opening Configuration → Workflows.
 
 ## site
 
-- **Languages**: landing and comparison pages also in `/zh`, `/es`, `/ja`, `/fr`; no browser-language redirect, and Markdown mirrors stay English. The footer is fully translated in every language, even where its links lead to English-only pages. On desktop, the header names the visitor's preferred language when the page has a copy in it; one click opens it.
-- **Positioning** is "See the draft. Let agents do the rest." (中文「先看草稿，再往下做」); wording limits in `positioning.md`. The download page's search and share text in every language, `site.webmanifest`, the docs overview, `llms.txt` and the home page's Markdown mirror (`/index.md`) tell the same story.
-- **Home page** walks key drafts (UI mockup, copy, storyboard, figures), feedback agents remember, follow-ups, parallel work and the 8 tools, under a looping `/demo` recording. Section titles carry no numbers (here and on `/draft-first`); on desktop the drafts section fits one screen and clicking a draft kind scrolls to it.
+- **Pricing starts the Pro trial**: Pro's button on `/pricing` reads "Start 7-day free trial" / "免费试用 7 天" and starts the trial through the Cloud sign-in; Cloud's Settings offers the same.
+- **Carousel templates show every page**: `/templates/carousel/<name>` lays the example's pages out in order as a swipeable strip (`7 pages` / `共 7 页`), the catalog shows carousel covers portrait, four to a row, and the tab reads `Carousel` / `图文`. Publishers add pages with `pages` in `showcase.json` for `akb cloud template showcase`.
+- **Live carousel pages play**: on a carousel template's page, live pages loop muted while in view and pause when scrolled away; with reduced motion they wait for the play button. Publishers register one as `{ "image", "video" }` in `pages`.
+- **Template pages load in place**: `/templates` and each template's page show quiet blocks in the final layout while the catalog loads — the picked tab's own tile shape, never a flash of another tab — and images fade in over a matching wash; a template's preview waits for the current version instead of flashing an old one. Still under reduced motion, in English and Chinese.
+- **Running office on the home page**: between the handoff section and the workflows, the agent office plays an 18-second loop — one agent leaves, one finishes and rests on the sofa, a new one takes the desk — with the clock and the view out of the window following the visitor's local time; it holds still with reduced motion, in all five languages.
+- **Retired template links return 404**: `/templates/<category>/<name>` and its `/zh/` twin answer 404 when Cloud's catalog says the template is gone; on any other answer or a timeout they keep the 200 fallback page. Live on ai4kanban.dev since 2026-10-21 (the English URL may serve a cached 200 until about 2026-10-27).
+- **Agent characters**: the docs and site pages show the same costumed agent art as the board.
+- **Rotating idea in the handoff scene**: on the home page and `/builder`, the idea bubble changes each loop — a Pro plan, dark mode, a 30s v2 video, a v2 blog post, a 5-tip carousel — in all five languages.
+- **Motion templates play**: on [/templates](https://ai4kanban.dev/templates) the Motion tab plays each motion's silent clip on hover (on a phone, the tile in view); a motion's page loops it with a pause button, and shows no source.
+- **Guardrails, specs and drafts**: `web/content/blogs/guardrails-specs-drafts.mdx` explains action boundaries, feature requirements and concrete drafts to review before implementation.
+- **[Home page](https://ai4kanban.dev)** tells one story in five sections, all five languages: you don’t manage every detail, you review the key drafts and agents do the rest; how it works, the six workflows (coding and video clone first, blog last; your own workflows via [/docs/agents](https://ai4kanban.dev/docs/agents)), your AI tools, download. The board, task graph, runs office, memory and follow-ups visuals now live in [/docs/daily-loop](https://ai4kanban.dev/docs/daily-loop), [/docs/runs](https://ai4kanban.dev/docs/runs), [/docs/memory](https://ai4kanban.dev/docs/memory) and [/docs/follow-ups](https://ai4kanban.dev/docs/follow-ups).
+- **Positioning** is "You don’t have to manage every detail." under "Agent workspace for indie hackers", in all five languages; wording limits in `positioning.md`; `/index.md` and `llms.txt` tell the same story.
 - **Landing**: the only way in is the app download; `/index.md` and `/llms.txt` mirror it.
-- **`/vs-multica`** argues ready specialist agents, drafts approved before execution and per-agent memory, each with what both share, then a table and a recommendation.
-- **`/vs-task-master`, `/vs-hermes-kanban`** say where the other tool is ahead and who should pick which; Hermes's table is against v0.21.6 and grants chat-app control, stalled-task recovery and its API.
-- **`/vs-orca`**: Orca suits people who keep control of execution details; AI4Kanban suits those who let agents lead the details while they set direction.
-- **`/vs-plannotator`**: Plannotator suits review inside your current agent session (plan diffs, PR review, shared links); AI4Kanban suits key-draft review, parallel tasks on a board, memory and follow-ups.
-- **`/workflows/coding`** (five languages, mirror at `/workflows/coding.md`) explains the coding workflow with demo-board captures and a measured cost of 1.07–2.08× direct Claude Code, under the same CSS 3D hero as `/solutions/saas`.
-- **`/solutions/saas`** (five languages, mirror at `/solutions/saas.md`, footer "For SaaS" after "For coding") shows SaaS founders running product work and marketing on one board, under a CSS 3D hero of a card opening into its card page.
-- **Removed pages**: the GitHub Issues, Linear and Vibe Kanban comparisons redirect to each language's home; `/recipes` redirects to `/docs/agents`. The DeepSeek Harness blog post redirects to `/blog`.
+- **Languages**: landing and comparison pages also in `/zh`, `/es`, `/ja`, `/fr`; no browser-language redirect, Markdown mirrors stay English, the footer is translated everywhere, and the desktop header offers the visitor's language when a copy exists.
+- **Blog topics** use the same ember tabs as the template catalog.
+- **Navigation**: header has Docs, Pricing, a Resources menu (Blog, Training, Templates), GitHub and Download; comparisons and the language switcher live in the footer.
+- **Agent pages**: [Kanban for Grill Me](https://ai4kanban.dev/agents/kanban-for-grill-me), [Kanban for Codex](https://ai4kanban.dev/agents/kanban-for-codex), `/agents/kanban-for-claude-code` (English only), each in `llms.txt`.
+- **Comparison pages** (`/vs-*`, all five languages): one neutral "Compare AI4Kanban and X on …" line, AI4Kanban arguing key drafts that cut rework and ready specialist workflows; each says where the other tool is ahead and who should pick which (`/vs-multica`, `/vs-task-master`, `/vs-hermes-kanban`, `/vs-orca`, `/vs-plannotator`).
+- **`/workflows/coding`** and **`/solutions/saas`** (five languages, Markdown mirrors): coding with reviewed key drafts, at a measured 1.07–2.08× the cost of direct Claude Code; SaaS founders running product and marketing work on one board.
+- **Removed pages**: the GitHub Issues, Linear and Vibe Kanban comparisons redirect home; `/recipes` goes to `/docs/agents`; the DeepSeek Harness post goes to `/blog`.
 - **[/cloud](https://ai4kanban.dev/cloud)** says what Cloud is, what the relay carries and what stays on the machine.
-- **[/privacy](https://ai4kanban.dev/privacy), [/terms](https://ai4kanban.dev/terms)**: English only; NULLREACH LTD as operator, the China company as training seller; cover Pro (Creem as merchant of record, auto-renewal, 14-day refund, monthly credit reset).
-- **[/training](https://ai4kanban.dev/training)** sells one-to-one guidance with booking on the page ($99 a session, $349 a month for four); English and Chinese only.
-- **[/pricing](https://ai4kanban.dev/pricing)** lists Free, Pro (monthly or yearly), seed partners, done-for-you agents ($15 per agent, via `/contact`) and training; English and Chinese only. "Custom" means agents users build; "done-for-you" means agents we build.
-- **[/seed](https://ai4kanban.dev/seed)** takes seed-partner applications (email, GitHub username, planned use), answered by hand; English and Chinese only.
-- **`/contact`** is one form for support and done-for-you agents.
+- **[/privacy](https://ai4kanban.dev/privacy), [/terms](https://ai4kanban.dev/terms)**: English only; NULLREACH LTD as operator, the China company as training seller; cover Pro (Creem as merchant of record, auto-renewal, 14-day refund, monthly credit reset); no feedback sections, and past partner material can still be deleted on request.
+- **[/training](https://ai4kanban.dev/training)** sells one-to-one guidance booked on the page ($99 a session, $349 a month for four); English and Chinese only.
+- **[/pricing](https://ai4kanban.dev/pricing)** lists Free with all 6 workflows, Pro (monthly or yearly, Pro templates, idea screening, AI generation and credits, with rates behind a fold), seed partners, done-for-you agents ($15 per agent, via `/contact`) and training; English and Chinese only.
+- **[/seed](https://ai4kanban.dev/seed)** takes seed-partner applications, answered by hand; **`/contact`** is one form for support and done-for-you agents.
+- **[/builder](https://ai4kanban.dev/builder)** is the founder letter (English only); blog and agent posts are signed "Founder of AI4Kanban".
+- **`/draft-first`** (all five languages) is the draft-first skill's page, linked from the footer, blog posts and the skill README; [Draft-first development](https://ai4kanban.dev/blog/draft-first-development) is its blog post.
+- **[/demo](https://ai4kanban.dev/demo)** walks the desktop app through one fixed script, each step at `?step=<n>`; the source for board screenshots, kept out of navigation and search. [Interactive demo](https://ai4kanban.dev/blog/interactive-demo) explains how it was built.
+- **[Templates](https://ai4kanban.dev/templates)** (English and Chinese): one tab per category (`#<category>` opens it), twelve templates a page, each comparing the original with its recreation, with a prompt to copy into AI4Kanban that names the template; props and motion show their whole keyframe and say they only run inside a video template.
+- **`/blog`** is a grid with the newest featured, filtered by topic tabs (`?topic=<slug>`); feed at `/blog/rss.xml`; every post has its own cover (`featured_cover: <name>`).
 - **Product video** is the demo video workflow's name everywhere.
-- **Blog covers**: `featured_cover: <name>` uses an SVG component from `web/components/blog/covers/`, which may animate and holds still under reduced motion. Every post has its own headline-and-contrast cover; none reuse the board screenshot.
-- **`/blog`** is a grid with the newest featured, filtered by topic tabs (`?topic=<slug>`); feed at `/blog/rss.xml`.
-- **Navigation**: header has Docs, Pricing, a Resources menu (Blog, Training), GitHub and Download; comparisons and the language switcher live in the footer (in the menu on a phone); the footer's "For coding" opens `/workflows/coding` in the reader's language.
-- **官网动图**: 用 `web/components/LoopVideo.tsx`，静音循环 MP4 加封面，接近视野才加载播放；减少动态效果或拒绝自动播放时停在封面并显示播放控件。
-- **[/builder](https://ai4kanban.dev/builder)** is Tao's founder letter (English only) on moving from AI running the project to people reviewing key drafts first; `/builder.md` and `llms.txt` tell the same story, and blog and agent posts are signed "Founder of AI4Kanban".
-- **`/draft-first`** (all five languages) is the draft-first skill's page: install command, the four draft kinds, delete/note/confirm, adding a drafting agent, and the AI4Kanban upgrade; linked from the footer's Solutions, two blog posts and the skill README, not the header; the hero links to the skill's GitHub repo.
-- **[Draft-first development](https://ai4kanban.dev/blog/draft-first-development)**: blog post on reviewing drafts of key screens, copy and prompts before the build; `/draft-first` links to it.
-- **[Interactive demo](https://ai4kanban.dev/blog/interactive-demo)**: blog post on building `/demo` from reviewed UI drafts with Claude Code, without dedicated demo tools.
-- **[/demo](https://ai4kanban.dev/demo)** walks the desktop app through one fixed script (an idea becomes plan #38, its #39 is revised, built and archived), each step at `?step=<n>`; it is the source for board screenshots and recordings, kept out of navigation and search.
-- **[隐私政策](https://ai4kanban.dev/privacy)** 不再有反馈和伙伴反馈两节；此前提交的伙伴材料仍可凭反馈编号邮件申请删除。
+- **The office shot** on [/docs/runs](https://ai4kanban.dev/docs/runs) and in the README overview shows real agents in their role costumes, each desk screen showing code, a doc or a design.
 
 ## docs
 
 - **READMEs** are app-first and lead with draft review: `README.md`, `README-zh.md`.
-- **Docs pages**: one per topic under `web/content/docs/`, saying only what you can do, how, and where to set it; commands stay in `akb --help`.
-- **Coding agents**: `web/content/docs/connectors.mdx`.
-- **Redirects**: `/docs/triage-endpoint` goes to `/docs/triage`; the old "What makes a good goal" page goes to the docs home.
-- **版本页已删**: `/docs/releases` 不再存在，其他文档也不再提版本。
+- **Docs pages**: one per topic under `web/content/docs/` (Overview, Your first card, Draft review, Memory, Follow-ups, Workflows, Multi-runtime support, Runs and runtimes, Agents, Chat, Triage), saying only what you can do, how and where to set it; commands stay in `akb --help`.
+- **[/docs/agents](https://ai4kanban.dev/docs/agents)**: built-in roles, specialists grouped by workflow, each with its own board character, rules, schedules and custom agents; memory is one link to `/docs/memory`.
+- **llms.txt**: `web/public/llms.txt` lists every docs page in rail order with its frontmatter description; the docs build fails when it drifts.
+- **Redirects**: `/docs/triage-endpoint` goes to `/docs/triage`; the old "What makes a good goal" page and `/docs/releases` are gone.
 
 ## marketing
 
 - **Marketing work** is an ordinary card on the default workflow; its delivery is the file in the repo.
 - **[awesome-agent-kanban](https://github.com/neverchanje/awesome-agent-kanban)** is a public CC0 directory of agent task tools, AI4Kanban listed on the same criteria as the rest.
 - **Video assets**: free shared music, UI sounds and paper backgrounds (CC0) are on `cdn.ai4kanban.dev/video/`.
-- **Shipped pieces**: the "see it first, then build it" product video (English and Chinese, 16:9); an 8-page Chinese Xiaohongshu carousel, "review the UI, not the wall of text"; the blog post "[Visual specs for AI coding](https://ai4kanban.dev/blog/show-the-ui-first)"; the 0.10.0 newsletter, "Build sooner. Catch gaps." (`node scripts/newsletter-send.mjs --issue 2026-10-07`); a 19-slide editable Chinese investor pitch deck, "人只审重点，其余交给 Agent" (`.akb/boards/docs/kanban/assets/1696/pitch-deck-responsibility-line.pptx`, rebuilt by `npm run build` in its `deck/`).
+- **Shipped pieces**: the "see it first, then build it" product video (English and Chinese); a Chinese Xiaohongshu carousel, "review the UI, not the wall of text"; the blog post "[Visual specs for AI coding](https://ai4kanban.dev/blog/show-the-ui-first)"; the 0.10.0 newsletter (`node scripts/newsletter-send.mjs --issue 2026-10-07`); a 15-page Chinese investor pitch deck, "人只审重点，其余交给 Agent", readable from its slide titles alone. A 15-page investor pitch deck for the template business model (open-source workflows, paid closed-source templates on Cloud), in matching Chinese and English editions.
+- **GitHub README** (`README.md`, `README-zh.md`) opens with "An agent workspace for indie hackers" and shows the six workflows and their agent teams in each agent's role costume (`node scripts/readme-figures.mjs` redraws the figure).
+- **npm package page**: `cli/README.md` opens with "See the draft. Let agents do the rest."
+- **Carousel template designer**: a template has one page per variant (openings, middles, closings in whatever counts it needs), each page stating its image slots and ratios, what the user fills with length limits, and whether overflowing text flows on or is rewritten shorter; it may recreate a reference the card gives.
+- **Long-read carousel template**: `long-read` (carousel), a grained-paper long-form carousel whose body text flows onto continuation pages, Chinese or English at 3:4, 4:5 or 9:16: `akb cloud template get long-read`.
+- **Warm animated explainer carousel template**: `warm-explainer` (carousel), a recipe rather than fixed layouts — warm paper, big serif titles, marker ink, cursors at work and data told by hundreds of small animated marks, with an 8-page Chinese and English 4:5 example where every page is a seamless loop: `akb cloud template get warm-explainer`.
+- **Black-and-white how-to carousel template**: `mono-howto` (carousel, Pro), pure black or white 4:5 pages with centred tight sans, numbered steps, an FAQ and a comment call to action, Chinese or English, with a cursor-click screen page and looping video slots: `akb cloud template get mono-howto`.
 
 ## cloud
 
+- **Pro trial before purchase**: a 7-day trial (1,000 AI credits, no card, once per account) comes before any checkout; past subscribers and seed partners buy directly: `POST /v1/billing/trial` in `cloud/endpoints.md`.
+- **Trial button notices**: back on settings from the pricing page's trial button, subscribers see they already have Pro and accounts that used their trial are told to upgrade.
+- **Motion clips**: the catalog list carries a motion's clip; `akb cloud template showcase` refuses a motion without `recreation.video`.
+- **Live carousel pages**: a showcase's `pages` takes `{ image, video }` items and the template detail answers `pages` as `{ image, video }[]`; a showcase holds up to 30 files.
 - **Sign-in, invites, seed-partner grants, free-tier limits, write leases**: `cloud/README.md`.
 - **Workspaces, moving boards, members and roles, the read-only browser view, invite-only preview**: `web/content/docs/local-and-cloud-boards.mdx`; Cloud is free for invited users and pricing may change.
-- **Notifications**: a card reaching `ready` or raising a user-only question becomes a Cloud event, kept 30 days after it ends; one event takes one action; a failed send retries for about four hours, then marks the board out of step.
+- **Notifications**: one on/off switch; a card reaching `ready` or raising a user-only question becomes a Cloud event, kept 30 days after it ends; a failed send retries for about four hours.
+- **Public template catalog**: `GET /v1/catalog` lists every published template without sign-in; sources stay behind sign-in and Pro; maintainers set showcase media with `akb cloud template showcase <name> <dir>`, kept across republishes.
+- **Templates are Pro**: every template already in the shared catalog, props and motions included, is Pro, and [/templates](https://ai4kanban.dev/templates) tags them Pro.
+- **First video template**: `ui-walkthrough-launch` (`akb cloud template search --category video`), a launch walkthrough with its own score; swap in your content and `npm run render`.
 - **Runtime privacy**: Cloud reports runtime names only, never keys, arguments or paths.
-- **Pro** is sold monthly or yearly through Creem to any GitHub sign-in, managed at `cloud.ai4kanban.dev/settings`, with 5,000 AI credits each UTC month shown with the reset date in Billing.
-- **Seed partners** get six months of Pro on their GitHub handle, once per handle, with no charge afterwards; the end date shows in Billing.
+- **Pro** is sold monthly or yearly through Creem to any GitHub sign-in, managed at `cloud.ai4kanban.dev/settings`, with 5,000 AI credits each UTC month (a generated image 320, a music track 160); already subscribed lands there, and a cancelled plan in its period can resume renewal without the Creem portal.
+- **Lost payment notification**: a payment still becomes Pro if Billing, Upgrade or a Pro workflow is used within 24 hours of checkout.
+- **Seed partners** get six months of Pro once per GitHub handle, with no charge afterwards.
 - **Refunds**: none unless the law requires; a refund or chargeback ends Pro and its credits at once.
-- **Stale column** on the hosted board judges a group by its subtasks, the same as the desktop app.
-- **Lost payment notification**: a payment still becomes Pro if Billing, Upgrade or a Pro workflow is used within 24 hours of checkout, never opening a second checkout.
-- **通知只剩开关**: 开启后看板上所有卡片的待决事项都会通知，不再按版本筛选。
-- **Get Pro while already subscribed** lands on `cloud.ai4kanban.dev/settings` with a note saying so; a cancelled plan still in its period gets a Resume renewal button there, without the Creem portal.
+- **Hosted music**: `akb cloud music --seconds <n> --out <file.mp3> "<prompt>"` makes an instrumental MP3 that ends at that length, for Pro, from mainland China too.
+- **Stale column** on the hosted board judges a group by its subtasks, as the desktop app does.
 
 ## telemetry
 
-- **Anonymous usage reporting**: `web/content/docs/local-and-cloud-boards.mdx`, `akb telemetry status|on|off`.
-- **反馈已移除**: 除匿名使用统计外不再收集任何数据；反馈接口下线，已存的反馈文字和附件随之删除。
+- **Anonymous usage reporting**: `web/content/docs/local-and-cloud-boards.mdx`, `akb telemetry status|on|off`; nothing else is collected, and the feedback endpoint and stored feedback are gone.

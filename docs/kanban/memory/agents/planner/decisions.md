@@ -15,13 +15,6 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 - **不走计划模式**：审阅都在卡片上，不需要「批注计划外的文档、网页」这类插件式审阅入口。
 - **不做无人值守**：主打验收前置（先给用户看最在意的部分，不靠谱当场放弃）和规划后置（漏掉的功能实现后由后台补卡）。
 
-## Teams and Cloud
-
-- **开源版与 Cloud 分工**：开源版聚焦本地单人工作流；多人权限、通知和协作同步由 Cloud 提供。
-- **Cloud 不代跑 agent**：执行在每个人自己的机器上、用自己的模型账号；Cloud 负责派发、协作和同步。
-- **团队协作先解决四件事**：识别成员；把 agent 的问题送给能决策的人；避免多个 agent 同时处理同一张卡；团队决策进入同一份可追溯记忆。
-- **外部系统只是入口和镜像**：GitHub Issues、Linear 等导入需求、镜像进展；外部评论只作建议导入，不能直接覆盖看板。
-
 ## How far agents go alone
 
 - **No autonomy switch**: no global switch or ladder of levels; each step that needs no user
@@ -33,13 +26,16 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 
 ## Memory
 
-- **全局记忆由用户自建**：放在 `docs/kanban/memory/<名称>/`；内置与自建格式相同，契约由创建者写，agent 只在 frontmatter 声明 `memory: [<名称>]`；安装时不创建。
-- **全局记忆没有通用格式**：不统计、不显示条目数，界面不用「条目」这类词；不存频率或排期，重查按文件里的读取日期判断。
+- **全局记忆没有通用格式**：不统计条目数，不存频率或排期；何时重查由文件里的读取日期判断。
 
 ## What a card can carry
 
 - **Card files**: mockups and rendered videos included, live in the board's one assets folder
   under its id, stay readable through the build, and are archived and shown with the card.
+
+## Content deliverables
+
+- **复刻求外观一致，不求逐像素或逐帧**（UI 与视频）：对比只为找出明显差异；像素比对是按需排查的工具，不做强制的逐轮量化修复和逐项数值报告。字体属于外观，按参考页实测的计算样式还原，不靠目测。
 
 ## Eval collection
 
@@ -64,6 +60,7 @@ beside this file. Read before proposing so you don't re-ask a settled call.
 - **方案以 `/pricing` 与条款为准**：种子伙伴内部上限 20 人，不对外公布；培训只放一张链到 `/training` 的卡。
 - **Pro 额度**：托管配音与生图共用，不加购，用尽停到下月，不改用用户自己的 agent；按每月约 10 条带配音和封面的视频定量，满额仍小有盈利。
 - **triage 逐条判断**：Pro 免费、不限条数，不扣 credits。
+- **托管能力按市价定价**：先查同类封装上游的零售工具怎么收再定，不凭空定；配乐按首计费，不按时长。
 - **Pro 的卖点**：不把差别说成「更多工作流」；邮件策划对所有人免费，不作 Pro 卖点。
 - **支出上限**：托管服务按用户设额度，不设全平台总上限。
 - **Creem 只用正式商店**：不建测试商店，真实付款由用户人工验证后退款。

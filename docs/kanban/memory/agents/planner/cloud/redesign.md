@@ -7,6 +7,10 @@ Design mistakes to avoid when writing a Cloud card: the mistake, then the design
 - ❌ **Write the privacy or terms page for the release that will eventually ship a feature** → ✅ describe what the nearest release gives, and rewrite the page in the same delivery that changes what we do with data.
 - ❌ **Leave correcting a published page to a later release** → ✅ correct it in the release that invites people.
 
+## Agent rules
+
+- ❌ **用户对一张卡的纠正只改进这张卡** → ✅ 纠正对该工作流以后每张卡都成立时，另开卡改 agent 规则；卡片对话里点头不等于授权直接改规则代码。
+
 ## Event handling
 
 - ❌ **Require a shared Cloud board before one person can act on a notification remotely** → ✅ Cloud relays revisioned snapshots, decisions and outcomes for a Local board.

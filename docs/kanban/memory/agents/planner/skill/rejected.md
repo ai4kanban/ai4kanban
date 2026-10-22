@@ -10,10 +10,11 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Cards for Windows-only edge cases** — not at this stage; Windows-only cases and tests wait for bandwidth.
 - **Replacing Jev with agent triage** — on an eval neither sorted better, and Jev is much cheaper.
 - **Follow-up planning pinning the runtime of the session it continues** — overdesign; the planner's current runtime is fine.
+- **Fixes or features for the standalone draft-first skill** — it is no longer maintained and its repository is being deleted (#1927) (#1674, #1687).
 
 ## Scheduled and background agents
 
-- **Full rerun of the QA manual** — no point for now, so nothing gets built to reach it.
+- **Full rerun of the QA manual** — no point for now.
 - **Scheduled agent's first run catching up on earlier cards** — listing nothing on the first run is intended; the QA cases are seeded from the codebase, not backfilled from past cards or chats.
 - **Reporting or repairing recurring cards that fail to migrate to scheduled agents** — we assume users have none; no notice, retry UI or migration help.
 - **Migrating QA proof user projects committed under `docs/qa/`** — none ever did; it was only this repo's dev material (#1585).
@@ -34,7 +35,6 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **Image input for ZCode** — its GLM models are text-only; a pasted image would be silently dropped.
 - **Calling spec agents when a card is written** — a one-line ask has no spec yet, and a second call site doubles the flows. Refine asks.
 - **A frontmatter field declaring a spec agent's output formats** — the agent's own prompt is enough.
-- **A shot reference library for `scriptwriter`** — the `recipe-creator` skill already owns that convention.
 - **Tightening the finished-film review, for now** — the user checks each clip in preview.
 - **OpenDesign as a mockup style** — spawns a second coding agent with its own sign-in before our own drawing is good.
 
@@ -50,6 +50,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 - **A per-card acceptance check before closing** — acceptance comes first, in planning, and a human gate stalls the board.
 - **Scoring how right a release plan turned out** — nothing runs when a plan finishes to compare against.
 - **A screen drawing inside an open question** — questions stay one frontmatter line pointing at the body.
+- **A positional argument that is a card id or a message depending on its shape (`akb chat "<msg>"`)** — an argument's meaning must not depend on its shape (#1778).
 
 ## Setup and the goal
 

@@ -27,9 +27,7 @@ Ideas we turned down, one line each with the reason. Read before proposing.
 
 ## Explaining refusals
 
-- **Spelling out why a workflow's lead file was refused on every screen showing it** — agent design keeps changing; UI for outdated files over-designs for backward compatibility.
-- **Saying on the card why an auto-refine start was refused** — upkeep only; the card page shows the lead agent is missing.
-- **Rewording a refused new-agent name into the UI language** — the current message is good enough.
+- **Explaining on screen why a lead file, auto-refine start or new-agent name was refused** — agent design keeps changing and the card page already shows a missing lead; the current messages are good enough.
 - **Naming the broken file, bundled copy and fix when an agent CLI won't start** — paths and exit codes are internal detail.
 
 ## Runs

@@ -18,13 +18,12 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 - ❌ **A new expressive view replaces the plain list** → ✅ it sits beside the list, which never goes away.
 - ❌ **A control is disabled with no reason shown** → ✅ every disabled state says why.
 - ❌ **A new screen gains an action nobody asked for** → ✅ scope only what the request names.
-- ❌ **Archiving the discussion you're viewing leaves it open** → ✅ return to New idea; archiving another never interrupts your view.
 
 ## Runs and deliveries
 
 - ❌ **Waiting on a blocker is built for one action** → ✅ scheduling is a modifier on any action.
 - ❌ **Two controls that end the same thing side by side** → ✅ one control whose confirmation names what is lost.
-- ❌ **Discussion closes on click before the run starts** → ✅ close on the real start; a refused start stays with its reason.
+- ❌ **A dialog closes on click before its run starts** → ✅ close on the real start; a refused start stays with its reason.
 - ❌ **Agents notify while the card still has follow-up work** → ✅ notify once the card's whole chain ends and needs a person.
 
 ## Settings
@@ -51,9 +50,13 @@ Design mistakes to avoid when writing a card: the mistake, then the design we wa
 - ❌ **One board-wide endpoint form instead of source selection** → ✅ independent optional sources; collection controls stay with the collection agent.
 - ❌ **Reporting a problem means picking internal runs or reading infrastructure** → ✅ start from Discuss, optionally link an earlier card, and name only team, sharing scope and outcome.
 
+## Performance
+
+- ❌ **A speed card blames the server from server timings, or grows into a refactor that changes the UX** → ✅ time the slow case in the real browser first, then fix only the measured bottleneck, UX unchanged.
+
 ## Designing against the app that exists
 
-- ❌ **A spec targets a dialog the app no longer has** → ✅ inspect the current screen before designing into it.
+- ❌ **A spec targets a screen the app no longer has** → ✅ inspect the current screen before designing into it.
 - ❌ **A card replacing a whole screen describes it in prose** → ✅ draw the screen first; scope says what it does, not how it looks.
 - ❌ **Moving records and logs into new containers becomes a redesign** → ✅ reuse their components; change only the containers.
 - ❌ **A mobile mockup is a phone-width column on a desktop canvas** → ✅ draw it in a real narrow viewport.
