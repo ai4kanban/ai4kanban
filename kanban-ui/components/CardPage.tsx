@@ -1804,7 +1804,7 @@ export function CardPage({
                     <Button
                       size="sm"
                       className={ACT}
-                      disabled={busy || discussing}
+                      disabled={busy || discussing || !plan}
                       title={discussing ? c.toolbar.discussingWhy : undefined}
                       onClick={() => setDialog({ kind: "implement", card })}
                     >
@@ -2241,7 +2241,7 @@ export function CardPage({
                 setDialog(null);
                 setDeciding(true);
               }}
-              plan={plan}
+              plan={plan ?? undefined}
             />
           )}
         </div>

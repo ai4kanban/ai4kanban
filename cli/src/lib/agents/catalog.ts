@@ -19,6 +19,7 @@ import path from 'node:path'
 import { ROLE_NAMES } from '../agent/roles'
 import { AGENTS, LEGACY_AGENTS, rel } from '../paths'
 import { BUNDLED_AGENT_FILES } from './bundled'
+import { memoByFiles } from '../file-memo'
 import { parseSpecAgent } from './parse'
 import type { AgentProblem, SpecAgent } from './parse'
 
@@ -48,9 +49,11 @@ export interface RefusedAgent {
 
 type ReadProblem = AgentProblem & { file?: string; missing?: boolean }
 
-/** Read the catalog. Nothing is cached: an agent added, edited or switched off between two
- *  runs takes effect on the next one, the same way the board's settings do. */
-export function specAgentCatalog(): SpecAgentCatalog {
+/** Read the catalog — again whenever an agent file changes, so an agent added, edited or
+ *  switched off takes effect on the next read. */
+export const specAgentCatalog = memoByFiles(() => [AGENTS, LEGACY_AGENTS], readCatalog)
+
+function readCatalog(): SpecAgentCatalog {
   const agents: SpecAgent[] = []
   const problems: string[] = []
   const refused: RefusedAgent[] = []

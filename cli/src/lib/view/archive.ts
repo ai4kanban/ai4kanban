@@ -64,6 +64,7 @@ export function readArchive(): ArchiveList {
 export function readArchivedCard(id: number): ArchivedCardFile | null {
   if (!Number.isInteger(id) || !fs.existsSync(ARCHIVE)) return null
   for (const file of walkMd(ARCHIVE)) {
+    if (archivedId(file) !== id) continue
     const found = readFile(file)
     if (!found || found.row.id !== id) continue
     const sources = cardSources(found.meta, found.body)

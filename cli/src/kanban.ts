@@ -452,6 +452,9 @@ export {
 } from './lib/agents'
 export type * from './lib/agent/types'
 
+// The board UI is one long-lived process: it checks the files it has read once per stretch.
+export { checkFilesOncePerTurn } from './lib/file-memo'
+
 // …and the board itself: the columns, one card in full, the archive, the metrics, the setup
 // checklist, the board's memory (its own record and each agent's) — plus every write a screen
 // makes and the question the board's background timer asks each tick. One door (lib/view/api.ts), the same rules the commands

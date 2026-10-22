@@ -9,14 +9,17 @@ import { cardOpen } from "@/lib/card-open";
 import { ScreenMachineProvider, useMachine, type ScreenMachine, type StripPlace } from "@/lib/screen";
 import type { CardScreen } from "@/lib/types";
 import { CardPage, type CardChrome } from "./CardPage";
+import { useDeliveryReads } from "./delivery-reads";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { Window } from "./Window";
 
 export function CardWindow({ screen, machine }: { screen: CardScreen; machine: ScreenMachine }) {
+  const { card } = screen;
+  const reads = useDeliveryReads(screen, { cardId: card.id, deliveryId: card.delivery?.id ?? card.finished?.id });
   return (
     <ScreenMachineProvider value={machine}>
-      <CardPage screen={screen} shell={CardShell} strips={CardStrips} />
+      <CardPage screen={{ ...screen, ...reads }} shell={CardShell} strips={CardStrips} />
     </ScreenMachineProvider>
   );
 }

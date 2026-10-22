@@ -21,6 +21,7 @@ import type { StoryboardSet } from "@/lib/storyboard";
 import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, DeliveryDiff, MemoryOwner } from "@/lib/types";
 import { withoutSourceSection } from "@/lib/format/source";
 import { CardBody } from "./CardBody";
+import { useDeliveryReads } from "./delivery-reads";
 import { LandedBlock } from "./CardPage";
 import { SourceLinks } from "./card-sources";
 import { HAIRLINE } from "./chrome";
@@ -266,13 +267,14 @@ export function ArchivedCardPage({
   memoryOwners,
   desktop,
   ...view
-}: ArchivedCardViewProps & {
+}: Omit<ArchivedCardViewProps, "diff"> & {
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
   memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
+  const { diff } = useDeliveryReads(view.card, { deliveryId: view.card.landed?.id });
   return (
     <ArchiveFrame
       projectRoot={projectRoot}
@@ -281,7 +283,7 @@ export function ArchivedCardPage({
       memoryOwners={memoryOwners}
       desktop={desktop}
     >
-      <ArchivedCardView {...view} />
+      <ArchivedCardView {...view} diff={diff} />
     </ArchiveFrame>
   );
 }

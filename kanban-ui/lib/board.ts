@@ -107,24 +107,21 @@ export async function boardsHere(): Promise<{ board: string; boards: BoardEntry[
   }
 }
 
-/** Everything a card page draws, or null when the board holds no card with that id. */
+/** Everything a card page draws, or null when the board holds no card with that id. What
+ *  needs git — the Implement plan and the Diff — is left out: the page asks for it once it
+ *  is drawn (`app/poll/delivery`). */
 export async function cardScreen(id: number): Promise<CardScreen | null> {
   const card = await findCard(id);
   if (!card) return null;
   const board = await readBoard();
-  const [plan, diff, head, hold] = await Promise.all([
-    deliveryPlan(id),
-    deliveryDiff(card.delivery?.id ?? card.finished?.id),
-    screenBoard(),
-    cardHold(id),
-  ]);
+  const [head, hold] = await Promise.all([screenBoard(), cardHold(id)]);
   return {
     ...head,
     card,
     openIds: board.openIds,
     memoryOwners: board.memoryOwners,
-    plan,
-    diff,
+    plan: null,
+    diff: null,
     hold,
   };
 }
@@ -176,6 +173,9 @@ async function confirmMiss<T>(read: () => Promise<T> | T, missed: (v: T) => bool
 /** Any open card by id, including a group subtask the columns don't show. */
 export async function findCard(id: number): Promise<Card | null> {
   const rules = await boardRules();
+  const card = await rules.findCard(id);
+  // An archived card is no card being rewritten: nothing to wait for.
+  if (card || (await rules.readArchivedCard?.(id))) return card;
   return confirmMiss(
     () => rules.findCard(id),
     (card) => card === null,

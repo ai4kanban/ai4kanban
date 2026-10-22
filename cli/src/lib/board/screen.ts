@@ -88,10 +88,12 @@ export interface CardScreen extends ScreenBoard {
   card: Card
   openIds: number[]
   memoryOwners: MemoryOwner[]
-  /** What an Implement click would do from here (#307) — the branch it lands on. */
-  plan: DeliveryPlan
+  /** What an Implement click would do from here (#307) — the branch it lands on. Null while
+   *  it is still being read, and Implement waits for it. */
+  plan: DeliveryPlan | null
   /** What the delivery on this card changed (#305), capped where it was read. Null when
-   *  there is nothing to show, and then the delivery block has no **Diff** tab. */
+   *  there is nothing to show — or nothing read yet — and then the delivery block has no
+   *  **Diff** tab. */
   diff: DeliveryDiff | null
   /** Who is holding this card (#375). Null on a Local board, when nothing holds the card,
    *  when the hold cannot be attributed to a member, and when it is this machine's own —

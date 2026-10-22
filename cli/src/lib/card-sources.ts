@@ -6,7 +6,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { locate, locateArchived } from './cards'
+import { memoByFiles } from './file-memo'
 import { parseFrontmatter } from './frontmatter'
+import { TRIAGE } from './paths'
 import { planHeading, readPlan, type PlanFile } from './plans'
 import { readAllDismissed, readArchived, readInbox } from './signals/inbox'
 import { legacySourceRefs, parseSourceRef, type SourceRef } from './source'
@@ -48,7 +50,7 @@ function urlLink(url: string): SourceLink {
 }
 
 // Every item triage holds, wherever it sits — not the 30-day window History draws.
-const everyItem = (): Signal[] => [...readInbox(), ...readArchived(), ...readAllDismissed()]
+const everyItem = memoByFiles((): string[] => [TRIAGE], (): Signal[] => [...readInbox(), ...readArchived(), ...readAllDismissed()])
 
 // One link per item: its original link, else the card that prompted it, else the item.
 function itemLink(item: Signal): SourceLink {

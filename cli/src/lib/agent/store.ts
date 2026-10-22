@@ -19,6 +19,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { forgetFileMemos, memoByFiles } from '../file-memo'
 import { pidAlive, withLock } from '../lock'
 import { die, SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { insideRun } from './env'
@@ -113,8 +114,11 @@ export interface Store {
 }
 
 /** Everything the record holds, newest last. Reads only — no lock, because a half-written
- *  file is never what a reader sees: every write is atomic (write, then rename). */
-export function readStore(): Store {
+ *  file is never what a reader sees: every write is atomic (write, then rename). Parsed again
+ *  only when the file changed. */
+export const readStore = memoByFiles(() => [SESSIONS], parseStore)
+
+function parseStore(): Store {
   let data: unknown
   try {
     data = JSON.parse(fs.readFileSync(SESSIONS, 'utf8'))
@@ -785,6 +789,7 @@ function writeStore(store: Store): void {
   fs.writeFileSync(tmp, JSON.stringify(kept, null, 2) + '\n')
   // Rename rather than write in place, so a reader never catches half a file.
   fs.renameSync(tmp, SESSIONS)
+  forgetFileMemos()
 }
 
 // Bound the record: keep every live run and the newest KEEP_RUNS finished ones, and

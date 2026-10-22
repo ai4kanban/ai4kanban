@@ -29,6 +29,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { forgetFileMemos } from '../file-memo'
 
 import { AUTO_CADENCE, CADENCE_FORMS, formatStamp, isAuto, parseCadence } from '../cadence'
 import { ENV_FILE, KANBAN_GITIGNORE, LEGACY_UI_CONFIG, rel, UI_CONFIG } from '../paths'
@@ -78,6 +79,7 @@ export function adoptLegacyConfig(): void {
     fs.copyFileSync(LEGACY_UI_CONFIG, UI_CONFIG)
   }
   fs.rmSync(LEGACY_UI_CONFIG, { force: true })
+  forgetFileMemos()
 }
 
 /** The config as a reader takes it: an unreadable or malformed file holds nothing, so a
@@ -354,6 +356,7 @@ export function writeConfig(change: (cfg: Record<string, unknown>) => void): Sav
   try {
     fs.mkdirSync(path.dirname(UI_CONFIG), { recursive: true })
     fs.writeFileSync(UI_CONFIG, JSON.stringify(cfg, null, 2) + '\n')
+    forgetFileMemos()
     return { ok: true }
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e)

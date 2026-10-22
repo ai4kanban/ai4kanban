@@ -194,6 +194,9 @@ export interface BoardRules {
    *  goes through a command line. Optional: a copy of the rules older than the move keeps it
    *  all in the project folder instead. */
   useProjectState?(): string;
+  /** Check the files the rules remember once per synchronous stretch rather than on every
+   *  read. Optional: an older copy remembers nothing. */
+  checkFilesOncePerTurn?(): void;
   /** Where this board's drawings are kept. The `src` a card writes is unchanged; this is
    *  what resolves it, and it is asked for rather than built so there is one answer. */
   mockupsDir?(): string;
@@ -873,6 +876,7 @@ export function boardRules(): Promise<BoardRules> {
       // of the server, in the same breath: every read below it — a run's log, a chat, a
       // drawing — is a read of that folder.
       mod.useProjectState?.();
+      mod.checkFilesOncePerTurn?.();
       return mod as BoardRules;
     },
   );

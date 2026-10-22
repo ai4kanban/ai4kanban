@@ -7,6 +7,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { forgetFileMemos } from '../file-memo'
 
 import { parseYamlBlock, splitFrontmatter, type YamlValue } from '../agents/yaml'
 import { canonicalSpecAgent } from '../spec-agent-names'
@@ -199,6 +200,7 @@ export function writeWorkflowDef(def: WorkflowDef): void {
   }
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, workflowFileText(def, body))
+  forgetFileMemos()
 }
 
 /** Whether a board's own workflow already has its file. */
@@ -207,4 +209,5 @@ export const workflowFileExists = (id: string): boolean => fs.existsSync(fileOf(
 /** Drop one of the board's own, folder and all. */
 export function removeWorkflowDef(id: string): void {
   fs.rmSync(path.join(WORKFLOWS, id), { recursive: true, force: true })
+  forgetFileMemos()
 }

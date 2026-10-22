@@ -11,6 +11,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { forgetFileMemos } from '../file-memo'
 
 import { agentRun } from '../agent/resolve'
 import { agentRoster, ROLE_NAMES, roleNamed } from '../agent/roles'
@@ -122,6 +123,7 @@ export function createAgent(asked: string, stage?: AgentSlot, title?: string): W
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
     fs.writeFileSync(file, agentTemplate(name, stage, title?.trim()))
+    forgetFileMemos()
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
@@ -228,6 +230,7 @@ export function deleteAgent(name: string): WriteResult & { removed?: string[] } 
       fs.rmSync(file, { recursive: true, force: true })
       removed.push(rel(file))
     }
+    forgetFileMemos()
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
@@ -271,6 +274,7 @@ export function saveAgentFile(name: string, text: string): WriteResult {
     // Back into the file it was read from, so a folder still using the old `SKILL.md` name
     // is edited in place rather than quietly doubled.
     fs.writeFileSync(path.join(agent.dir, path.basename(agent.from)), String(text))
+    forgetFileMemos()
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }

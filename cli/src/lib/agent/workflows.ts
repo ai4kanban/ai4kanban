@@ -26,7 +26,8 @@ import path from 'node:path'
 
 import { locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
-import { die } from '../paths'
+import { AGENTS, die, LEGACY_AGENTS, LEGACY_UI_CONFIG, UI_CONFIG, WORKFLOWS } from '../paths'
+import { memoByFiles } from '../file-memo'
 import type { Meta } from '../types'
 import { AUTO_CADENCE, CADENCE_FORMS, formatStamp, isAuto, parseCadence, parseStamp } from '../cadence'
 import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
@@ -772,35 +773,38 @@ const listedBy = (flow: Workflow, specialist: Set<string>): string[] =>
 // Every workflow, and which one each listed agent belongs to. A plan stage still offering
 // `every` takes, enabled, each plan helper no workflow lists; one nobody takes sits in Coding,
 // disabled and nobody's.
-function resolved(): { flows: Workflow[]; owners: Map<string, string> } {
-  const { flows, defs } = writtenWorkflows()
-  const catalog = specAgentCatalog().agents
-  const specialist = new Set(catalog.map((a) => a.name))
-  const owners = new Map<string, string>()
-  for (const flow of flows) for (const name of listedBy(flow, specialist)) if (!owners.has(name)) owners.set(name, flow.id)
-  const free = (stage: WorkflowStage, lead: string): string[] =>
-    catalog.filter((a) => a.stage === stage && !a.canLead && a.name !== lead && !owners.has(a.name)).map((a) => a.name)
-  flows.forEach((flow, i) => {
-    const setup = flow.stages.plan
-    if (setup.helpersChosen || defs[i]!.stages.plan.helpers !== 'every') return
-    const taken = free('plan', setup.lead)
-    for (const name of taken) owners.set(name, flow.id)
-    setup.helpers = [...setup.helpers, ...taken.map((agent) => ({ agent, extra: '' }))]
-  })
-  const coding = flows.find((w) => w.id === DEFAULT_WORKFLOW)
-  if (!coding) return { flows, owners }
-  for (const stage of WORKFLOW_STAGES) {
-    const setup = coding.stages[stage]
-    setup.helpers = [...setup.helpers, ...free(stage, setup.lead).map((agent) => ({ agent, extra: '', off: true }))]
-  }
-  // And a scheduled agent no workflow lists (#1401): Coding's, off.
-  const idle = catalog.filter((a) => a.schedule && !owners.has(a.name)).map((a) => a.name)
-  coding.scheduled = [
-    ...coding.scheduled,
-    ...idle.map((agent) => ({ agent, extra: '', off: true, cadence: AUTO_CADENCE, lastRun: '' })),
-  ]
-  return { flows, owners }
-}
+const resolved = memoByFiles(
+  () => [UI_CONFIG, LEGACY_UI_CONFIG, WORKFLOWS, AGENTS, LEGACY_AGENTS],
+  (): { flows: Workflow[]; owners: Map<string, string> } => {
+    const { flows, defs } = writtenWorkflows()
+    const catalog = specAgentCatalog().agents
+    const specialist = new Set(catalog.map((a) => a.name))
+    const owners = new Map<string, string>()
+    for (const flow of flows) for (const name of listedBy(flow, specialist)) if (!owners.has(name)) owners.set(name, flow.id)
+    const free = (stage: WorkflowStage, lead: string): string[] =>
+      catalog.filter((a) => a.stage === stage && !a.canLead && a.name !== lead && !owners.has(a.name)).map((a) => a.name)
+    flows.forEach((flow, i) => {
+      const setup = flow.stages.plan
+      if (setup.helpersChosen || defs[i]!.stages.plan.helpers !== 'every') return
+      const taken = free('plan', setup.lead)
+      for (const name of taken) owners.set(name, flow.id)
+      setup.helpers = [...setup.helpers, ...taken.map((agent) => ({ agent, extra: '' }))]
+    })
+    const coding = flows.find((w) => w.id === DEFAULT_WORKFLOW)
+    if (!coding) return { flows, owners }
+    for (const stage of WORKFLOW_STAGES) {
+      const setup = coding.stages[stage]
+      setup.helpers = [...setup.helpers, ...free(stage, setup.lead).map((agent) => ({ agent, extra: '', off: true }))]
+    }
+    // And a scheduled agent no workflow lists (#1401): Coding's, off.
+    const idle = catalog.filter((a) => a.schedule && !owners.has(a.name)).map((a) => a.name)
+    coding.scheduled = [
+      ...coding.scheduled,
+      ...idle.map((agent) => ({ agent, extra: '', off: true, cadence: AUTO_CADENCE, lastRun: '' })),
+    ]
+    return { flows, owners }
+  },
+)
 
 /** The workflow an agent belongs to, or empty when none has it — a lead nobody picked, or a
  *  helper written by hand, which any workflow can take. */
