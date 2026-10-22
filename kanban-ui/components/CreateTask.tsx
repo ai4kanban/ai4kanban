@@ -41,7 +41,7 @@ import {
 import { failureText, startFailure, type StartFailure } from "@/lib/start-failure";
 import { appendDraft, createDraftKey, dropDraft } from "@/lib/draft";
 import { dropPictures } from "@/lib/picture-box";
-import { usePhone } from "@/lib/media";
+import { LESS_MOTION, useLeaving, useMatches, usePhone } from "@/lib/media";
 import { cardChat } from "@/lib/chat-open";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
 import type { StartResult } from "@/lib/registry";
@@ -184,6 +184,12 @@ export function CreateTask({
   // no way back to it. And a fresh one nothing was sent into is still the fresh one (#934):
   // it has no row either, so a new one would lose what was typed into it.
   const phone = usePhone();
+  // A closed sheet plays its way out before it goes (#1948).
+  const sheet = useLeaving(open, useMatches(LESS_MOTION) ? 0 : 150);
+  // What it leaves on — closing can let go of the discussion in the same move (freshen).
+  const [leftOn, setLeftOn] = useState(discussion);
+  if (open && leftOn !== discussion) setLeftOn(discussion);
+  const sheetOn = open ? discussion : leftOn;
   // Words handed over with the ask (#1193) always go to a fresh one, after its draft.
   const openFresh = useCallback(async (prefill?: string, triage?: string) => {
     setError(null);
@@ -380,18 +386,19 @@ export function CreateTask({
         </div>
       )}
 
-      {open && (
+      {sheet.drawn && (
         <CreateSheet
-          key={askedOn(discussion)}
+          key={askedOn(sheetOn)}
+          leaving={sheet.leaving}
           projectRoot={projectRoot}
-          discussion={discussion}
+          discussion={sheetOn}
           onClose={() => setOpen(false)}
           onSent={() => {
-            if (heldByButton.unspoken === discussion) heldByButton.unspoken = null;
+            if (heldByButton.unspoken === sheetOn) heldByButton.unspoken = null;
           }}
-          starting={starting[askedOn(discussion)] ?? null}
+          starting={starting[askedOn(sheetOn)] ?? null}
           failures={failures}
-          rerouted={rerouted === askedOn(discussion)}
+          rerouted={rerouted === askedOn(sheetOn)}
           onHandoff={(answer, picks, all, ends) => void startFromPlan(answer, picks, all, ends)}
           onBecame={becameCard}
         />

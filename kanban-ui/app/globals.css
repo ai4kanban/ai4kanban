@@ -906,3 +906,149 @@ body.a4k-inset .a4k-nav-edge {
     background-color: var(--color-nb-accent-wash);
   }
 }
+
+/* The Discuss sheet's motion (#1948): one curve, each move plays once. Enters are
+   animations, so they run on mount; exits are transitions to `data-leaving`, so a sheet
+   or card brought back mid-exit simply turns round. `.a4k-still` holds every transition
+   for the frames a layout is settling in, so nothing glides that nobody moved. */
+.a4k-discuss {
+  --a4k-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  animation: a4kSheetIn 200ms var(--a4k-ease) backwards;
+  transition:
+    opacity 150ms var(--a4k-ease),
+    transform 150ms var(--a4k-ease);
+}
+.a4k-discuss[data-leaving] {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+}
+@keyframes a4kSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.a4k-still,
+.a4k-still * {
+  transition: none !important;
+}
+.a4k-glide {
+  transition:
+    padding-right 220ms var(--a4k-ease),
+    opacity 220ms var(--a4k-ease);
+}
+.a4k-glide[data-off] {
+  opacity: 0;
+}
+.a4k-plan-side {
+  transition:
+    right 220ms var(--a4k-ease),
+    width 220ms var(--a4k-ease),
+    bottom 220ms var(--a4k-ease),
+    opacity 220ms var(--a4k-ease),
+    transform 220ms var(--a4k-ease);
+}
+.a4k-plan-side-in {
+  animation: a4kSideIn 220ms var(--a4k-ease) backwards;
+}
+.a4k-plan-side[data-leaving] {
+  opacity: 0;
+  transform: translateX(16px);
+  pointer-events: none;
+}
+@keyframes a4kSideIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+.a4k-plan-over {
+  transform-origin: 50% 100%;
+  transition:
+    opacity 220ms var(--a4k-ease),
+    transform 220ms var(--a4k-ease);
+}
+.a4k-plan-over-in {
+  animation: a4kOverIn 220ms var(--a4k-ease) backwards;
+}
+.a4k-plan-over[data-leaving] {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  pointer-events: none;
+}
+@keyframes a4kOverIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+.a4k-fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 220ms var(--a4k-ease),
+    opacity 220ms var(--a4k-ease);
+}
+.a4k-fold[data-off] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.a4k-dock {
+  transition:
+    opacity 220ms var(--a4k-ease),
+    transform 220ms var(--a4k-ease);
+}
+.a4k-dock[data-off] {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+}
+.a4k-arrive {
+  animation: a4kArrive 180ms var(--a4k-ease) backwards;
+}
+@keyframes a4kArrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.a4k-tab-line {
+  transition:
+    transform 180ms var(--a4k-ease),
+    width 180ms var(--a4k-ease);
+}
+.a4k-swap {
+  animation: a4kFade 180ms var(--a4k-ease) backwards;
+}
+.a4k-pop {
+  animation: a4kFade 120ms var(--a4k-ease) backwards;
+}
+@keyframes a4kFade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-discuss,
+  .a4k-glide,
+  .a4k-plan-side,
+  .a4k-plan-side-in,
+  .a4k-plan-over,
+  .a4k-plan-over-in,
+  .a4k-fold,
+  .a4k-dock,
+  .a4k-arrive,
+  .a4k-tab-line,
+  .a4k-swap,
+  .a4k-pop,
+  .a4k-discuss .a4k-press {
+    animation: none !important;
+    transition-duration: 0s !important;
+  }
+  .a4k-discuss [class*="nbPulse"] {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}

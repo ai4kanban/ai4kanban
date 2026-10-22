@@ -3,10 +3,11 @@
 // Create task holds ONE discussion (#496) — the one the press opened, or the one a rail row
 // picked back up. Sending always discusses (#840); the plan's answers are what start a run.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
 import { useBodySlot } from "@/lib/body-slot";
+import { LESS_MOTION, useLeaving, useMatches } from "@/lib/media";
 import { useCopy } from "@/i18n/use-copy";
 import { adoptSharedCreateDraft, createDraftKey, useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
@@ -24,7 +25,7 @@ import { BecameLine } from "./became";
 import { Button } from "./button";
 import { OpenFailed, Skeleton } from "./CardOpening";
 import { Transcript, Pasted, Pick, useBoardChanged } from "./Chat";
-import { HAIRLINE } from "./chrome";
+import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
 import { configDialog } from "./Configuration";
@@ -51,7 +52,14 @@ const COLUMN = `w-full ${COLUMN_MAX}`;
 const GUTTER = "px-5";
 const GUTTER_HALF = "px-2.5";
 
+/** How long the plan card takes to move (#1948). */
+const PLAN_MS = 220;
+/** The paper between an enlarged card and the answers and box under it. */
+const DOCK_GAP = 12;
+
 interface Props {
+  /** The sheet is playing its way out (#1948). */
+  leaving?: boolean;
   /** Which board this is — what this discussion's conversation is read against. */
   projectRoot: string;
   /** The discussion this screen is holding (#496): a fresh one on every Create task press,
@@ -87,6 +95,7 @@ export function CreateSheet(props: Props) {
 }
 
 function Sheet({
+  leaving,
   discussion,
   onClose,
   onSent,
@@ -177,6 +186,16 @@ function Sheet({
     if (starting === null) refresh();
   }, [starting, refresh]);
 
+  // Only a hand or a new plan moves anything (#1948): the frames a discussion opens on, or
+  // the window is resized in, settle still.
+  const wide = plan.beside;
+  const less = useMatches(LESS_MOTION);
+  const dock = useDock();
+  const still = useStill(`${opened}|${wide}|${dock.width}`);
+  const moveMs = still || less ? 0 : PLAN_MS;
+  const side = useLeaving(plan.open && wide, moveMs);
+  const lift = useLeaving(plan.full && !wide, moveMs);
+
   if (!mounted) return null;
 
   const messages = read?.chat?.messages ?? [];
@@ -187,9 +206,11 @@ function Sheet({
   // it lays it OVER instead. With no room for both the conversation is served first (#669):
   // the plan is a COLLAPSED row pinned over the box, and opening it out lays it over the
   // exchange — never over the answers or the box, which is what the row was in the way of.
-  const beside = plan.open && plan.beside && !plan.full;
-  const collapsed = plan.open && !plan.beside && !plan.full;
-  const over = plan.open && !beside && !collapsed;
+  const beside = plan.open && wide && !plan.full;
+  // Enlarged beside, the card stands above the box and the answers wait just over it, so
+  // the plan can be answered as it is read; the conversation behind fades out whole.
+  const page = plan.full && wide;
+  const pageWidth = Math.max(0, Math.min(PLAN_READ + PLAN_PAD * 2, dock.width - PLAN_INSET * 2));
   // The answers sit under the agent's own last word where the conversation has the
   // screen to itself, and under the plan's row where it does not — beside the box either
   // way, so a plan opened out never takes them away.
@@ -268,7 +289,11 @@ function Sheet({
     // covered, so the traffic lights, the drag strip and the rail all still answer.
     <div
       ref={plan.measure}
-      className={`${body ? "absolute" : "fixed"} inset-0 z-20 flex flex-col bg-nb-paper`}
+      data-leaving={leaving || undefined}
+      className={cn(
+        `${body ? "absolute" : "fixed"} a4k-discuss inset-0 z-20 flex flex-col bg-nb-paper`,
+        still && "a4k-still",
+      )}
       // A link to a page of the app leaves the sheet for it, even when that page is the one
       // underneath (#888).
       onClickCapture={(e) => {
@@ -291,6 +316,7 @@ function Sheet({
             size="xs"
             onClick={plan.toggle}
             aria-pressed={plan.open}
+            className="transition-[transform,box-shadow,background-color,color,border-color]"
             style={
               plan.open
                 ? {
@@ -314,98 +340,205 @@ function Sheet({
         </button>
       </div>
 
-      {talking || opening ? (
-        <div className="relative min-h-0 flex-1">
-          {/* Beside the card the conversation gives up the room the card stands in — the
-              transcript and the box both, so the two keep the one centre line they had
-              before it arrived. Over it they keep the whole sheet and the card lies on top. */}
-          <div
-            className="flex h-full min-h-0 flex-col"
-            style={beside ? { paddingRight: plan.space } : undefined}
-          >
-            <div className={`relative flex min-h-0 flex-1 justify-center ${GUTTER_HALF}`}>
-              <div className={`flex min-h-0 flex-col ${COLUMN}`}>
-                {opening ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto px-2.5">
-                    {openFailed ? (
-                      <OpenFailed
-                        text={c.openFailed}
-                        retry={c.retry}
-                        onRetry={() => {
-                          rail.retry();
-                          plan.retry();
-                        }}
-                      />
-                    ) : (
-                      <Skeleton label={c.opening} />
-                    )}
-                  </div>
-                ) : (
-                  <Transcript
-                    messages={messages}
-                    changes={read?.chat?.modelChanges}
-                    live={rail.live}
-                    liveSince={read?.liveSince ?? null}
-                    stopped={rail.stopped}
-                    idle={!rail.answering && !(rail.error ?? read?.failed ?? read?.blocked)}
-                    canSend={!!read && !read.blocked && !rail.answering}
-                    onResend={sayInDiscussion}
-                    // The same conversation the rail draws, so a message pasted into on one
-                    // screen reads the same on the other (#441).
-                    imageSrc={rail.imageSrc}
-                    empty={null}
-                    after={plan.beside ? handoff : null}
+      <Still.Provider value={still}>
+        {talking || opening ? (
+          <div ref={dock.area} className="relative min-h-0 flex-1">
+            {/* Beside the card the conversation gives up the room the card stands in — the
+                transcript and the box both, so the two keep the one centre line they had
+                before it arrived. Over it they keep the whole sheet and the card lies on top. */}
+            <div className="a4k-glide flex h-full min-h-0 flex-col" style={{ paddingRight: beside ? plan.space : 0 }}>
+              <div className={`relative flex min-h-0 flex-1 justify-center ${GUTTER_HALF}`}>
+                <div
+                  className={`a4k-glide flex min-h-0 flex-col ${COLUMN}`}
+                  data-off={plan.full || undefined}
+                  inert={plan.full}
+                >
+                  {opening ? (
+                    <div className="min-h-0 flex-1 overflow-y-auto px-2.5">
+                      {openFailed ? (
+                        <OpenFailed
+                          text={c.openFailed}
+                          retry={c.retry}
+                          onRetry={() => {
+                            rail.retry();
+                            plan.retry();
+                          }}
+                        />
+                      ) : (
+                        <Skeleton label={c.opening} />
+                      )}
+                    </div>
+                  ) : (
+                    <Transcript
+                      messages={messages}
+                      changes={read?.chat?.modelChanges}
+                      live={rail.live}
+                      liveSince={read?.liveSince ?? null}
+                      stopped={rail.stopped}
+                      idle={!rail.answering && !(rail.error ?? read?.failed ?? read?.blocked)}
+                      canSend={!!read && !read.blocked && !rail.answering}
+                      onResend={sayInDiscussion}
+                      // The same conversation the rail draws, so a message pasted into on one
+                      // screen reads the same on the other (#441).
+                      imageSrc={rail.imageSrc}
+                      empty={null}
+                      after={wide ? handoff : null}
+                    />
+                  )}
+                </div>
+                {/* Over the exchange, the card stops at the box: this screen is a
+                    conversation being answered, and a card that took the box away would make
+                    you put the plan down to say anything. */}
+                {lift.drawn && (
+                  <PlanCard
+                    plan={plan}
+                    leaving={lift.leaving}
+                    arrive={still ? null : "a4k-plan-over-in"}
+                    className={`a4k-plan-over bottom-0 mx-auto ${COLUMN_MAX}`}
+                    place={{ left: PLAN_INSET, right: PLAN_INSET }}
                   />
                 )}
               </div>
-              {/* Over the exchange, the card stops at the box — enlarged too: this screen is
-                  a conversation being answered, and a card that took the box away would make
-                  you put the plan down to say anything. */}
-              {over && <PlanCard plan={plan} />}
-            </div>
-            {/* Too narrow to stand beside: the plan and its answers are pinned between the
-                conversation and the box, both at their own fixed height, so the transcript
-                keeps every pixel left over and still scrolls to the last reply. */}
-            {!plan.beside && (plan.open || became.length > 1) && (
-              <div className={`flex shrink-0 justify-center pt-3 ${GUTTER}`}>
-                <div className={COLUMN}>
-                  {collapsed && <PlanRow plan={plan} />}
-                  {handoff}
+              {/* Too narrow to stand beside: the plan and its answers are pinned between the
+                  conversation and the box, both at their own fixed height, so the transcript
+                  keeps every pixel left over and still scrolls to the last reply. */}
+              {!wide && (plan.open || became.length > 1) && (
+                <div className={`flex shrink-0 justify-center pt-3 ${GUTTER}`}>
+                  <div className={COLUMN}>
+                    {plan.open && (
+                      <div className="a4k-fold" data-off={plan.full || undefined} inert={plan.full}>
+                        <div className="min-h-0 overflow-hidden">
+                          <PlanRow plan={plan} />
+                        </div>
+                      </div>
+                    )}
+                    {handoff}
+                  </div>
+                </div>
+              )}
+              <div className={`flex shrink-0 justify-center pb-6 ${!wide && plan.open ? "pt-5" : "pt-7"} ${GUTTER}`}>
+                <div ref={dock.box} className={`relative ${COLUMN}`}>
+                  {wide && (
+                    <div
+                      ref={dock.dock}
+                      className="a4k-dock absolute inset-x-0 bottom-full pb-2"
+                      data-off={!page || undefined}
+                      inert={!page}
+                    >
+                      {handoff}
+                    </div>
+                  )}
+                  {composer}
                 </div>
               </div>
+            </div>
+            {/* Beside it, the card runs the height of the screen and its foot sits on the
+                box's own — one baseline across the bottom of the sheet. Enlarged, the same
+                card steps into the middle as a page, so the move between the two is one. */}
+            {side.drawn && (
+              <PlanCard
+                plan={plan}
+                tall
+                leaving={side.leaving}
+                arrive={still ? null : "a4k-plan-side-in"}
+                className="a4k-plan-side"
+                place={
+                  page
+                    ? { right: (dock.width - pageWidth) / 2, width: pageWidth, bottom: dock.foot + DOCK_GAP }
+                    : { right: PLAN_INSET, width: plan.width, bottom: 24 }
+                }
+              />
             )}
-            <div
-              className={`flex shrink-0 justify-center pb-6 ${
-                !plan.beside && plan.open ? "pt-5" : "pt-7"
-              } ${GUTTER}`}
-            >
-              <div className={COLUMN}>{composer}</div>
+          </div>
+        ) : (
+          // Centred, then lifted by the foot padding: optically centred sits a little above
+          // the middle, and the box is what the eye should land on.
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 pb-10 max-md:pb-14">
+            <div className={`flex flex-col items-center ${COLUMN}`}>
+              <CreateHeadline
+                key={c.headlines[0]}
+                phrases={c.headlines}
+                paused={headlineStopped || text.length > 0}
+              />
+              <p className="mt-2 text-balance text-center text-[13.5px] text-nb-ink-soft max-md:text-[12.5px]">
+                {c.slogan}
+              </p>
+              <div className="mt-6 w-full max-md:mt-5">{composer}</div>
             </div>
           </div>
-          {/* Beside it, the card runs the height of the screen and its foot sits on the
-              box's own — one baseline across the bottom of the sheet. */}
-          {beside && <PlanCard plan={plan} tall />}
-        </div>
-      ) : (
-        // Centred, then lifted by the foot padding: optically centred sits a little above
-        // the middle, and the box is what the eye should land on.
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 pb-10 max-md:pb-14">
-          <div className={`flex flex-col items-center ${COLUMN}`}>
-            <CreateHeadline
-              key={c.headlines[0]}
-              phrases={c.headlines}
-              paused={headlineStopped || text.length > 0}
-            />
-            <p className="mt-2 text-balance text-center text-[13.5px] text-nb-ink-soft max-md:text-[12.5px]">
-              {c.slogan}
-            </p>
-            <div className="mt-6 w-full max-md:mt-5">{composer}</div>
-          </div>
-        </div>
-      )}
+        )}
+      </Still.Provider>
     </div>,
     body ?? document.body,
   );
+}
+
+/** The sheet is settling: whatever mounts now is already in place, not arriving. */
+const Still = createContext(false);
+
+function Arrive({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <div className={cn(className, useArrive())}>{children}</div>;
+}
+
+/** The arrival class, decided once at mount: nothing that was there when the sheet settled
+ *  plays its way in. */
+function useArrive(): string {
+  const still = useContext(Still);
+  const [cls] = useState(still ? "" : "a4k-arrive");
+  return cls;
+}
+
+/** True for the two frames after `key` changes, so a layout that changed without a hand on
+ *  it is painted in place before any transition is armed. */
+function useStill(key: string): boolean {
+  const [at, setAt] = useState(key);
+  const [still, setStill] = useState(true);
+  if (at !== key) {
+    setAt(key);
+    setStill(true);
+  }
+  useEffect(() => {
+    if (!still) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setStill(false));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [still, at]);
+  return still;
+}
+
+/** The conversation's room, and how far up from its foot the box and the answers docked over
+ *  it reach — where an enlarged card stops. */
+function useDock() {
+  const els = useRef<Record<"area" | "box" | "dock", HTMLElement | null>>({ area: null, box: null, dock: null });
+  const observer = useRef<ResizeObserver | null>(null);
+  const [size, setSize] = useState({ width: 0, foot: 0 });
+  const read = useCallback(() => {
+    const { area, box, dock } = els.current;
+    if (!area || !box) return;
+    const room = area.getBoundingClientRect();
+    const width = Math.round(room.width);
+    const foot = Math.round(room.bottom - box.getBoundingClientRect().top + (dock?.offsetHeight ?? 0));
+    setSize((was) => (was.width === width && was.foot === foot ? was : { width, foot }));
+  }, []);
+  const [refs] = useState(() => {
+    const at = (key: "area" | "box" | "dock") => (el: HTMLElement | null) => {
+      const was = els.current[key];
+      if (was) observer.current?.unobserve(was);
+      els.current[key] = el;
+      if (!el) return;
+      observer.current ??= new ResizeObserver(() => read());
+      observer.current.observe(el);
+      read();
+    };
+    return { area: at("area"), box: at("box"), dock: at("dock") };
+  });
+  useEffect(() => () => observer.current?.disconnect(), []);
+  return { ...refs, ...size };
 }
 
 function CreateHeadline({ phrases, paused }: { phrases: readonly string[]; paused: boolean }) {
@@ -589,7 +722,7 @@ function Handoff({
     }
     if (!idle || r.cards?.length) return null;
     return (
-      <div>
+      <Arrive>
         <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
           <Answers
             down={down}
@@ -606,7 +739,7 @@ function Handoff({
           )}
         </div>
         <Failure failure={failures[r.path] ?? failures[""]} />
-      </div>
+      </Arrive>
     );
   }
 
@@ -662,7 +795,7 @@ function Handoff({
         </>
       )}
       {idle && waiting.length > 1 && (
-        <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
+        <Arrive className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
           <Answers
             down={down}
             starting={starting?.paths === null ? starting.answer : null}
@@ -670,7 +803,7 @@ function Handoff({
             onPlan={() => onHandoff("plan", waiting.map(pick), true, true)}
             onBuild={() => onHandoff("build", waiting.map(pick), true, true)}
           />
-        </div>
+        </Arrive>
       )}
       <Failure failure={failures[""]} />
     </div>
@@ -980,9 +1113,10 @@ const MENU_ROWS = 8;
  *  it: this line sits against the reply's own small grey text, and accent moving is what says
  *  "working" everywhere else in the app. */
 function Working({ label, inset = "px-2.5 pt-2" }: { label: string; inset?: string }) {
+  const arrive = useArrive();
   return (
-    <p className={`flex items-center gap-1.5 text-[12px] text-nb-ink-soft ${inset}`}>
-      <span aria-hidden className="size-[7px] shrink-0 rounded-full bg-nb-accent" />
+    <p className={cn("flex items-center gap-1.5 text-[12px] text-nb-ink-soft", inset, arrive)}>
+      <span aria-hidden className={PULSE_DOT} />
       {label}
     </p>
   );
@@ -1049,7 +1183,7 @@ function PlanRow({ plan }: { plan: PlanPanel }) {
       onClick={plan.toggleFull}
       title={c.expand}
       aria-label={c.expand}
-      className="flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] bg-nb-cream px-3.5 py-3 text-left transition-[background-color] duration-100 hover:brightness-[0.98]"
+      className="a4k-press flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] bg-nb-cream px-3.5 py-3 text-left transition-[transform,filter] duration-100 hover:brightness-[0.98] active:scale-[0.98]"
     >
       <FiFileText size={14} className="shrink-0 text-nb-ink-soft" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-[13px] font-[700]">
@@ -1081,32 +1215,38 @@ function PlanRow({ plan }: { plan: PlanPanel }) {
  *
  *  A rewrite never blanks it, greys it or spins: the foot says the file is moving, and every
  *  word above is the last thing written. */
-function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
+function PlanCard({
+  plan,
+  tall = false,
+  leaving,
+  arrive,
+  className,
+  place,
+}: {
+  plan: PlanPanel;
+  tall?: boolean;
+  leaving: boolean;
+  /** How it plays its way in, read once at mount; null when it is simply there. */
+  arrive: string | null;
+  className: string;
+  place: React.CSSProperties;
+}) {
   const c = useCopy().board.create.sheet.plan;
   const full = plan.full;
-  // Enlarged is a PAGE in the middle of the sheet, and only where the card had a column of
-  // its own to come back to. Opened out of the collapsed row there is no such column: the
-  // plan takes the conversation's own, which is the width it was already reading at.
-  const page = full && plan.beside;
+  const [entry] = useState(arrive);
   const { box, more } = usePlanScroll(plan.text, full, tall);
+  const tabs = usePlanTabs(plan);
   return (
     <section
       aria-label={c.label}
-      className={`group absolute top-0 z-10 mx-auto flex flex-col overflow-hidden rounded-[14px] bg-nb-cream ${
-        tall ? "bottom-6" : "bottom-0"
-      } ${!tall && !page ? COLUMN_MAX : ""}`}
-      style={
-        tall
-          ? { right: PLAN_INSET, width: plan.width }
-          : page
-            ? {
-                left: 0,
-                right: 0,
-                width: PLAN_READ + PLAN_PAD * 2,
-                maxWidth: `calc(100% - ${PLAN_INSET * 2}px)`,
-              }
-            : { left: PLAN_INSET, right: PLAN_INSET }
-      }
+      data-leaving={leaving || undefined}
+      inert={leaving}
+      className={cn(
+        "group absolute top-0 z-10 flex flex-col overflow-hidden rounded-[14px] bg-nb-cream",
+        className,
+        entry,
+      )}
+      style={place}
     >
       {/* The way back, in the card's own corner. Beside the conversation that is the card's
           SIZE, and only under the pointer: a document reading a plan should be a document
@@ -1124,13 +1264,18 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
         }`}
         style={{ border: `1px solid ${HAIRLINE}` }}
       >
-        {full ? <FiMinimize2 size={17} aria-hidden /> : <FiMaximize2 size={17} aria-hidden />}
+        {full ? (
+          <FiMinimize2 key="shrink" size={17} className="a4k-pop" aria-hidden />
+        ) : (
+          <FiMaximize2 key="enlarge" size={17} className="a4k-pop" aria-hidden />
+        )}
       </button>
       {/* One tab per plan (#917); the words and the path below are the shown plan's. */}
       {plan.plans.length > 1 && (
         <div
+          ref={tabs.list}
           role="tablist"
-          className="flex shrink-0 items-end gap-5 overflow-x-auto pr-14 pt-2"
+          className="relative flex shrink-0 items-end gap-5 overflow-x-auto pr-14 pt-2"
           style={{ paddingLeft: PLAN_PAD, borderBottom: `1px solid ${HAIRLINE}` }}
         >
           {plan.plans.map((p) => {
@@ -1141,22 +1286,30 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
                 type="button"
                 role="tab"
                 aria-selected={on}
-                onClick={() => plan.pick(p.path)}
-                className={`-mb-px min-w-0 max-w-[180px] shrink-0 cursor-pointer truncate border-b-2 pb-2 pt-1.5 text-[12.5px] ${
-                  on ? "border-nb-accent font-[700] text-nb-ink" : "border-transparent font-[600] text-nb-ink-soft hover:text-nb-ink"
+                onClick={() => tabs.pick(p.path)}
+                className={`min-w-0 max-w-[180px] shrink-0 cursor-pointer truncate pb-2 pt-1.5 text-[12.5px] transition-colors duration-[180ms] ${
+                  on ? "font-[700] text-nb-ink" : "font-[600] text-nb-ink-soft hover:text-nb-ink"
                 }`}
               >
                 {p.title || c.label}
               </button>
             );
           })}
+          {tabs.line && (
+            <span
+              aria-hidden
+              className="a4k-tab-line absolute bottom-0 left-0 h-[2px] bg-nb-accent"
+              style={{ width: tabs.line.width, transform: `translateX(${tabs.line.x}px)` }}
+            />
+          )}
         </div>
       )}
       <div className="relative min-h-0 flex-1">
         <div
+          key={plan.plan?.path}
           ref={box}
           onScroll={more.check}
-          className="h-full overflow-y-auto"
+          className={cn("h-full overflow-y-auto", tabs.moved && "a4k-swap")}
           style={{ padding: PLAN_PAD }}
         >
           <Markdown body={plan.text} />
@@ -1179,7 +1332,7 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
           {plan.plan && <PlanPath path={plan.plan.path} />}
           {plan.writing && (
             <span className="flex shrink-0 items-center gap-1.5">
-              <span aria-hidden className="size-[7px] rounded-full bg-nb-accent" />
+              <span aria-hidden className={PULSE_DOT} />
               <span className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-accent-deep">
                 {c.rewriting}
               </span>
@@ -1189,6 +1342,39 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
       </div>
     </section>
   );
+}
+
+/** The plan tabs' underline, slid under the picked tab (#1948), and whether a hand has
+ *  switched tabs yet — the words only cross-fade on a switch. */
+function usePlanTabs(plan: PlanPanel) {
+  const list = useRef<HTMLDivElement>(null);
+  const [line, setLine] = useState<{ x: number; width: number } | null>(null);
+  const [moved, setMoved] = useState(false);
+  const titles = plan.plans.map((p) => p.title).join("\n");
+  const on = plan.plan?.path;
+  useLayoutEffect(() => {
+    const el = list.current;
+    if (!el) return setLine(null);
+    const read = () => {
+      const tab = el.querySelector<HTMLElement>("[aria-selected='true']");
+      setLine((was) =>
+        !tab
+          ? null
+          : was?.x === tab.offsetLeft && was.width === tab.offsetWidth
+            ? was
+            : { x: tab.offsetLeft, width: tab.offsetWidth },
+      );
+    };
+    read();
+    const observer = new ResizeObserver(read);
+    el.querySelectorAll("[role='tab']").forEach((tab) => observer.observe(tab));
+    return () => observer.disconnect();
+  }, [on, titles]);
+  const pick = (path: string) => {
+    if (path !== on) setMoved(true);
+    plan.pick(path);
+  };
+  return { list, line, moved, pick };
 }
 
 /** Whether the plan runs past the foot of the card — what the fade is drawn for. Re-measured
@@ -1224,9 +1410,9 @@ function PlanPath({ path }: { path: string }) {
         onClick={() => copy(path)}
         title={c.copyPath}
         aria-label={c.copyPath}
-        className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
+        className="a4k-press grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
-        {copied ? <FiCheck size={12} aria-hidden /> : <FiCopy size={12} aria-hidden />}
+        {copied ? <FiCheck size={12} className="a4k-pop" aria-hidden /> : <FiCopy size={12} aria-hidden />}
       </button>
       <Copied on={copied} />
     </div>

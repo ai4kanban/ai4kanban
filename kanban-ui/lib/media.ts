@@ -9,6 +9,9 @@ import { useEffect, useState } from "react";
  *  going and the phone shell arriving are one move rather than two that nearly agree. */
 export const PHONE_UNDER = "(width < 48rem)";
 
+/** The reader asked for less motion. */
+export const LESS_MOTION = "(prefers-reduced-motion: reduce)";
+
 /** A media query, answered after mount. False during the server render and the first
  *  paint, so the markup the server sent and the first client render agree; the phone
  *  shell arrives one frame later. */
@@ -27,4 +30,17 @@ export function useMatches(query: string): boolean {
 /** Whether the board is being read on a phone-width screen (#357). */
 export function usePhone(): boolean {
   return useMatches(PHONE_UNDER);
+}
+
+/** Keeps something drawn for `ms` after `on` goes false, so it can play its way out. */
+export function useLeaving(on: boolean, ms: number): { drawn: boolean; leaving: boolean } {
+  const [drawn, setDrawn] = useState(on);
+  if (on && !drawn) setDrawn(true);
+  if (!on && drawn && ms === 0) setDrawn(false);
+  useEffect(() => {
+    if (on || !drawn) return;
+    const timer = setTimeout(() => setDrawn(false), ms);
+    return () => clearTimeout(timer);
+  }, [on, drawn, ms]);
+  return { drawn: drawn || on, leaving: drawn && !on };
 }
