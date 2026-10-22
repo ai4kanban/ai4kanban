@@ -5,7 +5,7 @@
 // unless the reader has chosen one before; globals.css shows the matching
 // banner if the page drew one (`components/LocaleBanner.tsx`). A click on
 // anything carrying `data-locale-choice` — the banner's link and ×, the footer's
-// language menu — stores that choice, and the bar is not offered again.
+// language menu, the phone menu's languages — stores that choice, and the bar is not offered again.
 
 const KEY = "ai4kanban:locale";
 

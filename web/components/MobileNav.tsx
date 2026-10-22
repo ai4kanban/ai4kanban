@@ -76,6 +76,7 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
                 href={localePath(l, path)}
                 hrefLang={LOCALE_TAGS[l]}
                 lang={LOCALE_TAGS[l]}
+                data-locale-choice={l}
                 className={item}
               >
                 {LOCALE_NAMES[l]}
