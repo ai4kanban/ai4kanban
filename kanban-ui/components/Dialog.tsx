@@ -1,7 +1,7 @@
 "use client";
 
 import { useDismissableLayerSurface } from "@radix-ui/react-dismissable-layer";
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
@@ -27,6 +27,7 @@ import { useSwipeBack } from "@/lib/swipe-back";
 //
 // On a wide window it plays its way in and out (#1959). Given `open`, the owner keeps it
 // mounted and a reopen mid-exit turns it round; left out, a close plays out before `onClose`.
+// A button of the child's own closes the same way through `useDialogClose`.
 export function Dialog({ open, onClose, ...props }: DialogProps & { open?: boolean }) {
   const phone = usePhone();
   const [shut, setShut] = useState(false);
@@ -35,14 +36,17 @@ export function Dialog({ open, onClose, ...props }: DialogProps & { open?: boole
     if (shut && !drawn) onClose();
   }, [shut, drawn, onClose]);
   if (!drawn) return null;
+  const close = leaving ? () => {} : open === undefined ? () => setShut(true) : onClose;
   return (
-    <DialogFrame
-      {...props}
-      leaving={leaving}
-      onClose={leaving ? () => {} : open === undefined ? () => setShut(true) : onClose}
-    />
+    <CloseContext.Provider value={close}>
+      <DialogFrame {...props} leaving={leaving} onClose={close} />
+    </CloseContext.Provider>
   );
 }
+
+const CloseContext = createContext<() => void>(() => {});
+
+export const useDialogClose = () => useContext(CloseContext);
 
 type DialogProps = {
   title: string;
@@ -199,12 +203,12 @@ function DialogHead({ title, onClose }: { title: string; onClose: () => void }) 
  *  The child places it with `className`/`style`. */
 export function DialogCard({
   title,
-  onClose,
   children,
   className = "",
   ...props
-}: { title: string; onClose: () => void } & React.ComponentProps<"div">) {
+}: { title: string } & React.ComponentProps<"div">) {
   const phone = usePhone();
+  const onClose = useDialogClose();
   return (
     <div
       className={`absolute inset-0 flex flex-col ${phone ? "bg-nb-paper" : "nb-panel"} ${className}`}

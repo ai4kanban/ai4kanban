@@ -11,7 +11,7 @@ import { useMatches, usePhone } from "@/lib/media";
 import { browserTourRecord, welcomeTour } from "@/lib/welcome-tour";
 import { Button } from "./button";
 import { useOpenTourFromApp } from "./desktop";
-import { Dialog, DialogCard } from "./Dialog";
+import { Dialog, DialogCard, useDialogClose } from "./Dialog";
 import { Group, Panel } from "./settings";
 import { TOUR_ART } from "./tour-art";
 
@@ -30,7 +30,7 @@ const PHONE_NEXT = "scale(.94)";
 
 type Flight = { dir: "out" | "in"; leg: 1 | 2 };
 
-/** The dialog. Every way out — Get started, Skip, ✕, Esc — is `onClose`. */
+/** The dialog. Every way out — Get started, Skip, ✕, Esc — plays the exit, then `onClose`. */
 export function WelcomeTour({ onClose }: { onClose: () => void }) {
   const c = useCopy().tour;
   const phone = usePhone();
@@ -105,7 +105,6 @@ export function WelcomeTour({ onClose }: { onClose: () => void }) {
       <DialogCard
         key={i}
         title={c.dialog}
-        onClose={onClose}
         data-tour-card={i}
         inert={i !== page}
         className={phone ? "shadow-[0_8px_24px_rgba(0,0,0,.18)]" : ""}
@@ -166,44 +165,48 @@ export function WelcomeTour({ onClose }: { onClose: () => void }) {
             )}
           </div>
         </div>
-        <div
-          className={`flex shrink-0 items-center justify-between gap-3 border-t border-nb-ink/12 px-5 pt-3 ${
-            phone ? "pb-[max(12px,env(safe-area-inset-bottom))]" : "pb-3"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="cursor-pointer text-[13px] font-[650] text-nb-ink-soft hover:text-nb-ink"
-          >
-            {c.skip}
-          </button>
-          <div className="flex items-center gap-1.5">
-            {c.pages.map((pg, j) => (
+        <Closing>
+          {(close) => (
+            <div
+              className={`flex shrink-0 items-center justify-between gap-3 border-t border-nb-ink/12 px-5 pt-3 ${
+                phone ? "pb-[max(12px,env(safe-area-inset-bottom))]" : "pb-3"
+              }`}
+            >
               <button
-                key={pg.title}
                 type="button"
-                data-tour={`dot-${j}`}
-                aria-label={pg.title}
-                aria-current={j === i}
-                onClick={() => go(j)}
-                className={`h-[8px] cursor-pointer rounded-full border-[1.5px] border-nb-ink transition-[width] duration-150 ${
-                  j === i ? "w-[22px] bg-nb-accent" : "w-[8px] bg-nb-paper"
-                }`}
-              />
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            {i > 0 && (
-              <Button variant="ghost" size="sm" data-tour="back" onClick={() => go(i - 1)}>
-                {c.back}
-              </Button>
-            )}
-            <Button size="sm" data-tour="next" onClick={last ? onClose : () => go(i + 1)}>
-              {last ? c.done : c.next}
-            </Button>
-          </div>
-        </div>
+                onClick={close}
+                className="cursor-pointer text-[13px] font-[650] text-nb-ink-soft hover:text-nb-ink"
+              >
+                {c.skip}
+              </button>
+              <div className="flex items-center gap-1.5">
+                {c.pages.map((pg, j) => (
+                  <button
+                    key={pg.title}
+                    type="button"
+                    data-tour={`dot-${j}`}
+                    aria-label={pg.title}
+                    aria-current={j === i}
+                    onClick={() => go(j)}
+                    className={`h-[8px] cursor-pointer rounded-full border-[1.5px] border-nb-ink transition-[width] duration-150 ${
+                      j === i ? "w-[22px] bg-nb-accent" : "w-[8px] bg-nb-paper"
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                {i > 0 && (
+                  <Button variant="ghost" size="sm" data-tour="back" onClick={() => go(i - 1)}>
+                    {c.back}
+                  </Button>
+                )}
+                <Button size="sm" data-tour="next" onClick={last ? close : () => go(i + 1)}>
+                  {last ? c.done : c.next}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Closing>
       </>
     );
   };
@@ -213,6 +216,11 @@ export function WelcomeTour({ onClose }: { onClose: () => void }) {
       {c.pages.map((_, i) => card(i))}
     </Dialog>
   );
+}
+
+// The footer is drawn here but rendered inside the Dialog, so it reads the Dialog's close there.
+function Closing({ children }: { children: (close: () => void) => React.ReactNode }) {
+  return children(useDialogClose());
 }
 
 /** The first open (#1500): up by itself while it is owed, recorded on any way out. Without a
