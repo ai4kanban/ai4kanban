@@ -25,6 +25,7 @@ const zh: BoardCopy = {
     },
     columns: "列",
     goToColumn: (title) => `显示「${title}」`,
+    goToNewColumn: (title) => `显示「${title}」· 有新卡片`,
   },
   card: {
     questionsOne: "1 个待你决定的问题",

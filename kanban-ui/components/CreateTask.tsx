@@ -42,8 +42,9 @@ import { failureText, startFailure, type StartFailure } from "@/lib/start-failur
 import { appendDraft, createDraftKey, dropDraft } from "@/lib/draft";
 import { dropPictures } from "@/lib/picture-box";
 import { LESS_MOTION, useLeaving, useMatches, usePhone } from "@/lib/media";
-import { cardChat } from "@/lib/chat-open";
-import type { DiscussionTarget, SessionView } from "@/lib/types";
+import { newCards } from "@/lib/new-cards";
+import { poll } from "@/lib/poll";
+import type { DiscussRead, DiscussionTarget, SessionView } from "@/lib/types";
 import type { StartResult } from "@/lib/registry";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import { Button } from "./button";
@@ -259,15 +260,27 @@ export function CreateTask({
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
   // (on the board; harmless on a card page).
-  // Plan tasks keeps the discussion up and lands on the cards itself (#1213), so its run
+  // Plan tasks keeps the discussion up and lists the cards in it (#1213), so its run
   // never opens the panel.
   const quiet = useRef(new Set<string>());
+  // The discussion each run was started from: what it wrote is marked new on the board (#1954).
+  const startedOn = useRef(new Map<string, DiscussionTarget | null>());
   const onFinish = useCallback(
     (session: SessionView) => {
       if (!quiet.current.has(session.sessionId)) sessionsPanel.open(session.sessionId);
       router.refresh();
+      if (!startedOn.current.has(session.sessionId)) return;
+      const on = startedOn.current.get(session.sessionId) ?? null;
+      startedOn.current.delete(session.sessionId);
+      if (session.cardId !== null) newCards.add(projectRoot, [session.cardId]);
+      void poll<DiscussRead>(on === null ? "/poll/discuss" : `/poll/discuss?discussion=${encodeURIComponent(on)}`)
+        .then((read) => {
+          const ids = [...(read.became ?? []), ...(read.rows ?? []).flatMap((r) => r.cards ?? [])].map((b) => b.id);
+          if (ids.length) newCards.add(projectRoot, ids);
+        })
+        .catch(() => {});
     },
-    [router],
+    [router, projectRoot],
   );
 
   const { watch } = useAgentSessions(onFinish);
@@ -317,6 +330,7 @@ export function CreateTask({
         // Plan tasks keeps the discussion up, shut, while its cards are written (#1213), and so
         // does any handoff that leaves a plan still waiting (#1442).
         if (answer === "plan" || !ends) quiet.current.add(id);
+        startedOn.current.set(id, on);
         watch(id, answer === "plan" ? "Plan tasks" : "Start now");
       }
       if (went.length && answer === "build" && ends && !refused.length) {
@@ -345,14 +359,14 @@ export function CreateTask({
     [discussion, watch, freshen, phone, plan, setError],
   );
 
-  // One card written (#1213): the discussion is over, and its card's chat carries it on.
-  const becameCard = useCallback(
-    (cardId: number) => {
+  // Cards written while the sheet is up (#1954): the discussion is over, and the reader stays
+  // where they are, with the cards marked on the board.
+  const becameCards = useCallback(
+    (cardIds: number[]) => {
+      newCards.add(projectRoot, cardIds);
       freshen();
-      cardChat.open(cardId);
-      router.push(`/${cardId}`);
     },
-    [freshen, router],
+    [freshen, projectRoot],
   );
 
   // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow
@@ -400,7 +414,7 @@ export function CreateTask({
           failures={failures}
           rerouted={rerouted === askedOn(sheetOn)}
           onHandoff={(answer, picks, all, ends) => void startFromPlan(answer, picks, all, ends)}
-          onBecame={becameCard}
+          onBecame={becameCards}
         />
       )}
     </div>

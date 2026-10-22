@@ -39,6 +39,7 @@ import {
   type SessionView,
 } from "@/lib/types";
 import { useWorkflows } from "@/lib/window-state";
+import { newCards } from "@/lib/new-cards";
 import type { CardCopy } from "@/i18n/card/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -1286,6 +1287,8 @@ export function CardPage({
   const mockups = useMachine()?.mockups ?? {};
   const storyboards = useMachine()?.storyboards;
   const { card, openIds, plan, diff, hold, standing: boardState } = screen;
+  // Opening a card's page is what clears its mark on the board (#1954).
+  useEffect(() => newCards.seen(screen.id, card.id), [screen.id, card.id]);
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   // The open-questions panel is answering rather than being read. Held here rather than

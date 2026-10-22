@@ -339,8 +339,11 @@ export function useBellRail({
         openRunRow(eventId);
         return;
       }
+      // Only the page the click was made on moves (#1954): gone elsewhere meanwhile, it stays.
+      const from = window.location.href;
       const where = await openNotificationAction(eventId);
       kickRef.current();
+      if (window.location.href !== from) return;
       // A board no longer on this machine has nowhere to go. The row is marked read and
       // stays put, saying so, rather than opening whatever card wears that number on the
       // board in front of the user — the checkout can come back.

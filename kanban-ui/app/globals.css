@@ -159,6 +159,18 @@ body {
   box-shadow: 1px 1px 0 0 var(--color-nb-ink);
 }
 
+/* A card a discussion wrote, until it is opened (#1954). */
+.nb-new {
+  border-color: var(--color-nb-accent);
+  box-shadow: 3px 3px 0 0 var(--color-nb-accent);
+}
+.nb-new.nb-press:hover {
+  box-shadow: 4px 4px 0 0 var(--color-nb-accent);
+}
+.nb-new.nb-press:active {
+  box-shadow: 1px 1px 0 0 var(--color-nb-accent);
+}
+
 /* Buttons (the press-down CTA family — accent/ghost × md/sm) now live in
    components/button.tsx as a `cva` variant matrix built from Tailwind
    utilities, so there's one source of truth for the frame + press behavior. */

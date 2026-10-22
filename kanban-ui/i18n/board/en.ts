@@ -26,6 +26,7 @@ const en: BoardCopy = {
     },
     columns: "Columns",
     goToColumn: (title) => `Show ${title}`,
+    goToNewColumn: (title) => `Show ${title} — has new cards`,
   },
   card: {
     questionsOne: "1 open question",

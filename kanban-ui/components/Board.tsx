@@ -26,6 +26,7 @@ import { BoardRefreshContext } from "@/lib/board-refresh";
 import { type ComponentType, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCopy } from "@/i18n/use-copy";
 import { createSheet } from "@/lib/create-open";
+import { NewCardsContext, newCards, useNewCards } from "@/lib/new-cards";
 import { useActions, type StripPlace } from "@/lib/screen";
 import type { BoardScreen, SessionView } from "@/lib/types";
 import { BoardCheer } from "./Cheer";
@@ -88,6 +89,10 @@ export function Board({
   // card has been archived. Not while setup is still running — the run is writing them, and
   // the strip under the columns already says so.
   const noCards = Boolean(board) && !board?.setup && !columns.some((col) => col.cards.length > 0);
+  const fresh = useNewCards(screen.id);
+  useEffect(() => {
+    if (board) newCards.keep(screen.id, new Set(board.columns.flatMap((col) => col.cards.map((card) => card.id))));
+  }, [board, screen.id]);
 
   // The board comes back with its reason attached rather than thrown (#169): a board whose
   // copy of the rules is missing or too old can't be read at all, and a thrown error from a
@@ -164,7 +169,7 @@ export function Board({
   const state = screen.standing;
 
   return (
-    <BoardRefreshContext.Provider value={refresh}><OpenIdsProvider ids={board?.openIds ?? []}>
+    <BoardRefreshContext.Provider value={refresh}><OpenIdsProvider ids={board?.openIds ?? []}><NewCardsContext.Provider value={fresh}>
       <Shell {...chrome}>
         {/* Inside the shell, so the usage disclosure and the guided run, drawn instead of
             the board, come first; and not while setup is still unfinished. */}
@@ -209,6 +214,6 @@ export function Board({
           <BoardCheer boardId={screen.id} sessions={sessions} />
         </div>
       </Shell>
-    </OpenIdsProvider></BoardRefreshContext.Provider>
+    </NewCardsContext.Provider></OpenIdsProvider></BoardRefreshContext.Provider>
   );
 }

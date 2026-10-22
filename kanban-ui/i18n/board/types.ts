@@ -33,6 +33,8 @@ export type BoardCopy = {
      *  jumps to one of them. */
     columns: string;
     goToColumn: (title: string) => string;
+    /** The same, for a column holding a card nobody has opened yet (#1954). */
+    goToNewColumn: (title: string) => string;
   };
   card: {
     questionsOne: string;

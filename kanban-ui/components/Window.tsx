@@ -253,7 +253,10 @@ export function Window({
   const openCardLink = useCallback(
     (url: string) => {
       void (async () => {
+        // Gone elsewhere while the link resolves, the reader stays there (#1954).
+        const from = window.location.href;
         const where = await cloudCardLinkAction(url);
+        if (window.location.href !== from) return;
         // Not a card link at all — an older app handing every scheme URL over, say.
         if (!where) return;
         if (!where.ok) return setLinkNotice(c.cardLink.notHere);
@@ -263,6 +266,7 @@ export function Window({
         }
         // The same project can hold a second board (#407), and #12 there is not #12 here.
         const here = await getBoardsAction().catch(() => null);
+        if (window.location.href !== from) return;
         if (where.boardDir && here && !samePath(where.boardDir, here.board)) {
           return void switchBoard(where.boardDir);
         }

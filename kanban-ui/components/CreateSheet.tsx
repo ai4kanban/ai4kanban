@@ -80,8 +80,8 @@ interface Props {
   failures: Record<string, StartFailure>;
   /** Start now could not take this discussion along and went through Plan tasks (#1246). */
   rerouted?: boolean;
-  /** The discussion became one card (#1213): the screen hands the reader to its page. */
-  onBecame(cardId: number): void;
+  /** The discussion became cards while the sheet was up (#1954): the screen closes. */
+  onBecame(cardIds: number[]): void;
 }
 
 // Discuss is one DISCUSSION's conversation (#427, #496), never the window's rail: the rail
@@ -176,10 +176,13 @@ function Sheet({
   const rows = plan.read ? rowsOf(plan.read) : [];
   const writing = rows.some((r) => r.run?.running && r.run.answer === "plan");
   const became = plan.read?.became ?? [];
-  const only = became.length === 1 ? became[0].id : null;
+  // Only cards written while it is up close it (#1954); a finished discussion reopened stays.
+  const [before, setBefore] = useState<number | null>(null);
+  if (plan.read && before === null) setBefore(became.length);
+  const wrote = before === 0 ? became.map((b) => b.id).join(",") : "";
   useEffect(() => {
-    if (only !== null) onBecame(only);
-  }, [only, onBecame]);
+    if (wrote) onBecame(wrote.split(",").map(Number));
+  }, [wrote, onBecame]);
   // A run just started: read its state now rather than on the next tick.
   const refresh = plan.refresh;
   useEffect(() => {
@@ -408,7 +411,7 @@ function Sheet({
               {/* Too narrow to stand beside: the plan and its answers are pinned between the
                   conversation and the box, both at their own fixed height, so the transcript
                   keeps every pixel left over and still scrolls to the last reply. */}
-              {!wide && (plan.open || became.length > 1) && (
+              {!wide && (plan.open || became.length > 0) && (
                 <div className={`flex shrink-0 justify-center pt-3 ${GUTTER}`}>
                   <div className={COLUMN}>
                     {plan.open && (
@@ -695,8 +698,8 @@ function Handoff({
 }) {
   const c = useCopy().board.create.sheet.plan;
   const read = plan.read;
-  // Several cards (#1213): one line each. A single one has already taken the reader to its page.
-  if (read?.became && read.became.length > 1) {
+  // The cards it became (#1213): one line each.
+  if (read?.became?.length) {
     return (
       <div className="flex flex-col">
         <BecameLinks cards={read.became} />

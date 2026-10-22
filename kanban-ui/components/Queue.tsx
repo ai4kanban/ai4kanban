@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { usePhone } from "@/lib/media";
+import { useNewCardSet } from "@/lib/new-cards";
 import type { Card, Column, SessionView } from "@/lib/types";
 import { byQueueOrder } from "@/lib/pick-order";
 import { staleDays } from "@/lib/stale";
@@ -153,6 +154,7 @@ export function QueueView({
       title: c.ready,
       count: c.readyCount(readyCount, implementingCount),
       width: HALF_W,
+      ids: readyCards.map((card) => card.id),
       body: <Bands bands={ready} sessions={sessions} />,
     },
     {
@@ -160,6 +162,7 @@ export function QueueView({
       title: c.notReady,
       count: `${notReadyCount}`,
       width: HALF_W,
+      ids: notReady.flatMap((b) => b.cards.map((card) => card.id)),
       body: <Bands bands={notReady} sessions={sessions} />,
     },
     {
@@ -167,6 +170,7 @@ export function QueueView({
       title: c.stale,
       count: `${stale.length}`,
       width: STALE_W,
+      ids: stale.map((s) => s.card.id),
       body: <StaleList cards={stale} sessions={sessions} />,
     },
   ];
@@ -205,6 +209,8 @@ interface QueueCol {
   count: string;
   /** The fixed width the window lays it out at. A phone gives it the screen instead. */
   width: string;
+  /** Every card it holds. */
+  ids: number[];
   body: React.ReactNode;
 }
 
@@ -220,6 +226,7 @@ interface QueueCol {
  *  column you cannot get to is a column that isn't there. */
 function SwipedColumns({ cols }: { cols: QueueCol[] }) {
   const c = useCopy().board.queue;
+  const fresh = useNewCardSet();
   const strip = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState(0);
   const onScroll = useCallback(() => {
@@ -270,27 +277,33 @@ function SwipedColumns({ cols }: { cols: QueueCol[] }) {
         <span className="flex min-w-0 flex-1 items-center justify-end gap-1">
           <span className="min-w-0 truncate text-[12px] text-nb-ink-soft">{here.count}</span>
           <span className="flex shrink-0 items-center">
-            {cols.map((col, i) => (
-              <button
-                key={col.key}
-                type="button"
-                onClick={() => go(i)}
-                aria-label={c.goToColumn(col.title)}
-                aria-current={col === here ? "true" : undefined}
-                className="grid h-10 w-5 cursor-pointer place-items-center"
-              >
-                <span
-                  aria-hidden
-                  className="block size-[6px] rounded-full"
-                  style={{
-                    background:
-                      col === here
-                        ? "var(--color-nb-ink)"
-                        : "color-mix(in srgb, var(--color-nb-ink) 22%, transparent)",
-                  }}
-                />
-              </button>
-            ))}
+            {cols.map((col, i) => {
+              // Another column holding a card a discussion just wrote (#1954).
+              const lit = col !== here && col.ids.some((id) => fresh.has(id));
+              return (
+                <button
+                  key={col.key}
+                  type="button"
+                  onClick={() => go(i)}
+                  aria-label={lit ? c.goToNewColumn(col.title) : c.goToColumn(col.title)}
+                  aria-current={col === here ? "true" : undefined}
+                  className="grid h-10 w-5 cursor-pointer place-items-center"
+                >
+                  <span
+                    aria-hidden
+                    className="block size-[6px] rounded-full"
+                    style={{
+                      background:
+                        col === here
+                          ? "var(--color-nb-ink)"
+                          : lit
+                            ? "var(--color-nb-accent)"
+                            : "color-mix(in srgb, var(--color-nb-ink) 22%, transparent)",
+                    }}
+                  />
+                </button>
+              );
+            })}
           </span>
         </span>
       </div>

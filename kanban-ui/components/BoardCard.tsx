@@ -15,6 +15,7 @@ import { Button } from "./button";
 import { Dialog } from "./Dialog";
 import { BoardRefreshContext } from "@/lib/board-refresh";
 import { cardOpen } from "@/lib/card-open";
+import { useNewCardSet } from "@/lib/new-cards";
 import {
   BlockedChip,
   CreatingChip,
@@ -73,6 +74,7 @@ export function BoardCard({
   const c = t.board.card;
   const cardHref = useCardHref();
   const isGroup = card.isGroup;
+  const isNew = useNewCardSet().has(card.id);
   // Not finished being created (#564): a different card entirely, and the branch is taken
   // before anything below reads a field the creator has not written yet.
   if (card.creation) {
@@ -87,7 +89,7 @@ export function BoardCard({
       // its badges floating mid-card. This pins them to the bottom edge. No
       // `h-full` — grid items stretch on their own, and in the kanban column
       // (a flex stack) it would blow one card up to the column's full height.
-      className="nb-panel-sm nb-press flex cursor-pointer flex-col p-3 text-left"
+      className={`nb-panel-sm nb-press flex cursor-pointer flex-col p-3 text-left ${isNew ? "nb-new" : ""}`}
     >
       {/* The meta row. A column can be dragged narrow and a status label can be
           as long as "resolving a conflict", so the row has to say which side
