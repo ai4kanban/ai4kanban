@@ -3,6 +3,7 @@
 //   - in a discussion, it saves the user's words as a plan with `raw plan new`;
 //   - asked to add tasks from a plan, it creates one card from it with `--source`;
 //   - asked to plan a card, it writes one summary line and asks the user one question;
+//   - in a card's chat, it answers in five pieces about a second apart;
 //   - anything else (the board's own describe-product, …) changes nothing.
 //
 // Use: set the board's agent command to `node <this file> <path to cli/bin/ai4kanban.mjs>` in
@@ -12,8 +13,23 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-const prompt = process.argv.at(-1) ?? ''
-if (process.env.STAND_IN_TRACE) writeFileSync(`${process.env.STAND_IN_TRACE}/${Date.now()}.txt`, process.argv.slice(3).join('\n---\n'))
+// The board sends the prompt as the first stream-json line on stdin.
+const prompt = await new Promise((done) => {
+  let buf = ''
+  process.stdin.on('data', (d) => {
+    buf += d
+    if (buf.includes('\n')) process.stdin.pause(), done(buf)
+  })
+  process.stdin.on('end', () => done(buf))
+}).then((line) => {
+  try {
+    const c = JSON.parse(line.split('\n')[0]).message.content
+    return typeof c === 'string' ? c : c.map((x) => x.text ?? '').join('\n')
+  } catch {
+    return line
+  }
+})
+if (process.env.STAND_IN_TRACE) writeFileSync(`${process.env.STAND_IN_TRACE}/${Date.now()}.txt`, prompt)
 const akb = (...args) => execFileSync(process.execPath, [process.argv[2], ...args], { encoding: 'utf8' })
 const say = (text) => console.log(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text }] } }))
 const end = (result) => {
@@ -42,6 +58,14 @@ if (plan) {
   akb('raw', 'update-questions', plan, '--append', '[user] Which page size is the default?', '--recommended-option', 'A4', '--option', 'US Letter')
   say(`Planned #${plan} and asked one question.`)
   end('Planned, one question left for you.')
+}
+if (/This is a chat about task #\d+/.test(prompt)) {
+  const parts = ['Commas by default, ', 'since every spreadsheet opens them. ', 'Fields with a comma or a quote ', 'are wrapped in double quotes, ', 'and the first row holds the column names.']
+  for (const part of parts) {
+    say(part)
+    await new Promise((r) => setTimeout(r, 900))
+  }
+  end(parts.join(''))
 }
 if (process.env.KANBAN_DISCUSSION) {
   const draft = join(mkdtempSync(join(tmpdir(), 'plan-')), 'draft.md')

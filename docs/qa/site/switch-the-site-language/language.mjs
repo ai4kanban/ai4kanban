@@ -5,6 +5,11 @@ const B = process.env.SITE || 'http://127.0.0.1:4330'
 // The browser's language list, as navigator.languages reports it.
 const speak = async (pg, langs) => { const ua = await pg.ev('navigator.userAgent'); await pg.send('Emulation.setUserAgentOverride', { userAgent: ua, acceptLanguage: langs }) }
 const hint = (pg) => pg.ev(`(()=>{const a=document.querySelector('header nav a[hreflang]');return 'navigator.languages='+navigator.languages.join(',')+'  header link: '+(a?a.textContent.trim()+' -> '+a.getAttribute('href'):'none')})()`)
+// The bar above the header, as the reader sees it, and what it links to.
+const bar = (pg) => pg.ev(`(()=>{const b=[...document.querySelectorAll('[data-locale-banner]')].find(e=>getComputedStyle(e).display!=='none');const s=localStorage.getItem('ai4kanban:locale');if(!b)return 'bar: none  stored='+s;const a=b.querySelector('a');const r=b.getBoundingClientRect();return 'bar: '+b.innerText.trim().replace(/\\n+/g,' | ')+'  -> '+a.getAttribute('href')+'  ['+Math.round(r.width)+'x'+Math.round(r.height)+'] header top='+Math.round(document.querySelector('header').getBoundingClientRect().top)+'  stored='+s})()`)
+// Layout shift since load: the bar must be decided before first paint.
+const shift = (pg) => pg.ev(`new Promise(r=>{let v=0;new PerformanceObserver(l=>{for(const e of l.getEntries())if(!e.hadRecentInput)v+=e.value}).observe({type:'layout-shift',buffered:true});setTimeout(()=>r('layout shift: '+v.toFixed(4)),300)})`)
+const fresh = async (pg) => { await pg.send('Storage.clearDataForOrigin', { origin: B, storageTypes: 'all' }) }
 const p = await open(1280, 900)
 await p.send('Storage.clearDataForOrigin', { origin: B, storageTypes: 'all' })
 await speak(p, 'en-US,en')
@@ -18,12 +23,12 @@ const shotMenu = async (pg, file) => {
   await pg.shot(file, { x: Math.max(0, m.x - 200), y: m.y - 40, width: Math.min(1280, m.r + 40) - Math.max(0, m.x - 200), height: m.b - m.y + 80 })
 }
 await p.nav(B + '/pricing', 5000)
-let log = `# 1. Open /pricing\n${await where(p)}\n${await hint(p)}\nheader: ${await p.ev(`document.querySelector('header nav').innerText.replace(/\\n+/g,' · ')`)}\n`
+let log = `# 1. Open /pricing\n${await where(p)}\n${await hint(p)}\n${await bar(p)}\nheader: ${await p.ev(`document.querySelector('header nav').innerText.replace(/\\n+/g,' · ')`)}\n`
 await openMenu(p)
 log += `\n# 2. Click "English" in the footer\nthe menu offers:\n${await items(p)}\n`
 await shotMenu(p, D + '01-footer-menu.png')
 await p.click(`[...(${menu}).querySelectorAll('a')].find(a=>a.textContent.trim()==='中文')`); await p.sleep(4000)
-log += `\n# 3. Pick 中文\n${await where(p)}\nheader: ${await p.ev(`document.querySelector('header nav').innerText.replace(/\\n+/g,' · ')`)}\n`
+log += `\n# 3. Pick 中文\n${await where(p)}\n${await bar(p)}\nheader: ${await p.ev(`document.querySelector('header nav').innerText.replace(/\\n+/g,' · ')`)}\n`
 await p.ev('scrollTo(0,0)'); await p.sleep(500)
 await p.shot(D + '02-zh-pricing.png', { x: 0, y: 0, width: 1280, height: 560 })
 await openMenu(p)
@@ -50,27 +55,52 @@ for (const l of ['zh', 'ja', 'es', 'fr']) {
     fs.writeFileSync(D + '07-zh-footer.png', Buffer.from(s.data, 'base64'))
   }
 }
-await speak(p, 'zh-CN,zh')
+log += `\n# 8. After those picks, the bar on /zh/pricing (browser en-US)\n`
+await p.nav(B + '/zh/pricing', 4000)
+log += `${await where(p)}\n${await bar(p)}\n`
+await fresh(p); await speak(p, 'zh-CN,zh')
 await p.nav(B + '/pricing', 5000)
-log += `\n# 8. Browser prefers zh-CN, open /pricing\n${await where(p)}\n${await hint(p)}\nheader: ${await p.ev(`document.querySelector('header nav').innerText.replace(/\\n+/g,' · ')`)}\n`
-await p.shot(D + '04-header-suggests-zh.png', { x: 0, y: 0, width: 1280, height: 72 })
-await p.click(`document.querySelector('header nav a[hreflang]')`); await p.sleep(4000)
-log += `\n# 9. Click the header's 中文\n${await where(p)}\n${await hint(p)}\n`
-for (const [langs, path] of [['zh-CN,zh', '/blog'], ['zh-TW', '/'], ['ja', '/pricing'], ['ja', '/'], ['en-US,en', '/zh'], ['en-US,zh-CN', '/']]) {
-  await speak(p, langs); await p.nav(B + path, 4000)
-  log += `\n# 10. Browser ${langs}, open ${path}\n${await where(p)}\n${await hint(p)}\n`
-  if (langs === 'en-US,en') await p.shot(D + '05-header-suggests-en.png', { x: 0, y: 0, width: 1280, height: 72 })
+log += `\n# 9. New visitor, browser zh-CN, open /pricing\n${await where(p)}\n${await bar(p)}\n${await shift(p)}\nheader: ${await p.ev(`document.querySelector('header nav').innerText.replace(/\\n+/g,' · ')`)}\n`
+await p.shot(D + '04-bar-suggests-zh.png', { x: 0, y: 0, width: 1280, height: 110 })
+await p.ev(`scrollTo(0,600)`); await p.sleep(800)
+log += `scrolled 600px: ${await bar(p)}\n`
+await p.ev(`scrollTo(0,0)`); await p.sleep(500)
+await p.click(`[...document.querySelectorAll('[data-locale-banner]')].find(e=>getComputedStyle(e).display!=='none').querySelector('a')`); await p.sleep(4000)
+log += `\n# 10. Click 切换到中文\n${await where(p)}\n${await bar(p)}\n`
+await p.nav(B + '/pricing', 4000)
+log += `back on /pricing: ${await bar(p)}\n`
+await fresh(p)
+await p.nav(B + '/pricing', 4000)
+log += `\n# 11. Clear site data, open /pricing again, click ×\nbefore: ${await bar(p)}\n`
+await p.click(`[...document.querySelectorAll('[data-locale-banner]')].find(e=>getComputedStyle(e).display!=='none').querySelector('button')`); await p.sleep(800)
+log += `after ×: ${await where(p)}\n${await bar(p)}\n`
+await p.nav(B + '/pricing', 4000)
+log += `reload /pricing: ${await bar(p)}\n`
+await p.nav(B + '/', 4000)
+log += `open /: ${await bar(p)}\n`
+for (const [langs, path] of [['zh-CN,zh', '/blog'], ['zh-TW', '/'], ['ja', '/pricing'], ['ja', '/'], ['fr-FR', '/'], ['en-US,en', '/zh'], ['en-US,zh-CN', '/']]) {
+  await fresh(p); await speak(p, langs); await p.nav(B + path, 4000)
+  log += `\n# 12. New visitor, browser ${langs}, open ${path}\n${await where(p)}\n${await bar(p)}\n`
+  if (langs === 'en-US,en') await p.shot(D + '05-bar-suggests-en.png', { x: 0, y: 0, width: 1280, height: 110 })
+  if (langs === 'ja' && path === '/') await p.shot(D + '08-bar-suggests-ja.png', { x: 0, y: 0, width: 1280, height: 110 })
 }
 await p.close()
 const m = await open(390, 844, true)
-await speak(m, 'zh-CN,zh')
+await fresh(m); await speak(m, 'zh-CN,zh')
 await m.nav(B + '/pricing', 5000)
-log += `\n# 11. On a 390px phone preferring zh-CN, open /pricing\n${await hint(m)}\ntop bar: ${await m.ev(`[...document.querySelectorAll('header a,header summary')].filter(e=>e.getBoundingClientRect().width>0&&(!e.closest('details')||e.tagName==='SUMMARY')).map(e=>e.textContent.trim()||e.getAttribute('aria-label')).join(' · ')`)}\n`
-await m.shot(D + '06-phone-top-bar.png', { x: 0, y: 0, width: 390, height: 60 })
+log += `\n# 13. New visitor on a 390px phone preferring zh-CN, open /pricing\n${await bar(m)}\ntop bar: ${await m.ev(`[...document.querySelectorAll('header a,header summary')].filter(e=>e.getBoundingClientRect().width>0&&(!e.closest('details')||e.tagName==='SUMMARY')).map(e=>e.textContent.trim()||e.getAttribute('aria-label')).join(' · ')`)}\n`
+await m.shot(D + '06-phone-bar.png', { x: 0, y: 0, width: 390, height: 110 })
+for (const [langs, path] of [['en-US', '/zh'], ['ja', '/'], ['es-ES', '/'], ['fr-FR', '/']]) {
+  await fresh(m); await speak(m, langs); await m.nav(B + path, 4000)
+  log += `phone, browser ${langs}, ${path}: ${await bar(m)}\n`
+}
+await fresh(m); await speak(m, 'zh-CN,zh'); await m.nav(B + '/pricing', 4000)
 await m.click(`document.querySelector('header details summary[aria-label="Menu"]')`); await m.sleep(800)
-log += `\n# 12. Open the header menu on /pricing\n${await m.ev(`document.querySelector('header details').innerText.replace(/\\n+/g,' · ')`)}\n`
-await m.shot(D + '03-phone-drawer.png', { x: 0, y: 0, width: 390, height: 700 })
+log += `\n# 14. Open the header menu on /pricing\n${await m.ev(`document.querySelector('header details').innerText.replace(/\\n+/g,' · ')`)}\n`
+await m.shot(D + '03-phone-drawer.png', { x: 0, y: 0, width: 390, height: 760 })
 await m.click(`[...document.querySelectorAll('header details a')].find(a=>a.textContent.trim()==='中文')`); await m.sleep(4000)
-log += `\n# 13. Tap 中文\n${await where(m)}\n`
+log += `\n# 15. Tap 中文 in the menu\n${await where(m)}\n${await bar(m)}\n`
+await m.nav(B + '/pricing', 4000)
+log += `back on /pricing: ${await bar(m)}\n`
 await m.close()
 fs.writeFileSync(D + 'switch.log', log); console.log(log)

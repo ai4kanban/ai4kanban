@@ -8,7 +8,7 @@
 ## Steps
 
 1. 打开隐私页 `/privacy`。
-   顶部是「LEGAL · EFFECTIVE OCT 16, 2026」和「Privacy Policy」，左侧「On this page」目录里「Using the app」下是「What usage reporting sends」「How long it is kept, and how to have it deleted」「Turning usage reporting off」三项，整个目录里没有「Feedback you send us」或「Partner feedback」。
+   顶部是「LEGAL · EFFECTIVE OCT 22, 2026」和「Privacy Policy」，左侧「On this page」目录里「Using the app」下是「What usage reporting sends」「How long it is kept, and how to have it deleted」「Turning usage reporting off」三项，整个目录里没有「Feedback you send us」或「Partner feedback」。
    ![隐私页顶部与目录](01-privacy-page.png) · [privacy.log](privacy.log)
 
 2. 找页面里还提到反馈的地方。

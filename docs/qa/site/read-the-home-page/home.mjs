@@ -72,6 +72,26 @@ log('carousel preview over 10s:', [...seen]); log('at', 0.75, await state())
 log('clone preview video:', await p.ev(`(()=>{const d=document.querySelector('.wf-track iframe[src$="clone"]').contentDocument;return [...d.querySelectorAll('video')].map(v=>({t:+v.currentTime.toFixed(1),paused:v.paused}))})()`))
 await shotView('08-zh-workflows-carousel-clone.png')
 
+log('# step 5b: scrolling down at a reader\'s pace, when each preview has drawn')
+// Wheel down from the top at ~800px/s; the page records when each frame gets its src and when its
+// placeholder gives way (the iframe loses opacity-0), and when the section's title enters the view.
+const WATCH = `(()=>{const t0=performance.now(),fs=[...document.querySelectorAll('.wf-track iframe')],h=${h2('不同的工作')};window.__wf={src:fs.map(()=>null),ready:fs.map(()=>null),title:null};setInterval(()=>{const n=Math.round(performance.now()-t0);fs.forEach((f,i)=>{if(window.__wf.src[i]==null&&f.getAttribute('src'))window.__wf.src[i]=n;if(window.__wf.ready[i]==null&&!f.classList.contains('opacity-0'))window.__wf.ready[i]=n});if(window.__wf.title==null&&h.getBoundingClientRect().top<innerHeight)window.__wf.title=n},50)})()`
+const arrive = async (w, h, mobile, label) => {
+  const q = await open(w, h, mobile); await go(q, `${SITE}/zh`, 3000); await q.ev(WATCH)
+  for (let i = 0; i < 120; i++) { await q.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: w / 2, y: h / 2, deltaX: 0, deltaY: 120 }); await q.sleep(150); if (i > 10 && await q.ev(`window.__wf.title!=null&&window.__wf.ready.every(x=>x!=null)`)) break }
+  await q.sleep(500)
+  log(label, 'ms after the first scroll — section title in view:', await q.ev('window.__wf.title'), '· src set:', await q.ev('window.__wf.src.join(", ")'), '· drawn:', await q.ev('window.__wf.ready.join(", ")'))
+  await q.close()
+}
+await arrive(W, H, false, 'desktop 1440:'); await arrive(390, 844, true, 'phone 390:')
+{
+  const q = await open(W, H); await q.send('Network.setBlockedURLs', { urls: ['*/demo/drafts/*'] }); await go(q, `${SITE}/zh`, 3000)
+  await q.ev(`scrollBy(0,10)`); await q.ev(`(${h2('不同的工作')}).scrollIntoView({block:'start'})`); await q.ev('scrollBy(0,-90)'); await q.sleep(800)
+  const top = await q.ev(`Math.round(document.querySelector('.wf-pin').getBoundingClientRect().top+scrollY)`); await q.ev(`scrollTo(0,${top})`); await q.sleep(6000)
+  log('previews blocked, 6s later:', await q.ev(`[...document.querySelectorAll('.wf-frame')].map(f=>(f.querySelector('iframe').classList.contains('opacity-0')?'placeholder':'shown')+(f.querySelector('.animate-pulse, [class*=animate-pulse]')?' (pulsing)':'')).join(', ')`), '· error page visible:', await q.ev(`[...document.querySelectorAll('.wf-track iframe')].some(f=>!f.classList.contains('opacity-0'))`))
+  await q.shot(`${OUT}/26-zh-workflows-placeholder.png`); await q.close()
+}
+
 log('# step 4: the links under the row, then the gap to the next section')
 log('links', await p.ev(`[...document.querySelectorAll('.wf-links a')].map(a=>a.innerText.trim()+' -> '+a.getAttribute('href'))`))
 await p.ev(`scrollTo(0, ${pin.top + pin.h - H + 200})`); await p.sleep(1500)

@@ -74,7 +74,7 @@ write('04-no-purchase-or-second-trial.log', ['$ open /billing/checkout?period=mo
 await signIn(TRIED); await go('/settings')
 const b5 = await page(); await shot('05-trial-over.png')
 await go('/billing/trial')
-write('05-trial-over.log', ['$ open /settings as an account whose trial ended yesterday', b5, '', '$ open /billing/trial', await page(), trials(), worker()])
+write('05-trial-over.log', ['$ open /settings as an account whose trial ended yesterday', b5, '', '$ open /billing/trial', await page(), trials(), worker()]); await shot('05-trial-used.png')
 
 // 6. Buy.
 await go('/settings'); worker()

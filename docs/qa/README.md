@@ -117,6 +117,10 @@
 - [在「社媒帖」工作流里找到社媒帖配图，停用后它不再回来](local-ui/see-the-illustrator-in-the-social-post-workflow/case.md)
 - [在运行办公室里看每个 Agent 穿着自己的职业装](local-ui/see-each-agent-in-its-own-outfit-in-the-runs-office/case.md)
 - [在桌面应用的账单面板里先免费试用 Pro 7 天，试用结束后再购买](local-ui/start-a-pro-trial-in-the-desktop-billing-panel/case.md)
+- [在卡片对话里提问，看回复一段段写出来](local-ui/ask-in-a-card-chat-and-watch-the-reply-arrive/case.md)
+- [收起侧边栏，再只用键盘从搜索打开一张卡](local-ui/collapse-the-sidebar-and-find-a-card-by-keyboard/case.md)
+- [从看板打开一张卡片页](local-ui/open-a-card-page-from-the-board/case.md)
+- [扫过顶栏的按钮，打开再关上「运行历史」](local-ui/open-and-close-the-runs-dialog-from-the-header/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -144,6 +148,7 @@
 - [打开已下架模板的旧链接，拿到真正的 404](site/open-a-retired-template-link/case.md)
 - [在官网模板目录里看图文模板：先见骨架，再翻整套竖屏页面，动态页自己播放](site/browse-carousel-templates/case.md)
 - [打开已停掉的 draft-first 旧链接，回到首页](site/open-an-old-draft-first-link/case.md)
+- [在隐私页查官网在浏览器里存了什么，再对照浏览器](site/read-what-the-site-keeps-in-your-browser-on-the-privacy-page/case.md)
 
 ### docs
 
