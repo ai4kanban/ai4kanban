@@ -3,9 +3,9 @@ import type { PricingCopy } from "./types";
 
 const en: PricingCopy = {
   meta: {
-    title: "AI4Kanban: Plans and pricing",
+    title: "WildCrane: Plans and pricing",
     description:
-      "All AI4Kanban workflows are free. Pro adds templates for more polished results, AI credits and automatic idea screening. $10/month, billed yearly.",
+      "All WildCrane workflows are free. Pro adds templates for more polished results, AI credits and automatic idea screening. $10/month, billed yearly.",
   },
   hero: {
     eyebrow: "PRICING",
@@ -53,7 +53,7 @@ const en: PricingCopy = {
   },
   seed: {
     name: "Seed partner",
-    body: "Share redacted sessions with us to improve AI4Kanban. Accepted partners get 6 months of Pro, with no charge afterwards.",
+    body: "Share redacted sessions with us to improve WildCrane. Accepted partners get 6 months of Pro, with no charge afterwards.",
     button: "Join the waitlist",
   },
   custom: {

@@ -2,17 +2,17 @@ import type { VsMulticaCopy } from "./types";
 
 const en: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica: specialist agents, ready to use",
-    socialTitle: "AI4Kanban vs. Multica",
+    title: "WildCrane vs. Multica: specialist agents, ready to use",
+    socialTitle: "WildCrane vs. Multica",
     description:
-      "Compare AI4Kanban and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
+      "Compare WildCrane and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
     social:
-      "Compare AI4Kanban and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
+      "Compare WildCrane and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
   },
   hero: {
     badge: "Comparison",
-    title: "AI4Kanban vs.\nMultica",
-    lead: "Compare AI4Kanban and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
+    title: "WildCrane vs.\nMultica",
+    lead: "Compare WildCrane and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.",
     sharedLabel: "Both have",
     setup: {
       heading: "Start working without designing the team first",
@@ -33,14 +33,14 @@ const en: VsMulticaCopy = {
         {
           title: "Custom agents",
           body: [
-            "AI4Kanban lets you edit the built-in roles or add your own agents.",
+            "WildCrane lets you edit the built-in roles or add your own agents.",
             "Multica’s Agent Builder helps you create roles, then configure their Instructions and Skills.",
           ],
         },
         {
           title: "Agents in parallel",
           body: [
-            "AI4Kanban runs several cards at once with coding tools such as Claude Code or Codex.",
+            "WildCrane runs several cards at once with coding tools such as Claude Code or Codex.",
             "Multica runs agents in parallel, with queues, retries and cost tracking.",
           ],
         },
@@ -64,14 +64,14 @@ const en: VsMulticaCopy = {
         {
           title: "Previews",
           body: [
-            "AI4Kanban displays image, diagram, HTML/TSX, diff and storyboard drafts on the card.",
+            "WildCrane displays image, diagram, HTML/TSX, diff and storyboard drafts on the card.",
             "Multica previews HTML, collects annotations and compares versions.",
           ],
         },
         {
           title: "Task discussion",
           body: [
-            "AI4Kanban discusses and revises the plan in the card chat.",
+            "WildCrane discusses and revises the plan in the card chat.",
             "Multica discusses work with agents in issue comments.",
           ],
         },
@@ -100,14 +100,14 @@ const en: VsMulticaCopy = {
         {
           title: "Saved methods",
           body: [
-            "AI4Kanban gives every agent role rules you can edit.",
+            "WildCrane gives every agent role rules you can edit.",
             "Multica keeps methods in Instructions and Skills.",
           ],
         },
         {
           title: "Task history",
           body: [
-            "AI4Kanban keeps the plan, chat and run log on each card.",
+            "WildCrane keeps the plan, chat and run log on each card.",
             "Multica keeps comments and run history.",
           ],
         },
@@ -117,7 +117,7 @@ const en: VsMulticaCopy = {
   comparison: {
     heading: { eyebrow: "Key differences", title: "Compare the details" },
     lead: "A {check} marks the stronger side on each row.",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Multica",
     rows: {
       startingPoint: {
@@ -132,7 +132,7 @@ const en: VsMulticaCopy = {
       refinement: {
         dimension: "Reviewing drafts before execution",
         kanban:
-          "For any part where you want control over the direction, the draft system can prepare a preview for your approval before execution and delivery. AI4Kanban supports image, diagram, HTML/TSX, diff and storyboard drafts.",
+          "For any part where you want control over the direction, the draft system can prepare a preview for your approval before execution and delivery. WildCrane supports image, diagram, HTML/TSX, diff and storyboard drafts.",
         multica:
           "Preview HTML, annotate output and compare versions. You define which agent prepares each draft and when approval is needed before execution.",
       },
@@ -174,7 +174,7 @@ const en: VsMulticaCopy = {
   },
   decision: {
     heading: { eyebrow: "Recommendation", title: "Which should you choose?" },
-    oursHeading: "Choose AI4Kanban if you",
+    oursHeading: "Choose WildCrane if you",
     theirsHeading: "Choose Multica if you",
     ours: [
       "Want ready-to-use specialist agents and workflows for your own product and marketing.",
@@ -188,7 +188,7 @@ const en: VsMulticaCopy = {
       "Want to configure Autopilot’s runbook, assignee and triggers to start recurring work on a schedule or from external events.",
     ],
     verdict:
-      "Choose AI4Kanban to **move your product and marketing forward with ready-to-use workflows**, reviewing key drafts first and carrying preferences into later tasks. Choose Multica only if you **specifically need its multi-user workspace or execution management**.",
+      "Choose WildCrane to **move your product and marketing forward with ready-to-use workflows**, reviewing key drafts first and carrying preferences into later tasks. Choose Multica only if you **specifically need its multi-user workspace or execution management**.",
     note: "",
   },
 };

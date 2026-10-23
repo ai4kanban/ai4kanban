@@ -44,7 +44,7 @@ export function SaasPage({ locale }: { locale: Locale }) {
         header={
           <div className="pb-2 pt-4 text-center lg:pb-4 lg:pt-8">
             <p className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
-              AI4Kanban for SaaS
+              WildCrane for SaaS
             </p>
             <h1 className="mt-4 text-4xl font-bold leading-[1.15] tracking-tight sm:text-6xl sm:leading-[1.05]">
               {page.title.split("\n").map((line) => (

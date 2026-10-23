@@ -41,7 +41,7 @@ export function DownloadPage({ locale }: { locale: Locale }) {
   const schema = jsonLd(page, {
     ...softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       description: t.meta.description,
       url: pageUrl(PATH),
       free: true,

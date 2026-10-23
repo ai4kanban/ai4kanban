@@ -198,7 +198,7 @@ function Clone({ live }: { live: boolean }) {
   }, [live]);
   return (
     <div ref={box}>
-      <Compare a={CLONE.a} b={CLONE.b} label="Against the source" aLabel="Source" bLabel="AI4Kanban" shots={CLONE.shots} />
+      <Compare a={CLONE.a} b={CLONE.b} label="Against the source" aLabel="Source" bLabel="WildCrane" shots={CLONE.shots} />
     </div>
   );
 }

@@ -4,35 +4,35 @@ import type { HomeCopy } from "./types";
 
 const en: HomeCopy = {
   meta: {
-    title: "Agent workspace for indie hackers | AI4Kanban",
+    title: "Agent workspace for indie hackers | WildCrane",
     description:
-      "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review them, then let agents handle the execution details.",
+      "From coding to marketing, WildCrane brings you drafts of the parts that need your judgment. Review them, then let agents handle the execution details.",
     socialTitle: "You don’t have to manage every detail.",
     social:
       "Review the parts that need your judgment. Let agents take care of the execution, from coding to marketing.",
     schema:
-      "AI4Kanban is an agent workspace for indie hackers. Six built-in workflows identify decisions that need human input and prepare drafts for approval before agents execute. Users can create custom agents and workflows that define what they review and what agents handle.",
+      "WildCrane is an agent workspace for indie hackers. Six built-in workflows identify decisions that need human input and prepare drafts for approval before agents execute. Users can create custom agents and workflows that define what they review and what agents handle.",
   },
 
   hero: {
     eyebrow: "Agent workspace for indie hackers",
     title: "You don’t have to\nmanage every detail.",
     lead:
-      "From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there.",
+      "From coding to marketing, WildCrane brings you drafts of the parts that need your judgment. Review, refine, and let agents take it from there.",
     ctaDownload: "Download",
     ctaGithub: "View on GitHub ↗",
     image:
-      "A recording of AI4Kanban: planning a task, reviewing its drafts, and handing the approved plan to agents.",
+      "A recording of WildCrane: planning a task, reviewing its drafts, and handing the approved plan to agents.",
   },
 
   handoff: {
     title: "Review the key parts.\nLet agents do the rest.",
     body: [
-      "AI4Kanban helps you clarify your idea. Each workflow brings you drafts of the parts that need your input. Review and refine them, then let agents complete the work. Tasks that don’t depend on each other move forward at the same time.",
+      "WildCrane helps you clarify your idea. Each workflow brings you drafts of the parts that need your input. Review and refine them, then let agents complete the work. Tasks that don’t depend on each other move forward at the same time.",
     ],
     scene: {
       label:
-        "You hand an idea to AI4Kanban, which turns it into drafts for you to review. Once you approve them, AI4Kanban passes the drafts and their context to agents, who take over the work.",
+        "You hand an idea to WildCrane, which turns it into drafts for you to review. Once you approve them, WildCrane passes the drafts and their context to agents, who take over the work.",
       idea: [
         "Launch a Pro plan",
         "Add dark mode",
@@ -41,7 +41,7 @@ const en: HomeCopy = {
         "Carousel of 5 tips",
       ],
       you: "You",
-      board: "AI4Kanban",
+      board: "WildCrane",
       agent: "Agent",
       review: "You review",
       build: "Agents take over",
@@ -98,7 +98,7 @@ const en: HomeCopy = {
   tools: {
     title: "Keep the AI tools you already use",
     body:
-      "Connect Claude Code and 7 other tools, running on your machine with your own subscriptions. Choose a tool and model for each agent. AI4Kanban charges no extra token fees.",
+      "Connect Claude Code and 7 other tools, running on your machine with your own subscriptions. Choose a tool and model for each agent. WildCrane charges no extra token fees.",
   },
 
   start: {

@@ -4,15 +4,15 @@ import type { DownloadCopy } from "./types";
 
 const zh: DownloadCopy = {
   meta: {
-    title: "下载 AI4Kanban —— macOS、Windows 与 Linux 桌面应用",
+    title: "下载 WildCrane —— macOS、Windows 与 Linux 桌面应用",
     description:
-      "下载 AI4Kanban，独立开发者的 Agent 工作台。支持 macOS、Windows 和 Linux。",
-    socialTitle: "下载 AI4Kanban",
-    social: "AI4Kanban，独立开发者的 Agent 工作台。下载 macOS、Windows 和 Linux 桌面应用。",
+      "下载 WildCrane，独立开发者的 Agent 工作台。支持 macOS、Windows 和 Linux。",
+    socialTitle: "下载 WildCrane",
+    social: "WildCrane，独立开发者的 Agent 工作台。下载 macOS、Windows 和 Linux 桌面应用。",
   },
 
   hero: {
-    title: "AI4Kanban 桌面版",
+    title: "WildCrane 桌面版",
     lead: "支持 macOS、Windows 和 Linux。",
     cta: "下载",
     ctaFor: "下载 {system} 版",
@@ -27,7 +27,7 @@ const zh: DownloadCopy = {
     platformLabel: "选择你的系统",
     mac: {
       steps: [
-        "打开 `.dmg`，把 **AI4Kanban** 拖进“应用程序”。",
+        "打开 `.dmg`，把 **WildCrane** 拖进“应用程序”。",
         "双击打开。macOS 会提示无法验证这个应用，点**完成**。这一次打不开是正常的。",
         "打开**系统设置 → 隐私与安全性**，向下找到**安全性**，点**仍要打开**。",
         "解锁后再点一次**仍要打开**。之后每次都会直接打开。",

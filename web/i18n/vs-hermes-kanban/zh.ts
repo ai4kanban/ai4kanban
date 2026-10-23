@@ -4,15 +4,15 @@ import type { VsHermesCopy } from "./types";
 
 const zh: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Kanban：关键部分先看草稿，减少返工",
-    socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "对比 AI4Kanban 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
-    social: "对比 AI4Kanban 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
+    title: "WildCrane vs. Hermes Kanban：关键部分先看草稿，减少返工",
+    socialTitle: "WildCrane vs. Hermes Agent Kanban",
+    description: "对比 WildCrane 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
+    social: "对比 WildCrane 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
   },
   hero: {
     badge: "对比",
-    title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "对比 AI4Kanban 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
+    title: "WildCrane vs.\nHermes Agent Kanban",
+    lead: "对比 WildCrane 与 Hermes Kanban 的专业工作流、草稿审阅、聊天应用操控、并行任务与后续跟进。",
     sharedLabel: "两者都支持",
     setup: {
       heading: "专业 agent 和工作流，开箱即用",
@@ -38,14 +38,14 @@ const zh: VsHermesCopy = {
         {
           title: "任务拆解与依赖管理",
           body: [
-            "AI4Kanban 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
+            "WildCrane 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
             "Hermes Kanban 把一句话任务拆成子任务，父任务完成后再运行子任务。",
           ],
         },
         {
           title: "在 git worktree 中并行运行",
           body: [
-            "AI4Kanban 让独立的卡片同时推进，每张在独立的 git worktree 中运行。",
+            "WildCrane 让独立的卡片同时推进，每张在独立的 git worktree 中运行。",
             "Hermes Kanban 并行运行任务，每个任务一个 git worktree。",
           ],
         },
@@ -75,14 +75,14 @@ const zh: VsHermesCopy = {
         {
           title: "书面规格",
           body: [
-            "AI4Kanban 的卡片写明范围和构建步骤。",
+            "WildCrane 的卡片写明范围和构建步骤。",
             "Hermes Kanban 可把任务改写成目标、做法和验收标准。",
           ],
         },
         {
           title: "任务修改",
           body: [
-            "AI4Kanban 在卡片对话里接收你的修改，并随之更新计划。",
+            "WildCrane 在卡片对话里接收你的修改，并随之更新计划。",
             "Hermes Kanban 在任务评论里把你的说明交给执行者。",
           ],
         },
@@ -113,14 +113,14 @@ const zh: VsHermesCopy = {
         {
           title: "边做边学的 agent",
           body: [
-            "AI4Kanban 的专业 agent 会记下你退回或否决的草稿，完成的卡片还会被回顾，提炼决定和偏好。",
+            "WildCrane 的专业 agent 会记下你退回或否决的草稿，完成的卡片还会被回顾，提炼决定和偏好。",
             "Hermes 的每个 profile 保留记忆笔记，并根据学到的经验（包括你的纠正）自己写 skill。",
           ],
         },
         {
           title: "任务记录",
           body: [
-            "AI4Kanban 把计划、对话和运行记录保留在卡片上。",
+            "WildCrane 把计划、对话和运行记录保留在卡片上。",
             "Hermes Kanban 在任务上保留评论串和运行记录。",
           ],
         },
@@ -133,7 +133,7 @@ const zh: VsHermesCopy = {
       title: "详细对比",
     },
     lead: "{check} 表示该行更强的一方。",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Hermes Kanban",
     rows: {
       startingPoint: {
@@ -188,7 +188,7 @@ const zh: VsHermesCopy = {
       },
       review: {
         dimension: "检查成果",
-        kanban: "Claude Code、Codex 构建时会运行测试、核对要求；AI4Kanban 不再额外加一轮审阅，避免过度测试。",
+        kanban: "Claude Code、Codex 构建时会运行测试、核对要求；WildCrane 不再额外加一轮审阅，避免过度测试。",
         hermes: "审阅 profile 逐条核对验收标准、运行测试，不通过就退回重做。",
       },
       chat: {
@@ -213,7 +213,7 @@ const zh: VsHermesCopy = {
       eyebrow: "选择建议",
       title: "该选哪一个？",
     },
-    oursHeading: "选择 AI4Kanban，如果你",
+    oursHeading: "选择 WildCrane，如果你",
     theirsHeading: "选择 Hermes Kanban，如果你",
     ours: [
       "希望直接使用开发、博客、视频的专业 agent 和工作流。",
@@ -225,7 +225,7 @@ const zh: VsHermesCopy = {
       "想在 Telegram、Slack、Discord 等聊天应用里管理任务。",
       "需要自动恢复卡住的任务，以及可二次开发的 API。",
     ],
-    verdict: "希望**直接使用专业工作流，先审关键草稿以减少返工**，选 AI4Kanban；需要**聊天应用操控、自动恢复和 API**，选 Hermes Kanban。",
+    verdict: "希望**直接使用专业工作流，先审关键草稿以减少返工**，选 WildCrane；需要**聊天应用操控、自动恢复和 API**，选 Hermes Kanban。",
     note: "依据 Hermes Agent v0.21.6 文档对比，核对于 2026 年 10 月。",
   },
 };

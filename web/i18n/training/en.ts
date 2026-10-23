@@ -4,20 +4,20 @@ import type { TrainingCopy } from "./types";
 
 const en: TrainingCopy = {
   meta: {
-    title: "AI4Kanban hands-on project guidance — from first release to weekly iteration",
+    title: "WildCrane hands-on project guidance — from first release to weekly iteration",
     description:
       "One-to-one guidance around your own project: scope a first release, break it into work coding agents can finish, and build an acceptance routine you can keep. $99 a session, $349 a month.",
-    socialTitle: "AI4Kanban hands-on project guidance",
+    socialTitle: "WildCrane hands-on project guidance",
     social:
-      "Work through your own project with the person who built AI4Kanban: scope, task breakdown, agent execution, and acceptance.",
+      "Work through your own project with the person who built WildCrane: scope, task breakdown, agent execution, and acceptance.",
   },
 
   hero: {
     eyebrow: "For solo developers",
-    title: "AI4Kanban hands-on project guidance",
-    lead: "Work through your project with the creator of AI4Kanban, from planning requirements to reviewing completed work.",
+    title: "WildCrane hands-on project guidance",
+    lead: "Work through your project with the creator of WildCrane, from planning requirements to reviewing completed work.",
     cta: "See available times",
-    shotAlt: "The AI4Kanban board",
+    shotAlt: "The WildCrane board",
   },
 
   stuck: {
@@ -58,7 +58,7 @@ const en: TrainingCopy = {
         body: "Release product improvements each week, gather user feedback and plan the next iteration.",
       },
     ],
-    note: "AI4Kanban's board, desktop app and website are developed using this workflow.",
+    note: "WildCrane's board, desktop app and website are developed using this workflow.",
   },
 
   guidance: {
@@ -84,9 +84,9 @@ const en: TrainingCopy = {
   },
 
   coach: {
-    heading: { eyebrow: "Your coach", title: "Tao Wu, creator of AI4Kanban" },
-    body: "Tao Wu has years of experience in database engineering and product management. He created AI4Kanban, an agent workspace for indie hackers, and uses it to develop the product's own board, desktop app and website.",
-    link: "Why I built AI4Kanban →",
+    heading: { eyebrow: "Your coach", title: "Tao Wu, creator of WildCrane" },
+    body: "Tao Wu has years of experience in database engineering and product management. He created WildCrane, an agent workspace for indie hackers, and uses it to develop the product's own board, desktop app and website.",
+    link: "Why I built WildCrane →",
   },
 
   tiers: {
@@ -95,7 +95,7 @@ const en: TrainingCopy = {
     single: {
       eyebrow: "Single · 60 minutes",
       name: "60-minute one-to-one session",
-      body: "For developers using AI4Kanban who need help with project planning or delivery.",
+      body: "For developers using WildCrane who need help with project planning or delivery.",
       price: "$99",
       per: " / session",
       rows: [

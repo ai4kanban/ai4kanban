@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const zh: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca：先审草稿，执行细节交给 agent",
-    socialTitle: "AI4Kanban vs. Orca",
+    title: "WildCrane vs. Orca：先审草稿，执行细节交给 agent",
+    socialTitle: "WildCrane vs. Orca",
     description:
-      "对比 AI4Kanban 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
+      "对比 WildCrane 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
     social:
-      "对比 AI4Kanban 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
+      "对比 WildCrane 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
   },
   hero: {
     badge: "对比",
-    title: "AI4Kanban vs. Orca",
-    lead: "对比 AI4Kanban 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
+    title: "WildCrane vs. Orca",
+    lead: "对比 WildCrane 与 Orca 的会话操控、专业工作流、草稿审阅，以及执行阶段需要承担的协调工作。",
   },
   both: {
     title: "两者都支持",
@@ -55,7 +55,7 @@ const zh: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban：先审草稿，执行细节交给 agent",
+    title: "WildCrane：先审草稿，执行细节交给 agent",
     lead: "专业 agent 把需要你审阅的界面、文案或脚本做成草稿。关键部分确认后，由对应工作流完成后续任务。开发、博客、视频都有内置工作流，独立任务可并行推进。",
     drafts: {
       title: "关键部分先看草稿，再批准执行",
@@ -85,7 +85,7 @@ const zh: VsOrcaCopy = {
       link: "查看 Orca 功能",
     },
     ours: {
-      name: "选 AI4Kanban",
+      name: "选 WildCrane",
       points: [
         "直接使用开发、博客、视频的专业 agent 和工作流",
         "在草稿里改好关键部分，再让 agent 完成后续工作",
@@ -96,9 +96,9 @@ const zh: VsOrcaCopy = {
     },
   },
   start: {
-    title: "开始使用 AI4Kanban",
-    body: "下载 AI4Kanban，精准规划，快速交付。",
-    cta: "下载 AI4Kanban",
+    title: "开始使用 WildCrane",
+    body: "下载 WildCrane，精准规划，快速交付。",
+    cta: "下载 WildCrane",
   },
 };
 

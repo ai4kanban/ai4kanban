@@ -16,7 +16,7 @@ const COMPARISONS = [
   { href: "/vs-plannotator", name: "Plannotator" },
 ];
 
-// AI4Kanban's pages in the two directories that list it. Both badges are served
+// WildCrane's pages in the two directories that list it. Both badges are served
 // from `public/` rather than the directory: the other product marks on the site
 // are local too, and a self-hosted SVG cannot slow the page down or fail to
 // draw. The VerifiedDR link is the hyphen spelling — the dot spelling written
@@ -255,7 +255,7 @@ export function SiteFooter({
           aria-hidden="true"
           className="mt-2 select-none whitespace-nowrap font-pixel text-[min(calc((100vw-3rem)/6.8),162px)] leading-[0.78] text-elev/15"
         >
-          AI4KANBAN
+          WILDCRANE
         </div>
       </div>
     </footer>

@@ -39,7 +39,7 @@ export type TemplatesCopy = {
   tags: string;
   use: string;
   useLead: string;
-  /** What to paste into AI4Kanban to use this template, ending in a `<…>` for the topic. */
+  /** What to paste into WildCrane to use this template, ending in a `<…>` for the topic. */
   prompt: (category: string, name: string) => string;
   copyPrompt: string;
   copied: string;
@@ -56,6 +56,6 @@ export type TemplatesCopy = {
   videoFailed: string;
   openYouTube: string;
   openOriginal: string;
-  /** `{title} | AI4Kanban Templates` — a template page's `<title>`. */
+  /** `{title} | WildCrane Templates` — a template page's `<title>`. */
   detailTitle: (title: string) => string;
 };

@@ -4,15 +4,15 @@ import type { VsTaskMasterCopy } from "./types";
 
 const ja: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster：下書きを確認して手戻りを減らす",
-    socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "AI4Kanban と Taskmaster を、専門ワークフロー、下書きの確認、好みの記憶、計画から実行までの進め方で比較します。",
-    social: "AI4Kanban と Taskmaster を、専門ワークフロー、下書きの確認、好みの記憶、計画から実行までの進め方で比較します。",
+    title: "WildCrane vs. Taskmaster：下書きを確認して手戻りを減らす",
+    socialTitle: "WildCrane vs. Taskmaster",
+    description: "WildCrane と Taskmaster を、専門ワークフロー、下書きの確認、好みの記憶、計画から実行までの進め方で比較します。",
+    social: "WildCrane と Taskmaster を、専門ワークフロー、下書きの確認、好みの記憶、計画から実行までの進め方で比較します。",
   },
   hero: {
     badge: "比較",
-    title: "AI4Kanban vs.\nTaskmaster",
-    lead: "AI4Kanban と Taskmaster を、専門ワークフロー、下書きの確認、好みの記憶、計画から実行までの進め方で比較します。",
+    title: "WildCrane vs.\nTaskmaster",
+    lead: "WildCrane と Taskmaster を、専門ワークフロー、下書きの確認、好みの記憶、計画から実行までの進め方で比較します。",
     sharedLabel: "どちらにもある機能",
     setup: {
       heading: "専門エージェントとワークフローをすぐに使える",
@@ -38,14 +38,14 @@ const ja: VsTaskMasterCopy = {
         {
           title: "タスク分解と依存関係",
           body: [
-            "AI4Kanbanは仕事をカードとサブタスクに分け、依存関係で実行順を決めます。",
+            "WildCraneは仕事をカードとサブタスクに分け、依存関係で実行順を決めます。",
             "TaskmasterはPRDからタスクとサブタスクを生成し、依存関係を管理できます。",
           ],
         },
         {
           title: "CLI連携",
           body: [
-            "AI4Kanbanはコーディングエージェントから呼び出せるCLIを提供します。MCPサーバーはありません。",
+            "WildCraneはコーディングエージェントから呼び出せるCLIを提供します。MCPサーバーはありません。",
             "TaskmasterはCLIとMCPサーバーの両方を提供します。",
           ],
         },
@@ -104,14 +104,14 @@ const ja: VsTaskMasterCopy = {
         {
           title: "編集できるルール",
           body: [
-            "AI4Kanbanの専門エージェントには編集できる役割ルールがあります。",
+            "WildCraneの専門エージェントには編集できる役割ルールがあります。",
             "Taskmasterはエディターごとのルールファイルを提供します。",
           ],
         },
         {
           title: "作業の文脈を残す",
           body: [
-            "AI4Kanbanはカードに計画、会話、実行記録を残します。",
+            "WildCraneはカードに計画、会話、実行記録を残します。",
             "Taskmasterはタスクの説明、実装の詳細、サブタスクのメモを残します。",
           ],
         },
@@ -124,7 +124,7 @@ const ja: VsTaskMasterCopy = {
       title: "項目ごとの比較",
     },
     lead: "専門ワークフロー、ドラフト承認からツール連携まで、それぞれに何が組み込まれているかを比べます。",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
@@ -134,7 +134,7 @@ const ja: VsTaskMasterCopy = {
       },
       planning: {
         dimension: "タスク分解と依存関係",
-        kanban: "AI4Kanbanは仕事をカードとサブタスクに分け、依存関係で実行順を決めます。",
+        kanban: "WildCraneは仕事をカードとサブタスクに分け、依存関係で実行順を決めます。",
         taskMaster: "TaskmasterはPRDからタスクとサブタスクを生成し、依存関係を管理できます。",
       },
       drafts: {
@@ -194,7 +194,7 @@ const ja: VsTaskMasterCopy = {
       eyebrow: "選び方",
       title: "どちらを選ぶべきか？",
     },
-    oursHeading: "AI4Kanbanが向く場合",
+    oursHeading: "WildCraneが向く場合",
     theirsHeading: "Taskmasterが向く場合",
     ours: [
       "開発、ブログ、動画の専門エージェントとワークフローをすぐに使いたい。",
@@ -206,7 +206,7 @@ const ja: VsTaskMasterCopy = {
       "タスクの文脈を渡せて、調査モデルを別に設定できる専用の調査コマンドがほしい。",
       "失敗するテスト、テストの通過、コミットへとコーディングを導く組み込みのワークフローがほしい。",
     ],
-    verdict: "**すぐに使える専門ワークフローと、重要な下書きの確認で手戻りを減らしたい**なら AI4Kanban。**MCP連携、専用の調査コマンド、組み込みのテストファーストのコーディングワークフロー**ならTaskmaster。",
+    verdict: "**すぐに使える専門ワークフローと、重要な下書きの確認で手戻りを減らしたい**なら WildCrane。**MCP連携、専用の調査コマンド、組み込みのテストファーストのコーディングワークフロー**ならTaskmaster。",
     note: "このページはオープンソース版のTaskmasterを比較しています。Hamsterは同じチームによるホスト型製品で、そのチーム機能は比較の対象外です。",
   },
 };

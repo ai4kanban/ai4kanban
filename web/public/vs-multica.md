@@ -1,6 +1,6 @@
-# AI4Kanban vs. Multica
+# WildCrane vs. Multica
 
-> Compare AI4Kanban and Multica on specialist agents, workflow setup, draft
+> Compare WildCrane and Multica on specialist agents, workflow setup, draft
 > review, preference memory and team collaboration.
 
 ## Start working without designing the team first
@@ -8,7 +8,7 @@
 Use built-in workflows for development and marketing instead of arranging
 every handoff yourself.
 
-- **AI4Kanban** — Built-in specialist agents and workflows cover product
+- **WildCrane** — Built-in specialist agents and workflows cover product
   development and marketing content. Start with the workflow for your task
   instead of designing the team yourself. You can also create custom agents and
   workflows.
@@ -17,10 +17,10 @@ every handoff yourself.
 
 **Both have**
 
-- **Custom agents** — AI4Kanban lets you edit the built-in roles or add your own
+- **Custom agents** — WildCrane lets you edit the built-in roles or add your own
   agents. Multica's Agent Builder helps you create roles, then configure their
   Instructions and Skills.
-- **Agents in parallel** — AI4Kanban runs several cards at once with coding
+- **Agents in parallel** — WildCrane runs several cards at once with coding
   tools such as Claude Code or Codex. Multica runs agents in parallel, with
   queues, retries and cost tracking.
 
@@ -28,7 +28,7 @@ every handoff yourself.
 
 Change the key parts in the draft to reduce rework after implementation.
 
-- **AI4Kanban** — Parts that need your judgment get a draft first. Review and
+- **WildCrane** — Parts that need your judgment get a draft first. Review and
   edit it on the card; agents build from the approved version and handle the
   remaining details within the agreed scope. Catch changes here to reduce
   rework later.
@@ -36,10 +36,10 @@ Change the key parts in the draft to reduce rework after implementation.
 
 **Both have**
 
-- **Previews** — AI4Kanban displays image, diagram, HTML/TSX, diff and
+- **Previews** — WildCrane displays image, diagram, HTML/TSX, diff and
   storyboard drafts on the card. Multica previews HTML, collects annotations
   and compares versions.
-- **Task discussion** — AI4Kanban discusses and revises the plan in the card
+- **Task discussion** — WildCrane discusses and revises the plan in the card
   chat. Multica discusses work with agents in issue comments.
 
 ## Will you need to explain it again?
@@ -47,7 +47,7 @@ Change the key parts in the draft to reduce rework after implementation.
 Later tasks start with the project context, preferences and decisions you have
 already established.
 
-- **AI4Kanban** — Each agent remembers preferences and decisions relevant to its
+- **WildCrane** — Each agent remembers preferences and decisions relevant to its
   work and can share project context with other agents. Later tasks build on
   what you have already agreed, so you spend less time explaining the same
   background.
@@ -56,26 +56,26 @@ already established.
 
 **Both have**
 
-- **Saved methods** — AI4Kanban gives every agent role rules you can edit.
+- **Saved methods** — WildCrane gives every agent role rules you can edit.
   Multica keeps methods in Instructions and Skills.
-- **Task history** — AI4Kanban keeps the plan, chat and run log on each card.
+- **Task history** — WildCrane keeps the plan, chat and run log on each card.
   Multica keeps comments and run history.
 
 ## 01 · Key differences — Compare the details
 
-| Dimension | AI4Kanban | Multica | Edge |
+| Dimension | WildCrane | Multica | Edge |
 | --- | --- | --- | --- |
-| Built-in agents and workflows | Built-in specialist agents and workflows, with roles you can edit or add. All built-in and custom workflows are free. | Mika is included. Create specialist agents yourself or with Agent Builder, then give them Instructions and Skills. | AI4Kanban |
-| Reviewing drafts before execution | For any part where you want control over the direction, the draft system prepares a preview for your approval before execution and delivery: image, diagram, HTML/TSX, diff and storyboard drafts. | Preview HTML, annotate output and compare versions. You define which agent prepares each draft and when approval is needed before execution. | AI4Kanban |
-| Remembering edits and decisions | Each agent has a memory recipe designed for its own job: it learns your preferences and decisions for that kind of task, not generic lessons. Agents can also share memory with each other. | Long-term memory depends on the agent tool. Agents using Hermes each retain memory across tasks on the local runtime; it does not automatically sync across machines. Instructions and task history are also saved. | AI4Kanban |
-| What comes after delivery | After you finish a main piece of work, agents proactively suggest follow-ups to help fill gaps and catch omissions. | To get follow-up suggestions, request them in the task instructions. Autopilot runs automatically after you configure its runbook, assignee and schedule or webhook triggers. | AI4Kanban |
-| License | Apache-2.0, including commercial use, hosting, and embedding. | Source-available; hosted services and commercial embedding are restricted by the Multica License. | AI4Kanban |
+| Built-in agents and workflows | Built-in specialist agents and workflows, with roles you can edit or add. All built-in and custom workflows are free. | Mika is included. Create specialist agents yourself or with Agent Builder, then give them Instructions and Skills. | WildCrane |
+| Reviewing drafts before execution | For any part where you want control over the direction, the draft system prepares a preview for your approval before execution and delivery: image, diagram, HTML/TSX, diff and storyboard drafts. | Preview HTML, annotate output and compare versions. You define which agent prepares each draft and when approval is needed before execution. | WildCrane |
+| Remembering edits and decisions | Each agent has a memory recipe designed for its own job: it learns your preferences and decisions for that kind of task, not generic lessons. Agents can also share memory with each other. | Long-term memory depends on the agent tool. Agents using Hermes each retain memory across tasks on the local runtime; it does not automatically sync across machines. Instructions and task history are also saved. | WildCrane |
+| What comes after delivery | After you finish a main piece of work, agents proactively suggest follow-ups to help fill gaps and catch omissions. | To get follow-up suggestions, request them in the task instructions. Autopilot runs automatically after you configure its runbook, assignee and schedule or webhook triggers. | WildCrane |
+| License | Apache-2.0, including commercial use, hosting, and embedding. | Source-available; hosted services and commercial embedding are restricted by the Multica License. | WildCrane |
 | Execution management | Run cards with Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode or Grok Build, with several cards in progress at once. | Runs multiple agents in parallel, with queues, retries, replay, cost tracking, review gates, and PR and CI links. | Multica |
 | Team collaboration | For individuals and small teams organizing tasks in one repository, with customizable agents and workflows. | Multi-user workspaces, roles, Squads, comments, permissions, and notifications. | Multica |
 
 ## 02 · Recommendation — Which should you choose?
 
-**Choose AI4Kanban if you**
+**Choose WildCrane if you**
 
 - Want ready-to-use specialist agents and workflows for your own product and
   marketing.
@@ -95,11 +95,11 @@ already established.
 
 ### Bottom line
 
-Choose AI4Kanban to **move your product and marketing forward with ready-to-use
+Choose WildCrane to **move your product and marketing forward with ready-to-use
 workflows**, reviewing key drafts first and carrying preferences into later
 tasks. Choose Multica only if you **specifically need its multi-user workspace
 or execution management**.
 
 ---
 
-Install AI4Kanban · https://github.com/ai4kanban/ai4kanban
+Install WildCrane · https://github.com/ai4kanban/ai4kanban

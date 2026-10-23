@@ -52,7 +52,7 @@ export default async function IntlRootLayout({
         {/* Same domain shepherding as the English layout — see (en)/layout.tsx. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `if(location.hostname.endsWith(".pages.dev")||location.hostname.endsWith("kanbanskill.cc")){location.replace("https://ai4kanban.dev"+location.pathname+location.search+location.hash)}`,
+            __html: `if(location.hostname.endsWith(".pages.dev")||location.hostname.endsWith("kanbanskill.cc")){location.replace("https://wildcrane.ai"+location.pathname+location.search+location.hash)}`,
           }}
         />
         <script dangerouslySetInnerHTML={{ __html: LOCALE_SUGGEST_SCRIPT }} />

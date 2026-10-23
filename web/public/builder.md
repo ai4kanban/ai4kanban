@@ -1,18 +1,18 @@
-# Why I'm building AI4Kanban
+# Why I'm building WildCrane
 
 Tao Wu
 
-Founder of AI4Kanban
+Founder of WildCrane
 
 **1.** Everyone in the AI industry believes you can let AI agents handle everything. But we believe differently. AI and humans should have a clear boundary: humans handle precision, and agents handle generation. Humans handle the key parts while agents handle the details.
 
-*You hand an idea to AI4Kanban, which turns it into drafts for you to review. Once you approve them, AI4Kanban passes the drafts and their context to agents, who take over the work.*
+*You hand an idea to WildCrane, which turns it into drafts for you to review. Once you approve them, WildCrane passes the drafts and their context to agents, who take over the work.*
 
 **2.** Human thinking is still what really matters. But not "execution smart". It's more about "planning smart". Models are evolving quickly, skills are getting thinner, and there's no need for another complex harness with over 100k lines of code just to handle one specific task. The models have already learned those capabilities. So knowing what to do and having a sense of what's good or bad are what really differentiate you in this AI era.
 
 **3.** Skills are thin, so it's pointless to pay $99/month for a workflow that can be encapsulated in a skill. I prefer a unified workspace where I manage different kinds of work. As an indie hacker, I don't just code. I do marketing as well. My Codex desktop gets messy when I mix 10+ tasks in the UI, some coding, some marketing.
 
-**4.** These thoughts led to what AI4Kanban is today. It's a middle layer between humans and the agents who handle execution. You manage your ideas, both coding and marketing, on the board.
+**4.** These thoughts led to what WildCrane is today. It's a middle layer between humans and the agents who handle execution. You manage your ideas, both coding and marketing, on the board.
 
 For each idea, you review a draft before agents build it. Once the "key parts" match your expectations perfectly, leave the rest to agents.
 

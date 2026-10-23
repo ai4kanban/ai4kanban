@@ -41,8 +41,8 @@ const en: SharedCopy = {
     privacy: "Privacy",
     terms: "Terms",
     credit: "created by Tao Wu",
-    launchkiwi: "AI4Kanban featured on LaunchKiwi",
-    verifieddr: "AI4Kanban's domain rating page on VerifiedDR",
+    launchkiwi: "WildCrane featured on LaunchKiwi",
+    verifieddr: "WildCrane's domain rating page on VerifiedDR",
     x: "Tao Wu on X",
   },
   code: {
@@ -60,7 +60,7 @@ const en: SharedCopy = {
   },
   vs: "vs",
   bottomLine: "Bottom line",
-  cta: { install: "Install AI4Kanban", github: "View on GitHub ↗" },
+  cta: { install: "Install WildCrane", github: "View on GitHub ↗" },
 };
 
 export default en;

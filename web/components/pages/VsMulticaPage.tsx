@@ -26,7 +26,7 @@ import {
 
 export const PATH = "/vs-multica";
 
-// Which side is stronger on each row; AI4Kanban's rows first.
+// Which side is stronger on each row; WildCrane's rows first.
 const ROWS: { key: VsMulticaRowKey; winner: VsRow["winner"] }[] = [
   { key: "startingPoint", winner: "ours" },
   { key: "refinement", winner: "ours" },
@@ -56,7 +56,7 @@ export function VsMulticaPage({ locale }: { locale: Locale }) {
     }),
     softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       url: pageUrl(""),
       free: true,
     }),

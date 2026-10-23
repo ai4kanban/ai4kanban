@@ -1,16 +1,16 @@
 ---
 title: "Kanban for Claude Code: see key drafts before building"
-title_tag: "Kanban for Claude Code: See Drafts First | AI4Kanban"
+title_tag: "Kanban for Claude Code: See Drafts First | WildCrane"
 nav: "Kanban for Claude Code"
 description: "Review key drafts before Claude Code builds. Keep coding, marketing, project memory and follow-up work in one agent workspace."
 lead: "Review key drafts for coding and marketing, then let Claude Code handle the details."
 eyebrow: "An agent workspace for indie hackers"
-social_image_alt: "AI4Kanban, an agent workspace for indie hackers to review key drafts before Claude Code builds."
+social_image_alt: "WildCrane, an agent workspace for indie hackers to review key drafts before Claude Code builds."
 schema:
-  description: "AI4Kanban is an agent workspace for indie hackers using Claude Code. Review key drafts before building, choose different runtimes for coding and marketing, carry project decisions into later tasks, and use follow-up suggestions and scheduled QA to keep improving the product."
+  description: "WildCrane is an agent workspace for indie hackers using Claude Code. Review key drafts before building, choose different runtimes for coding and marketing, carry project decisions into later tasks, and use follow-up suggestions and scheduled QA to keep improving the product."
 ---
 
-AI4Kanban brings coding and marketing workflows into one agent workspace for indie hackers. Built-in specialists draft the parts that need your judgment before Claude Code carries the work forward.
+WildCrane brings coding and marketing workflows into one agent workspace for indie hackers. Built-in specialists draft the parts that need your judgment before Claude Code carries the work forward.
 
 Catch a wrong layout or message while it is still a draft, then let Claude Code complete the agreed work. You review the key details without managing every step, and independent tasks can move forward in parallel.
 
@@ -18,7 +18,7 @@ Catch a wrong layout or message while it is still a draft, then let Claude Code 
 
 ## What can I review before Claude Code builds?
 
-While planning a task, AI4Kanban brings in the specialists its changes call for. They prepare drafts for the parts that need your judgment:
+While planning a task, WildCrane brings in the specialists its changes call for. They prepare drafts for the parts that need your judgment:
 
 - **Interface**: Layouts, interactions and screen text in desktop and phone previews.
 - **Prompts**: Exact changes to prompts, skills and agent instructions, shown as diffs.
@@ -31,17 +31,17 @@ Some work needs more than one stage, such as copy approval before screen design.
 
 The [coding workflow](/workflows/coding) uses these drafts to settle key details before implementation. A feature and its launch-page copy can share the same board and project context, with each task getting the drafts it needs. See how [SaaS founders combine product development and marketing](/solutions/saas).
 
-## How is AI4Kanban different from Claude Code's task lists?
+## How is WildCrane different from Claude Code's task lists?
 
 [Claude Code's task list](https://code.claude.com/docs/en/interactive-mode#task-list) is a checklist Claude uses to organize multi-step work. Tasks can survive context compaction, and a named list can be shared across sessions. [Agent teams](https://code.claude.com/docs/en/agent-teams#assign-and-claim-tasks) also use shared lists to assign work and track dependencies.
 
-AI4Kanban adds the workflow around each task: discuss an idea, review the key drafts, answer open questions, build, and see what was delivered. Coding and marketing tasks share one board, with a runtime chosen for each agent. After delivery, follow-up suggestions and scheduled QA help find work the original task left behind.
+WildCrane adds the workflow around each task: discuss an idea, review the key drafts, answer open questions, build, and see what was delivered. Coding and marketing tasks share one board, with a runtime chosen for each agent. After delivery, follow-up suggestions and scheduled QA help find work the original task left behind.
 
-## How does AI4Kanban prepare Claude Code before coding?
+## How does WildCrane prepare Claude Code before coding?
 
-AI4Kanban uses Claude Code to refine a rough request into a build-ready task. Refinement happens before implementation: Claude reads the repository, product description, related tasks, and previous product decisions, then writes the missing detail onto the card.
+WildCrane uses Claude Code to refine a rough request into a build-ready task. Refinement happens before implementation: Claude reads the repository, product description, related tasks, and previous product decisions, then writes the missing detail onto the card.
 
-Claude Code is expected to settle factual questions itself. It inspects the code, checks existing behavior, and chooses a safe answer when the repository provides one. AI4Kanban stops only when the remaining choice changes product behavior, scope, privacy, compatibility, risk, or ongoing cost.
+Claude Code is expected to settle factual questions itself. It inspects the code, checks existing behavior, and chooses a safe answer when the repository provides one. WildCrane stops only when the remaining choice changes product behavior, scope, privacy, compatibility, risk, or ongoing cost.
 
 The finished card contains the outcome, boundaries, dependencies, edge cases, and verification criteria that the implementation run must follow. If the work is too large, Claude splits it into smaller cards and records the order in which they can run.
 
@@ -55,7 +55,7 @@ The finished card contains the outcome, boundaries, dependencies, edge cases, an
 
 The card tells agents what this task must deliver. Memory helps them follow what you have already settled when they work on the next task.
 
-[Claude Code's own instructions and memory](https://code.claude.com/docs/en/memory) still apply alongside AI4Kanban's project memory.
+[Claude Code's own instructions and memory](https://code.claude.com/docs/en/memory) still apply alongside WildCrane's project memory.
 
 ## Can I use Codex for writing and Claude Code for coding?
 
@@ -67,33 +67,33 @@ You can also choose Cursor, OpenCode or another supported runtime. The tools run
 
 ## How do Claude Code subagents and agent teams fit?
 
-They run inside an AI4Kanban task. The card remains the outer unit that defines the outcome, branch, worktree, and final status. Claude Code can divide the implementation among subagents or an agent team when its configuration and permissions allow them.
+They run inside an WildCrane task. The card remains the outer unit that defines the outcome, branch, worktree, and final status. Claude Code can divide the implementation among subagents or an agent team when its configuration and permissions allow them.
 
-Claude Code's team task list coordinates workers inside that run. The AI4Kanban board coordinates the project across runs: a later card can depend on this card, reuse the decision it produced, or wait until its change has landed.
+Claude Code's team task list coordinates workers inside that run. The WildCrane board coordinates the project across runs: a later card can depend on this card, reuse the decision it produced, or wait until its change has landed.
 
-[Claude Code stores agent-team configuration and task lists under the user's Claude directory](https://code.claude.com/docs/en/agent-teams). AI4Kanban does not copy that runtime state into the repository. It records the product requirement and delivery result that must outlive the team.
+[Claude Code stores agent-team configuration and task lists under the user's Claude directory](https://code.claude.com/docs/en/agent-teams). WildCrane does not copy that runtime state into the repository. It records the product requirement and delivery result that must outlive the team.
 
-## Does AI4Kanban replace my Claude Code configuration?
+## Does WildCrane replace my Claude Code configuration?
 
-No. AI4Kanban launches the Claude Code CLI already installed on your machine. Your login, `CLAUDE.md`, rules, skills, hooks, MCP servers, permissions, and project commands remain in effect.
+No. WildCrane launches the Claude Code CLI already installed on your machine. Your login, `CLAUDE.md`, rules, skills, hooks, MCP servers, permissions, and project commands remain in effect.
 
-[Claude Code loads those extensions at different points in a session](https://code.claude.com/docs/en/features-overview). AI4Kanban invokes its `/kanban` skill directly and adds the current card plus the relevant project memory. It does not require an MCP server of its own.
+[Claude Code loads those extensions at different points in a session](https://code.claude.com/docs/en/features-overview). WildCrane invokes its `/kanban` skill directly and adds the current card plus the relevant project memory. It does not require an MCP server of its own.
 
 Choose the login already used by your Claude CLI, an Anthropic API key, or an Anthropic-compatible endpoint for Claude Code.
 
 ## Can a failed card resume the same Claude Code session?
 
-Yes. AI4Kanban assigns the Claude Code session ID before a run starts, so even a run that fails in its first seconds can be resumed from the same card. The card keeps its worktree and code changes; Resume continues the existing Claude conversation instead of rebuilding its context from the beginning.
+Yes. WildCrane assigns the Claude Code session ID before a run starts, so even a run that fails in its first seconds can be resumed from the same card. The card keeps its worktree and code changes; Resume continues the existing Claude conversation instead of rebuilding its context from the beginning.
 
-AI4Kanban also makes Claude Code stop immediately when the provider returns a rate limit. Claude Code would normally retry for longer, but a background card should not occupy a run slot while no progress is possible. The failed card remains resumable, and other tasks can continue.
+WildCrane also makes Claude Code stop immediately when the provider returns a rate limit. Claude Code would normally retry for longer, but a background card should not occupy a run slot while no progress is possible. The failed card remains resumable, and other tasks can continue.
 
 A separate silence timeout ends a run that stops producing output. You choose the timeout in Configuration, and 0 disables it.
 
-## Can AI4Kanban supervise several Claude Code tasks at once?
+## Can WildCrane supervise several Claude Code tasks at once?
 
-Yes. Claude Code agent view shows the sessions themselves. AI4Kanban decides which project tasks may start, based on card readiness and dependencies.
+Yes. Claude Code agent view shows the sessions themselves. WildCrane decides which project tasks may start, based on card readiness and dependencies.
 
-When automatic Git commits are enabled, each task gets its own branch and worktree. Independent tasks can run together; dependent tasks wait. Finished changes land on the target branch one at a time. If another task changed that branch, AI4Kanban rebases the next change onto it and lands it — and keeps retrying, without asking you, for as long as the branch keeps moving. A Git conflict gets a focused Claude Code resolution run before landing.
+When automatic Git commits are enabled, each task gets its own branch and worktree. Independent tasks can run together; dependent tasks wait. Finished changes land on the target branch one at a time. If another task changed that branch, WildCrane rebases the next change onto it and lands it — and keeps retrying, without asking you, for as long as the branch keeps moving. A Git conflict gets a focused Claude Code resolution run before landing.
 
 Worktrees prevent concurrent sessions from overwriting the same checkout. The landing process handles the separate problem of 2 branches changing the same lines or producing behavior that no longer works when combined.
 
@@ -107,7 +107,7 @@ Notifications in the app alert you when a task needs an answer or a draft is rea
 
 ## Find follow-up work after delivery
 
-AI4Kanban can suggest follow-up work based on the completed card and what actually shipped. Suggestions point out gaps or useful next steps, with a link to the work they came from.
+WildCrane can suggest follow-up work based on the completed card and what actually shipped. Suggestions point out gaps or useful next steps, with a link to the work they came from.
 
 They arrive in [Triage](/docs/triage), where you can discuss an item, make it a card, or ignore it. You can also enable automatic sorting to turn worthwhile suggestions into planned cards.
 
@@ -119,7 +119,7 @@ It also adds coverage for existing parts of the product. Read the cases in **Tes
 
 <FAQ title="Frequently asked questions">
 
-<FAQItem question="Does AI4Kanban use my Claude subscription, or do I need an Anthropic API key?">
+<FAQItem question="Does WildCrane use my Claude subscription, or do I need an Anthropic API key?">
 
 Both work. Use the login already held by your Claude CLI, an Anthropic API key, or an Anthropic-compatible gateway. The selected provider is explicit, so a saved API key does not silently replace a subscription run.
 
@@ -131,13 +131,13 @@ Yes. Set the model and reasoning effort on each agent's page in Configuration. P
 
 </FAQItem>
 
-<FAQItem question="How much context does AI4Kanban add to a Claude Code run?">
+<FAQItem question="How much context does WildCrane add to a Claude Code run?">
 
-There is no fixed token number because task and memory size vary. Each run receives the current card, instructions for the current step, and the project memory a planning decision could come from. It does not load the whole board or replay AI4Kanban's chat history.
+There is no fixed token number because task and memory size vary. Each run receives the current card, instructions for the current step, and the project memory a planning decision could come from. It does not load the whole board or replay WildCrane's chat history.
 
 </FAQItem>
 
-<FAQItem question="Can Claude Code update the AI4Kanban board itself?">
+<FAQItem question="Can Claude Code update the WildCrane board itself?">
 
 Yes. The `/kanban` skill gives Claude Code commands for creating and preparing cards, splitting large tasks into subtasks, recording dependencies, answering questions, and updating task status.
 
@@ -151,7 +151,7 @@ Yes. Disable automatic Git commits globally or for 1 task run. Claude Code then 
 
 <FAQItem question="How are .env files, dependencies, databases, Docker resources, and ports handled in worktrees?">
 
-A worktree created by AI4Kanban begins with tracked files. Add an implementation rule that tells Claude Code how to install dependencies and prepare local configuration. Ignored files are not copied automatically. Ports, databases, and Docker names are still shared by worktrees, so parallel tasks need distinct values when the project requires them. Agent credentials stay in the ignored `docs/kanban/.env` file.
+A worktree created by WildCrane begins with tracked files. Add an implementation rule that tells Claude Code how to install dependencies and prepare local configuration. Ignored files are not copied automatically. Ports, databases, and Docker names are still shared by worktrees, so parallel tasks need distinct values when the project requires them. Agent credentials stay in the ignored `docs/kanban/.env` file.
 
 </FAQItem>
 
@@ -163,13 +163,13 @@ The implementation agent runs the checks required by the card. The approved requ
 
 <FAQItem question="Will Claude Code commit, merge, push, or delete a worktree without my approval?">
 
-Clicking **Build** authorizes automatic commits, one squash commit on the target branch, and cleanup of the delivery branch and worktree after landing. Disable automatic Git commits to manage Git yourself. AI4Kanban never pushes.
+Clicking **Build** authorizes automatic commits, one squash commit on the target branch, and cleanup of the delivery branch and worktree after landing. Disable automatic Git commits to manage Git yourself. WildCrane never pushes.
 
 </FAQItem>
 
-<FAQItem question="Can I use the same AI4Kanban board with another coding agent later?">
+<FAQItem question="Can I use the same WildCrane board with another coding agent later?">
 
-Yes. AI4Kanban cards, dependencies, requirements, and project memory are agent-independent. Pick Codex, Cursor, OpenCode, or another supported coding agent for new work — for the whole board, or for one agent on it. A resumable Claude Code conversation remains tied to Claude Code.
+Yes. WildCrane cards, dependencies, requirements, and project memory are agent-independent. Pick Codex, Cursor, OpenCode, or another supported coding agent for new work — for the whole board, or for one agent on it. A resumable Claude Code conversation remains tied to Claude Code.
 
 </FAQItem>
 

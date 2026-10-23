@@ -1,45 +1,45 @@
-# AI4Kanban
+# WildCrane
 
-> AI4Kanban is an open-source, local-first agent workspace for indie hackers. Six built-in workflows (coding, code-generated video clones, product videos, slide decks, social posts and blog posts) identify decisions that need human input and prepare drafts for approval before agents execute. Create your own agents and workflows to define what you review and what agents handle. Use your own AI tools and subscriptions.
+> WildCrane is an open-source, local-first agent workspace for indie hackers. Six built-in workflows (coding, code-generated video clones, product videos, slide decks, social posts and blog posts) identify decisions that need human input and prepare drafts for approval before agents execute. Create your own agents and workflows to define what you review and what agents handle. Use your own AI tools and subscriptions.
 
 Each page below has a plain-Markdown mirror (the `.md` links) with the full page
 content — no navigation, styling, or scripts.
 
 ## Pages
 
-- [Home — You don’t have to manage every detail.](https://ai4kanban.dev/index.md): From coding to marketing, AI4Kanban brings you drafts of the parts that need your judgment. Review them, then let agents handle the execution details.
-- [Builder — why Tao Wu is building AI4Kanban](https://ai4kanban.dev/builder.md): Four thoughts from Tao Wu on clear boundaries between humans and agents, planning smart, thin skills, and AI4Kanban as a workspace for coding and marketing with workflows, agents and templates.
-- [Kanban for Claude Code](https://ai4kanban.dev/agents/kanban-for-claude-code): An agent workspace for indie hackers. Review key drafts before Claude Code builds, use Codex for writing alongside Claude Code for coding, and carry project preferences into later tasks. Follow-up suggestions and scheduled QA help find what to improve next.
-- [Kanban for Codex](https://ai4kanban.dev/agents/kanban-for-codex): Manage tasks above individual Codex conversations. Specialist workflows identify what needs your judgment and present UI prototypes, prompt diffs, copy and other drafts before execution. Use development and marketing workflows, choose runtimes per agent, and carry role-specific preferences into later tasks. Codex keeps using your installed skills.
-- [Kanban for Grill Me](https://ai4kanban.dev/agents/kanban-for-grill-me): Split a complex idea into bounded cards in one session, then plan each card in its own session. Closely related cards can form a group task whose parent supplies shared context; unrelated tasks can stay standalone. Relevant project decisions guide all cards, and dependencies take precedence over priority. Drafts specify the parts agents must follow exactly.
-- [AI4Kanban for coding](https://ai4kanban.dev/workflows/coding.md): Review key interface, prompt, copy and email drafts on the task card before implementation. Agents build from the approved drafts and plan. Includes independent desktop and phone previews, product questions, agent memory, follow-up suggestions, and a small October 2026 cost test.
-- [AI4Kanban for SaaS](https://ai4kanban.dev/solutions/saas.md): An agent workspace for SaaS founders and small teams to develop features and prepare marketing on one board. Review key drafts for coding, landing pages and newsletters. All built-in and custom workflows are free. Independent tasks can run in parallel using project context and relevant preferences; new decisions still need your input.
-- [Download — AI4Kanban for macOS, Windows and Linux](https://ai4kanban.dev/download): Get the desktop app for macOS, Windows and Linux — nothing to install first. Every file on the current release (Apple Silicon and Intel `.dmg`, the Windows `.exe`, the x64 and arm64 `.AppImage`), and what to click past each system's first-open warning while the builds are unsigned.
-- [AI4Kanban vs. Taskmaster](https://ai4kanban.dev/vs-task-master.md): Compare AI4Kanban and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.
-- [AI4Kanban vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.
-- [AI4Kanban vs. Multica](https://ai4kanban.dev/vs-multica.md): Compare AI4Kanban and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.
-- [AI4Kanban vs. Orca](https://ai4kanban.dev/vs-orca.md): Compare AI4Kanban and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.
-- [AI4Kanban vs. Plannotator](https://ai4kanban.dev/vs-plannotator.md): Compare AI4Kanban and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.
+- [Home — You don’t have to manage every detail.](https://wildcrane.ai/index.md): From coding to marketing, WildCrane brings you drafts of the parts that need your judgment. Review them, then let agents handle the execution details.
+- [Builder — why Tao Wu is building WildCrane](https://wildcrane.ai/builder.md): Four thoughts from Tao Wu on clear boundaries between humans and agents, planning smart, thin skills, and WildCrane as a workspace for coding and marketing with workflows, agents and templates.
+- [Kanban for Claude Code](https://wildcrane.ai/agents/kanban-for-claude-code): An agent workspace for indie hackers. Review key drafts before Claude Code builds, use Codex for writing alongside Claude Code for coding, and carry project preferences into later tasks. Follow-up suggestions and scheduled QA help find what to improve next.
+- [Kanban for Codex](https://wildcrane.ai/agents/kanban-for-codex): Manage tasks above individual Codex conversations. Specialist workflows identify what needs your judgment and present UI prototypes, prompt diffs, copy and other drafts before execution. Use development and marketing workflows, choose runtimes per agent, and carry role-specific preferences into later tasks. Codex keeps using your installed skills.
+- [Kanban for Grill Me](https://wildcrane.ai/agents/kanban-for-grill-me): Split a complex idea into bounded cards in one session, then plan each card in its own session. Closely related cards can form a group task whose parent supplies shared context; unrelated tasks can stay standalone. Relevant project decisions guide all cards, and dependencies take precedence over priority. Drafts specify the parts agents must follow exactly.
+- [WildCrane for coding](https://wildcrane.ai/workflows/coding.md): Review key interface, prompt, copy and email drafts on the task card before implementation. Agents build from the approved drafts and plan. Includes independent desktop and phone previews, product questions, agent memory, follow-up suggestions, and a small October 2026 cost test.
+- [WildCrane for SaaS](https://wildcrane.ai/solutions/saas.md): An agent workspace for SaaS founders and small teams to develop features and prepare marketing on one board. Review key drafts for coding, landing pages and newsletters. All built-in and custom workflows are free. Independent tasks can run in parallel using project context and relevant preferences; new decisions still need your input.
+- [Download — WildCrane for macOS, Windows and Linux](https://wildcrane.ai/download): Get the desktop app for macOS, Windows and Linux — nothing to install first. Every file on the current release (Apple Silicon and Intel `.dmg`, the Windows `.exe`, the x64 and arm64 `.AppImage`), and what to click past each system's first-open warning while the builds are unsigned.
+- [WildCrane vs. Taskmaster](https://wildcrane.ai/vs-task-master.md): Compare WildCrane and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.
+- [WildCrane vs. Hermes Agent Kanban](https://wildcrane.ai/vs-hermes-kanban.md): Compare WildCrane and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.
+- [WildCrane vs. Multica](https://wildcrane.ai/vs-multica.md): Compare WildCrane and Multica on specialist agents, workflow setup, draft review, preference memory and team collaboration.
+- [WildCrane vs. Orca](https://wildcrane.ai/vs-orca.md): Compare WildCrane and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.
+- [WildCrane vs. Plannotator](https://wildcrane.ai/vs-plannotator.md): Compare WildCrane and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.
 
 ## Documentation
 
 Every documentation page carries a "Copy page" button that hands you its raw
 Markdown, so these need no separate mirror.
 
-- [Documentation overview](https://ai4kanban.dev/docs): Set up AI4Kanban, review key drafts before execution, and deliver development and marketing work with six built-in workflows.
-- [Your first card](https://ai4kanban.dev/docs/first-card): Follow an idea through planning, review the screen draft, request changes, then build and check the delivered work.
-- [Draft review](https://ai4kanban.dev/docs/drafts): See the final version of the parts you care about most, change it on the card, and approve what agents will build.
-- [Memory](https://ai4kanban.dev/docs/memory): How project memory, agent memory and global memory carry your preferences forward, and how they stay current without you.
-- [Follow-ups](https://ai4kanban.dev/docs/follow-ups): Catch omissions after delivery and check changed features without repeating every check yourself. Review suggestions in Triage and choose how much follow-up you want.
-- [Workflows](https://ai4kanban.dev/docs/workflows): Use six built-in workflows for development and marketing, let AI4Kanban match your request to a workflow, or create your own.
-- [The daily loop](https://ai4kanban.dev/docs/daily-loop): The rhythm once the board exists: pick what to work on, add and refine cards, build one end to end, check what it leaves you, and finish it.
-- [Chat](https://ai4kanban.dev/docs/chat): Explore an idea, request draft changes or update a card in a conversation with your board's context.
-- [Agents](https://ai4kanban.dev/docs/agents): Find the agents included with your board, give them rules, set schedules and create your own helpers.
-- [Runs and runtimes](https://ai4kanban.dev/docs/runs): Monitor background work, recover a failed run and choose the coding tool and model each agent uses.
-- [Triage](https://ai4kanban.dev/docs/triage): Triage is a queue beside your cards for follow-ups, the Proposer's ideas and items your scripts add. What lands there is a lead, not a task: make a card of it, or ignore it.
-- [Local and Cloud boards](https://ai4kanban.dev/docs/local-and-cloud-boards): A Local board is Markdown in your repository. A Cloud board lives in a workspace we host, opens on every machine you sign in from, and reads in a browser. What each one is, and what moving between them costs.
-- [Multi-runtime support](https://ai4kanban.dev/docs/connectors): Connect the coding tool you already use, choose a runtime and model for each agent, and set what a run may touch.
+- [Documentation overview](https://wildcrane.ai/docs): Set up WildCrane, review key drafts before execution, and deliver development and marketing work with six built-in workflows.
+- [Your first card](https://wildcrane.ai/docs/first-card): Follow an idea through planning, review the screen draft, request changes, then build and check the delivered work.
+- [Draft review](https://wildcrane.ai/docs/drafts): See the final version of the parts you care about most, change it on the card, and approve what agents will build.
+- [Memory](https://wildcrane.ai/docs/memory): How project memory, agent memory and global memory carry your preferences forward, and how they stay current without you.
+- [Follow-ups](https://wildcrane.ai/docs/follow-ups): Catch omissions after delivery and check changed features without repeating every check yourself. Review suggestions in Triage and choose how much follow-up you want.
+- [Workflows](https://wildcrane.ai/docs/workflows): Use six built-in workflows for development and marketing, let WildCrane match your request to a workflow, or create your own.
+- [The daily loop](https://wildcrane.ai/docs/daily-loop): The rhythm once the board exists: pick what to work on, add and refine cards, build one end to end, check what it leaves you, and finish it.
+- [Chat](https://wildcrane.ai/docs/chat): Explore an idea, request draft changes or update a card in a conversation with your board's context.
+- [Agents](https://wildcrane.ai/docs/agents): Find the agents included with your board, give them rules, set schedules and create your own helpers.
+- [Runs and runtimes](https://wildcrane.ai/docs/runs): Monitor background work, recover a failed run and choose the coding tool and model each agent uses.
+- [Triage](https://wildcrane.ai/docs/triage): Triage is a queue beside your cards for follow-ups, the Proposer's ideas and items your scripts add. What lands there is a lead, not a task: make a card of it, or ignore it.
+- [Local and Cloud boards](https://wildcrane.ai/docs/local-and-cloud-boards): A Local board is Markdown in your repository. A Cloud board lives in a workspace we host, opens on every machine you sign in from, and reads in a browser. What each one is, and what moving between them costs.
+- [Multi-runtime support](https://wildcrane.ai/docs/connectors): Connect the coding tool you already use, choose a runtime and model for each agent, and set what a run may touch.
 
 ## More
 
-- [GitHub repository](https://github.com/ai4kanban/ai4kanban): Source, user guides, and an example of AI4Kanban managing its own development.
+- [GitHub repository](https://github.com/ai4kanban/ai4kanban): Source, user guides, and an example of WildCrane managing its own development.

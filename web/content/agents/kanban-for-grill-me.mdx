@@ -1,18 +1,18 @@
 ---
 title: "Kanban for Grill Me: scale planning across agents"
-title_tag: "Kanban for Grill Me: Scale Planning | AI4Kanban"
+title_tag: "Kanban for Grill Me: Scale Planning | WildCrane"
 nav: "Kanban for Grill Me"
-description: "Split a complex idea into clear cards, plan each in its own session, and deliver by dependencies and priority. Scale Grill Me with AI4Kanban."
+description: "Split a complex idea into clear cards, plan each in its own session, and deliver by dependencies and priority. Scale Grill Me with WildCrane."
 lead: "Break a complex idea into clear tasks. Plan each in its own session, then deliver them in dependency order."
 eyebrow: "Grill Me workflow guide"
-social_image_alt: "AI4Kanban scaling Grill Me across dependent cards and parallel coding agents."
+social_image_alt: "WildCrane scaling Grill Me across dependent cards and parallel coding agents."
 schema:
-  description: "AI4Kanban is an agent workspace for indie hackers. Split a complex idea into cards, each planned in its own session. Related cards can share a group task's parent context; unrelated tasks can stay standalone. Dependencies take precedence over priority."
+  description: "WildCrane is an agent workspace for indie hackers. Split a complex idea into cards, each planned in its own session. Related cards can share a group task's parent context; unrelated tasks can stay standalone. Dependencies take precedence over priority."
 ---
 
 Matt Pocock's [grill me](https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me) workflow stress-tests a plan through focused questions until its decision tree is resolved. It researches answers available in the codebase, gives a recommendation with each genuine decision, and turns a vague idea into shared understanding.
 
-A complex idea does not have to stay in one plan. AI4Kanban uses one session to split it into cards with clear outcomes and boundaries. A planning agent then works through each card in its own session, investigating the task and asking the questions it needs. One card is one focused Grill Me-style planning exercise; dependencies and [project memory](/docs/memory) connect those cards into a project.
+A complex idea does not have to stay in one plan. WildCrane uses one session to split it into cards with clear outcomes and boundaries. A planning agent then works through each card in its own session, investigating the task and asking the questions it needs. One card is one focused Grill Me-style planning exercise; dependencies and [project memory](/docs/memory) connect those cards into a project.
 
 Closely related cards that serve one larger goal can form a group task, with a parent card for the whole piece of work. Tasks that are separate pieces of work can remain standalone cards.
 
@@ -31,13 +31,13 @@ For parts you want to control precisely—UI, copy, video scripts, and more—sp
 
 [`grill-with-docs`](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs) combines that interview with durable domain documentation and architecture decision records.
 
-AI4Kanban starts from the same principle and keeps the same unit of work.
+WildCrane starts from the same principle and keeps the same unit of work.
 
 | Layer | What it adds |
 | --- | --- |
 | `grill-me` | Investigates and resolves 1 plan |
 | `grill-with-docs` | Keeps domain documentation and decision records current while resolving that plan |
-| An AI4Kanban card | Gives 1 task its own planning session and durable plan, then adds drafts, dependencies, priority, modules, todos, notable answers, and delivery state |
+| An WildCrane card | Gives 1 task its own planning session and durable plan, then adds drafts, dependencies, priority, modules, todos, notable answers, and delivery state |
 
 The initial session establishes the task boundaries and dependencies. The planning sessions on individual cards fill in the details for those tasks. Each plan has a focused context, while project memory keeps earlier decisions available.
 
@@ -45,7 +45,7 @@ The initial session establishes the task boundaries and dependencies. The planni
 
 In a Claude Code conversation, you may keep a large idea and all its questions in one plan. As unrelated tasks accumulate, it becomes harder for both you and the agent to tell which details matter to each task.
 
-AI4Kanban separates the initial breakdown from detailed planning. First, split the idea into cards. Then let the planning agent work through each card in its own session. A narrower task keeps its questions and assumptions together, so the agent can ask more focused questions and you can judge one piece of work at a time.
+WildCrane separates the initial breakdown from detailed planning. First, split the idea into cards. Then let the planning agent work through each card in its own session. A narrower task keeps its questions and assumptions together, so the agent can ask more focused questions and you can judge one piece of work at a time.
 
 The board records how those cards relate:
 
@@ -60,7 +60,7 @@ The board records how those cards relate:
 
 ## Does every card investigate before asking questions?
 
-Yes. Like `grill-with-docs`, AI4Kanban expects the agent to investigate before it asks.
+Yes. Like `grill-with-docs`, WildCrane expects the agent to investigate before it asks.
 
 The agent reads the card, repository, product description, related work, and relevant project memory. It settles factual questions from evidence, fills in routine implementation detail, and tests the requirement for missing outcomes, boundaries, edge cases, dependencies, and verification criteria.
 
@@ -75,11 +75,11 @@ Only a decision that cannot be settled from project evidence should become a que
 
 ## Can agents answer product decisions autonomously?
 
-Yes. AI4Kanban does not require a person to answer every question merely because it concerns the product.
+Yes. WildCrane does not require a person to answer every question merely because it concerns the product.
 
 When project evidence supports a safe choice, the agent answers it and continues. If that answer materially changes behavior, scope, risk, privacy, compatibility, or ongoing cost, the card records it under **Worth noting** for review. The decision is visible without blocking the task.
 
-| Finding | What AI4Kanban does |
+| Finding | What WildCrane does |
 | --- | --- |
 | Fact available in the project | Researches and answers it |
 | Routine or reversible decision | Chooses a safe default and continues |
@@ -93,7 +93,7 @@ This keeps autonomy high without hiding meaningful product calls. The human revi
 
 Yes. Here, Kanban is a project-management method for turning a vague idea into actionable work. The visual board is one interface, not the source of the method.
 
-Traditional boards are designed mainly to help people scan status. AI4Kanban's board is also read and updated by agents. Its Markdown cards make outcomes, dependencies, questions, decisions, modules, and todos explicit enough for either side to continue the work.
+Traditional boards are designed mainly to help people scan status. WildCrane's board is also read and updated by agents. Its Markdown cards make outcomes, dependencies, questions, decisions, modules, and todos explicit enough for either side to continue the work.
 
 The result is a shared workspace where:
 
@@ -112,10 +112,10 @@ Dependencies stop a card from proceeding before its prerequisites are delivered.
 
 Project memory carries forward shipped behavior, current decisions, rejected directions, and design lessons. Later cards receive that memory instead of replaying every earlier conversation.
 
-This addresses a recurring problem in documented grilling workflows: users have reported [important interview decisions missing from an ADR](https://github.com/mattpocock/skills/issues/117) and [rationale being lost when a grilling session becomes a specification](https://github.com/mattpocock/skills/issues/689). AI4Kanban keeps the approved requirement and notable answers on the card, then promotes reusable decisions into project memory.
+This addresses a recurring problem in documented grilling workflows: users have reported [important interview decisions missing from an ADR](https://github.com/mattpocock/skills/issues/117) and [rationale being lost when a grilling session becomes a specification](https://github.com/mattpocock/skills/issues/689). WildCrane keeps the approved requirement and notable answers on the card, then promotes reusable decisions into project memory.
 
 <MemoryShot
-  alt="AI4Kanban's memory page: the board's own record and the planner's memory in the sidebar, with settled decisions open"
+  alt="WildCrane's memory page: the board's own record and the planner's memory in the sidebar, with settled decisions open"
   caption="Cards keep task-specific decisions; compact project memory carries reusable decisions into future work."
 />
 
@@ -141,23 +141,23 @@ You approve the drafts and answer unresolved product choices, then let agents de
 
 <FAQ title="Frequently asked questions">
 
-<FAQItem question="How is AI4Kanban different from running grill-with-docs once?">
+<FAQItem question="How is WildCrane different from running grill-with-docs once?">
 
-A standalone planning conversation can work through one plan. AI4Kanban first breaks a larger idea into bounded task cards, then gives each card its own planning session. [Project memory](/docs/memory) carries decisions from earlier cards into later ones; dependencies set the delivery order, and priority picks the next unblocked card.
-
-</FAQItem>
-
-<FAQItem question="Does AI4Kanban replace Grill Me?">
-
-Yes. AI4Kanban instruments Grill Me's planning process as a durable card: a larger idea is split into cards first, and each card gets a planning session of its own. The board then adds a GUI, autonomous research and decisions, dependencies, [project memory](/docs/memory), specialist and review runs, notifications, and multi-agent delivery, across coding and marketing work.
+A standalone planning conversation can work through one plan. WildCrane first breaks a larger idea into bounded task cards, then gives each card its own planning session. [Project memory](/docs/memory) carries decisions from earlier cards into later ones; dependencies set the delivery order, and priority picks the next unblocked card.
 
 </FAQItem>
 
-<FAQItem question="Does AI4Kanban replace traditional spec-driven development?">
+<FAQItem question="Does WildCrane replace Grill Me?">
+
+Yes. WildCrane instruments Grill Me's planning process as a durable card: a larger idea is split into cards first, and each card gets a planning session of its own. The board then adds a GUI, autonomous research and decisions, dependencies, [project memory](/docs/memory), specialist and review runs, notifications, and multi-agent delivery, across coding and marketing work.
+
+</FAQItem>
+
+<FAQItem question="Does WildCrane replace traditional spec-driven development?">
 
 Often yes; in a process that still requires formal specification documents, partly. Traditional spec-driven development produces long task specifications that take time for people to read even though an agent eventually consumes most of the detail.
 
-AI4Kanban keeps implementation detail in the folded agent half of each card. You review the brief, important decisions, and the drafts that agents must follow; agents read the full requirements and deliver the task. A PRD may still define higher-level product goals; each card remains one bounded plan within that project.
+WildCrane keeps implementation detail in the folded agent half of each card. You review the brief, important decisions, and the drafts that agents must follow; agents read the full requirements and deliver the task. A PRD may still define higher-level product goals; each card remains one bounded plan within that project.
 
 </FAQItem>
 

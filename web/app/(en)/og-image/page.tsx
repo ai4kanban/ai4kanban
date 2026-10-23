@@ -62,7 +62,7 @@ export default function OgImage() {
         {/* The word inherits, so the lockup is its dark version by sitting
             here — paper on the ink, the same as it is in the footer. */}
         <div className="mb-9 text-elev">
-          <Logo size="md" tone="ink" />
+          <Logo size="md" />
         </div>
         <h1 className="max-w-[540px] text-[58px] font-bold leading-[1.02] tracking-[-0.035em] text-elev">
           {c.hero.title}
@@ -73,10 +73,10 @@ export default function OgImage() {
         {/* The name takes the bright ember, not `accent-deep`: on the ink it is
             the readable one of the two, and the deep cut is nearly the ground.
             The TLD steps back to dimmed paper, so the string reads as the brand
-            with a suffix rather than as nine characters of equal weight — the
+            with a suffix rather than as one run of equal weight — the
             same move the footer makes with opacity instead of a second color. */}
         <div className="mt-10 font-mono text-[18px] font-semibold tracking-[0.08em] text-accent">
-          ai4kanban<span className="text-elev/55">.dev</span>
+          wildcrane<span className="text-elev/55">.ai</span>
         </div>
       </div>
 
@@ -84,10 +84,10 @@ export default function OgImage() {
           composition, with the board in front by default. */}
       <div className="absolute left-[636px] top-1/2 -translate-y-1/2">
         <div className="absolute left-13 top-13">
-          <Frame src={SHOTS.card} alt="The AI4Kanban board: a card's details and requirements" dim />
+          <Frame src={SHOTS.card} alt="The WildCrane board: a card's details and requirements" dim />
         </div>
         <div className="relative">
-          <Frame src={SHOTS.board} alt="The AI4Kanban board: Board view" />
+          <Frame src={SHOTS.board} alt="The WildCrane board: Board view" />
         </div>
       </div>
     </div>

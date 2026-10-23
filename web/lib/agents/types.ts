@@ -2,7 +2,7 @@
 //
 // One page is one `.mdx` file in `web/content/agents/`, and the filename is the
 // slug — `web/content/agents/kanban-for-codex.mdx` is `/agents/kanban-for-codex`.
-// It is the long-form answer to "what does AI4Kanban add to <coding agent>",
+// It is the long-form answer to "what does WildCrane add to <coding agent>",
 // and it is a file in the repo for the same reason a post is: it reviews like
 // code and ships with the deploy that built it.
 //

@@ -4,15 +4,15 @@ import type { VsHermesCopy } from "./types";
 
 const es: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Kanban: borradores antes de ejecutar",
-    socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "Compara AI4Kanban y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
-    social: "Compara AI4Kanban y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
+    title: "WildCrane vs. Hermes Kanban: borradores antes de ejecutar",
+    socialTitle: "WildCrane vs. Hermes Agent Kanban",
+    description: "Compara WildCrane y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
+    social: "Compara WildCrane y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
   },
   hero: {
     badge: "Comparativa",
-    title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Compara AI4Kanban y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
+    title: "WildCrane vs.\nHermes Agent Kanban",
+    lead: "Compara WildCrane y Hermes Kanban en flujos especializados, revisión de borradores, control desde chats, tareas en paralelo y seguimiento.",
     sharedLabel: "Ambos ofrecen",
     setup: {
       heading: "Agentes y flujos especializados, listos para usar",
@@ -38,14 +38,14 @@ const es: VsHermesCopy = {
         {
           title: "Desglose de tareas y dependencias",
           body: [
-            "AI4Kanban divide el trabajo en tarjetas y subtareas, y las dependencias deciden el orden de ejecución.",
+            "WildCrane divide el trabajo en tarjetas y subtareas, y las dependencias deciden el orden de ejecución.",
             "Hermes Kanban divide una tarea de una línea en tareas hijas y ejecuta cada una cuando terminan sus tareas padre.",
           ],
         },
         {
           title: "Ejecuciones en paralelo en git worktrees",
           body: [
-            "AI4Kanban ejecuta tarjetas independientes a la vez, cada una en su propio git worktree.",
+            "WildCrane ejecuta tarjetas independientes a la vez, cada una en su propio git worktree.",
             "Hermes Kanban ejecuta tareas en paralelo, con un git worktree por tarea.",
           ],
         },
@@ -75,14 +75,14 @@ const es: VsHermesCopy = {
         {
           title: "Una especificación escrita",
           body: [
-            "Las tarjetas de AI4Kanban recogen el alcance y los pasos de construcción.",
+            "Las tarjetas de WildCrane recogen el alcance y los pasos de construcción.",
             "Hermes Kanban puede reescribir una tarea como objetivo, enfoque y criterios de aceptación.",
           ],
         },
         {
           title: "Comentarios sobre la tarea",
           body: [
-            "AI4Kanban recoge tus cambios en el chat de la tarjeta y actualiza el plan.",
+            "WildCrane recoge tus cambios en el chat de la tarjeta y actualiza el plan.",
             "Hermes Kanban hace llegar tus notas al worker en los comentarios de la tarea.",
           ],
         },
@@ -113,14 +113,14 @@ const es: VsHermesCopy = {
         {
           title: "Agentes que aprenden mientras trabajan",
           body: [
-            "Los agentes especializados de AI4Kanban anotan los borradores que devuelves o rechazas, y las tarjetas terminadas se revisan para extraer decisiones y preferencias.",
+            "Los agentes especializados de WildCrane anotan los borradores que devuelves o rechazas, y las tarjetas terminadas se revisan para extraer decisiones y preferencias.",
             "Cada perfil de Hermes guarda notas de memoria y escribe sus propias skills a partir de lo que aprende, incluidas tus correcciones.",
           ],
         },
         {
           title: "Historial de la tarea",
           body: [
-            "AI4Kanban guarda en la tarjeta los planes, las conversaciones y los registros de ejecución.",
+            "WildCrane guarda en la tarjeta los planes, las conversaciones y los registros de ejecución.",
             "Hermes Kanban guarda en la tarea un hilo de comentarios y el historial de ejecuciones.",
           ],
         },
@@ -133,7 +133,7 @@ const es: VsHermesCopy = {
       title: "Compara los detalles",
     },
     lead: "Un {check} marca el lado más fuerte en cada fila.",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Hermes Kanban",
     rows: {
       startingPoint: {
@@ -188,7 +188,7 @@ const es: VsHermesCopy = {
       },
       review: {
         dimension: "Comprobar el trabajo",
-        kanban: "Claude Code o Codex ejecutan pruebas y comprueban los requisitos mientras construyen; AI4Kanban no añade una segunda revisión, para no probar de más.",
+        kanban: "Claude Code o Codex ejecutan pruebas y comprueban los requisitos mientras construyen; WildCrane no añade una segunda revisión, para no probar de más.",
         hermes: "Un perfil revisor comprueba cada criterio de aceptación y ejecuta pruebas, y devuelve el trabajo hasta que lo supera.",
       },
       chat: {
@@ -213,7 +213,7 @@ const es: VsHermesCopy = {
       eyebrow: "Recomendación",
       title: "¿Cuál deberías elegir?",
     },
-    oursHeading: "Elige AI4Kanban si",
+    oursHeading: "Elige WildCrane si",
     theirsHeading: "Elige Hermes Kanban si",
     ours: [
       "Quieres agentes y flujos listos para código, blogs y vídeos.",
@@ -225,7 +225,7 @@ const es: VsHermesCopy = {
       "Quieres gestionar tareas desde Telegram, Slack, Discord u otras apps de chat.",
       "Quieres recuperación automática de tareas atascadas y una API sobre la que construir.",
     ],
-    verdict: "Elige AI4Kanban para **usar flujos especializados listos y revisar borradores clave para rehacer menos**; elige Hermes Kanban por **el control desde apps de chat, la recuperación automática y una API**.",
+    verdict: "Elige WildCrane para **usar flujos especializados listos y revisar borradores clave para rehacer menos**; elige Hermes Kanban por **el control desde apps de chat, la recuperación automática y una API**.",
     note: "Comparado con la documentación de Hermes Agent v0.21.6, revisada en octubre de 2026.",
   },
 };

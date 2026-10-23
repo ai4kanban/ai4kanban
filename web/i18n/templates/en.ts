@@ -2,9 +2,9 @@ import type { TemplatesCopy } from "./types";
 
 const en: TemplatesCopy = {
   meta: {
-    title: "AI4Kanban: Templates",
+    title: "WildCrane: Templates",
     description:
-      "Browse templates by category. View images and compare the original work with its recreation before using a template in AI4Kanban.",
+      "Browse templates by category. View images and compare the original work with its recreation before using a template in WildCrane.",
   },
   title: "Templates",
   lead: "Browse by category.",
@@ -36,20 +36,20 @@ const en: TemplatesCopy = {
   noPreview: "No preview yet",
   tags: "Tags",
   use: "Use this template",
-  useLead: "Paste it into AI4Kanban and add your topic.",
+  useLead: "Paste it into WildCrane and add your topic.",
   prompt: (category, name) => {
     switch (category) {
       case "video":
-        return `Use the AI4Kanban video template "${name}" to make: <describe your product and what the video should show>`;
+        return `Use the WildCrane video template "${name}" to make: <describe your product and what the video should show>`;
       case "ui":
-        return `Use the AI4Kanban UI template "${name}" to design: <describe the page or screen>`;
+        return `Use the WildCrane UI template "${name}" to design: <describe the page or screen>`;
       case "carousel":
-        return `Use the AI4Kanban carousel template "${name}" to make: <describe your topic>`;
+        return `Use the WildCrane carousel template "${name}" to make: <describe your topic>`;
       case "prop":
       case "motion":
-        return `Make a video with AI4Kanban using the ${category} "${name}": <describe your video>`;
+        return `Make a video with WildCrane using the ${category} "${name}": <describe your video>`;
       default:
-        return `Use the AI4Kanban ${category} template "${name}" to make: <describe what you want>`;
+        return `Use the WildCrane ${category} template "${name}" to make: <describe what you want>`;
     }
   },
   copyPrompt: "Copy prompt",
@@ -67,7 +67,7 @@ const en: TemplatesCopy = {
   videoFailed: "This video could not be played.",
   openYouTube: "Open on YouTube",
   openOriginal: "Open the original",
-  detailTitle: (title) => `${title} | AI4Kanban Templates`,
+  detailTitle: (title) => `${title} | WildCrane Templates`,
 };
 
 export default en;

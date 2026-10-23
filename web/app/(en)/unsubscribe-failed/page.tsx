@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   ...pageMetadata({
     locale: "en",
     path: "/unsubscribe-failed",
-    title: "Unsubscribe — AI4Kanban",
+    title: "Unsubscribe — WildCrane",
     description: "This unsubscribe link could not be read.",
     translated: false,
   }),

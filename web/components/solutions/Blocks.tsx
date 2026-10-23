@@ -65,7 +65,7 @@ export function Closing({
   return (
     <ClosingCta
       className="mdx-block mdx-inset"
-      eyebrow="AI4Kanban for SaaS"
+      eyebrow="WildCrane for SaaS"
       title={title}
       note={note}
       actions={

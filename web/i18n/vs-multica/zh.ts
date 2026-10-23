@@ -2,17 +2,17 @@ import type { VsMulticaCopy } from "./types";
 
 const zh: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica：专业 agent 与工作流开箱即用",
-    socialTitle: "AI4Kanban vs. Multica",
+    title: "WildCrane vs. Multica：专业 agent 与工作流开箱即用",
+    socialTitle: "WildCrane vs. Multica",
     description:
-      "对比 AI4Kanban 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
+      "对比 WildCrane 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
     social:
-      "对比 AI4Kanban 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
+      "对比 WildCrane 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
   },
   hero: {
     badge: "对比",
-    title: "AI4Kanban vs.\nMultica",
-    lead: "对比 AI4Kanban 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
+    title: "WildCrane vs.\nMultica",
+    lead: "对比 WildCrane 与 Multica 的专业 agent、工作流配置、草稿审阅、偏好记忆与团队协作。",
     sharedLabel: "两者都支持",
     setup: {
       heading: "开箱即用，少做团队配置",
@@ -31,14 +31,14 @@ const zh: VsMulticaCopy = {
         {
           title: "自定义 agent",
           body: [
-            "AI4Kanban 可以修改内置角色，也可以添加自己的 agent。",
+            "WildCrane 可以修改内置角色，也可以添加自己的 agent。",
             "Multica 的 Agent Builder 协助创建角色，再为其配置 Instructions 和 Skills。",
           ],
         },
         {
           title: "多 agent 并行",
           body: [
-            "AI4Kanban 同时推进多张卡片，可选 Claude Code、Codex 等编码工具执行。",
+            "WildCrane 同时推进多张卡片，可选 Claude Code、Codex 等编码工具执行。",
             "Multica 并行运行多个 agent，并提供排队、重试和成本统计。",
           ],
         },
@@ -61,14 +61,14 @@ const zh: VsMulticaCopy = {
         {
           title: "预览成果",
           body: [
-            "AI4Kanban 在卡片中展示图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
+            "WildCrane 在卡片中展示图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
             "Multica 可以预览 HTML、添加批注和比较版本。",
           ],
         },
         {
           title: "任务讨论",
           body: [
-            "AI4Kanban 在卡片对话里讨论并修改计划。",
+            "WildCrane 在卡片对话里讨论并修改计划。",
             "Multica 在 issue 评论里与 agent 讨论。",
           ],
         },
@@ -95,14 +95,14 @@ const zh: VsMulticaCopy = {
         {
           title: "保存做事方法",
           body: [
-            "AI4Kanban 的每个 agent 都有可编辑的角色规则。",
+            "WildCrane 的每个 agent 都有可编辑的角色规则。",
             "Multica 用 Instructions 和 Skills 保存做事方法。",
           ],
         },
         {
           title: "保留任务历史",
           body: [
-            "AI4Kanban 的卡片保留计划、对话和运行记录。",
+            "WildCrane 的卡片保留计划、对话和运行记录。",
             "Multica 保留评论和运行历史。",
           ],
         },
@@ -112,7 +112,7 @@ const zh: VsMulticaCopy = {
   comparison: {
     heading: { eyebrow: "关键对比", title: "逐项比较" },
     lead: "{check} 标出每一项更强的一方。",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Multica",
     rows: {
       startingPoint: {
@@ -126,7 +126,7 @@ const zh: VsMulticaCopy = {
       refinement: {
         dimension: "执行前审阅草稿",
         kanban:
-          "所有你担心 AI 过度自由发挥的部分，都可以先让草稿系统提供预览，审批后再执行交付。AI4Kanban 支持图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
+          "所有你担心 AI 过度自由发挥的部分，都可以先让草稿系统提供预览，审批后再执行交付。WildCrane 支持图片、图表、HTML/TSX、diff 和 storyboard 草稿。",
         multica:
           "可以预览 HTML、批注成果和比较版本；由你指定谁准备草稿，以及何时必须确认才能开始执行。",
       },
@@ -166,7 +166,7 @@ const zh: VsMulticaCopy = {
   },
   decision: {
     heading: { eyebrow: "选择建议", title: "如何选择？" },
-    oursHeading: "选择 AI4Kanban，如果你",
+    oursHeading: "选择 WildCrane，如果你",
     theirsHeading: "选择 Multica，如果你",
     ours: [
       "希望用现成的专业 agent 和工作流推进自己的产品开发与营销。",
@@ -180,7 +180,7 @@ const zh: VsMulticaCopy = {
       "愿意配置 Autopilot 的任务指令、执行者和触发器，让重复工作按定时或外部事件自动启动。",
     ],
     verdict:
-      "希望用**现成工作流推进自己的产品开发与营销**，先审关键草稿，让偏好延续到后续任务，选 AI4Kanban。只有当你**明确需要 Multica 的多人工作区或执行管理功能**时，再选 Multica。",
+      "希望用**现成工作流推进自己的产品开发与营销**，先审关键草稿，让偏好延续到后续任务，选 WildCrane。只有当你**明确需要 Multica 的多人工作区或执行管理功能**时，再选 Multica。",
     note: "",
   },
 };

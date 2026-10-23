@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   ...pageMetadata({
     locale: "en",
     path: "/unsubscribed",
-    title: "Unsubscribed — AI4Kanban",
-    description: "You have been removed from the AI4Kanban newsletter.",
+    title: "Unsubscribed — WildCrane",
+    description: "You have been removed from the WildCrane newsletter.",
     translated: false,
   }),
   robots: { index: false, follow: false },
@@ -18,7 +18,7 @@ export default function UnsubscribedPage() {
     <UnsubscribeResult
       eyebrow="UNSUBSCRIBED"
       title="You’re off the list."
-      body="You won’t receive any more AI4Kanban newsletters."
+      body="You won’t receive any more WildCrane newsletters."
     />
   );
 }

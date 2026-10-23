@@ -4,14 +4,14 @@ import type { ContactCopy } from "./types";
 
 const es: ContactCopy = {
   meta: {
-    title: "Contacto de AI4Kanban: soporte y agentes a medida",
+    title: "Contacto de WildCrane: soporte y agentes a medida",
     description:
-      "Obtén ayuda con AI4Kanban o encarga flujos de agentes adaptados a tu forma de trabajar. Un formulario, respuesta por correo.",
-    socialTitle: "Contacta con AI4Kanban",
+      "Obtén ayuda con WildCrane o encarga flujos de agentes adaptados a tu forma de trabajar. Un formulario, respuesta por correo.",
+    socialTitle: "Contacta con WildCrane",
   },
   eyebrow: "CONTACTO",
   title: "Habla con nosotros",
-  lead: "Obtén ayuda con AI4Kanban o encarga agentes adaptados a tu flujo de trabajo.",
+  lead: "Obtén ayuda con WildCrane o encarga agentes adaptados a tu flujo de trabajo.",
   reason: "¿Qué necesitas?",
   support: {
     name: "Soporte",

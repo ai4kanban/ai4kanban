@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const fr: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator : du brouillon à la livraison",
-    socialTitle: "AI4Kanban vs. Plannotator",
+    title: "WildCrane vs. Plannotator : du brouillon à la livraison",
+    socialTitle: "WildCrane vs. Plannotator",
     description:
-      "Comparez AI4Kanban et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
+      "Comparez WildCrane et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
     social:
-      "Comparez AI4Kanban et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
+      "Comparez WildCrane et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
   },
   hero: {
     badge: "Comparatif",
-    title: "AI4Kanban vs. Plannotator",
-    lead: "Comparez AI4Kanban et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
+    title: "WildCrane vs. Plannotator",
+    lead: "Comparez WildCrane et Plannotator sur la validation des brouillons et du code, les workflows spécialisés, les tâches parallèles et la suite après approbation.",
   },
   both: {
     title: "Ce que les deux proposent",
@@ -41,7 +41,7 @@ const fr: VsPlannotatorCopy = {
     links: ["Découvrir Plannotator", "README de Plannotator"],
   },
   ours: {
-    title: "AI4Kanban : des brouillons au travail terminé",
+    title: "WildCrane : des brouillons au travail terminé",
     lead: "Les spécialistes préparent les brouillons d’interface, de textes ou de script à valider. Une fois ces parties approuvées, le workflow mène la tâche à terme. Code, articles et vidéos sont intégrés ; les tâches indépendantes peuvent avancer en parallèle.",
     drafts: {
       title: "Relire ce que vous voudriez changer",
@@ -100,14 +100,14 @@ const fr: VsPlannotatorCopy = {
       body: "Vous voulez relire plans, documents et code autour de l’agent que vous utilisez déjà, en vérifiant chaque version. Vous avez aussi besoin de relire des PR ou de partager des annotations.",
     },
     ours: {
-      name: "Choisir AI4Kanban",
+      name: "Choisir WildCrane",
       body: "Validez les brouillons clés sur la carte, puis laissez les agents terminer. Les workflows intégrés couvrent développement et marketing, avec des tâches indépendantes en parallèle. Les agents réutilisent vos préférences pour limiter les corrections répétées.",
     },
   },
   start: {
     title: "Prêt à coordonner plusieurs tâches ?",
-    body: "Téléchargez AI4Kanban. Planifiez avec précision, livrez rapidement.",
-    cta: "Télécharger AI4Kanban",
+    body: "Téléchargez WildCrane. Planifiez avec précision, livrez rapidement.",
+    cta: "Télécharger WildCrane",
   },
 };
 

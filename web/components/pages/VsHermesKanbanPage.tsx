@@ -22,7 +22,7 @@ import {
 
 export const PATH = "/vs-hermes-kanban";
 
-// Which side is stronger on each row; AI4Kanban's rows first.
+// Which side is stronger on each row; WildCrane's rows first.
 const ROWS: { key: VsHermesRowKey; winner: VsRow["winner"] }[] = [
   { key: "startingPoint", winner: "ours" },
   { key: "planning", winner: "ours" },
@@ -59,7 +59,7 @@ export function VsHermesKanbanPage({ locale }: { locale: Locale }) {
     }),
     softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       url: pageUrl(""),
       free: true,
     }),

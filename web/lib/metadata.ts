@@ -78,7 +78,7 @@ export function pageMetadata({
 
   const openGraph = {
     url,
-    siteName: "AI4Kanban",
+    siteName: "WildCrane",
     title: ogTitle,
     description: ogDescription,
     images: [socialImage],
@@ -141,8 +141,7 @@ export function htmlLang(locale: Locale): string {
 // shortcut and an iOS home screen each want a different file — so the set is
 // declared here instead, and `app/` holds no icons at all.
 //
-// All of it is the mark from `components/ui/Logo.tsx`, exported from
-// `public/logo-mark.svg`. Every path is site-root, which is also what
+// All of it is rendered from `brand/` by `brand/export.mjs`. Every path is site-root, which is also what
 // `site.webmanifest` assumes internally.
 //
 //   favicon.svg          the tab wherever SVG is taken — it scales, so it is
@@ -163,5 +162,5 @@ export const siteIcons: Pick<Metadata, "icons" | "manifest" | "appleWebApp"> = {
   manifest: "/site.webmanifest",
   // Names the icon on an iOS home screen. Without it iOS uses the page title,
   // which is the full SEO sentence and gets truncated to nonsense.
-  appleWebApp: { title: "AI4Kanban" },
+  appleWebApp: { title: "WildCrane" },
 };

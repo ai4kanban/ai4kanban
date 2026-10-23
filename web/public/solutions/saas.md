@@ -1,4 +1,4 @@
-# AI4Kanban for SaaS
+# WildCrane for SaaS
 
 > Build your SaaS. Keep marketing moving. An agent workspace for SaaS founders and small teams. Review key drafts for product and marketing; let agents finish the details.
 
@@ -19,7 +19,7 @@ Explain a new release, show how a feature works, or prepare a product introducti
 
 Independent tasks can continue while these materials are produced. Work that depends on a feature's final behavior follows its delivery.
 
-Blog, video, slide deck and social post workflows are free. Pro templates help you make more polished content. [See plans](https://ai4kanban.dev/pricing)
+Blog, video, slide deck and social post workflows are free. Pro templates help you make more polished content. [See plans](https://wildcrane.ai/pricing)
 
 ## Give your launch a clear message.
 
@@ -33,7 +33,7 @@ Review the interface, copy, email or agent instructions that need your judgment 
 
 Agents read the project and put the key questions on the card. For the competitors you specify, research can also inform the feature plan. You make the product decisions; agents build from the approved drafts and plan.
 
-[Explore the coding workflow](https://ai4kanban.dev/workflows/coding)
+[Explore the coding workflow](https://wildcrane.ai/workflows/coding)
 
 ## Your project context and preferences carry over.
 
@@ -41,7 +41,7 @@ Each task uses the project background and the preferences and decisions relevant
 
 The next task starts with less to explain again. You still review its key drafts and make any new decisions it needs.
 
-[Meet the agents](https://ai4kanban.dev/docs/agents)
+[Meet the agents](https://wildcrane.ai/docs/agents)
 
 ## Finish the work. Catch what is missing.
 
@@ -51,7 +51,7 @@ Suggestions go to Triage. You decide which are worth turning into tasks.
 
 ## Keep your tools and subscriptions.
 
-Open your project in the desktop app and connect Claude Code, Codex or another [supported tool](https://ai4kanban.dev/docs/connectors). They run on your computer with your own subscriptions. AI4Kanban adds no token surcharge.
+Open your project in the desktop app and connect Claude Code, Codex or another [supported tool](https://wildcrane.ai/docs/connectors). They run on your computer with your own subscriptions. WildCrane adds no token surcharge.
 
 Choose a tool and model for each agent, or work with the same board through the skill and CLI from your coding-agent session.
 
@@ -61,10 +61,10 @@ All built-in and custom workflows are free. Hosted image, voiceover and music ge
 
 Create custom agents and workflows for the work your SaaS needs. Or tell us how you work, and request agents tailored to your process.
 
-[Request customization](https://ai4kanban.dev/contact?reason=customize)
+[Request customization](https://wildcrane.ai/contact?reason=customize)
 
 ## Start with the next thing you need to ship.
 
 Open your project, add a task, and review the key draft when a decision needs your attention. Approve it, then let agents carry the work forward.
 
-[Download](https://ai4kanban.dev/download) · [Setup guide](https://ai4kanban.dev/docs)
+[Download](https://wildcrane.ai/download) · [Setup guide](https://wildcrane.ai/docs)

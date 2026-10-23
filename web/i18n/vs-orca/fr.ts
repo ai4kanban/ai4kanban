@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const fr: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca : validez puis déléguez les détails",
-    socialTitle: "AI4Kanban vs. Orca",
+    title: "WildCrane vs. Orca : validez puis déléguez les détails",
+    socialTitle: "WildCrane vs. Orca",
     description:
-      "Comparez AI4Kanban et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
+      "Comparez WildCrane et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
     social:
-      "Comparez AI4Kanban et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
+      "Comparez WildCrane et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
   },
   hero: {
     badge: "Comparatif",
-    title: "AI4Kanban vs. Orca",
-    lead: "Comparez AI4Kanban et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
+    title: "WildCrane vs. Orca",
+    lead: "Comparez WildCrane et Orca sur le contrôle des sessions, les workflows spécialisés, les brouillons et le travail de coordination pendant l’exécution.",
   },
   both: {
     title: "Ce que les deux proposent",
@@ -67,7 +67,7 @@ const fr: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban : validez les brouillons, déléguez les détails",
+    title: "WildCrane : validez les brouillons, déléguez les détails",
     lead: "Les spécialistes préparent les brouillons d'interface, de textes ou de script à valider. Une fois ces parties approuvées, le workflow mène la tâche à terme. Code, articles et vidéos sont intégrés ; les tâches indépendantes peuvent avancer en parallèle.",
     drafts: {
       title: "Relire les brouillons clés avant l’exécution",
@@ -105,7 +105,7 @@ const fr: VsOrcaCopy = {
       link: "Voir les fonctionnalités d’Orca",
     },
     ours: {
-      name: "Choisir AI4Kanban",
+      name: "Choisir WildCrane",
       points: [
         "Des agents et workflows prêts pour le code, les articles et les vidéos",
         "Corriger les détails clés sur un brouillon avant la réalisation",
@@ -116,9 +116,9 @@ const fr: VsOrcaCopy = {
     },
   },
   start: {
-    title: "Commencer avec AI4Kanban",
-    body: "Téléchargez AI4Kanban. Planifiez avec précision, livrez rapidement.",
-    cta: "Télécharger AI4Kanban",
+    title: "Commencer avec WildCrane",
+    body: "Téléchargez WildCrane. Planifiez avec précision, livrez rapidement.",
+    cta: "Télécharger WildCrane",
   },
 };
 

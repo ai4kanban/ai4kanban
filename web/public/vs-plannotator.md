@@ -1,6 +1,6 @@
-# AI4Kanban vs. Plannotator
+# WildCrane vs. Plannotator
 
-> Compare AI4Kanban and Plannotator on draft and code review, specialist
+> Compare WildCrane and Plannotator on draft and code review, specialist
 > workflows, parallel tasks and how work continues after approval.
 
 **What both support**
@@ -33,7 +33,7 @@ collaboration is moving to Workspaces, still marked as coming soon on the site.
 [Explore Plannotator](https://plannotator.ai)
 · [Plannotator README](https://github.com/backnotprop/plannotator)
 
-## 02 · AI4Kanban: from key drafts to finished work
+## 02 · WildCrane: from key drafts to finished work
 
 Specialist agents prepare the UI, copy or script you need to review. After you
 approve those key parts, the workflow carries the task through. Coding, blog and
@@ -64,7 +64,7 @@ You can also create custom agents and workflows.
 
 ## 03 · What comes built in
 
-| Capability | Plannotator | AI4Kanban |
+| Capability | Plannotator | WildCrane |
 | --- | --- | --- |
 | How work runs | Open a review in your current agent session | Start agents from task cards to run in the background |
 | Review plans and return feedback before execution | Included | Included |
@@ -91,12 +91,12 @@ later tasks.
 agent you already use, checking each revision. You also need PR review or shared
 annotations.
 
-**Choose AI4Kanban**: Review key drafts on the task card, then let agents finish
+**Choose WildCrane**: Review key drafts on the task card, then let agents finish
 the work. Built-in workflows cover coding and marketing, with independent tasks
 moving in parallel. Agents reuse your preferences on later tasks, so you spend
 less time repeating corrections.
 
 ---
 
-Ready to coordinate several tasks? Download AI4Kanban. Plan with precision, ship
-at speed. · https://ai4kanban.dev/download
+Ready to coordinate several tasks? Download WildCrane. Plan with precision, ship
+at speed. · https://wildcrane.ai/download

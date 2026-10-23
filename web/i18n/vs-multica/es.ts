@@ -2,17 +2,17 @@ import type { VsMulticaCopy } from "./types";
 
 const es: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica: agentes especializados listos",
-    socialTitle: "AI4Kanban vs. Multica",
+    title: "WildCrane vs. Multica: agentes especializados listos",
+    socialTitle: "WildCrane vs. Multica",
     description:
-      "Compara AI4Kanban y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
+      "Compara WildCrane y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
     social:
-      "Compara AI4Kanban y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
+      "Compara WildCrane y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
   },
   hero: {
     badge: "Comparativa",
-    title: "AI4Kanban vs.\nMultica",
-    lead: "Compara AI4Kanban y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
+    title: "WildCrane vs.\nMultica",
+    lead: "Compara WildCrane y Multica en agentes especializados, configuración de flujos, revisión de borradores, memoria de preferencias y colaboración en equipo.",
     sharedLabel: "Ambos ofrecen",
     setup: {
       heading: "Empieza a trabajar sin diseñar antes el equipo",
@@ -33,14 +33,14 @@ const es: VsMulticaCopy = {
         {
           title: "Agentes personalizados",
           body: [
-            "AI4Kanban te deja editar los roles incluidos o añadir tus propios agentes.",
+            "WildCrane te deja editar los roles incluidos o añadir tus propios agentes.",
             "El Agent Builder de Multica te ayuda a crear roles y luego configurar sus Instructions y Skills.",
           ],
         },
         {
           title: "Agentes en paralelo",
           body: [
-            "AI4Kanban avanza varias tarjetas a la vez con herramientas como Claude Code o Codex.",
+            "WildCrane avanza varias tarjetas a la vez con herramientas como Claude Code o Codex.",
             "Multica ejecuta agentes en paralelo, con colas, reintentos y seguimiento de costes.",
           ],
         },
@@ -64,14 +64,14 @@ const es: VsMulticaCopy = {
         {
           title: "Vistas previas",
           body: [
-            "AI4Kanban muestra en la tarjeta borradores de imagen, diagrama, HTML/TSX, diff y storyboard.",
+            "WildCrane muestra en la tarjeta borradores de imagen, diagrama, HTML/TSX, diff y storyboard.",
             "Multica previsualiza HTML, recoge anotaciones y compara versiones.",
           ],
         },
         {
           title: "Conversación sobre la tarea",
           body: [
-            "AI4Kanban comenta y revisa el plan en el chat de la tarjeta.",
+            "WildCrane comenta y revisa el plan en el chat de la tarjeta.",
             "Multica comenta el trabajo con los agentes en los comentarios del issue.",
           ],
         },
@@ -100,14 +100,14 @@ const es: VsMulticaCopy = {
         {
           title: "Métodos guardados",
           body: [
-            "AI4Kanban da a cada agente reglas de rol que puedes editar.",
+            "WildCrane da a cada agente reglas de rol que puedes editar.",
             "Multica guarda los métodos en Instructions y Skills.",
           ],
         },
         {
           title: "Historial de tareas",
           body: [
-            "AI4Kanban conserva el plan, el chat y el registro de ejecución en cada tarjeta.",
+            "WildCrane conserva el plan, el chat y el registro de ejecución en cada tarjeta.",
             "Multica conserva comentarios e historial de ejecuciones.",
           ],
         },
@@ -117,7 +117,7 @@ const es: VsMulticaCopy = {
   comparison: {
     heading: { eyebrow: "Diferencias clave", title: "Compara los detalles" },
     lead: "Un {check} marca el lado más fuerte en cada fila.",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Multica",
     rows: {
       startingPoint: {
@@ -132,7 +132,7 @@ const es: VsMulticaCopy = {
       refinement: {
         dimension: "Revisar borradores antes de ejecutar",
         kanban:
-          "En cualquier parte donde quieras controlar el rumbo, el sistema de borradores prepara una vista previa para que la apruebes antes de la ejecución y la entrega. AI4Kanban admite borradores de imagen, diagrama, HTML/TSX, diff y storyboard.",
+          "En cualquier parte donde quieras controlar el rumbo, el sistema de borradores prepara una vista previa para que la apruebes antes de la ejecución y la entrega. WildCrane admite borradores de imagen, diagrama, HTML/TSX, diff y storyboard.",
         multica:
           "Previsualiza HTML, anota resultados y compara versiones. Tú defines qué agente prepara cada borrador y cuándo hace falta aprobación antes de ejecutar.",
       },
@@ -175,7 +175,7 @@ const es: VsMulticaCopy = {
   },
   decision: {
     heading: { eyebrow: "Recomendación", title: "¿Cuál deberías elegir?" },
-    oursHeading: "Elige AI4Kanban si",
+    oursHeading: "Elige WildCrane si",
     theirsHeading: "Elige Multica si",
     ours: [
       "Quieres agentes y flujos listos para usar en tu producto y marketing.",
@@ -189,7 +189,7 @@ const es: VsMulticaCopy = {
       "Quieres configurar el runbook, el responsable y los disparadores de Autopilot para lanzar trabajo recurrente según un calendario o eventos externos.",
     ],
     verdict:
-      "Elige AI4Kanban para **avanzar con tu producto y marketing usando flujos listos para usar**, revisar borradores clave y conservar tus preferencias para tareas posteriores. Elige Multica solo si **necesitas específicamente su espacio de trabajo multiusuario o su gestión de la ejecución**.",
+      "Elige WildCrane para **avanzar con tu producto y marketing usando flujos listos para usar**, revisar borradores clave y conservar tus preferencias para tareas posteriores. Elige Multica solo si **necesitas específicamente su espacio de trabajo multiusuario o su gestión de la ejecución**.",
     note: "",
   },
 };

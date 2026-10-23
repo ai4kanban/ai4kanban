@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const ja: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca：下書きを確認し、実行の細部を任せる",
-    socialTitle: "AI4Kanban vs. Orca",
+    title: "WildCrane vs. Orca：下書きを確認し、実行の細部を任せる",
+    socialTitle: "WildCrane vs. Orca",
     description:
-      "AI4Kanban と Orca を、セッション操作、専門ワークフロー、下書きの確認、実行時に必要な調整作業で比較します。",
+      "WildCrane と Orca を、セッション操作、専門ワークフロー、下書きの確認、実行時に必要な調整作業で比較します。",
     social:
-      "AI4Kanban と Orca を、セッション操作、専門ワークフロー、下書きの確認、実行時に必要な調整作業で比較します。",
+      "WildCrane と Orca を、セッション操作、専門ワークフロー、下書きの確認、実行時に必要な調整作業で比較します。",
   },
   hero: {
     badge: "比較",
-    title: "AI4Kanban vs. Orca",
-    lead: "AI4Kanban と Orca を、セッション操作、専門ワークフロー、下書きの確認、実行時に必要な調整作業で比較します。",
+    title: "WildCrane vs. Orca",
+    lead: "WildCrane と Orca を、セッション操作、専門ワークフロー、下書きの確認、実行時に必要な調整作業で比較します。",
   },
   both: {
     title: "どちらにもある機能",
@@ -66,7 +66,7 @@ const ja: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban：下書きを確認し、実行の細部を任せる",
+    title: "WildCrane：下書きを確認し、実行の細部を任せる",
     lead: "専門エージェントが、確認の必要な UI、文章、台本の下書きを準備します。重要な部分を承認すると、対応するワークフローが残りを仕上げます。開発、ブログ、動画に対応し、独立したタスクは並行実行できます。",
     drafts: {
       title: "重要な部分は、実行前にドラフトで確認",
@@ -104,7 +104,7 @@ const ja: VsOrcaCopy = {
       link: "Orcaの機能を見る",
     },
     ours: {
-      name: "AI4Kanbanを選ぶ",
+      name: "WildCraneを選ぶ",
       points: [
         "開発、ブログ、動画の専門エージェントとワークフローをすぐに使いたい",
         "重要な部分は下書きの段階で直してから、仕上げを任せたい",
@@ -115,9 +115,9 @@ const ja: VsOrcaCopy = {
     },
   },
   start: {
-    title: "AI4Kanbanを始める",
-    body: "AI4Kanban をダウンロード。計画は的確に、リリースは速く。",
-    cta: "AI4Kanbanをダウンロード",
+    title: "WildCraneを始める",
+    body: "WildCrane をダウンロード。計画は的確に、リリースは速く。",
+    cta: "WildCraneをダウンロード",
   },
 };
 

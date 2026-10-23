@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const en: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca: review drafts, hand off the details",
-    socialTitle: "AI4Kanban vs. Orca",
+    title: "WildCrane vs. Orca: review drafts, hand off the details",
+    socialTitle: "WildCrane vs. Orca",
     description:
-      "Compare AI4Kanban and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
+      "Compare WildCrane and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
     social:
-      "Compare AI4Kanban and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
+      "Compare WildCrane and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
   },
   hero: {
     badge: "Comparison",
-    title: "AI4Kanban vs. Orca",
-    lead: "Compare AI4Kanban and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
+    title: "WildCrane vs. Orca",
+    lead: "Compare WildCrane and Orca on session control, specialist workflows, draft review and the work needed to coordinate execution.",
   },
   both: {
     title: "What both support",
@@ -65,7 +65,7 @@ const en: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban: review the drafts, hand off the details",
+    title: "WildCrane: review the drafts, hand off the details",
     lead: "Specialist agents prepare the UI, copy or script you need to review. After you approve those key parts, the workflow carries the task through. Coding, blog and video workflows are built in; independent tasks can run in parallel.",
     drafts: {
       title: "Review key drafts before execution",
@@ -103,7 +103,7 @@ const en: VsOrcaCopy = {
       link: "See Orca's features",
     },
     ours: {
-      name: "Choose AI4Kanban",
+      name: "Choose WildCrane",
       points: [
         "Get ready-to-use specialist agents and workflows for coding, blogs and videos",
         "Change key details in a draft before agents complete the work",
@@ -114,9 +114,9 @@ const en: VsOrcaCopy = {
     },
   },
   start: {
-    title: "Start with AI4Kanban",
-    body: "Download AI4Kanban. Plan with precision, ship at speed.",
-    cta: "Download AI4Kanban",
+    title: "Start with WildCrane",
+    body: "Download WildCrane. Plan with precision, ship at speed.",
+    cta: "Download WildCrane",
   },
 };
 

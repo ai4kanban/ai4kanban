@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const es: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator: del borrador a la entrega",
-    socialTitle: "AI4Kanban vs. Plannotator",
+    title: "WildCrane vs. Plannotator: del borrador a la entrega",
+    socialTitle: "WildCrane vs. Plannotator",
     description:
-      "Compara AI4Kanban y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
+      "Compara WildCrane y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
     social:
-      "Compara AI4Kanban y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
+      "Compara WildCrane y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
   },
   hero: {
     badge: "Comparativa",
-    title: "AI4Kanban vs. Plannotator",
-    lead: "Compara AI4Kanban y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
+    title: "WildCrane vs. Plannotator",
+    lead: "Compara WildCrane y Plannotator en revisión de borradores y código, flujos especializados, tareas en paralelo y cómo continúa el trabajo tras la aprobación.",
   },
   both: {
     title: "Lo que ambos ofrecen",
@@ -41,7 +41,7 @@ const es: VsPlannotatorCopy = {
     links: ["Conoce Plannotator", "README de Plannotator"],
   },
   ours: {
-    title: "AI4Kanban: del borrador al trabajo terminado",
+    title: "WildCrane: del borrador al trabajo terminado",
     lead: "Los agentes preparan borradores de la interfaz, los textos o el guion que debes revisar. Tras aprobar lo esencial, el flujo completa la tarea. Hay flujos integrados para código, blogs y vídeos; las tareas independientes pueden ejecutarse en paralelo.",
     drafts: {
       title: "Revisa lo que querrías cambiar",
@@ -100,14 +100,14 @@ const es: VsPlannotatorCopy = {
       body: "Quieres revisar planes, documentos y código en torno al agente que ya usas, comprobando cada versión. También necesitas revisar PR o compartir anotaciones.",
     },
     ours: {
-      name: "Elige AI4Kanban",
+      name: "Elige WildCrane",
       body: "Revisa borradores clave en la tarjeta y deja que los agentes terminen. Los flujos integrados cubren desarrollo y marketing, con tareas independientes en paralelo. Los agentes reutilizan tus preferencias para reducir las correcciones repetidas.",
     },
   },
   start: {
     title: "¿Listo para coordinar varias tareas?",
-    body: "Descarga AI4Kanban. Planifica con precisión, entrega con rapidez.",
-    cta: "Descargar AI4Kanban",
+    body: "Descarga WildCrane. Planifica con precisión, entrega con rapidez.",
+    cta: "Descargar WildCrane",
   },
 };
 

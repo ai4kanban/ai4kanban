@@ -56,7 +56,7 @@ export function DownloadHero({
 
   return (
     // Not an even split: the words get the wider half so a short title (zh's
-    // "AI4Kanban 桌面版") still holds the spread, and the ember stays the
+    // "WildCrane 桌面版") still holds the spread, and the ember stays the
     // smaller, denser block it needs to be to read as one button.
     <div className="grid md:grid-cols-[7fr_5fr]">
       <div className="flex flex-col bg-band px-8 py-12 sm:px-12 sm:py-16">

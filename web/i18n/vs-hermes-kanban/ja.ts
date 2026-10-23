@@ -4,15 +4,15 @@ import type { VsHermesCopy } from "./types";
 
 const ja: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Kanban：重要な下書きを確認して手戻りを減らす",
-    socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "AI4Kanban と Hermes Kanban を、専門ワークフロー、下書きの確認、チャットアプリからの操作、並行タスク、完了後のフォローアップで比較します。",
-    social: "AI4Kanban と Hermes Kanban を、専門ワークフロー、下書きの確認、チャットアプリからの操作、並行タスク、完了後のフォローアップで比較します。",
+    title: "WildCrane vs. Hermes Kanban：重要な下書きを確認して手戻りを減らす",
+    socialTitle: "WildCrane vs. Hermes Agent Kanban",
+    description: "WildCrane と Hermes Kanban を、専門ワークフロー、下書きの確認、チャットアプリからの操作、並行タスク、完了後のフォローアップで比較します。",
+    social: "WildCrane と Hermes Kanban を、専門ワークフロー、下書きの確認、チャットアプリからの操作、並行タスク、完了後のフォローアップで比較します。",
   },
   hero: {
     badge: "比較",
-    title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "AI4Kanban と Hermes Kanban を、専門ワークフロー、下書きの確認、チャットアプリからの操作、並行タスク、完了後のフォローアップで比較します。",
+    title: "WildCrane vs.\nHermes Agent Kanban",
+    lead: "WildCrane と Hermes Kanban を、専門ワークフロー、下書きの確認、チャットアプリからの操作、並行タスク、完了後のフォローアップで比較します。",
     sharedLabel: "どちらにもある機能",
     setup: {
       heading: "専門エージェントとワークフローをすぐに使える",
@@ -38,14 +38,14 @@ const ja: VsHermesCopy = {
         {
           title: "タスク分解と依存関係",
           body: [
-            "AI4Kanbanは仕事をカードとサブタスクに分け、依存関係で実行順を決めます。",
+            "WildCraneは仕事をカードとサブタスクに分け、依存関係で実行順を決めます。",
             "Hermes Kanbanは1行のタスクを子タスクに分け、親タスクが終わった子タスクから実行します。",
           ],
         },
         {
           title: "git worktreeでの並行実行",
           body: [
-            "AI4Kanbanは独立したカードを、それぞれ専用のgit worktreeで同時に実行します。",
+            "WildCraneは独立したカードを、それぞれ専用のgit worktreeで同時に実行します。",
             "Hermes Kanbanはタスクごとにgit worktreeを用意し、並行して実行します。",
           ],
         },
@@ -75,14 +75,14 @@ const ja: VsHermesCopy = {
         {
           title: "文章による仕様",
           body: [
-            "AI4Kanbanのカードには、範囲と構築の手順が書かれます。",
+            "WildCraneのカードには、範囲と構築の手順が書かれます。",
             "Hermes Kanbanはタスクを目標、進め方、受け入れ基準に書き直せます。",
           ],
         },
         {
           title: "タスクへのフィードバック",
           body: [
-            "AI4Kanbanはカードのチャットで修正を受け取り、計画を更新します。",
+            "WildCraneはカードのチャットで修正を受け取り、計画を更新します。",
             "Hermes Kanbanはタスクのコメントで、あなたのメモをワーカーに伝えます。",
           ],
         },
@@ -113,14 +113,14 @@ const ja: VsHermesCopy = {
         {
           title: "働きながら学ぶエージェント",
           body: [
-            "AI4Kanbanの専門エージェントは、差し戻しや却下したドラフトを記録します。完了したカードは振り返られ、決定や好みが抽出されます。",
+            "WildCraneの専門エージェントは、差し戻しや却下したドラフトを記録します。完了したカードは振り返られ、決定や好みが抽出されます。",
             "Hermesの各プロファイルはメモリのメモを残し、学んだこと（あなたの修正を含む）から独自のスキルを書きます。",
           ],
         },
         {
           title: "タスクの履歴",
           body: [
-            "AI4Kanbanはカードに計画、会話、実行記録を残します。",
+            "WildCraneはカードに計画、会話、実行記録を残します。",
             "Hermes Kanbanはタスクにコメントのスレッドと実行履歴を残します。",
           ],
         },
@@ -133,7 +133,7 @@ const ja: VsHermesCopy = {
       title: "項目ごとの比較",
     },
     lead: "{check} は各項目で優れている側を示します。",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Hermes Kanban",
     rows: {
       startingPoint: {
@@ -188,7 +188,7 @@ const ja: VsHermesCopy = {
       },
       review: {
         dimension: "成果の確認",
-        kanban: "Claude CodeやCodexが構築しながらテストを実行し、要件を確認します。過剰なテストを避けるため、AI4Kanbanは2回目のレビューを追加しません。",
+        kanban: "Claude CodeやCodexが構築しながらテストを実行し、要件を確認します。過剰なテストを避けるため、WildCraneは2回目のレビューを追加しません。",
         hermes: "レビュー担当のプロファイルが受け入れ基準を1つずつ確認してテストを実行し、合格するまで差し戻します。",
       },
       chat: {
@@ -213,7 +213,7 @@ const ja: VsHermesCopy = {
       eyebrow: "選び方",
       title: "どちらを選ぶべきか？",
     },
-    oursHeading: "AI4Kanbanが向く場合",
+    oursHeading: "WildCraneが向く場合",
     theirsHeading: "Hermes Kanbanが向く場合",
     ours: [
       "開発、ブログ、動画の専門エージェントとワークフローをすぐに使いたい。",
@@ -225,7 +225,7 @@ const ja: VsHermesCopy = {
       "Telegram、Slack、Discordなどのチャットアプリからタスクを管理したい。",
       "止まったタスクの自動復旧と、開発に使えるAPIがほしい。",
     ],
-    verdict: "**すぐに使える専門ワークフローと、重要な下書きの確認で手戻りを減らしたい**なら AI4Kanban。**チャットアプリからの操作、自動復旧、API**ならHermes Kanban。",
+    verdict: "**すぐに使える専門ワークフローと、重要な下書きの確認で手戻りを減らしたい**なら WildCrane。**チャットアプリからの操作、自動復旧、API**ならHermes Kanban。",
     note: "Hermes Agent v0.21.6のドキュメントをもとに比較（2026年10月時点）。",
   },
 };

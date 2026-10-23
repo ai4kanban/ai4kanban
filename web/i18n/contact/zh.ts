@@ -4,14 +4,14 @@ import type { ContactCopy } from "./types";
 
 const zh: ContactCopy = {
   meta: {
-    title: "联系 AI4Kanban —— 技术支持与定制 agent",
+    title: "联系 WildCrane —— 技术支持与定制 agent",
     description:
-      "获取 AI4Kanban 技术支持，或请我们按你的流程定制 agent 工作流。一个表单，通过邮件回复。",
-    socialTitle: "联系 AI4Kanban",
+      "获取 WildCrane 技术支持，或请我们按你的流程定制 agent 工作流。一个表单，通过邮件回复。",
+    socialTitle: "联系 WildCrane",
   },
   eyebrow: "联系",
   title: "联系我们",
-  lead: "获取 AI4Kanban 技术支持，或请我们按你的流程定制 agent。",
+  lead: "获取 WildCrane 技术支持，或请我们按你的流程定制 agent。",
   reason: "需要什么帮助？",
   support: {
     name: "技术支持",

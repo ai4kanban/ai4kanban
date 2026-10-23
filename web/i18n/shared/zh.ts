@@ -41,8 +41,8 @@ const zh: SharedCopy = {
     privacy: "隐私政策",
     terms: "服务条款",
     credit: "由 Tao Wu 打造",
-    launchkiwi: "AI4Kanban 已收录于 LaunchKiwi",
-    verifieddr: "AI4Kanban 在 VerifiedDR 上的域名评级页",
+    launchkiwi: "WildCrane 已收录于 LaunchKiwi",
+    verifieddr: "WildCrane 在 VerifiedDR 上的域名评级页",
     x: "Tao Wu 的 X 主页",
   },
   code: {
@@ -60,7 +60,7 @@ const zh: SharedCopy = {
   },
   vs: "vs",
   bottomLine: "结论",
-  cta: { install: "安装 AI4Kanban", github: "在 GitHub 上查看 ↗" },
+  cta: { install: "安装 WildCrane", github: "在 GitHub 上查看 ↗" },
 };
 
 export default zh;

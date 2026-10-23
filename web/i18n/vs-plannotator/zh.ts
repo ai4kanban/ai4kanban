@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const zh: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator：从关键草稿到任务交付",
-    socialTitle: "AI4Kanban vs. Plannotator",
+    title: "WildCrane vs. Plannotator：从关键草稿到任务交付",
+    socialTitle: "WildCrane vs. Plannotator",
     description:
-      "对比 AI4Kanban 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
+      "对比 WildCrane 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
     social:
-      "对比 AI4Kanban 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
+      "对比 WildCrane 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
   },
   hero: {
     badge: "对比",
-    title: "AI4Kanban vs. Plannotator",
-    lead: "对比 AI4Kanban 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
+    title: "WildCrane vs. Plannotator",
+    lead: "对比 WildCrane 与 Plannotator 的草稿与代码审阅、专业工作流、并行任务，以及确认后的工作如何继续。",
   },
   both: {
     title: "两者都支持",
@@ -35,7 +35,7 @@ const zh: VsPlannotatorCopy = {
     links: ["了解 Plannotator", "Plannotator README"],
   },
   ours: {
-    title: "AI4Kanban：从关键草稿到完成任务",
+    title: "WildCrane：从关键草稿到完成任务",
     lead: "专业 agent 把需要你审阅的界面、文案或脚本做成草稿。关键部分确认后，由对应工作流完成后续任务。开发、博客、视频都有内置工作流，独立任务可并行推进。",
     drafts: {
       title: "先看你可能想改的部分",
@@ -90,14 +90,14 @@ const zh: VsPlannotatorCopy = {
       body: "你希望围绕正在使用的编码 agent 审计划、文档与代码，逐次确认修订；还需要 PR 审阅或分享批注。",
     },
     ours: {
-      name: "选 AI4Kanban",
+      name: "选 WildCrane",
       body: "在任务卡片上审关键草稿，再交给 agent 完成后续工作。开发与营销都有内置工作流，独立任务可以并行推进。后续任务沿用你的偏好，减少重复修改。",
     },
   },
   start: {
     title: "准备同时推进多项任务？",
-    body: "下载 AI4Kanban，精准规划，快速交付。",
-    cta: "下载 AI4Kanban",
+    body: "下载 WildCrane，精准规划，快速交付。",
+    cta: "下载 WildCrane",
   },
 };
 

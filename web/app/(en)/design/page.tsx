@@ -50,7 +50,7 @@ import { contrast, format, verdict } from "@/lib/contrast";
 //   the pointer, and the only cut of it that can be read as prose.
 
 export const metadata = {
-  title: "Design system · AI4Kanban",
+  title: "Design system · WildCrane",
   robots: { index: false, follow: false },
 };
 
@@ -316,7 +316,7 @@ export default function DesignPage() {
         <Section
           id="logo"
           title="The logo"
-          note="components/ui/Logo.tsx — the square block and the name, on one line. It is the bright ember, the same fill the board's own mark takes, and it is the one place on the site the shadow is doubled: the deep ember one step out, the ink two, so the block reads as lit twice rather than as a swatch with a drop. The glyph is a board reduced to three columns that step down as work leaves it, in paper white, because a filled ember block carries a paper glyph or it carries nothing."
+          note="components/ui/Logo.tsx — an unframed ink crane with an ember crest, then the name, both drawn as paths so no display face loads. The crane is 1.5× the name's height, the gap 7/30 of the crane."
         >
           <div className={`${panelStatic} space-y-7 px-6 py-6`}>
             <div>
@@ -338,11 +338,9 @@ export default function DesignPage() {
                 <span className="flex items-center gap-4 rounded-lg border-2 border-border bg-code px-5 py-4">
                   <LogoMark size="md" />
                 </span>
-                {/* On the ink the outline is the ground, so the block is read
-                    by its fill and its glyph alone — which is why the fill is
-                    the ember at full strength and never a tint of it. */}
+                {/* On the ink the crane and name turn paper; the crest stays ember. */}
                 <span className="flex items-center gap-4 rounded-lg border-2 border-border bg-ink px-5 py-4 text-elev">
-                  <Logo size="md" tone="ink" />
+                  <Logo size="md" />
                 </span>
               </div>
             </div>
@@ -365,13 +363,9 @@ export default function DesignPage() {
                 ))}
               </div>
               <p className="mt-3 text-[0.9rem] leading-relaxed text-muted">
-                public/logo-mark.svg and public/logo.svg are the same geometry
-                as the component, for anywhere off the site. The mark is pure
-                shape; the lockup sets the name in live text, so a renderer with
-                no fonts should take the mark and set the name itself. The row
-                above is public/favicon.svg — the same mark, double offset and
-                all. The board app is the one place that drops it, because a
-                22px block in its own header can&apos;t carry one.
+                public/logo-mark.svg and public/logo.svg are the same paths as
+                the component, for anywhere off the site. The row above is
+                public/favicon.svg — the crane simplified for 16px.
               </p>
             </div>
           </div>
@@ -616,7 +610,7 @@ export default function DesignPage() {
                     everything above and below it connects to, and the only
                     thing in the diagram that raises its voice. */}
                 <div className="mt-2.5 rounded-lg bg-accent px-4 py-3.5 text-center font-mono text-[0.95rem] font-bold text-elev">
-                  AI4Kanban Skill
+                  WildCrane Skill
                 </div>
               </div>
             </div>

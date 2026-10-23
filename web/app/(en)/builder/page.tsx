@@ -13,11 +13,11 @@ const c = getCopy("en");
 const AVATAR = "https://cdn.dist0.com/images/tao.avatar.jpg";
 
 const PATH = "/builder";
-const TITLE = "Why I'm building AI4Kanban — Tao Wu";
+const TITLE = "Why I'm building WildCrane — Tao Wu";
 const DESCRIPTION =
-  "Four thoughts on why I'm building AI4Kanban: clear boundaries between humans and agents, planning smart, thin skills, and a workspace for coding and marketing.";
+  "Four thoughts on why I'm building WildCrane: clear boundaries between humans and agents, planning smart, thin skills, and a workspace for coding and marketing.";
 const SCHEMA_DESCRIPTION =
-  "Tao Wu's four thoughts on building AI4Kanban: humans handle precision while agents handle generation, planning matters as models improve, skills are thin, and a shared workspace brings coding, marketing, workflows, agents and templates together.";
+  "Tao Wu's four thoughts on building WildCrane: humans handle precision while agents handle generation, planning matters as models improve, skills are thin, and a shared workspace brings coding, marketing, workflows, agents and templates together.";
 
 export const metadata: Metadata = pageMetadata({
   locale: "en",
@@ -40,8 +40,8 @@ const schema = jsonLd(
     name: "Tao Wu",
     url: pageUrl(PATH),
     image: AVATAR,
-    jobTitle: "Founder of AI4Kanban",
-    description: "Tao Wu is the founder of AI4Kanban.",
+    jobTitle: "Founder of WildCrane",
+    description: "Tao Wu is the founder of WildCrane.",
     worksFor: { "@id": ORG_ID },
     sameAs: SOCIAL_URLS,
   },
@@ -63,7 +63,7 @@ export default function BuilderPage() {
       <main className="px-6 pb-8 text-ink">
         <article className="mx-auto max-w-[38rem] pt-14 sm:pt-24">
           <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.035em] sm:text-5xl">
-            Why I&apos;m building AI4Kanban
+            Why I&apos;m building WildCrane
           </h1>
 
           <div className="mt-8 flex items-center gap-4">
@@ -79,7 +79,7 @@ export default function BuilderPage() {
             />
             <div>
               <p className="font-semibold">Tao Wu</p>
-              <p className="text-sm text-muted">Founder of AI4Kanban</p>
+              <p className="text-sm text-muted">Founder of WildCrane</p>
             </div>
           </div>
 
@@ -117,7 +117,7 @@ export default function BuilderPage() {
             </p>
             <p>
               <N n={4} />
-              These thoughts led to what AI4Kanban is today. It&apos;s a middle
+              These thoughts led to what WildCrane is today. It&apos;s a middle
               layer between humans and the agents who handle execution. You
               manage your ideas, both coding and marketing, on the board.
             </p>

@@ -13,7 +13,7 @@ import {
 import { getCopy } from "@/i18n";
 import { jsonLd, webPage } from "@/lib/schema";
 
-// What AI4Kanban Cloud is, on a page of its own (#349).
+// What WildCrane Cloud is, on a page of its own (#349).
 //
 // Cloud used to be named on this site only by the privacy and terms pages, so
 // the first invited person learned what they had been given from a data policy
@@ -34,7 +34,7 @@ import { jsonLd, webPage } from "@/lib/schema";
 export const PATH = "/cloud";
 
 export const TITLE =
-  "AI4Kanban Cloud — decide from your desktop, Slack or Lark, run on your own machine";
+  "WildCrane Cloud — decide from your desktop, Slack or Lark, run on your own machine";
 
 export const DESCRIPTION =
   "Cloud carries a board's requests for judgment to the teammates who can act on them — the desktop notification center, and Slack and Lark — and hands the decision back to the machine of whoever made it. The board, the repository and the agent never leave it. An invite-only preview.";
@@ -108,7 +108,7 @@ export function CloudPage() {
               Answer your board from anywhere.
             </h1>
             <p className="mt-6 max-w-2xl text-[1.05rem] leading-relaxed text-muted">
-              AI4Kanban runs on your machine and stops when it needs a person: a
+              WildCrane runs on your machine and stops when it needs a person: a
               card ready for review, or a question only a person can answer.
               Cloud carries those two moments to whoever on the board can act on
               them — their desktop, and their Slack or Lark — records the

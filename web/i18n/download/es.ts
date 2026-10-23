@@ -4,15 +4,15 @@ import type { DownloadCopy } from "./types";
 
 const es: DownloadCopy = {
   meta: {
-    title: "Descargar AI4Kanban para macOS, Windows y Linux",
+    title: "Descargar WildCrane para macOS, Windows y Linux",
     description:
-      "Descarga AI4Kanban, un espacio de trabajo con agentes para emprendedores independientes. Disponible para macOS, Windows y Linux.",
-    socialTitle: "Descargar AI4Kanban",
-    social: "AI4Kanban: un espacio de trabajo con agentes para emprendedores independientes. Descarga la aplicación para macOS, Windows y Linux.",
+      "Descarga WildCrane, un espacio de trabajo con agentes para emprendedores independientes. Disponible para macOS, Windows y Linux.",
+    socialTitle: "Descargar WildCrane",
+    social: "WildCrane: un espacio de trabajo con agentes para emprendedores independientes. Descarga la aplicación para macOS, Windows y Linux.",
   },
 
   hero: {
-    title: "AI4Kanban para escritorio",
+    title: "WildCrane para escritorio",
     lead: "Para macOS, Windows y Linux.",
     cta: "Descargar",
     ctaFor: "Descargar para {system}",
@@ -27,7 +27,7 @@ const es: DownloadCopy = {
     platformLabel: "Elige tu plataforma",
     mac: {
       steps: [
-        "Abre el `.dmg` y arrastra **AI4Kanban** a Aplicaciones.",
+        "Abre el `.dmg` y arrastra **WildCrane** a Aplicaciones.",
         "Haz doble clic. macOS dice que no puede verificar la app: pulsa **Listo**. Todavía no se abrirá, y es lo normal.",
         "En **Ajustes del Sistema → Privacidad y seguridad**, baja hasta **Seguridad** y pulsa **Abrir igualmente**.",
         "Desbloquea y pulsa **Abrir igualmente** una vez más. A partir de ahí se abre directamente.",

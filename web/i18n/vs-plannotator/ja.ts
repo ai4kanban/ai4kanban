@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const ja: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator：重要な下書きからタスクの納品まで",
-    socialTitle: "AI4Kanban vs. Plannotator",
+    title: "WildCrane vs. Plannotator：重要な下書きからタスクの納品まで",
+    socialTitle: "WildCrane vs. Plannotator",
     description:
-      "AI4Kanban と Plannotator を、下書きとコードのレビュー、専門ワークフロー、並行タスク、承認後の作業の進め方で比較します。",
+      "WildCrane と Plannotator を、下書きとコードのレビュー、専門ワークフロー、並行タスク、承認後の作業の進め方で比較します。",
     social:
-      "AI4Kanban と Plannotator を、下書きとコードのレビュー、専門ワークフロー、並行タスク、承認後の作業の進め方で比較します。",
+      "WildCrane と Plannotator を、下書きとコードのレビュー、専門ワークフロー、並行タスク、承認後の作業の進め方で比較します。",
   },
   hero: {
     badge: "比較",
-    title: "AI4Kanban vs. Plannotator",
-    lead: "AI4Kanban と Plannotator を、下書きとコードのレビュー、専門ワークフロー、並行タスク、承認後の作業の進め方で比較します。",
+    title: "WildCrane vs. Plannotator",
+    lead: "WildCrane と Plannotator を、下書きとコードのレビュー、専門ワークフロー、並行タスク、承認後の作業の進め方で比較します。",
   },
   both: {
     title: "どちらにもある機能",
@@ -41,7 +41,7 @@ const ja: VsPlannotatorCopy = {
     links: ["Plannotatorを見る", "Plannotator README"],
   },
   ours: {
-    title: "AI4Kanban：重要な下書きからタスクの完成まで",
+    title: "WildCrane：重要な下書きからタスクの完成まで",
     lead: "専門エージェントが、確認の必要な UI、文章、台本の下書きを準備します。重要な部分を承認すると、対応するワークフローが残りを仕上げます。開発、ブログ、動画に対応し、独立したタスクは並行実行できます。",
     drafts: {
       title: "変えたくなりそうな部分を先に確認",
@@ -100,14 +100,14 @@ const ja: VsPlannotatorCopy = {
       body: "使い慣れたエージェントのまわりで計画・ドキュメント・コードをレビューし、改訂ごとに確認したい。PRのレビューや注釈の共有も必要。",
     },
     ours: {
-      name: "AI4Kanbanを選ぶ",
+      name: "WildCraneを選ぶ",
       body: "タスクカードで重要な下書きを確認し、残りをエージェントに任せます。開発とマーケティングのワークフローを内蔵し、独立したタスクを並行して進められます。次のタスクにも好みを引き継ぎ、同じ修正を繰り返す手間を減らせます。",
     },
   },
   start: {
     title: "複数のタスクをまとめて進めますか？",
-    body: "AI4Kanban をダウンロード。計画は的確に、リリースは速く。",
-    cta: "AI4Kanbanをダウンロード",
+    body: "WildCrane をダウンロード。計画は的確に、リリースは速く。",
+    cta: "WildCraneをダウンロード",
   },
 };
 

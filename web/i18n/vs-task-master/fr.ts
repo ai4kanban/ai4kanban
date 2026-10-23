@@ -4,15 +4,15 @@ import type { VsTaskMasterCopy } from "./types";
 
 const fr: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster : valider avant de refaire",
-    socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "Comparez AI4Kanban et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
-    social: "Comparez AI4Kanban et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
+    title: "WildCrane vs. Taskmaster : valider avant de refaire",
+    socialTitle: "WildCrane vs. Taskmaster",
+    description: "Comparez WildCrane et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
+    social: "Comparez WildCrane et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
   },
   hero: {
     badge: "Comparatif",
-    title: "AI4Kanban vs.\nTaskmaster",
-    lead: "Comparez AI4Kanban et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
+    title: "WildCrane vs.\nTaskmaster",
+    lead: "Comparez WildCrane et Taskmaster sur les workflows spécialisés, la validation des brouillons, la mémoire des préférences et le passage du plan à l’exécution.",
     sharedLabel: "Les deux proposent",
     setup: {
       heading: "Des agents et workflows spécialisés, prêts à l’emploi",
@@ -38,14 +38,14 @@ const fr: VsTaskMasterCopy = {
         {
           title: "Découpage des tâches et dépendances",
           body: [
-            "AI4Kanban découpe le travail en cartes et sous-tâches, et les dépendances fixent l’ordre d’exécution.",
+            "WildCrane découpe le travail en cartes et sous-tâches, et les dépendances fixent l’ordre d’exécution.",
             "Taskmaster peut générer des tâches et sous-tâches à partir d’un PRD et gérer leurs dépendances.",
           ],
         },
         {
           title: "Intégration CLI",
           body: [
-            "AI4Kanban fournit une CLI que les agents de code peuvent appeler. Il n’a pas de serveur MCP.",
+            "WildCrane fournit une CLI que les agents de code peuvent appeler. Il n’a pas de serveur MCP.",
             "Taskmaster fournit une CLI et un serveur MCP.",
           ],
         },
@@ -104,14 +104,14 @@ const fr: VsTaskMasterCopy = {
         {
           title: "Règles modifiables",
           body: [
-            "Les agents spécialisés d’AI4Kanban ont des règles de rôle modifiables.",
+            "Les agents spécialisés d’WildCrane ont des règles de rôle modifiables.",
             "Taskmaster fournit des fichiers de règles pour différents éditeurs.",
           ],
         },
         {
           title: "Garder le contexte du travail",
           body: [
-            "AI4Kanban conserve sur la carte les plans, les conversations et les journaux d’exécution.",
+            "WildCrane conserve sur la carte les plans, les conversations et les journaux d’exécution.",
             "Taskmaster conserve descriptions de tâches, détails d’implémentation et notes de sous-tâches.",
           ],
         },
@@ -124,7 +124,7 @@ const fr: VsTaskMasterCopy = {
       title: "Comparer en détail",
     },
     lead: "Voyez quels workflows, étapes de relecture et intégrations chaque produit inclut.",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
@@ -134,7 +134,7 @@ const fr: VsTaskMasterCopy = {
       },
       planning: {
         dimension: "Découpage des tâches et dépendances",
-        kanban: "AI4Kanban découpe le travail en cartes et sous-tâches, et les dépendances fixent l’ordre d’exécution.",
+        kanban: "WildCrane découpe le travail en cartes et sous-tâches, et les dépendances fixent l’ordre d’exécution.",
         taskMaster: "Taskmaster peut générer des tâches et sous-tâches à partir d’un PRD et gérer leurs dépendances.",
       },
       drafts: {
@@ -194,7 +194,7 @@ const fr: VsTaskMasterCopy = {
       eyebrow: "Recommandation",
       title: "Lequel choisir ?",
     },
-    oursHeading: "Choisissez AI4Kanban si vous",
+    oursHeading: "Choisissez WildCrane si vous",
     theirsHeading: "Choisissez Taskmaster si vous",
     ours: [
       "Voulez des agents et workflows prêts pour le code, les articles et les vidéos.",
@@ -206,7 +206,7 @@ const fr: VsTaskMasterCopy = {
       "Voulez une commande de recherche dédiée, avec le contexte des tâches et un modèle de recherche à part.",
       "Voulez un workflow intégré qui guide le code par des tests qui échouent, des tests qui passent et des commits.",
     ],
-    verdict: "Choisissez AI4Kanban pour **des workflows spécialisés prêts à utiliser et des brouillons clés qui limitent les reprises** ; choisissez Taskmaster pour **l’intégration MCP, une commande de recherche dédiée et un workflow de code test-first intégré**.",
+    verdict: "Choisissez WildCrane pour **des workflows spécialisés prêts à utiliser et des brouillons clés qui limitent les reprises** ; choisissez Taskmaster pour **l’intégration MCP, une commande de recherche dédiée et un workflow de code test-first intégré**.",
     note: "Cette page compare la version open source de Taskmaster. Hamster est un produit hébergé de la même équipe ; ses fonctions d’équipe sortent du cadre de ce comparatif.",
   },
 };

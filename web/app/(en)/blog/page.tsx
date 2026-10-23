@@ -16,8 +16,8 @@ import { itemList, jsonLd, pageUrl, webPage } from "@/lib/schema";
 const c = getCopy("en");
 
 const PATH = "/blog";
-const TITLE = "AI4Kanban Blog";
-const DESCRIPTION = "Articles from the AI4Kanban team.";
+const TITLE = "WildCrane Blog";
+const DESCRIPTION = "Articles from the WildCrane team.";
 const RSS = "/blog/rss.xml";
 
 const base = pageMetadata({

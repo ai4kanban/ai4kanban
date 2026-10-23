@@ -4,15 +4,15 @@ import type { VsTaskMasterCopy } from "./types";
 
 const en: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster: review drafts, reduce rework",
-    socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "Compare AI4Kanban and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
-    social: "Compare AI4Kanban and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
+    title: "WildCrane vs. Taskmaster: review drafts, reduce rework",
+    socialTitle: "WildCrane vs. Taskmaster",
+    description: "Compare WildCrane and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
+    social: "Compare WildCrane and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
   },
   hero: {
     badge: "Comparison",
-    title: "AI4Kanban vs.\nTaskmaster",
-    lead: "Compare AI4Kanban and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
+    title: "WildCrane vs.\nTaskmaster",
+    lead: "Compare WildCrane and Taskmaster on specialist workflows, draft review, preference memory, and how tasks move from planning to execution.",
     sharedLabel: "Both support",
     setup: {
       heading: "Specialist agents and workflows, ready to use",
@@ -38,14 +38,14 @@ const en: VsTaskMasterCopy = {
         {
           title: "Task breakdown and dependencies",
           body: [
-            "AI4Kanban splits work into cards and subtasks, with dependencies controlling execution order.",
+            "WildCrane splits work into cards and subtasks, with dependencies controlling execution order.",
             "Taskmaster can generate tasks and subtasks from a PRD and manage dependencies.",
           ],
         },
         {
           title: "CLI integration",
           body: [
-            "AI4Kanban provides a CLI that coding agents can call. It has no MCP server.",
+            "WildCrane provides a CLI that coding agents can call. It has no MCP server.",
             "Taskmaster provides both a CLI and an MCP server.",
           ],
         },
@@ -104,14 +104,14 @@ const en: VsTaskMasterCopy = {
         {
           title: "Editable rules",
           body: [
-            "AI4Kanban’s specialist agents have editable role rules.",
+            "WildCrane’s specialist agents have editable role rules.",
             "Taskmaster provides rule files for different editors.",
           ],
         },
         {
           title: "Keeping work context",
           body: [
-            "AI4Kanban keeps plans, conversations and run records on the card.",
+            "WildCrane keeps plans, conversations and run records on the card.",
             "Taskmaster retains task descriptions, implementation details and subtask notes.",
           ],
         },
@@ -124,7 +124,7 @@ const en: VsTaskMasterCopy = {
       title: "Compare the details",
     },
     lead: "See which workflows, review steps and integrations each product includes.",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
@@ -134,7 +134,7 @@ const en: VsTaskMasterCopy = {
       },
       planning: {
         dimension: "Task breakdown and dependencies",
-        kanban: "AI4Kanban splits work into cards and subtasks, with dependencies controlling execution order.",
+        kanban: "WildCrane splits work into cards and subtasks, with dependencies controlling execution order.",
         taskMaster: "Taskmaster can generate tasks and subtasks from a PRD and manage dependencies.",
       },
       drafts: {
@@ -194,7 +194,7 @@ const en: VsTaskMasterCopy = {
       eyebrow: "Recommendation",
       title: "Which should you choose?",
     },
-    oursHeading: "Choose AI4Kanban if you",
+    oursHeading: "Choose WildCrane if you",
     theirsHeading: "Choose Taskmaster if you",
     ours: [
       "Want ready-to-use specialist agents and workflows for coding, blogs and videos.",
@@ -206,7 +206,7 @@ const en: VsTaskMasterCopy = {
       "Want a dedicated research command with task context and a separate research model.",
       "Want a built-in workflow that guides coding through failing tests, passing tests and commits.",
     ],
-    verdict: "Choose AI4Kanban for **ready-to-use specialist workflows and key drafts that reduce rework**; choose Taskmaster for **MCP integration, a dedicated research command and a built-in test-first coding workflow**.",
+    verdict: "Choose WildCrane for **ready-to-use specialist workflows and key drafts that reduce rework**; choose Taskmaster for **MCP integration, a dedicated research command and a built-in test-first coding workflow**.",
     note: "This page compares open-source Taskmaster. Hamster is a hosted product from the same team; its team features are outside this comparison.",
   },
 };

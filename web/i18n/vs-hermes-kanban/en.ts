@@ -4,15 +4,15 @@ import type { VsHermesCopy } from "./types";
 
 const en: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Kanban: key drafts, less rework",
-    socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
-    social: "Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
+    title: "WildCrane vs. Hermes Kanban: key drafts, less rework",
+    socialTitle: "WildCrane vs. Hermes Agent Kanban",
+    description: "Compare WildCrane and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
+    social: "Compare WildCrane and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
   },
   hero: {
     badge: "Comparison",
-    title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Compare AI4Kanban and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
+    title: "WildCrane vs.\nHermes Agent Kanban",
+    lead: "Compare WildCrane and Hermes Kanban on specialist workflows, draft review, chat-app control, parallel tasks and follow-up work.",
     sharedLabel: "Both support",
     setup: {
       heading: "Specialist agents and workflows, ready to use",
@@ -38,14 +38,14 @@ const en: VsHermesCopy = {
         {
           title: "Task breakdown and dependencies",
           body: [
-            "AI4Kanban splits work into cards and subtasks, with dependencies controlling execution order.",
+            "WildCrane splits work into cards and subtasks, with dependencies controlling execution order.",
             "Hermes Kanban breaks a one-line task into child tasks and runs a child once its parents are done.",
           ],
         },
         {
           title: "Parallel runs in git worktrees",
           body: [
-            "AI4Kanban runs independent cards side by side, each in its own git worktree.",
+            "WildCrane runs independent cards side by side, each in its own git worktree.",
             "Hermes Kanban runs tasks in parallel, with a git worktree per task.",
           ],
         },
@@ -75,14 +75,14 @@ const en: VsHermesCopy = {
         {
           title: "A written spec",
           body: [
-            "AI4Kanban cards hold the scope and build steps.",
+            "WildCrane cards hold the scope and build steps.",
             "Hermes Kanban can rewrite a task into a goal, approach and acceptance criteria.",
           ],
         },
         {
           title: "Feedback on the task",
           body: [
-            "AI4Kanban takes your changes in the card chat and updates the plan.",
+            "WildCrane takes your changes in the card chat and updates the plan.",
             "Hermes Kanban takes your notes to the worker in task comments.",
           ],
         },
@@ -113,14 +113,14 @@ const en: VsHermesCopy = {
         {
           title: "Agents that learn as they work",
           body: [
-            "AI4Kanban’s specialist agents note the drafts you send back or overrule, and finished cards are reviewed for decisions and preferences.",
+            "WildCrane’s specialist agents note the drafts you send back or overrule, and finished cards are reviewed for decisions and preferences.",
             "Each Hermes profile keeps memory notes and writes its own skills from what it learns, including your corrections.",
           ],
         },
         {
           title: "Task history",
           body: [
-            "AI4Kanban keeps plans, conversations and run records on the card.",
+            "WildCrane keeps plans, conversations and run records on the card.",
             "Hermes Kanban keeps a comment thread and run history on the task.",
           ],
         },
@@ -133,7 +133,7 @@ const en: VsHermesCopy = {
       title: "Compare the details",
     },
     lead: "A {check} marks the stronger side on each row.",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Hermes Kanban",
     rows: {
       startingPoint: {
@@ -188,7 +188,7 @@ const en: VsHermesCopy = {
       },
       review: {
         dimension: "Checking the work",
-        kanban: "Claude Code or Codex run tests and check the requirements as they build; AI4Kanban adds no second review pass, to avoid over-testing.",
+        kanban: "Claude Code or Codex run tests and check the requirements as they build; WildCrane adds no second review pass, to avoid over-testing.",
         hermes: "A reviewer profile checks each acceptance criterion and runs tests, sending work back until it passes.",
       },
       chat: {
@@ -213,7 +213,7 @@ const en: VsHermesCopy = {
       eyebrow: "Recommendation",
       title: "Which should you choose?",
     },
-    oursHeading: "Choose AI4Kanban if you",
+    oursHeading: "Choose WildCrane if you",
     theirsHeading: "Choose Hermes Kanban if you",
     ours: [
       "Want ready-to-use specialist agents and workflows for coding, blogs and videos.",
@@ -225,7 +225,7 @@ const en: VsHermesCopy = {
       "Want to manage tasks from Telegram, Slack, Discord or other chat apps.",
       "Want automatic recovery of stalled tasks and an API to build on.",
     ],
-    verdict: "Choose AI4Kanban for **ready-to-use specialist workflows and key drafts that reduce rework**; choose Hermes Kanban for **chat-app control, automatic recovery and an API**.",
+    verdict: "Choose WildCrane for **ready-to-use specialist workflows and key drafts that reduce rework**; choose Hermes Kanban for **chat-app control, automatic recovery and an API**.",
     note: "Compared against the Hermes Agent v0.21.6 documentation, checked October 2026.",
   },
 };

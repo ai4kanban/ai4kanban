@@ -57,7 +57,7 @@ export function MemoryScene({ label }: { label: string }) {
         <div className="bb s3d-page m-pageA">
           <div className="m-title">Blog post: launch</div>
           <div className="m-draft">
-            <p>Introducing AI4Kanban: an agent workspace for indie hackers</p>
+            <p>Introducing WildCrane: an agent workspace for indie hackers</p>
             <div className="l" style={{ width: "90%" }} />
             <div className="l" style={{ width: "70%" }} />
           </div>

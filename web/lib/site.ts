@@ -1,6 +1,6 @@
 // The production origin for the public site. Single source of truth — every
 // canonical URL, sitemap entry, and JSON-LD `url` derives from this.
-export const BASE_URL = "https://ai4kanban.dev";
+export const BASE_URL = "https://wildcrane.ai";
 
 // The site's large images live in the `kanbanskill` R2 bucket behind this origin
 // rather than in `public/`, so a Pages deploy doesn't re-upload a megabyte of
@@ -17,8 +17,8 @@ export const CDN = "https://cdn.ai4kanban.dev";
 // captured PNG is served from the CDN and referenced by every page's OG/Twitter
 // tags. Re-capture `/og-image/` and re-upload when the card design changes.
 export const OG_IMAGE = {
-  url: `${CDN}/og-image-v6.jpg`,
+  url: `${CDN}/og-image-v7.jpg`,
   width: 4800,
   height: 2520,
-  alt: "AI4Kanban — the AI project manager for coding agents.",
+  alt: "WildCrane — you don’t have to manage every detail.",
 };

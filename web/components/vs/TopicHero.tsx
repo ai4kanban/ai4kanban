@@ -7,7 +7,7 @@ import { framed, hairline, heroTop, panelStatic } from "../styles";
 import { HeroBackdrop } from "./HeroBackdrop";
 import { DraftsOurs, MemoryOurs, QuestionsOurs, SetupOurs } from "./HeroVisuals";
 
-// The title, then the three topics AI4Kanban wins, each drawn the same way:
+// The title, then the three topics WildCrane wins, each drawn the same way:
 // heading, verdict, one card with both sides and what they share. The rival's
 // page supplies its name, mark and art.
 
@@ -63,7 +63,7 @@ function Topic({
           <div className="bg-[color-mix(in_srgb,var(--color-accent)_8%,var(--color-elev))] p-5 sm:p-6">
             <div className="flex items-center gap-2">
               <LogoMark size="tag" />
-              <span className="font-semibold text-ink">AI4Kanban</span>
+              <span className="font-semibold text-ink">WildCrane</span>
               <Badge win />
             </div>
             <p className="mt-2 text-sm text-ink sm:min-h-[2.5rem]">{ours}</p>

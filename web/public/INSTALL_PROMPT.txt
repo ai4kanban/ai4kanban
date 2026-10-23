@@ -1,6 +1,6 @@
 Set up ai4kanban for this project.
 
-AI4Kanban must be installed and used through the desktop app. The app includes the `akb`
+WildCrane must be installed and used through the desktop app. The app includes the `akb`
 CLI and automatically adds the coding-agent skills when it opens a project. The CLI and
 skills extend the desktop workflow; they are not alternative distributions. Project
 settings live with the board at `docs/kanban/config.md`.
@@ -12,7 +12,7 @@ settings live with the board at `docs/kanban/config.md`.
    succeeds, continue to step 2.
 
    If the command is unavailable, stop and ask the user to install and open the desktop app
-   from https://ai4kanban.dev/download. Do not install the npm package globally or use
+   from https://wildcrane.ai/download. Do not install the npm package globally or use
    `npx` as a substitute, because neither provides the required desktop app.
 
 2. Read this repository, before installing anything into it — enough to say what the

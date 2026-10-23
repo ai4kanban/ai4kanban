@@ -3,8 +3,8 @@ import type { PricingCopy } from "./types";
 
 const zh: PricingCopy = {
   meta: {
-    title: "AI4Kanban：方案与定价",
-    description: "AI4Kanban 全部工作流免费。Pro 提供模板，让成品更精致，另含 AI 积分和新想法自动筛选；按年付费折合每月 $10。",
+    title: "WildCrane：方案与定价",
+    description: "WildCrane 全部工作流免费。Pro 提供模板，让成品更精致，另含 AI 积分和新想法自动筛选；按年付费折合每月 $10。",
   },
   hero: {
     eyebrow: "定价",
@@ -52,7 +52,7 @@ const zh: PricingCopy = {
   },
   seed: {
     name: "种子伙伴",
-    body: "与我们分享经你脱敏的会话，帮助改进 AI4Kanban。获得接纳后享 6 个月 Pro，到期不自动收费。",
+    body: "与我们分享经你脱敏的会话，帮助改进 WildCrane。获得接纳后享 6 个月 Pro，到期不自动收费。",
     button: "加入候补名单",
   },
   custom: {

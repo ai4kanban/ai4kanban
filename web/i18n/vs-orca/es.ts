@@ -2,17 +2,17 @@ import type { VsOrcaCopy } from "./types";
 
 const es: VsOrcaCopy = {
   meta: {
-    title: "AI4Kanban vs. Orca: revisa borradores y delega detalles",
-    socialTitle: "AI4Kanban vs. Orca",
+    title: "WildCrane vs. Orca: revisa borradores y delega detalles",
+    socialTitle: "WildCrane vs. Orca",
     description:
-      "Compara AI4Kanban y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
+      "Compara WildCrane y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
     social:
-      "Compara AI4Kanban y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
+      "Compara WildCrane y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
   },
   hero: {
     badge: "Comparativa",
-    title: "AI4Kanban vs. Orca",
-    lead: "Compara AI4Kanban y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
+    title: "WildCrane vs. Orca",
+    lead: "Compara WildCrane y Orca en control de sesiones, flujos especializados, revisión de borradores y el trabajo necesario para coordinar la ejecución.",
   },
   both: {
     title: "Lo que ambos ofrecen",
@@ -67,7 +67,7 @@ const es: VsOrcaCopy = {
     },
   },
   ours: {
-    title: "AI4Kanban: revisa borradores y delega los detalles",
+    title: "WildCrane: revisa borradores y delega los detalles",
     lead: "Los agentes preparan borradores de la interfaz, los textos o el guion que debes revisar. Tras aprobar lo esencial, el flujo completa la tarea. Hay flujos integrados para código, blogs y vídeos; las tareas independientes pueden ejecutarse en paralelo.",
     drafts: {
       title: "Revisa los borradores clave antes de ejecutar",
@@ -105,7 +105,7 @@ const es: VsOrcaCopy = {
       link: "Ver las funciones de Orca",
     },
     ours: {
-      name: "Elige AI4Kanban",
+      name: "Elige WildCrane",
       points: [
         "Agentes y flujos listos para código, blogs y vídeos",
         "Ajustar los detalles clave en un borrador antes de terminar el trabajo",
@@ -116,9 +116,9 @@ const es: VsOrcaCopy = {
     },
   },
   start: {
-    title: "Empieza con AI4Kanban",
-    body: "Descarga AI4Kanban. Planifica con precisión, entrega con rapidez.",
-    cta: "Descargar AI4Kanban",
+    title: "Empieza con WildCrane",
+    body: "Descarga WildCrane. Planifica con precisión, entrega con rapidez.",
+    cta: "Descargar WildCrane",
   },
 };
 

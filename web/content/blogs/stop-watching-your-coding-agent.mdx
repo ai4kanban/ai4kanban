@@ -7,7 +7,7 @@ date: 2026-08-31
 categories: ["agents", "workflow"]
 tags: ["coding-agents", "kanban-coding", "human-in-the-loop", "product-planning"]
 read_minutes: 4
-author: "AI4Kanban"
+author: "WildCrane"
 featured_image: "https://cdn.ai4kanban.dev/stop-watching-your-coding-agent/cover.webp"
 featured_image_alt: "The headline “Bring me decisions, not logs.” beside a fading wall of ten agent terminals marked with a cross and a single question with a recommended option, marked with a check."
 seo:
@@ -42,13 +42,13 @@ The board supplies the coordination layer. A rough goal can split recursively in
 
 Chat is chronological; this structure is top-down. An agent can retrieve the requirement, its parent goal, its blockers, and the decisions that constrain it without rereading ten conversations.
 
-## How AI4Kanban surfaces only the decisions people need to make
+## How WildCrane surfaces only the decisions people need to make
 
 Refining a feature may expose a dozen product questions about defaults, persistence, missing data, and workflow priority. Each needs an answer, but most do not need a person.
 
 Sending every question to a person does not create human oversight. It turns the person into the planning bottleneck.
 
-AI4Kanban instead asks the agent to challenge the requirement and attempt the answers itself. It uses the repository for technical facts and project memory for product facts: earlier requirements, accepted decisions, rejected ideas, and corrections. Routine, reversible choices stay with the agent. Questions involving taste, product direction, business constraints, or market insight are escalated.
+WildCrane instead asks the agent to challenge the requirement and attempt the answers itself. It uses the repository for technical facts and project memory for product facts: earlier requirements, accepted decisions, rejected ideas, and corrections. Routine, reversible choices stay with the agent. Questions involving taste, product direction, business constraints, or market insight are escalated.
 
 <DecisionCompression />
 
@@ -60,7 +60,7 @@ This is the interface we care about. The quality metric is not how much agent ac
 
 Selective escalation is only useful if it compounds. Otherwise the agent asks the same “exceptional” question on the next feature and human attention remains fixed per task.
 
-AI4Kanban records the answer where future planning can use it. A product choice becomes a decision. A correction becomes a design lesson. A rejected idea keeps the reason it was rejected. The next agent does not arrive like a new employee with access only to the codebase; it inherits the business-specific common sense taught to earlier agents.
+WildCrane records the answer where future planning can use it. A product choice becomes a decision. A correction becomes a design lesson. A rejected idea keeps the reason it was rejected. The next agent does not arrive like a new employee with access only to the codebase; it inherits the business-specific common sense taught to earlier agents.
 
 The loop is simple:
 
@@ -78,4 +78,4 @@ When this works, a person has three jobs: set direction, decide the genuine exce
 
 That changes what coding automation buys. The benefit is not another row of busy terminals. It is time to speak with users, understand the market, find distribution, work with partners, and make the judgments for which the project has no recorded answer.
 
-[AI4Kanban](https://github.com/ai4kanban/ai4kanban) is our open-source implementation of this idea. The board belongs to the agents. The decisions remain with the human.
+[WildCrane](https://github.com/ai4kanban/ai4kanban) is our open-source implementation of this idea. The board belongs to the agents. The decisions remain with the human.

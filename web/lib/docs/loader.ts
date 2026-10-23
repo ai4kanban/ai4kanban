@@ -16,7 +16,7 @@ import type { DocNavGroup, DocPage } from "./types";
 //
 //   ---
 //   title: "The daily loop"                 # the on-page H1
-//   title_tag: "The AI4Kanban daily loop"   # optional SERP <title>
+//   title_tag: "The WildCrane daily loop"   # optional SERP <title>
 //   description: "..."                      # meta description + index blurb
 //   lead: "One sentence under the headline."
 //   last_updated: "September 1, 2026"
@@ -144,7 +144,7 @@ function loadAll(): DocPage[] {
 }
 
 const LLMS_FILE = path.join(process.cwd(), "public", "llms.txt");
-const SITE_DOCS = "https://ai4kanban.dev/docs";
+const SITE_DOCS = "https://wildcrane.ai/docs";
 
 // AI search learns the site from llms.txt, so its `## Documentation` list must
 // match the docs in rail order, URL and description alike.

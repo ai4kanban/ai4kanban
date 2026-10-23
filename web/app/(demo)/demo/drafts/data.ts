@@ -49,21 +49,21 @@ export const ARTICLE: MockupView = {
   article: {
     href: `${DIR}/README.md`,
     text: `---
-title: AI4Kanban
+title: WildCrane
 dek: An agent workspace for indie hackers
 ---
 
-AI4Kanban brings coding and marketing workflows into one agent workspace. Agents draft the parts that need your judgment—UI, copy, video scripts and more—for you to review and refine. Once you approve the drafts, agents finish the rest.
+WildCrane brings coding and marketing workflows into one agent workspace. Agents draft the parts that need your judgment—UI, copy, video scripts and more—for you to review and refine. Once you approve the drafts, agents finish the rest.
 
 ## Build and market your product
 
 As an indie hacker, you need to build a product and get people to use it. Marketing can take as much time and attention as development—or more.
 
-## How AI4Kanban helps
+## How WildCrane helps
 
 ### 1. A specialist team for coding and marketing
 
-AI4Kanban comes with 6 workflows and 10+ specialist agents for the work indie hackers do every day. Each agent owns a specific part of a workflow, such as UI design or copywriting.
+WildCrane comes with 6 workflows and 10+ specialist agents for the work indie hackers do every day. Each agent owns a specific part of a workflow, such as UI design or copywriting.
 
 The agents share your project context, while each specialist learns from your feedback in its own area.
 
@@ -71,7 +71,7 @@ The agents share your project context, while each specialist learns from your fe
 
 A feature can meet every requirement and still have an awkward UI. A video can be produced exactly as requested, yet have a stiff script that sounds AI-generated.
 
-AI4Kanban identifies the parts of a task that need your judgment and brings in the right specialists to draft them. Agents then build from what you approved.
+WildCrane identifies the parts of a task that need your judgment and brings in the right specialists to draft them. Agents then build from what you approved.
 
 ### 3. Break requests into tasks you can ship independently
 

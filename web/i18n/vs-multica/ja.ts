@@ -2,17 +2,17 @@ import type { VsMulticaCopy } from "./types";
 
 const ja: VsMulticaCopy = {
   meta: {
-    title: "AI4Kanban vs. Multica：専門エージェントとワークフローをすぐ使う",
-    socialTitle: "AI4Kanban vs. Multica",
+    title: "WildCrane vs. Multica：専門エージェントとワークフローをすぐ使う",
+    socialTitle: "WildCrane vs. Multica",
     description:
-      "AI4Kanban と Multica を、専門エージェント、ワークフローの設定、下書きの確認、好みの記憶、チームでの共同作業で比較します。",
+      "WildCrane と Multica を、専門エージェント、ワークフローの設定、下書きの確認、好みの記憶、チームでの共同作業で比較します。",
     social:
-      "AI4Kanban と Multica を、専門エージェント、ワークフローの設定、下書きの確認、好みの記憶、チームでの共同作業で比較します。",
+      "WildCrane と Multica を、専門エージェント、ワークフローの設定、下書きの確認、好みの記憶、チームでの共同作業で比較します。",
   },
   hero: {
     badge: "比較",
-    title: "AI4Kanban vs.\nMultica",
-    lead: "AI4Kanban と Multica を、専門エージェント、ワークフローの設定、下書きの確認、好みの記憶、チームでの共同作業で比較します。",
+    title: "WildCrane vs.\nMultica",
+    lead: "WildCrane と Multica を、専門エージェント、ワークフローの設定、下書きの確認、好みの記憶、チームでの共同作業で比較します。",
     sharedLabel: "どちらにもある機能",
     setup: {
       heading: "チームを設計しなくても、すぐに仕事を始められる",
@@ -33,14 +33,14 @@ const ja: VsMulticaCopy = {
         {
           title: "カスタムエージェント",
           body: [
-            "AI4Kanbanでは組み込みの役割を編集でき、独自のエージェントも追加できます。",
+            "WildCraneでは組み込みの役割を編集でき、独自のエージェントも追加できます。",
             "MulticaではAgent Builderで役割を作成し、InstructionsとSkillsを設定します。",
           ],
         },
         {
           title: "エージェントの並行実行",
           body: [
-            "AI4KanbanはClaude CodeやCodexなどのコーディングツールで、複数のカードを同時に進めます。",
+            "WildCraneはClaude CodeやCodexなどのコーディングツールで、複数のカードを同時に進めます。",
             "Multicaは複数のエージェントを並行実行し、キュー、リトライ、コスト集計を備えます。",
           ],
         },
@@ -64,14 +64,14 @@ const ja: VsMulticaCopy = {
         {
           title: "プレビュー",
           body: [
-            "AI4Kanbanは画像、図、HTML/TSX、diff、ストーリーボードのドラフトをカード上に表示します。",
+            "WildCraneは画像、図、HTML/TSX、diff、ストーリーボードのドラフトをカード上に表示します。",
             "MulticaはHTMLのプレビュー、注釈、バージョン比較ができます。",
           ],
         },
         {
           title: "タスクでの議論",
           body: [
-            "AI4Kanbanはカードのチャットで計画を話し合い、修正します。",
+            "WildCraneはカードのチャットで計画を話し合い、修正します。",
             "Multicaはissueのコメントでエージェントと話し合います。",
           ],
         },
@@ -99,14 +99,14 @@ const ja: VsMulticaCopy = {
         {
           title: "仕事の進め方の保存",
           body: [
-            "AI4Kanbanでは各エージェントが編集可能な役割ルールを持ちます。",
+            "WildCraneでは各エージェントが編集可能な役割ルールを持ちます。",
             "MulticaはInstructionsとSkillsに進め方を保存します。",
           ],
         },
         {
           title: "タスク履歴",
           body: [
-            "AI4Kanbanはカードごとに計画、チャット、実行ログを残します。",
+            "WildCraneはカードごとに計画、チャット、実行ログを残します。",
             "Multicaはコメントと実行履歴を残します。",
           ],
         },
@@ -116,7 +116,7 @@ const ja: VsMulticaCopy = {
   comparison: {
     heading: { eyebrow: "主な違い", title: "項目ごとの比較" },
     lead: "{check} は各項目で優れている側を示します。",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Multica",
     rows: {
       startingPoint: {
@@ -131,7 +131,7 @@ const ja: VsMulticaCopy = {
       refinement: {
         dimension: "実行前のドラフト確認",
         kanban:
-          "方向を自分で押さえたい部分はすべて、ドラフト機能が実行・納品の前にプレビューを用意し、承認を待ちます。AI4Kanbanは画像、図、HTML/TSX、diff、ストーリーボードのドラフトに対応します。",
+          "方向を自分で押さえたい部分はすべて、ドラフト機能が実行・納品の前にプレビューを用意し、承認を待ちます。WildCraneは画像、図、HTML/TSX、diff、ストーリーボードのドラフトに対応します。",
         multica:
           "HTMLのプレビュー、成果物への注釈、バージョン比較が可能。どのエージェントがドラフトを用意し、いつ承認が必要かは自分で定義します。",
       },
@@ -173,7 +173,7 @@ const ja: VsMulticaCopy = {
   },
   decision: {
     heading: { eyebrow: "選び方", title: "どちらを選ぶべきか？" },
-    oursHeading: "AI4Kanbanが向く場合",
+    oursHeading: "WildCraneが向く場合",
     theirsHeading: "Multicaが向く場合",
     ours: [
       "用意された専門エージェントとワークフローで、自分の製品開発とマーケティングを進めたい。",
@@ -187,7 +187,7 @@ const ja: VsMulticaCopy = {
       "Autopilotのランブック、担当者、トリガーを設定し、定期的な作業をスケジュールや外部イベントで自動開始したい。",
     ],
     verdict:
-      "**用意されたワークフローで自分の製品開発とマーケティングを進めたい**なら AI4Kanban。重要な下書きを先に確認し、好みを次のタスクにも引き継げます。**Multicaの複数ユーザーのワークスペースや実行管理が特に必要な場合**に限り、Multicaを選んでください。",
+      "**用意されたワークフローで自分の製品開発とマーケティングを進めたい**なら WildCrane。重要な下書きを先に確認し、好みを次のタスクにも引き継げます。**Multicaの複数ユーザーのワークスペースや実行管理が特に必要な場合**に限り、Multicaを選んでください。",
     note: "",
   },
 };

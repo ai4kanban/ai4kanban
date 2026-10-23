@@ -4,15 +4,15 @@ import type { DownloadCopy } from "./types";
 
 const ja: DownloadCopy = {
   meta: {
-    title: "AI4Kanban をダウンロード — macOS、Windows、Linux 対応",
+    title: "WildCrane をダウンロード — macOS、Windows、Linux 対応",
     description:
-      "個人開発者のためのエージェントワークスペース、AI4Kanban をダウンロード。macOS、Windows、Linux に対応しています。",
-    socialTitle: "AI4Kanban をダウンロード",
-    social: "AI4Kanban は、個人開発者のためのエージェントワークスペースです。macOS、Windows、Linux 向けデスクトップアプリをダウンロードできます。",
+      "個人開発者のためのエージェントワークスペース、WildCrane をダウンロード。macOS、Windows、Linux に対応しています。",
+    socialTitle: "WildCrane をダウンロード",
+    social: "WildCrane は、個人開発者のためのエージェントワークスペースです。macOS、Windows、Linux 向けデスクトップアプリをダウンロードできます。",
   },
 
   hero: {
-    title: "AI4Kanban デスクトップ版",
+    title: "WildCrane デスクトップ版",
     lead: "macOS、Windows、Linux に対応。",
     cta: "ダウンロード",
     ctaFor: "{system} 版をダウンロード",
@@ -27,7 +27,7 @@ const ja: DownloadCopy = {
     platformLabel: "プラットフォームを選択",
     mac: {
       steps: [
-        "`.dmg` を開き、**AI4Kanban** をアプリケーションにドラッグします。",
+        "`.dmg` を開き、**WildCrane** をアプリケーションにドラッグします。",
         "ダブルクリックします。macOS が確認できないと表示するので、**完了**をクリックします。ここではまだ開きませんが、それで正常です。",
         "**システム設定 → プライバシーとセキュリティ**を開き、**セキュリティ**まで下にスクロールして**このまま開く**をクリックします。",
         "認証してから、もう一度**このまま開く**をクリックします。次回からはそのまま起動します。",

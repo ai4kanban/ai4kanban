@@ -4,14 +4,14 @@ import type { ContactCopy } from "./types";
 
 const ja: ContactCopy = {
   meta: {
-    title: "AI4Kanban へのお問い合わせ — サポートとエージェントのカスタマイズ",
+    title: "WildCrane へのお問い合わせ — サポートとエージェントのカスタマイズ",
     description:
-      "AI4Kanban のサポート、またはお客様の業務に合わせたエージェントワークフローの構築を承ります。フォームひとつで、返信はメールでお届けします。",
-    socialTitle: "AI4Kanban へのお問い合わせ",
+      "WildCrane のサポート、またはお客様の業務に合わせたエージェントワークフローの構築を承ります。フォームひとつで、返信はメールでお届けします。",
+    socialTitle: "WildCrane へのお問い合わせ",
   },
   eyebrow: "お問い合わせ",
   title: "お問い合わせ",
-  lead: "AI4Kanban のサポート、またはワークフローに合わせたエージェントの構築を承ります。",
+  lead: "WildCrane のサポート、またはワークフローに合わせたエージェントの構築を承ります。",
   reason: "ご用件をお選びください",
   support: {
     name: "サポート",

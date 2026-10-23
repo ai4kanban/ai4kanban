@@ -68,7 +68,7 @@ export default async function AgentPage({ params }: Params) {
     },
     softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       description: page.schemaDescription,
       url: pageUrl(""),
       free: true,

@@ -1,6 +1,6 @@
-# AI4Kanban vs. Orca
+# WildCrane vs. Orca
 
-> Compare AI4Kanban and Orca on session control, specialist workflows, draft
+> Compare WildCrane and Orca on session control, specialist workflows, draft
 > review and the work needed to coordinate execution.
 
 **What both support**
@@ -40,13 +40,13 @@ Sources: [Codex worktrees](https://learn.chatgpt.com/docs/environments/git-workt
 · [Remote connections](https://learn.chatgpt.com/docs/remote-connections)
 · [Orca features](https://github.com/stablyai/orca)
 
-## 02 · AI4Kanban: review the drafts, hand off the details
+## 02 · WildCrane: review the drafts, hand off the details
 
 Specialist agents prepare the UI, copy or script you need to review. After you
 approve those key parts, the workflow carries the task through. Coding, blog and
 video workflows are built in; independent tasks can run in parallel.
 
-| | AI4Kanban | Orca |
+| | WildCrane | Orca |
 | --- | --- | --- |
 | Agents plan each task with you and ask only for key decisions | Included | Not included |
 | Ready-made specialist agents and workflows | Included | Not included |
@@ -81,7 +81,7 @@ You can also create your own agents and workflows.
 Only in Orca: Browser, SSH remote work, Mobile control, One prompt to several
 agents. [See Orca's features](https://github.com/stablyai/orca)
 
-**Choose AI4Kanban if you want to**
+**Choose WildCrane if you want to**
 
 - Get ready-to-use specialist agents and workflows for coding, blogs and videos
 - Change key details in a draft before agents complete the work
@@ -91,4 +91,4 @@ The goal: Move development and marketing forward together, with less rework.
 
 ---
 
-Download AI4Kanban. Plan with precision, ship at speed. · https://ai4kanban.dev/download
+Download WildCrane. Plan with precision, ship at speed. · https://wildcrane.ai/download

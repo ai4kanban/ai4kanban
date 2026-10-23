@@ -59,7 +59,7 @@ export type VsHeroDiagrams = {
   theirsDiagramBottom: string;
 };
 
-/** A capability both have: AI4Kanban's line, then the rival's. */
+/** A capability both have: WildCrane's line, then the rival's. */
 export type VsSharedItem = { title: string; body: [string, string] };
 
 /** The rival's side of a topic: a form, and what it leaves you with. */
@@ -69,7 +69,7 @@ export type VsForm = {
   slot: string;
 };
 
-/** One hero topic AI4Kanban wins, and what both share. */
+/** One hero topic WildCrane wins, and what both share. */
 export type VsTopic<Art> = {
   heading: string;
   verdict?: string;

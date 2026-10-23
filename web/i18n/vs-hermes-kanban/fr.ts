@@ -4,15 +4,15 @@ import type { VsHermesCopy } from "./types";
 
 const fr: VsHermesCopy = {
   meta: {
-    title: "AI4Kanban vs. Hermes Kanban : valider avant de produire",
-    socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
-    description: "Comparez AI4Kanban et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
-    social: "Comparez AI4Kanban et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
+    title: "WildCrane vs. Hermes Kanban : valider avant de produire",
+    socialTitle: "WildCrane vs. Hermes Agent Kanban",
+    description: "Comparez WildCrane et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
+    social: "Comparez WildCrane et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
   },
   hero: {
     badge: "Comparatif",
-    title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Comparez AI4Kanban et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
+    title: "WildCrane vs.\nHermes Agent Kanban",
+    lead: "Comparez WildCrane et Hermes Kanban sur les workflows spécialisés, les brouillons, le contrôle depuis la messagerie, les tâches parallèles et le suivi.",
     sharedLabel: "Les deux proposent",
     setup: {
       heading: "Des agents et workflows spécialisés, prêts à l’emploi",
@@ -38,14 +38,14 @@ const fr: VsHermesCopy = {
         {
           title: "Découpage des tâches et dépendances",
           body: [
-            "AI4Kanban découpe le travail en cartes et sous-tâches, et les dépendances fixent l’ordre d’exécution.",
+            "WildCrane découpe le travail en cartes et sous-tâches, et les dépendances fixent l’ordre d’exécution.",
             "Hermes Kanban découpe une tâche d’une ligne en tâches enfants et lance chacune dès que ses tâches parentes sont terminées.",
           ],
         },
         {
           title: "Exécutions parallèles dans des git worktrees",
           body: [
-            "AI4Kanban exécute côte à côte les cartes indépendantes, chacune dans son propre git worktree.",
+            "WildCrane exécute côte à côte les cartes indépendantes, chacune dans son propre git worktree.",
             "Hermes Kanban exécute les tâches en parallèle, avec un git worktree par tâche.",
           ],
         },
@@ -75,14 +75,14 @@ const fr: VsHermesCopy = {
         {
           title: "Une spécification écrite",
           body: [
-            "Les cartes AI4Kanban contiennent le périmètre et les étapes de construction.",
+            "Les cartes WildCrane contiennent le périmètre et les étapes de construction.",
             "Hermes Kanban peut réécrire une tâche en objectif, approche et critères d’acceptation.",
           ],
         },
         {
           title: "Retours sur la tâche",
           body: [
-            "AI4Kanban reçoit vos modifications dans le chat de la carte et met le plan à jour.",
+            "WildCrane reçoit vos modifications dans le chat de la carte et met le plan à jour.",
             "Hermes Kanban transmet vos notes au worker dans les commentaires de la tâche.",
           ],
         },
@@ -113,14 +113,14 @@ const fr: VsHermesCopy = {
         {
           title: "Des agents qui apprennent en travaillant",
           body: [
-            "Les agents spécialisés d’AI4Kanban notent les brouillons que vous renvoyez ou rejetez, et les cartes terminées sont relues pour en extraire décisions et préférences.",
+            "Les agents spécialisés d’WildCrane notent les brouillons que vous renvoyez ou rejetez, et les cartes terminées sont relues pour en extraire décisions et préférences.",
             "Chaque profil Hermes conserve des notes de mémoire et écrit ses propres skills à partir de ce qu’il apprend, y compris vos corrections.",
           ],
         },
         {
           title: "Historique de la tâche",
           body: [
-            "AI4Kanban conserve sur la carte les plans, les conversations et les journaux d’exécution.",
+            "WildCrane conserve sur la carte les plans, les conversations et les journaux d’exécution.",
             "Hermes Kanban conserve sur la tâche un fil de commentaires et l’historique des exécutions.",
           ],
         },
@@ -133,7 +133,7 @@ const fr: VsHermesCopy = {
       title: "Comparer en détail",
     },
     lead: "Un {check} indique le côté le plus fort sur chaque ligne.",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Hermes Kanban",
     rows: {
       startingPoint: {
@@ -188,7 +188,7 @@ const fr: VsHermesCopy = {
       },
       review: {
         dimension: "Vérification du travail",
-        kanban: "Claude Code ou Codex exécutent les tests et vérifient les exigences pendant la construction ; AI4Kanban n’ajoute pas de seconde relecture, pour éviter de trop tester.",
+        kanban: "Claude Code ou Codex exécutent les tests et vérifient les exigences pendant la construction ; WildCrane n’ajoute pas de seconde relecture, pour éviter de trop tester.",
         hermes: "Un profil relecteur vérifie chaque critère d’acceptation et exécute les tests, en renvoyant le travail jusqu’à ce qu’il passe.",
       },
       chat: {
@@ -213,7 +213,7 @@ const fr: VsHermesCopy = {
       eyebrow: "Recommandation",
       title: "Lequel choisir ?",
     },
-    oursHeading: "Choisissez AI4Kanban si vous",
+    oursHeading: "Choisissez WildCrane si vous",
     theirsHeading: "Choisissez Hermes Kanban si vous",
     ours: [
       "Voulez des agents et workflows prêts pour le code, les articles et les vidéos.",
@@ -225,7 +225,7 @@ const fr: VsHermesCopy = {
       "Voulez gérer vos tâches depuis Telegram, Slack, Discord ou d’autres applications de chat.",
       "Voulez une reprise automatique des tâches bloquées et une API sur laquelle construire.",
     ],
-    verdict: "Choisissez AI4Kanban pour **des workflows spécialisés prêts à utiliser et des brouillons clés qui limitent les reprises** ; choisissez Hermes Kanban pour **le pilotage depuis les applications de chat, la reprise automatique et une API**.",
+    verdict: "Choisissez WildCrane pour **des workflows spécialisés prêts à utiliser et des brouillons clés qui limitent les reprises** ; choisissez Hermes Kanban pour **le pilotage depuis les applications de chat, la reprise automatique et une API**.",
     note: "Comparaison établie d’après la documentation de Hermes Agent v0.21.6, vérifiée en octobre 2026.",
   },
 };

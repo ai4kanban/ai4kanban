@@ -4,35 +4,35 @@ import type { HomeCopy } from "./types";
 
 const fr: HomeCopy = {
   meta: {
-    title: "Espace de travail avec agents pour indie hackers | AI4Kanban",
+    title: "Espace de travail avec agents pour indie hackers | WildCrane",
     description:
-      "Du développement au marketing, AI4Kanban vous prépare des brouillons des parties qui demandent votre jugement. Relisez-les, puis laissez les agents gérer les détails de l’exécution.",
+      "Du développement au marketing, WildCrane vous prépare des brouillons des parties qui demandent votre jugement. Relisez-les, puis laissez les agents gérer les détails de l’exécution.",
     socialTitle: "Inutile de gérer chaque détail.",
     social:
       "Relisez les parties qui demandent votre jugement. Laissez les agents s’occuper de l’exécution, du développement au marketing.",
     schema:
-      "AI4Kanban est un espace de travail avec agents pour indie hackers. Six workflows intégrés repèrent les décisions qui demandent un jugement humain et préparent des brouillons à valider avant que les agents n’exécutent. Vous pouvez créer vos propres agents et workflows pour définir ce que vous relisez et ce que les agents prennent en charge.",
+      "WildCrane est un espace de travail avec agents pour indie hackers. Six workflows intégrés repèrent les décisions qui demandent un jugement humain et préparent des brouillons à valider avant que les agents n’exécutent. Vous pouvez créer vos propres agents et workflows pour définir ce que vous relisez et ce que les agents prennent en charge.",
   },
 
   hero: {
     eyebrow: "Espace de travail avec agents pour indie hackers",
     title: "Inutile de gérer\nchaque détail.",
     lead:
-      "Du développement au marketing, AI4Kanban vous prépare des brouillons des parties qui demandent votre jugement. Relisez, ajustez, et laissez les agents prendre le relais.",
+      "Du développement au marketing, WildCrane vous prépare des brouillons des parties qui demandent votre jugement. Relisez, ajustez, et laissez les agents prendre le relais.",
     ctaDownload: "Télécharger",
     ctaGithub: "Voir sur GitHub ↗",
     image:
-      "Enregistrement d’AI4Kanban : planifier une tâche, relire ses brouillons, puis confier le plan validé aux agents.",
+      "Enregistrement d’WildCrane : planifier une tâche, relire ses brouillons, puis confier le plan validé aux agents.",
   },
 
   handoff: {
     title: "Vous validez l’essentiel.\nLes agents font le reste.",
     body: [
-      "AI4Kanban vous aide à clarifier votre idée. Chaque workflow vous prépare des brouillons des parties qui demandent votre avis. Relisez-les, ajustez-les, puis laissez les agents terminer le travail. Les tâches indépendantes avancent en même temps.",
+      "WildCrane vous aide à clarifier votre idée. Chaque workflow vous prépare des brouillons des parties qui demandent votre avis. Relisez-les, ajustez-les, puis laissez les agents terminer le travail. Les tâches indépendantes avancent en même temps.",
     ],
     scene: {
       label:
-        "Vous confiez une idée à AI4Kanban, qui la transforme en brouillons à relire. Une fois validés, AI4Kanban transmet les brouillons et leur contexte aux agents, qui prennent le relais.",
+        "Vous confiez une idée à WildCrane, qui la transforme en brouillons à relire. Une fois validés, WildCrane transmet les brouillons et leur contexte aux agents, qui prennent le relais.",
       idea: [
         "Lancer une offre Pro",
         "Ajouter le mode sombre",
@@ -41,7 +41,7 @@ const fr: HomeCopy = {
         "Carrousel de 5 astuces",
       ],
       you: "Vous",
-      board: "AI4Kanban",
+      board: "WildCrane",
       agent: "Agent",
       review: "Vous validez",
       build: "Les agents prennent le relais",
@@ -95,7 +95,7 @@ const fr: HomeCopy = {
   tools: {
     title: "Gardez les outils d'IA que vous utilisez déjà",
     body:
-      "Connectez Claude Code et 7 autres outils, sur votre machine et avec vos propres abonnements. Choisissez un outil et un modèle pour chaque agent. AI4Kanban ne facture aucun frais de tokens supplémentaire.",
+      "Connectez Claude Code et 7 autres outils, sur votre machine et avec vos propres abonnements. Choisissez un outil et un modèle pour chaque agent. WildCrane ne facture aucun frais de tokens supplémentaire.",
   },
 
   start: {

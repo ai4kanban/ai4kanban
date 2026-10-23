@@ -3,14 +3,14 @@ import type { SeedCopy } from "./types";
 
 const zh: SeedCopy = {
   meta: {
-    title: "成为 AI4Kanban 种子伙伴",
-    description: "与我们分享经你脱敏的会话，帮助改进 AI4Kanban。获得接纳后享 6 个月 Pro，到期不自动收费。",
+    title: "成为 WildCrane 种子伙伴",
+    description: "与我们分享经你脱敏的会话，帮助改进 WildCrane。获得接纳后享 6 个月 Pro，到期不自动收费。",
   },
   title: "成为种子伙伴",
   email: "邮箱",
   github: "GitHub 用户名",
   githubHint: "Pro 会赠送到这个账户。",
-  use: "你打算如何使用 AI4Kanban？",
+  use: "你打算如何使用 WildCrane？",
   useHint: "一两句话即可。",
   submit: "提交申请",
   submitting: "正在提交…",

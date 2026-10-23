@@ -43,7 +43,7 @@
 # The DeepSeek Harness post was taken down.
 /blog/deepseek-harness-support /blog 301
 
-# draft-first was retired; AI4Kanban carries the same draft review.
+# draft-first was retired; WildCrane carries the same draft review.
 /draft-first / 301
 /zh/draft-first /zh 301
 /es/draft-first /es 301

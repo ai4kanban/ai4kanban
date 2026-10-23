@@ -2,8 +2,8 @@ import type { TemplatesCopy } from "./types";
 
 const zh: TemplatesCopy = {
   meta: {
-    title: "AI4Kanban：模板",
-    description: "按分类浏览模板，查看图片及来源，对照原作与复刻结果，再通过 AI4Kanban 使用模板。",
+    title: "WildCrane：模板",
+    description: "按分类浏览模板，查看图片及来源，对照原作与复刻结果，再通过 WildCrane 使用模板。",
   },
   title: "模板",
   lead: "按分类浏览。",
@@ -35,21 +35,21 @@ const zh: TemplatesCopy = {
   noPreview: "暂无预览",
   tags: "标签",
   use: "使用这个模板",
-  useLead: "粘贴到 AI4Kanban，再补上你的主题。",
+  useLead: "粘贴到 WildCrane，再补上你的主题。",
   prompt: (category, name) => {
     switch (category) {
       case "video":
-        return `用 AI4Kanban 的视频模板「${name}」做：<写下你的产品和视频要展示的内容>`;
+        return `用 WildCrane 的视频模板「${name}」做：<写下你的产品和视频要展示的内容>`;
       case "ui":
-        return `用 AI4Kanban 的界面模板「${name}」设计：<写下要做的页面或界面>`;
+        return `用 WildCrane 的界面模板「${name}」设计：<写下要做的页面或界面>`;
       case "carousel":
-        return `用 AI4Kanban 的图文模板「${name}」做：<写下你的主题和内容>`;
+        return `用 WildCrane 的图文模板「${name}」做：<写下你的主题和内容>`;
       case "prop":
-        return `用 AI4Kanban 做一个视频，用上道具「${name}」：<写下视频的主题和内容>`;
+        return `用 WildCrane 做一个视频，用上道具「${name}」：<写下视频的主题和内容>`;
       case "motion":
-        return `用 AI4Kanban 做一个视频，用上动效「${name}」：<写下视频的主题和内容>`;
+        return `用 WildCrane 做一个视频，用上动效「${name}」：<写下视频的主题和内容>`;
       default:
-        return `用 AI4Kanban 的 ${category} 模板「${name}」做：<写下你想做的内容>`;
+        return `用 WildCrane 的 ${category} 模板「${name}」做：<写下你想做的内容>`;
     }
   },
   copyPrompt: "复制提示词",
@@ -67,7 +67,7 @@ const zh: TemplatesCopy = {
   videoFailed: "视频无法播放。",
   openYouTube: "在 YouTube 打开",
   openOriginal: "打开原始链接",
-  detailTitle: (title) => `${title} | AI4Kanban 模板`,
+  detailTitle: (title) => `${title} | WildCrane 模板`,
 };
 
 export default zh;

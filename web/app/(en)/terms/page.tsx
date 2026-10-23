@@ -10,7 +10,7 @@ const doc = getLegalDoc("terms");
 export const metadata: Metadata = pageMetadata({
   locale: "en",
   path: doc.path,
-  title: `${doc.title} — AI4Kanban`,
+  title: `${doc.title} — WildCrane`,
   description: doc.description,
   translated: false,
 });

@@ -3,15 +3,15 @@ import type { SeedCopy } from "./types";
 
 const en: SeedCopy = {
   meta: {
-    title: "Become an AI4Kanban seed partner",
+    title: "Become an WildCrane seed partner",
     description:
-      "Share redacted sessions to improve AI4Kanban. Accepted partners get 6 months of Pro, with no charge afterwards.",
+      "Share redacted sessions to improve WildCrane. Accepted partners get 6 months of Pro, with no charge afterwards.",
   },
   title: "Become a seed partner",
   email: "Email",
   github: "GitHub username",
   githubHint: "Pro goes on this account.",
-  use: "How do you plan to use AI4Kanban?",
+  use: "How do you plan to use WildCrane?",
   useHint: "A sentence or two is enough.",
   submit: "Apply",
   submitting: "Sending…",

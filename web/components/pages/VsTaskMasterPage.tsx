@@ -26,7 +26,7 @@ import {
 
 export const PATH = "/vs-task-master";
 
-// Which side is stronger on each row; AI4Kanban's rows first.
+// Which side is stronger on each row; WildCrane's rows first.
 const ROWS: { key: VsTaskMasterRowKey; winner: VsRow["winner"] }[] = [
   { key: "startingPoint", winner: "ours" },
   { key: "planning", winner: "neutral" },
@@ -61,7 +61,7 @@ export function VsTaskMasterPage({ locale }: { locale: Locale }) {
     }),
     softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       url: pageUrl(""),
       free: true,
     }),

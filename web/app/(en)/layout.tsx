@@ -45,11 +45,11 @@ export default function EnglishRootLayout({
         {/* Send *.pages.dev and the old kanbanskill.cc domain to the current one.
             Raw inline script so it runs during HTML parse (no flash, no dependency
             on the JS bundle). Guarded on hostname so it never loops on
-            ai4kanban.dev or localhost. Canonical tags handle SEO; this just
+            wildcrane.ai or localhost. Canonical tags handle SEO; this just
             shepherds human visitors. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `if(location.hostname.endsWith(".pages.dev")||location.hostname.endsWith("kanbanskill.cc")){location.replace("https://ai4kanban.dev"+location.pathname+location.search+location.hash)}`,
+            __html: `if(location.hostname.endsWith(".pages.dev")||location.hostname.endsWith("kanbanskill.cc")){location.replace("https://wildcrane.ai"+location.pathname+location.search+location.hash)}`,
           }}
         />
         <script dangerouslySetInnerHTML={{ __html: LOCALE_SUGGEST_SCRIPT }} />

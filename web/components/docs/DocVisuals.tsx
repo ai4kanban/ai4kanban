@@ -17,8 +17,8 @@ export function BoardShots() {
     <Mat wash="mintSky" className={`${BLOCK} hidden p-4 sm:block sm:p-6`}>
       <HeroShots
         c={{
-          board: { label: "Board", alt: "The AI4Kanban board: Board view" },
-          card: { label: "Card", alt: "The AI4Kanban board: a card's details and requirements" },
+          board: { label: "Board", alt: "The WildCrane board: Board view" },
+          card: { label: "Card", alt: "The WildCrane board: a card's details and requirements" },
           frontAria: "{view} view (current)",
           flipAria: "Switch to the {view} view",
         }}

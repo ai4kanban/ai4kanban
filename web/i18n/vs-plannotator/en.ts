@@ -2,17 +2,17 @@ import type { VsPlannotatorCopy } from "./types";
 
 const en: VsPlannotatorCopy = {
   meta: {
-    title: "AI4Kanban vs. Plannotator: from key drafts to delivery",
-    socialTitle: "AI4Kanban vs. Plannotator",
+    title: "WildCrane vs. Plannotator: from key drafts to delivery",
+    socialTitle: "WildCrane vs. Plannotator",
     description:
-      "Compare AI4Kanban and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
+      "Compare WildCrane and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
     social:
-      "Compare AI4Kanban and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
+      "Compare WildCrane and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
   },
   hero: {
     badge: "Comparison",
-    title: "AI4Kanban vs. Plannotator",
-    lead: "Compare AI4Kanban and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
+    title: "WildCrane vs. Plannotator",
+    lead: "Compare WildCrane and Plannotator on draft and code review, specialist workflows, parallel tasks and how work continues after approval.",
   },
   both: {
     title: "What both support",
@@ -41,7 +41,7 @@ const en: VsPlannotatorCopy = {
     links: ["Explore Plannotator", "Plannotator README"],
   },
   ours: {
-    title: "AI4Kanban: from key drafts to finished work",
+    title: "WildCrane: from key drafts to finished work",
     lead: "Specialist agents prepare the UI, copy or script you need to review. After you approve those key parts, the workflow carries the task through. Coding, blog and video workflows are built in; independent tasks can run in parallel.",
     drafts: {
       title: "Review what you would want to change",
@@ -100,14 +100,14 @@ const en: VsPlannotatorCopy = {
       body: "You want to review plans, documents and code around the agent you already use, checking each revision. You also need PR review or shared annotations.",
     },
     ours: {
-      name: "Choose AI4Kanban",
+      name: "Choose WildCrane",
       body: "Review key drafts on the task card, then let agents finish the work. Built-in workflows cover coding and marketing, with independent tasks moving in parallel. Agents reuse your preferences on later tasks, so you spend less time repeating corrections.",
     },
   },
   start: {
     title: "Ready to coordinate several tasks?",
-    body: "Download AI4Kanban. Plan with precision, ship at speed.",
-    cta: "Download AI4Kanban",
+    body: "Download WildCrane. Plan with precision, ship at speed.",
+    cta: "Download WildCrane",
   },
 };
 

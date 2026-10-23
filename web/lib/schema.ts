@@ -33,14 +33,14 @@ export const person = {
 };
 
 // Google wants a logo of at least 112×112, uncropped, on white or transparent.
-// This is the largest square the favicon set ships — the same mark as
-// `components/ui/Logo.tsx`, transparent outside the block. It doubles as the
+// This is the largest square the favicon set ships. It doubles as the
 // manifest's 512 because a second copy of one image is a second thing to
 // forget: `app/icon.png` used to be named here, and outlived the file.
 const organization = {
   "@type": "Organization",
   "@id": ORG_ID,
-  name: "AI4Kanban",
+  name: "WildCrane",
+  alternateName: "AI4Kanban",
   url: BASE_URL,
   logo: {
     "@type": "ImageObject",
@@ -64,7 +64,8 @@ const organization = {
 const website = {
   "@type": "WebSite",
   "@id": SITE_ID,
-  name: "AI4Kanban",
+  name: "WildCrane",
+  alternateName: "AI4Kanban",
   url: BASE_URL,
   inLanguage: LOCALES.map((l) => LOCALE_TAGS[l]),
   publisher: { "@id": ORG_ID },

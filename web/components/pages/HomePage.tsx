@@ -44,7 +44,7 @@ export function HomePage({ locale }: { locale: Locale }) {
   const schema = jsonLd(home, {
     ...softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       description: c.meta.description,
       url: pageUrl(""),
       free: true,

@@ -15,19 +15,19 @@
 # two `Link: rel="canonical"` values make both worthless. Add a mirror, add a
 # line.
 /index.md
-  Link: <https://ai4kanban.dev/>; rel="canonical"
+  Link: <https://wildcrane.ai/>; rel="canonical"
 
 /vs-hermes-kanban.md
-  Link: <https://ai4kanban.dev/vs-hermes-kanban>; rel="canonical"
+  Link: <https://wildcrane.ai/vs-hermes-kanban>; rel="canonical"
 
 /vs-multica.md
-  Link: <https://ai4kanban.dev/vs-multica>; rel="canonical"
+  Link: <https://wildcrane.ai/vs-multica>; rel="canonical"
 
 /workflows/coding.md
-  Link: <https://ai4kanban.dev/workflows/coding>; rel="canonical"
+  Link: <https://wildcrane.ai/workflows/coding>; rel="canonical"
 
 /solutions/saas.md
-  Link: <https://ai4kanban.dev/solutions/saas>; rel="canonical"
+  Link: <https://wildcrane.ai/solutions/saas>; rel="canonical"
 
 /*.txt
   Content-Type: text/plain; charset=utf-8

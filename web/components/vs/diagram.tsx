@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CRANE, CREST } from "@/components/ui/Logo";
 
 // The vocabulary every comparison page's hero diagram pair is drawn in.
 //
@@ -157,23 +158,16 @@ export function Robot({
 // which product they are looking at, so the middle of a drawing is never a
 // generic icon standing in for a brand.
 //
-// It is square, at one size, on every page. A logo is a square on this site —
-// the header's, the favicon's, and every rival's own mark — and a block that
-// stretched to fit its drawing would stop reading as one.
+// It is square, at one size, on every page.
 export const BLOCK = 36;
 
-// Ours is the mark itself: the ember block and the three descending board
-// columns `LogoMark` draws, at the 62% of the block it sets them at.
+// Ours is the mark itself: the unframed crane, filling the block's width.
 export function OursBlock({ x, y }: { x: number; y: number }) {
   return (
-    <>
-      <rect x={x} y={y} width={BLOCK} height={BLOCK} rx="8" fill={EMBER} />
-      <g transform={`translate(${x + 6.84} ${y + 6.82}) scale(0.372)`} fill={PAPER}>
-        <rect x="5" y="8" width="12" height="44" rx="3.5" />
-        <rect x="24" y="8" width="12" height="35" rx="3.5" />
-        <rect x="43" y="8" width="12" height="26" rx="3.5" />
-      </g>
-    </>
+    <svg x={x} y={y} width={BLOCK} height={BLOCK} viewBox="2 2 56 56">
+      <path d={CRANE} fill={INK} />
+      <path d={CREST} fill={EMBER} />
+    </svg>
   );
 }
 

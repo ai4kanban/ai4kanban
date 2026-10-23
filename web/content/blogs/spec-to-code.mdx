@@ -7,7 +7,7 @@ date: 2026-10-10
 categories: ["workflow", "agents"]
 tags: ["spec-to-code", "spec-driven-development", "coding-agents", "product-planning"]
 keywords: ["spec-to-code"]
-author: "AI4Kanban"
+author: "WildCrane"
 featured_image: "https://cdn.ai4kanban.dev/spec-to-code/cover.webp"
 featured_image_alt: "A faded 2,577-line Markdown spec marked wrong beside a short card of key points with the rest folded for the agent, under the headline “A spec you can read.”"
 seo:
@@ -55,7 +55,7 @@ Neither is enough alone. A visualised 2,500-line spec is still 2,500 lines; a co
 
 ![Visualising turns prose into a chart with nothing lost, while folding keeps three key points and hides the rest for the agent.](https://cdn.ai4kanban.dev/spec-to-code/fig-03.webp)
 
-AI4Kanban's planning does both. Different planning agents pull out what needs your review, each in a form that suits the work. Here are three examples:
+WildCrane's planning does both. Different planning agents pull out what needs your review, each in a form that suits the work. Here are three examples:
 
 - **The UI**, because your users touch it directly. You get an HTML mockup to look at, not a paragraph describing a screen.
 - **Prompts**, because one wrong rule can multiply your model costs. You get the exact change as a diff to review.
@@ -63,7 +63,7 @@ AI4Kanban's planning does both. Different planning agents pull out what needs yo
 
 The rest — the implementation notes the coding agent needs — is folded away below. Each part is drafted by its own agent with its own memory. The `ui-designer`, for example, remembers your UI preferences and corrections. The next mockup starts from what you already told it. Questions that need your judgment come to you with options and a recommendation.
 
-![An AI4Kanban card showing a UI mockup, a prompt diff and a tech-stack table, with the agent's part folded at the bottom.](https://cdn.ai4kanban.dev/spec-to-code/fig-04.webp)
+![An WildCrane card showing a UI mockup, a prompt diff and a tech-stack table, with the agent's part folded at the bottom.](https://cdn.ai4kanban.dev/spec-to-code/fig-04.webp)
 
 ## What can't a spec fix?
 
@@ -71,7 +71,7 @@ Software quality, on its own. A spec says what you want and cuts misunderstandin
 
 If you did not know about a requirement, the spec will not know about it either. Neither will the code. You still have to know what good software needs, and catch what is missing.
 
-Many coding agents write unit tests after building a feature. Useful, but tests can pass while the feature still misses what users need. AI4Kanban adds two more checks. A QA agent acts as a user to look for design and implementation gaps. After a feature lands, the board looks back at what was missed and proposes follow-up work.
+Many coding agents write unit tests after building a feature. Useful, but tests can pass while the feature still misses what users need. WildCrane adds two more checks. A QA agent acts as a user to look for design and implementation gaps. After a feature lands, the board looks back at what was missed and proposes follow-up work.
 
 <FAQ>
 
@@ -83,13 +83,13 @@ Both. It is the agreement on what to build. You read it to check that it says wh
 
 <FAQItem question="If I only review the key decisions, who checks the rest?">
 
-You choose what to check. You may leave JavaScript syntax to the agent, for example, and still want to see the UI yourself. Where you do not trust it, add an agent that pulls those parts out for you to review. AI4Kanban's coding workflow already has seven planning agents for different areas; you can [create your own](https://ai4kanban.dev/docs/agents#add-one-of-your-own) or contribute one to AI4Kanban.
+You choose what to check. You may leave JavaScript syntax to the agent, for example, and still want to see the UI yourself. Where you do not trust it, add an agent that pulls those parts out for you to review. WildCrane's coding workflow already has seven planning agents for different areas; you can [create your own](https://wildcrane.ai/docs/agents#add-one-of-your-own) or contribute one to WildCrane.
 
 </FAQItem>
 
 <FAQItem question="Can a spec contain only key decisions and drafts?">
 
-No. You can skip the details; the agent cannot. A mockup shows how a screen looks, not what it does. As the [VISTA benchmark](https://arxiv.org/abs/2605.26144) for agents that build apps from designs puts it, "a screen that looks right is not an application that works." A mockup needs notes beside it. AI4Kanban folds the part written for the agent, so you can read just the drafts and key decisions.
+No. You can skip the details; the agent cannot. A mockup shows how a screen looks, not what it does. As the [VISTA benchmark](https://arxiv.org/abs/2605.26144) for agents that build apps from designs puts it, "a screen that looks right is not an application that works." A mockup needs notes beside it. WildCrane folds the part written for the agent, so you can read just the drafts and key decisions.
 
 </FAQItem>
 
@@ -101,7 +101,7 @@ Yes, if you can live with the result. Without a draft, the agent may build an ug
 
 <FAQItem question="Does this work beyond code — spec-to-slides, spec-to-video?">
 
-Yes. Any work that benefits from a plan and a draft can run this way. AI4Kanban ships workflows for [blog posts, slide decks, carousel posts and product videos](https://ai4kanban.dev/docs/agents#roles). This post was made with the blog workflow: the writing is ours, and the agents handled the outline, editing and images.
+Yes. Any work that benefits from a plan and a draft can run this way. WildCrane ships workflows for [blog posts, slide decks, carousel posts and product videos](https://wildcrane.ai/docs/agents#roles). This post was made with the blog workflow: the writing is ours, and the agents handled the outline, editing and images.
 
 </FAQItem>
 

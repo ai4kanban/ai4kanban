@@ -4,15 +4,15 @@ import type { VsTaskMasterCopy } from "./types";
 
 const zh: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Taskmaster：先审草稿，减少返工",
-    socialTitle: "AI4Kanban vs. Taskmaster",
-    description: "对比 AI4Kanban 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
-    social: "对比 AI4Kanban 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
+    title: "WildCrane vs. Taskmaster：先审草稿，减少返工",
+    socialTitle: "WildCrane vs. Taskmaster",
+    description: "对比 WildCrane 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
+    social: "对比 WildCrane 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
   },
   hero: {
     badge: "对比",
-    title: "AI4Kanban vs.\nTaskmaster",
-    lead: "对比 AI4Kanban 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
+    title: "WildCrane vs.\nTaskmaster",
+    lead: "对比 WildCrane 与 Taskmaster 的专业工作流、草稿审阅、偏好记忆，以及任务如何从规划进入执行。",
     sharedLabel: "两者都支持",
     setup: {
       heading: "专业 agent 和工作流，开箱即用",
@@ -38,14 +38,14 @@ const zh: VsTaskMasterCopy = {
         {
           title: "任务拆解与依赖管理",
           body: [
-            "AI4Kanban 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
+            "WildCrane 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
             "Taskmaster 可从 PRD 生成任务和子任务，并管理依赖关系。",
           ],
         },
         {
           title: "CLI 接入",
           body: [
-            "AI4Kanban 提供 CLI，可由编码 agent 调用；没有 MCP 服务。",
+            "WildCrane 提供 CLI，可由编码 agent 调用；没有 MCP 服务。",
             "Taskmaster 同时提供 CLI 和 MCP 服务。",
           ],
         },
@@ -104,14 +104,14 @@ const zh: VsTaskMasterCopy = {
         {
           title: "可编辑的规则",
           body: [
-            "AI4Kanban 的专业 agent 有可编辑的角色规则。",
+            "WildCrane 的专业 agent 有可编辑的角色规则。",
             "Taskmaster 提供面向不同编辑器的规则文件。",
           ],
         },
         {
           title: "保留工作上下文",
           body: [
-            "AI4Kanban 的卡片保留计划、对话和运行记录。",
+            "WildCrane 的卡片保留计划、对话和运行记录。",
             "Taskmaster 的任务保留描述、实现细节和子任务笔记。",
           ],
         },
@@ -124,7 +124,7 @@ const zh: VsTaskMasterCopy = {
       title: "逐项比较",
     },
     lead: "从专业工作流、草稿审批到工具接入，看看哪些功能已经内置。",
-    ourLabel: "AI4Kanban",
+    ourLabel: "WildCrane",
     theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
@@ -134,7 +134,7 @@ const zh: VsTaskMasterCopy = {
       },
       planning: {
         dimension: "任务拆解与依赖管理",
-        kanban: "AI4Kanban 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
+        kanban: "WildCrane 把工作拆成卡片和子任务，用依赖关系安排执行顺序。",
         taskMaster: "Taskmaster 可从 PRD 生成任务和子任务，并管理依赖关系。",
       },
       drafts: {
@@ -194,7 +194,7 @@ const zh: VsTaskMasterCopy = {
       eyebrow: "选择建议",
       title: "如何选择？",
     },
-    oursHeading: "选择 AI4Kanban，如果你",
+    oursHeading: "选择 WildCrane，如果你",
     theirsHeading: "选择 Taskmaster，如果你",
     ours: [
       "希望直接使用开发、博客、视频的专业 agent 和工作流。",
@@ -206,7 +206,7 @@ const zh: VsTaskMasterCopy = {
       "希望用独立调研命令，带入任务背景并单独配置调研模型。",
       "希望用内置流程引导编码：先写失败测试，再实现到通过，最后提交。",
     ],
-    verdict: "希望**直接使用专业工作流，先审关键草稿以减少返工**，选 AI4Kanban；需要 **MCP 接入、独立调研命令和内置测试先行编码流程**，选 Taskmaster。",
+    verdict: "希望**直接使用专业工作流，先审关键草稿以减少返工**，选 WildCrane；需要 **MCP 接入、独立调研命令和内置测试先行编码流程**，选 Taskmaster。",
     note: "本页比较开源 Taskmaster。Hamster 是同团队的托管产品，其团队功能不计入本页对比。",
   },
 };

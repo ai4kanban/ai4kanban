@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mat } from "./Mat";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// "AI4Kanban is the bridge", one 7s loop in three beats: an idea flies from you into the board,
+// "WildCrane is the bridge", one 7s loop in three beats: an idea flies from you into the board,
 // which puts out two drafts (frame around you + board); the drafts get approved; the drafts and
 // their footnotes go to the agent (frame slides to board + agent). Each loop brings the next
 // idea. Sizes are em off a cqw font size, so the scene scales with its column. It moves only

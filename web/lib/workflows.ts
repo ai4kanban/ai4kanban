@@ -7,7 +7,7 @@ import type { Locale } from "./i18n";
 // Server-only — it reads the filesystem at build time. A missing field fails the build.
 //
 //   ---
-//   title: "AI4Kanban for coding"            # the H1
+//   title: "WildCrane for coding"            # the H1
 //   title_tag: "AI Coding Workflow - ..."    # the SERP <title>
 //   description: "..."                       # meta description
 //   lead: "..."                              # the line under the H1

@@ -1,6 +1,6 @@
 {
-  "name": "AI4Kanban",
-  "short_name": "AI4Kanban",
+  "name": "WildCrane",
+  "short_name": "WildCrane",
   "description": "An agent workspace for indie hackers. Specialist agents handle coding and marketing, drafting the key parts for you to review before finishing the work.",
   "start_url": "/",
   "scope": "/",

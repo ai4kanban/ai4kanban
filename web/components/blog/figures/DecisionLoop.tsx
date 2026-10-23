@@ -1,7 +1,7 @@
 import { FiUser } from "react-icons/fi";
 import { Chip, CHIP_H, Connector, Figure, Panel, chipWidth, toward } from "./kit";
 
-// "In AI4Kanban, we are implementing this discipline as a five-stage loop."
+// "In WildCrane, we are implementing this discipline as a five-stage loop."
 //
 // The list beside this figure already gives the five stages in order. What a
 // list cannot say is that stage 5 feeds stage 2, so the ring is the whole

@@ -29,7 +29,7 @@ export function calendarFile(input: {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//AI4Kanban//Training//EN",
+    "PRODID:-//WildCrane//Training//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

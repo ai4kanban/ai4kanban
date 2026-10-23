@@ -34,7 +34,7 @@ const SOURCES: Record<VsOrcaSourceKey, string> = {
   orcaFeatures: ORCA_FEATURES_URL,
 };
 
-// Which side has each row built in; AI4Kanban's rows first.
+// Which side has each row built in; WildCrane's rows first.
 const ROWS: { key: VsOrcaRowKey; ours: boolean; theirs: boolean }[] = [
   { key: "planning", ours: true, theirs: false },
   { key: "team", ours: true, theirs: false },
@@ -106,7 +106,7 @@ function CodexNote({ c }: { c: VsOrcaCopy["codex"] }) {
   );
 }
 
-// AI4Kanban vs. Orca on what differs: a check where it is built in, a dash
+// WildCrane vs. Orca on what differs: a check where it is built in, a dash
 // where it is not. Our column carries the tint.
 function CompareTable({ c }: { c: VsOrcaCopy["compare"] }) {
   const COLS = "sm:grid-cols-[1fr_9rem_9rem]";
@@ -128,7 +128,7 @@ function CompareTable({ c }: { c: VsOrcaCopy["compare"] }) {
         <span />
         <span className={`flex items-center justify-center gap-2 px-4 py-4 text-base font-bold text-ink ${TINT}`}>
           <LogoMark size="xs" />
-          AI4Kanban
+          WildCrane
         </span>
         <span className="flex items-center justify-center gap-2 px-4 py-4 text-base font-bold text-ink">
           <OrcaMark className="h-5 w-5" />
@@ -139,7 +139,7 @@ function CompareTable({ c }: { c: VsOrcaCopy["compare"] }) {
         <div key={key} className={`sm:grid ${COLS} ${i > 0 ? `border-t ${RULE}` : ""}`}>
           <div className="px-4 pt-4 text-sm font-semibold text-ink sm:py-4 sm:pl-5">{c.rows[key]}</div>
           <div className="grid grid-cols-2 sm:contents">
-            {mark(ours, "AI4Kanban", TINT)}
+            {mark(ours, "WildCrane", TINT)}
             {mark(theirs, "Orca", "")}
           </div>
         </div>
@@ -196,7 +196,7 @@ export function VsOrcaPage({ locale }: { locale: Locale }) {
     }),
     softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       url: pageUrl(""),
       free: true,
     }),

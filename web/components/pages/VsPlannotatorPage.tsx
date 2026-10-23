@@ -87,7 +87,7 @@ function Mark({ has, note, c }: { has: boolean; note?: string; c: VsPlannotatorC
   );
 }
 
-// Plannotator vs. AI4Kanban, row by row. Our column carries the tint.
+// Plannotator vs. WildCrane, row by row. Our column carries the tint.
 function CompareTable({ c }: { c: VsPlannotatorCopy["compare"] }) {
   const COLS = "sm:grid-cols-[1fr_13rem_13rem]";
   const cell = (body: ReactNode, label: string, cls: string) => (
@@ -103,7 +103,7 @@ function CompareTable({ c }: { c: VsPlannotatorCopy["compare"] }) {
       <div className="px-4 pt-4 text-sm font-semibold text-ink sm:py-4 sm:pl-5">{label}</div>
       <div className="grid grid-cols-2 sm:contents">
         {cell(theirs, "Plannotator", "")}
-        {cell(ours, "AI4Kanban", TINT)}
+        {cell(ours, "WildCrane", TINT)}
       </div>
     </div>
   );
@@ -121,7 +121,7 @@ function CompareTable({ c }: { c: VsPlannotatorCopy["compare"] }) {
           </span>
           <span className={`flex items-center gap-2 px-4 py-4 text-base font-bold text-ink ${TINT}`}>
             <LogoMark size="xs" />
-            AI4Kanban
+            WildCrane
           </span>
         </div>
         {row("how", c.how.label, text(c.how.theirs), text(c.how.ours), true)}
@@ -183,7 +183,7 @@ export function VsPlannotatorPage({ locale }: { locale: Locale }) {
     }),
     softwareApplication({
       id: APP_ID,
-      name: "AI4Kanban",
+      name: "WildCrane",
       url: pageUrl(""),
       free: true,
     }),

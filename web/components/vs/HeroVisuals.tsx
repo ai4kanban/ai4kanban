@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { FiArrowRight, FiCheck, FiLock, FiShare2, FiX } from "react-icons/fi";
 import type { VsForm, VsQuestionsHero, VsTopicsHero } from "@/i18n/types";
 
-// One scene per hero column. AI4Kanban's side uses its agents' pixel art, the
+// One scene per hero column. WildCrane's side uses its agents' pixel art, the
 // brand's mascot; the rival's side is drawn by its page from the parts below.
 // Scenes sit straight on the column's ground, with no frame of their own.
 

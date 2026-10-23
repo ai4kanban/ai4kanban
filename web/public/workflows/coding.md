@@ -1,4 +1,4 @@
-# AI4Kanban for coding
+# WildCrane for coding
 
 > Coding in your agent workspace. Review the key drafts, then let agents build from what you approved. Catch the details you would otherwise keep correcting after coding. Review key drafts on the task card, then let agents build from what you approved.
 
@@ -6,7 +6,7 @@
 
 Most of the back-and-forth on a feature comes down to a few details: the interface, agent instructions, copy or emails. You want those right before agents handle the rest.
 
-AI4Kanban brings those details onto the task card as drafts before coding. Built-in specialists prepare the parts that need your approval, so you can catch problems before they become working code.
+WildCrane brings those details onto the task card as drafts before coding. Built-in specialists prepare the parts that need your approval, so you can catch problems before they become working code.
 
 Review the drafts, make changes, and answer the questions. Agents build from the approved drafts and plan. Small fixes can go straight to implementation.
 
@@ -22,7 +22,7 @@ To review a page during development, you have to run the project. If unfinished 
 
 Each task card holds its own drafts: UI designs, prompt diffs, copy and emails. You can review them independently without running the project.
 
-AI4Kanban shows inline HTML/TSX visual specs on the task card, with both desktop and mobile-sized frames.
+WildCrane shows inline HTML/TSX visual specs on the task card, with both desktop and mobile-sized frames.
 
 ## Read the brief. See the design.
 
@@ -69,8 +69,8 @@ The simple fix cost just 7–12% more, with similar acceptance scores. For bigge
 
 ## Keep your coding tools.
 
-Open your project and connect Claude Code, Codex or another [supported tool](https://ai4kanban.dev/docs/connectors). They run locally with your own subscriptions. AI4Kanban adds no token surcharge.
+Open your project and connect Claude Code, Codex or another [supported tool](https://wildcrane.ai/docs/connectors). They run locally with your own subscriptions. WildCrane adds no token surcharge.
 
 Choose a tool and model for each agent, or use the skill and CLI from your coding-agent session.
 
-[Setup guide](https://ai4kanban.dev/docs) · [Agent guide](https://ai4kanban.dev/docs/agents)
+[Setup guide](https://wildcrane.ai/docs) · [Agent guide](https://wildcrane.ai/docs/agents)

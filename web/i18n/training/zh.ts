@@ -4,20 +4,20 @@ import type { TrainingCopy } from "./types";
 
 const zh: TrainingCopy = {
   meta: {
-    title: "AI4Kanban 项目实战指导 — 从首版发布到持续迭代",
+    title: "WildCrane 项目实战指导 — 从首版发布到持续迭代",
     description:
       "围绕你自己的项目做一对一指导：确定首版范围，把需求拆成代理能一次做完的任务，建立能长期执行的验收流程。单次 $99，按月 $349。",
-    socialTitle: "AI4Kanban 项目实战指导",
+    socialTitle: "WildCrane 项目实战指导",
     social:
-      "和 AI4Kanban 的作者一起过一遍你的项目：范围、任务拆解、代理执行与交付验收。",
+      "和 WildCrane 的作者一起过一遍你的项目：范围、任务拆解、代理执行与交付验收。",
   },
 
   hero: {
     eyebrow: "面向独立开发者",
-    title: "AI4Kanban 项目实战指导",
-    lead: "与 AI4Kanban 作者一起梳理你的项目，从明确需求、规划任务到检查交付结果。",
+    title: "WildCrane 项目实战指导",
+    lead: "与 WildCrane 作者一起梳理你的项目，从明确需求、规划任务到检查交付结果。",
     cta: "查看可预约时间",
-    shotAlt: "AI4Kanban 看板",
+    shotAlt: "WildCrane 看板",
   },
 
   stuck: {
@@ -58,7 +58,7 @@ const zh: TrainingCopy = {
         body: "每周发布产品改进，收集用户反馈并规划下一轮迭代。",
       },
     ],
-    note: "AI4Kanban 的看板、桌面应用和网站均采用这套流程开发。",
+    note: "WildCrane 的看板、桌面应用和网站均采用这套流程开发。",
   },
 
   guidance: {
@@ -81,8 +81,8 @@ const zh: TrainingCopy = {
   },
 
   coach: {
-    heading: { eyebrow: "导师介绍", title: "Tao Wu，AI4Kanban 作者" },
-    body: "Tao Wu 拥有多年的数据库研发与产品管理经验。他开发了 AI4Kanban——独立开发者的 Agent 工作台，并用它推进 AI4Kanban 自身看板、桌面应用和网站的开发。",
+    heading: { eyebrow: "导师介绍", title: "Tao Wu，WildCrane 作者" },
+    body: "Tao Wu 拥有多年的数据库研发与产品管理经验。他开发了 WildCrane——独立开发者的 Agent 工作台，并用它推进 WildCrane 自身看板、桌面应用和网站的开发。",
     link: "阅读完整介绍（英文）→",
   },
 
@@ -92,7 +92,7 @@ const zh: TrainingCopy = {
     single: {
       eyebrow: "单次 · 60 分钟",
       name: "60 分钟一对一指导",
-      body: "适合正在使用 AI4Kanban、需要改进项目规划或交付流程的开发者。",
+      body: "适合正在使用 WildCrane、需要改进项目规划或交付流程的开发者。",
       price: "$99",
       per: " / 次",
       rows: [

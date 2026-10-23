@@ -48,7 +48,7 @@ export function UnsubscribeResult({
             href="/"
             className="mt-10 inline-block text-sm font-semibold underline underline-offset-4"
           >
-            Back to AI4Kanban
+            Back to WildCrane
           </a>
         </section>
       </main>

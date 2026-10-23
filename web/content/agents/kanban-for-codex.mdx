@@ -1,21 +1,21 @@
 ---
 title: "How do you keep Codex work moving?"
-title_tag: "Kanban for Codex: Drafts, Workflows & Tasks | AI4Kanban"
+title_tag: "Kanban for Codex: Drafts, Workflows & Tasks | WildCrane"
 nav: "Kanban for Codex"
-description: "Bring your product ideas to life with Codex: organize tasks, review key drafts, and use specialist workflows for development and marketing in AI4Kanban."
+description: "Bring your product ideas to life with Codex: organize tasks, review key drafts, and use specialist workflows for development and marketing in WildCrane."
 lead: "A task board with specialist workflows. Review what needs your judgment, then let Codex carry the work forward."
 eyebrow: "Working with Codex"
-social_image_alt: "AI4Kanban task board with specialist drafts to review before Codex carries out the work."
+social_image_alt: "WildCrane task board with specialist drafts to review before Codex carries out the work."
 schema:
-  description: "AI4Kanban adds task management, specialist workflows and draft approval around Codex. Review the parts that need precision or business judgment before execution. Development and marketing share a board, with per-agent runtime choices and reusable preferences."
+  description: "WildCrane adds task management, specialist workflows and draft approval around Codex. Review the parts that need precision or business judgment before execution. Development and marketing share a board, with per-agent runtime choices and reusable preferences."
 ---
 
-Put your Codex work on a board. AI4Kanban organizes tasks and brings in specialist agents to prepare the parts that need your judgment before execution. You review the details that must be exact; Codex carries out the agreed work.
+Put your Codex work on a board. WildCrane organizes tasks and brings in specialist agents to prepare the parts that need your judgment before execution. You review the details that must be exact; Codex carries out the agreed work.
 
 <Shot
   src="board-v2"
   wash="emberLilac"
-  alt="AI4Kanban separates tasks ready for Codex from tasks waiting for drafts or product decisions"
+  alt="WildCrane separates tasks ready for Codex from tasks waiting for drafts or product decisions"
   caption="See what is ready, what needs your input and what is already moving."
 />
 
@@ -31,14 +31,14 @@ Priorities help you choose what matters next. Dependencies keep blocked tasks wa
 
 Plan the work in stages so you can decide what is worth doing before the agents spend more tokens and time finishing it. Review a UI prototype, a prompt diff or the actual copy changes on the card, rather than imagining the result from a long written plan. Change what is wrong, or decide not to build it at all.
 
-AI4Kanban brings in the relevant specialist agents to prepare those drafts. You judge the details that must be exact and supply the business context, real-world observations and user feedback behind your choices. Interface drafts can be previewed without running your project.
+WildCrane brings in the relevant specialist agents to prepare those drafts. You judge the details that must be exact and supply the business context, real-world observations and user feedback behind your choices. Interface drafts can be previewed without running your project.
 
 Codex follows the approved draft for the parts you reviewed; the agents handle the remaining details. Small fixes can go straight to implementation when there is nothing you need to review first.
 
 <Shot
   src="coding-draft-v2"
   wash="emberLilac"
-  alt="An interface draft on an AI4Kanban card, ready to review before Codex builds"
+  alt="An interface draft on an WildCrane card, ready to review before Codex builds"
   caption="Review the key layout, interactions and wording before implementation."
 />
 
@@ -81,7 +81,7 @@ The card keeps the requirements and approved drafts together as different agents
 <Shot
   src="configuration-agents-codex-v1"
   wash="emberMint"
-  alt="An AI4Kanban agent set to run on Codex with its own model"
+  alt="An WildCrane agent set to run on Codex with its own model"
   caption="Choose a runtime and model for each agent's work."
 />
 
@@ -94,7 +94,7 @@ Each specialist agent keeps and uses the preferences relevant to its role. The c
 Project memory supplies the shared product context, and global memory holds information several roles need. The files stay reviewable in your project, with scheduled review and pruning to keep them useful.
 
 <MemoryShot
-  alt="AI4Kanban memory files, organized by the agents that keep them"
+  alt="WildCrane memory files, organized by the agents that keep them"
   caption="Inspect and update the preferences that guide later work."
 />
 
@@ -102,14 +102,14 @@ Read about [memory](/docs/memory).
 
 ## How does parallel Codex work reach my project?
 
-With **Automatic Git commits** enabled, AI4Kanban runs independent tasks in parallel, each on its own branch and worktree. Tasks with unfinished dependencies wait.
+With **Automatic Git commits** enabled, WildCrane runs independent tasks in parallel, each on its own branch and worktree. Tasks with unfinished dependencies wait.
 
-Finished deliveries join a queue and land on the target branch one at a time as squash commits. AI4Kanban never pushes.
+Finished deliveries join a queue and land on the target branch one at a time as squash commits. WildCrane never pushes.
 
 <Shot
   src="configuration-v2"
   wash="peachEmber"
-  alt="AI4Kanban settings for Automatic Git commits and End a silent run after"
+  alt="WildCrane settings for Automatic Git commits and End a silent run after"
   caption="Enable automatic commits for isolated deliveries. Set how long a silent run can wait before it stops."
 />
 
@@ -117,9 +117,9 @@ Questions and draft review requests appear in the app and can be sent to Slack. 
 
 <FAQ title="Frequently asked questions">
 
-<FAQItem question="I use the Codex desktop app. Can I use AI4Kanban?">
+<FAQItem question="I use the Codex desktop app. Can I use WildCrane?">
 
-Yes. AI4Kanban runs Codex on your computer. It can find a standalone Codex CLI or the bundled engine in supported desktop installations on macOS and Windows. AI4Kanban has its own board and task conversations; it does not import or synchronize your desktop chats.
+Yes. WildCrane runs Codex on your computer. It can find a standalone Codex CLI or the bundled engine in supported desktop installations on macOS and Windows. WildCrane has its own board and task conversations; it does not import or synchronize your desktop chats.
 
 </FAQItem>
 
@@ -133,7 +133,7 @@ Yes. Codex keeps using its login, applicable `AGENTS.md` instructions, skills an
 
 Workflows define what needs human attention, when to review it and the draft you see. Skills provide the procedures and domain knowledge agents use to do the work. They complement each other.
 
-AI4Kanban is organized around agents and does not manage your skills or plugins. Install the skills you need in Codex, such as a Blender skill, and Codex can use them while running board tasks.
+WildCrane is organized around agents and does not manage your skills or plugins. Install the skills you need in Codex, such as a Blender skill, and Codex can use them while running board tasks.
 
 </FAQItem>
 
@@ -163,7 +163,7 @@ Yes. Choose a runtime, model and reasoning effort for each agent. Leave the mode
 
 <FAQItem question="Can I set a token or cost limit before starting a run?">
 
-Not as a hard cap. AI4Kanban reports available token and cost data. Your provider, model and reasoning effort remain your spending controls.
+Not as a hard cap. WildCrane reports available token and cost data. Your provider, model and reasoning effort remain your spending controls.
 
 </FAQItem>
 
@@ -175,7 +175,7 @@ Yes. Disable **Automatic Git commits** globally or for one delivery. Codex then 
 
 <FAQItem question="Will Codex commit, merge or push without my approval?">
 
-Starting a build authorizes automatic commits and one squash landing when automatic commits are enabled. Use manual commit mode to manage Git yourself. AI4Kanban never pushes.
+Starting a build authorizes automatic commits and one squash landing when automatic commits are enabled. Use manual commit mode to manage Git yourself. WildCrane never pushes.
 
 </FAQItem>
 

@@ -4,35 +4,35 @@ import type { HomeCopy } from "./types";
 
 const es: HomeCopy = {
   meta: {
-    title: "Espacio de trabajo con agentes para desarrolladores independientes | AI4Kanban",
+    title: "Espacio de trabajo con agentes para desarrolladores independientes | WildCrane",
     description:
-      "Del desarrollo al marketing, AI4Kanban te prepara borradores de las partes que necesitan tu criterio. Revísalos y deja los detalles de la ejecución a los agentes.",
+      "Del desarrollo al marketing, WildCrane te prepara borradores de las partes que necesitan tu criterio. Revísalos y deja los detalles de la ejecución a los agentes.",
     socialTitle: "No tienes que supervisar cada detalle.",
     social:
       "Revisa las partes que necesitan tu criterio. Deja la ejecución a los agentes, del desarrollo al marketing.",
     schema:
-      "AI4Kanban es un espacio de trabajo con agentes para desarrolladores independientes. Seis flujos integrados identifican las decisiones que requieren criterio humano y preparan borradores para aprobar antes de que los agentes ejecuten. Puedes crear tus propios agentes y flujos que definan qué revisas tú y qué hacen los agentes.",
+      "WildCrane es un espacio de trabajo con agentes para desarrolladores independientes. Seis flujos integrados identifican las decisiones que requieren criterio humano y preparan borradores para aprobar antes de que los agentes ejecuten. Puedes crear tus propios agentes y flujos que definan qué revisas tú y qué hacen los agentes.",
   },
 
   hero: {
     eyebrow: "Espacio de trabajo con agentes para desarrolladores independientes",
     title: "No tienes que supervisar\ncada detalle.",
     lead:
-      "Del desarrollo al marketing, AI4Kanban te prepara borradores de las partes que necesitan tu criterio. Revisa, ajusta y deja que los agentes sigan desde ahí.",
+      "Del desarrollo al marketing, WildCrane te prepara borradores de las partes que necesitan tu criterio. Revisa, ajusta y deja que los agentes sigan desde ahí.",
     ctaDownload: "Descargar",
     ctaGithub: "Ver en GitHub ↗",
     image:
-      "Grabación de AI4Kanban: planificar una tarea, revisar sus borradores y pasar el plan aprobado a los agentes.",
+      "Grabación de WildCrane: planificar una tarea, revisar sus borradores y pasar el plan aprobado a los agentes.",
   },
 
   handoff: {
     title: "Tú revisas las partes clave.\nLos agentes hacen el resto.",
     body: [
-      "AI4Kanban te ayuda a aclarar tu idea. Cada flujo te prepara borradores de las partes que necesitan tu opinión. Revísalos y ajústalos, y deja que los agentes completen el trabajo. Las tareas que no dependen entre sí avanzan a la vez.",
+      "WildCrane te ayuda a aclarar tu idea. Cada flujo te prepara borradores de las partes que necesitan tu opinión. Revísalos y ajústalos, y deja que los agentes completen el trabajo. Las tareas que no dependen entre sí avanzan a la vez.",
     ],
     scene: {
       label:
-        "Le das una idea a AI4Kanban, que la convierte en borradores para que los revises. Cuando los apruebas, AI4Kanban pasa los borradores y su contexto a los agentes, que se encargan del trabajo.",
+        "Le das una idea a WildCrane, que la convierte en borradores para que los revises. Cuando los apruebas, WildCrane pasa los borradores y su contexto a los agentes, que se encargan del trabajo.",
       idea: [
         "Lanzar un plan Pro",
         "Añadir modo oscuro",
@@ -41,7 +41,7 @@ const es: HomeCopy = {
         "Carrusel de 5 consejos",
       ],
       you: "Tú",
-      board: "AI4Kanban",
+      board: "WildCrane",
       agent: "Agente",
       review: "Tú revisas",
       build: "Los agentes siguen",
@@ -95,7 +95,7 @@ const es: HomeCopy = {
   tools: {
     title: "Sigue usando las herramientas de IA que ya conoces",
     body:
-      "Conecta Claude Code y otras 7 herramientas, en tu equipo y con tus propias suscripciones. Elige herramienta y modelo para cada agente. AI4Kanban no cobra tarifas adicionales por tokens.",
+      "Conecta Claude Code y otras 7 herramientas, en tu equipo y con tus propias suscripciones. Elige herramienta y modelo para cada agente. WildCrane no cobra tarifas adicionales por tokens.",
   },
 
   start: {
