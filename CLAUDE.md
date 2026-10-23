@@ -17,6 +17,10 @@
 
 We discourage over-design.
 
+## Branches
+
+- **`legacy`**: the frozen v0.11.2 code; never commit to it. All development happens on `main`.
+
 ## The public site
 
 `web/design.md` describes how the site in `web/` looks and is put together.
