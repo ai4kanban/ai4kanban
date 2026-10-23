@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import type { SentEvent } from '../../telemetry/contract.ts'
+import type { SentEvent } from '../src/lib/telemetry-contract.ts'
 import { addWorkflowHelper, switchWorkflowAgent } from '../src/lib/agent/workflows.ts'
 import { createAgent, customAgentsOn, isCustomAgent } from '../src/lib/agents/roster.ts'
 import { setUsageReporting, usageQueueFile, usageStateFile } from '../src/lib/machine/telemetry.ts'

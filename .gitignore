@@ -20,9 +20,6 @@ docs/kanban/memory/agents/video-cloner
 /templates/
 output/
 
-kanban-ui/.next-guide-test/
-kanban-ui/.next-shots/
-
 researches/
 .env
 social-posts/

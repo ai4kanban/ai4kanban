@@ -108,7 +108,7 @@ function message(record: Queued) {
   return record.kind === 'approval' ? approval(record) : requestNotice(record)
 }
 
-/** The app labels the approval names. A test holds them to `kanban-ui/i18n/configuration/en.ts`. */
+/** The app labels the approval names. */
 export const APP_LABELS = {
   configuration: 'Configuration',
   cloud: 'Cloud',

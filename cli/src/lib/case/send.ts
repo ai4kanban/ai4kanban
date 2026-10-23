@@ -7,8 +7,8 @@
 // can delete a pack for. Nothing retries on its own: somebody is watching the discussion,
 // and the screen offers the retry.
 
-import { CASE_ENDPOINT } from '../../../../telemetry/contract'
-import type { SentCase } from '../../../../telemetry/contract'
+import { CASE_ENDPOINT } from '../telemetry-contract'
+import type { SentCase } from '../telemetry-contract'
 import type { CaseFailure } from './state'
 
 /** How long a submission may take before it is abandoned. Longer than a piece of feedback's

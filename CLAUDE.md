@@ -19,32 +19,16 @@ We discourage over-design.
 
 ## Branches
 
-- **`legacy`**: the frozen v0.11.2 code; never commit to it. All development happens on `main`.
-
-## The public site
-
-`web/design.md` describes how the site in `web/` looks and is put together.
+- **`legacy`**: the frozen v0.11.2 code — the old apps (`kanban-ui/`, `web/`, `desktop/`, `cloud-ui/`, `telemetry/`) live only there; look there for them. Never commit to it. All development happens on `main`.
 
 ## Pre-commit Checks
 
 - **Python**: `uv run pre-commit run --all-files`
-- **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site),
-  `kanban-ui/` (the local board UI), `cloud-ui/` (the hosted board at `cloud.ai4kanban.dev`),
-  `cli/` (the `akb` command and the board's rules), `cloud/` (the Cloud service) and
-  `telemetry/` (the usage endpoint at `t.ai4kanban.dev`) each have their own checks. Don't use
-  `pnpm build`.
-  - `cd web && pnpm typecheck && pnpm run lint`
-  - `cd kanban-ui && npm run typecheck && npm run lint` — npm, never `pnpm install`: the
-    desktop app packs this app's `node_modules`, and pnpm's symlinked layout makes a build
-    that only runs on your machine.
-    The site's `/demo` draws these screens, so also run `cd web && pnpm typecheck`.
-  - `cd cloud-ui && npm run lint` — its own files only; the screens it draws are
-    `kanban-ui/`'s and are linted there.
+- **JavaScript/Typescript**: run in whichever app you touched. Don't use `pnpm build`.
   - `cd cli && npm run lint` — typechecks `src/`. The rules build to `cli/dist/kanban.mjs`,
     which is a build product and not in git: `npm install` in `cli/` makes it, and there is
     nothing to commit or keep in sync.
   - `cd cloud && npm run lint && npm test`
-  - `cd telemetry && npm run lint && npm test`
 
 ## The `akb` command in this repo
 

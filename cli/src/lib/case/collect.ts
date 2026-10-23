@@ -14,7 +14,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import type { SentCase, SentCaseFile, SentCaseRun } from '../../../../telemetry/contract'
+import type { SentCase, SentCaseFile, SentCaseRun } from '../telemetry-contract'
 import { SKILL_VERSION } from '../../version'
 import { git } from '../agent/worktree'
 import { readRuns } from '../agent/store'

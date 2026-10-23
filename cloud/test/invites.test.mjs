@@ -3,10 +3,9 @@
 // Postgres in test/sql/checks.sql.
 
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { APP_LABELS, requestInvite, sendPendingMail } from '../src/invites.ts'
+import { requestInvite, sendPendingMail } from '../src/invites.ts'
 
 const ENV = {
   SUPABASE_URL: 'https://project.supabase.co',
@@ -114,13 +113,6 @@ describe('sendPendingMail', () => {
       assert.doesNotMatch(body, /ai4kanban:\/\/|reply|code|<img/i)
     }
     assert.match(mail.html, />Set up Cloud</)
-  })
-
-  it('names the app’s labels as the app spells them', () => {
-    const copy = readFileSync(new URL('../../kanban-ui/i18n/configuration/en.ts', import.meta.url), 'utf8')
-    assert.match(copy, new RegExp(`\\n  title: "${APP_LABELS.configuration}",`))
-    assert.match(copy, new RegExp(`\\n    cloud: "${APP_LABELS.cloud}",`))
-    assert.match(copy, new RegExp(`\\n    signIn: "${APP_LABELS.signIn}",`))
   })
 
   it('sends the notice to support, replying to whoever asked', async () => {

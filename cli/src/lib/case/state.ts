@@ -16,8 +16,8 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { CASE_ALPHABET } from '../../../../telemetry/contract'
-import type { SentCase } from '../../../../telemetry/contract'
+import { CASE_ALPHABET } from '../telemetry-contract'
+import type { SentCase } from '../telemetry-contract'
 import { CASES } from '../paths'
 
 /** How far one submission has got.

@@ -1,6 +1,0 @@
-#!/bin/sh
-# Stand-in Claude Code: answers the login check; otherwise works for $STANDIN_MS ms (default 3s)
-# and says "Done (stand-in)." No account, no model. Put this folder first on PATH.
-case "$*" in *auth*|*--version*) echo '{"loggedIn":true}'; echo "2.0.0 (Claude Code)"; exit 0;; esac
-cat > /dev/null &
-node -e 'const o=e=>console.log(JSON.stringify(e));o({type:"system",subtype:"init",model:"stand-in"});setTimeout(()=>{o({type:"assistant",message:{content:[{type:"text",text:"Done (stand-in)."}]}});o({type:"result",result:"Done (stand-in).",total_cost_usd:0,usage:{input_tokens:1,output_tokens:1}})},Number(process.env.STANDIN_MS||3000))'

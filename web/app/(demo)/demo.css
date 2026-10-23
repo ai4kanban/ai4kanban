@@ -1,8 +1,0 @@
-/* The board app's own stylesheet, whole, as cloud-ui/app/globals.css takes it. */
-@import "../../../kanban-ui/app/globals.css";
-@import "../../../kanban-ui/app/markdown.css";
-
-/* Tailwind scans the folder its stylesheet is in; the screens' classes are in the other tree. */
-@source "../../../kanban-ui/components";
-@source "../../../kanban-ui/i18n";
-@source "../../../kanban-ui/lib";

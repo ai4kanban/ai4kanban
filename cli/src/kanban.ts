@@ -434,7 +434,7 @@ export {
   sendTextOnlyCase,
 } from './lib/case'
 export type { CaseFailure, CaseRecord, CaseStatus } from './lib/case'
-export { CASE_EMAIL } from '../../telemetry/contract'
+export { CASE_EMAIL } from './lib/telemetry-contract'
 
 // The spec agents (#191, #403): the list a screen draws — each one's description and whether
 // it is switched on — and the switch itself. The words and the order come from each agent's
