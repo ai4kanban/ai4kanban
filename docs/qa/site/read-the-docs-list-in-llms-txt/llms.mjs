@@ -8,7 +8,7 @@ let log = ''
 const llms = await get('/llms.txt')
 const docs = llms.text.split('## Documentation')[1].split('\n## ')[0]
 log += `# 1. GET /llms.txt\nstatus: ${llms.status} ${llms.type}\n## Documentation${docs}\n`
-const items = [...docs.matchAll(/^- \[(.+?)\]\(https:\/\/ai4kanban\.dev(\S+?)\): (.+)$/gm)].map(m => ({ name: m[1], path: m[2], desc: m[3] }))
+const items = [...docs.matchAll(/^- \[(.+?)\]\(https:\/\/wildcrane\.ai(\S+?)\): (.+)$/gm)].map(m => ({ name: m[1], path: m[2], desc: m[3] }))
 const home = await get('/docs')
 const railName = (path) => pick(home.text, new RegExp(`href="${path}"[^>]*>(?:<svg[\\s\\S]*?</svg>)?([^<]*)</a>`))
 log += `# 2. Open each Documentation link\n`

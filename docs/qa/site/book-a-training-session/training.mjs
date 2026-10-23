@@ -13,7 +13,7 @@ const book = `(()=>{const h=[...document.querySelectorAll('main h2')].find(e=>/S
 const shot = async (name, sel = book) => { const b = await p.ev(`(()=>{const e=${sel};e.scrollIntoView({block:'start'});const r=e.getBoundingClientRect();return {y:r.y+scrollY,h:r.height}})()`); await p.sleep(500); await p.shot(D + name, { x: 0, y: b.y, width: 1280, height: Math.min(1500, b.h) }) }
 let log = ''
 // 1. the coach section
-const coach = `(()=>{const h=[...document.querySelectorAll('main h2')].find(e=>/creator of AI4Kanban/.test(e.textContent));let s=h;while(!s.querySelector('img'))s=s.parentElement;return s})()`
+const coach = `(()=>{const h=[...document.querySelectorAll('main h2')].find(e=>/creator of WildCrane/.test(e.textContent));let s=h;while(!s.querySelector('img'))s=s.parentElement;return s})()`
 log += `# 1. Scroll to "Your coach"\n${await p.ev(`(${coach}).innerText`)}\n\n`
 { const b = await p.ev(`(()=>{const e=${coach};e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {y:r.y+scrollY,h:r.height}})()`); await p.sleep(500); await p.shot(D + '00-coach.png', { x: 0, y: b.y - 30, width: 1280, height: b.h + 60 }) }
 // the Chinese page carries the same line
@@ -34,7 +34,7 @@ fs.writeFileSync(D + 'partial.log', log)
 console.log(log)
 if (STEP === 'peek') process.exit(0)
 // 3. confirm (stand-in answers like the service: the booking and its manage link)
-await p.ev(`window.__replies['/v1/training/bookings']=(url,init)=>{const b=JSON.parse(init.body);return {status:200,body:{booking:{reference:'TR-QA0001',slot_at:b.slotAt,service:b.service,price_cents:9900,name:b.name,email:b.email,timezone:b.timezone,project:b.project,state:'booked'},manage:{reference:'TR-QA0001',token:'stand-in-token',url:'https://ai4kanban.dev/training?booking=TR-QA0001&token=stand-in-token'}}}}`)
+await p.ev(`window.__replies['/v1/training/bookings']=(url,init)=>{const b=JSON.parse(init.body);return {status:200,body:{booking:{reference:'TR-QA0001',slot_at:b.slotAt,service:b.service,price_cents:9900,name:b.name,email:b.email,timezone:b.timezone,project:b.project,state:'booked'},manage:{reference:'TR-QA0001',token:'stand-in-token',url:'https://wildcrane.ai/training?booking=TR-QA0001&token=stand-in-token'}}}}`)
 const fill = async (sel, text) => { await p.ev(`(${sel}).focus()`); await p.type(text) }
 await fill(`[...(${book}).querySelectorAll('input')].find(e=>e.labels?.[0]?.innerText==='Name')`, 'QA Tester')
 await fill(`(${book}).querySelector('input[type=email]')`, 'qa@example.com')
@@ -66,7 +66,7 @@ await m.send('Page.addScriptToEvaluateOnNewDocument', { source: fs.readFileSync(
 await m.nav(B + '/training', 6000)
 const wide = () => m.ev(`'page width '+document.documentElement.scrollWidth+' / viewport '+innerWidth`)
 let ml = `\n# 6. Open /training on a 390px phone\ntop: ${await wide()}\n`
-await m.shot(D + '05-phone-top.png', { x: 0, y: 0, width: 390, height: 844 })
+await m.sleep(1500); await m.shot(D + '05-phone-top.png')
 await m.click(byText('main a, main button', 'Book a session')); await m.sleep(2000)
 ml += `after "Book a session": ${await wide()}  scrollX: ${await m.ev('scrollX')}\n`
 await m.ev('scrollBy(300,0)'); await m.sleep(300)

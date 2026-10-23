@@ -8,7 +8,7 @@
 ## Steps
 
 1. 执行 `akb install`。
-   打印 `initialised board at docs/kanban/`，说明设置卡是 #1、下一步是 `project`（在 `docs/kanban/config.md` 写清这是什么项目），并提示用 `akb skill` 给编码 agent 装上 skill。
+   首行是 `wildcrane 0.11.2 — installing into <项目>`，接着打印 `initialised board at docs/kanban/`，说明设置卡是 #1、下一步是 `project`（在 `docs/kanban/config.md` 写清这是什么项目），并提示用 `akb skill` 给编码 agent 装上 skill。
    [01-install.log](01-install.log)
 
 2. 看项目里多了什么。
@@ -25,6 +25,7 @@
 
 ## Feedback
 
+- **回执先报名号**：首行就是 `wildcrane` 和版本号，一眼能确认装的是新名字的这一版。
 - **安装很安静**：只写 `docs/kanban/` 和 `.gitignore` 的一行，并明说了这一点，不用担心它动了别的文件。
 - **下一步说得清楚**：回执直接点出下一步是谁做、写在哪个文件，不用去翻文档。
 - **设置还没完**：装完只勾了七步里的两步，剩下的写在 `setup-checklist.md` 里，命令行用户得自己去读 `akb guide setup`。

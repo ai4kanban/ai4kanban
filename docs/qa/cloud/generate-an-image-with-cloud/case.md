@@ -2,13 +2,13 @@
 
 ## Setup
 
-- **账号**：本机已在 AI4Kanban 登录；第 1 步用免费账号，第 4 步用正在试用 Pro、试用积分已用完的账号，其余用 Pro 账号。
+- **账号**：本机已在 WildCrane 登录；第 1 步用免费账号，第 4 步用正在试用 Pro、试用积分已用完的账号，其余用 Pro 账号。
 - **本次证据的来源**：没碰线上 Cloud，也没花钱。沿用 [托管配乐用例](../generate-music-with-cloud/case.md) 的临时 PostgreSQL、真实 Worker 和替身上游（替身回一张 1024×576 的纯色 PNG），[run.sh](run.sh) 跑下面各步。Worker 日志见 [00-worker.log](00-worker.log)。
 
 ## Steps
 
 1. 用免费账号运行 `akb cloud image --aspect 16:9 --out cover.png "a calm kanban board at dusk"`。
-   被拒：「图像生成是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing」，附「也可以改用现有图片或截图。」，中英文各一遍；没有写出文件。
+   被拒：「图像生成是 Pro 功能。升级 Pro：https://wildcrane.ai/pricing」，附「也可以改用现有图片或截图。」，中英文各一遍；没有写出文件。
    [01-free.log](01-free.log)
 
 2. 换 Pro 账号运行同一条命令。
@@ -25,7 +25,7 @@
 
 ## Feedback
 
-- **说法通用了**：提示不再写「封面」，拿它做配图、示意图的人不会觉得用错了命令。
+- **说法通用、链接已换新**：提示不写「封面」，拿它做配图、示意图的人不会觉得用错了命令；升级链接是 `wildcrane.ai/pricing`。
 - **备用办法实用**：「改用现有图片或截图」对任何用途都成立，Agent 照抄给用户也说得通。
 - **试用积分不够出几张图**：1000 积分按每张 320 只够 3 张；用完的提示让人去桌面应用 Billing 页购买，但试用结束前那里买不了，也不说试用还剩几天。
 - **成功行露出模型名**：括号里是上游模型的完整 ID；托管配乐刻意不透露厂商和模型，两条命令的做法不一致。

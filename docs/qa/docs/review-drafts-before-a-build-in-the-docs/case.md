@@ -24,7 +24,7 @@
    ![Approve and build 一节](04-approve-and-build.png)
 
 5. 打开 `/llms.txt`，看文档列表。
-   「Your first card」「Draft review」依次排在「Documentation overview」之后，后面接「Memory」「The daily loop」，各带一句描述。
+   「Your first card」「Draft review」依次排在「Documentation overview」之后，后面接「Memory」「Follow-ups」，各带一句描述；链接都指向 `https://wildcrane.ai/docs/...`。
    [llms.txt 的文档条目](05-llms-txt.log)
 
 6. 回到 `/docs/drafts`，滚到页底。
@@ -34,9 +34,8 @@
 ## Feedback
 
 - **一页讲清「构建前先看草稿」**：哪些 Agent 会出草稿、去哪看、怎么改、批准后还要按 Build，四节各几句，几分钟读完。
-- **表下一句跟上了改名**：写的是「social post」，和 Workflows 页一致；但只说各有自己的 Agent，社媒帖现在会出一份配图草稿这件事要点进 Agents 页才知道。
-- **名字有三套**：左栏和翻页叫「Draft review」，页标题叫「Review drafts before execution」，搜索标题又叫「AI4Kanban drafts」；从左栏点进来第一眼会怀疑点错。
+- **名字有三套**：左栏和翻页叫「Draft review」，页标题叫「Review drafts before execution」，搜索标题又叫「WildCrane drafts」；从左栏点进来第一眼会怀疑点错。
 - **「放弃这张卡」只给了一句**：导语说可以 drop the card，正文没说按哪里；要去 The daily loop 找。
-- **表和 Agents 页对不齐**：草稿页列 8 个，Agents 页的专员是 13 个；差的是视频、博客、社媒帖专用的，读的人得自己数。
-- **翻页顺着读通了**：下一页是 Memory，llms.txt 的顺序和翻页一致，daily loop 的描述也不再提已删的版本功能。
+- **表和 Agents 页对不齐**：草稿页列 8 个，Agents 页的专员更多；差的是视频、博客、社媒帖专用的，读的人得自己数，社媒帖会出配图草稿也要点进 Agents 页才知道。
+- **翻页和 llms.txt 一致**：下一页是 Memory，llms.txt 的顺序相同，链接也都换成了 wildcrane.ai。
 - **没有跑到的**：在看板上真的审一份草稿、在 Resolve 里批准（见 skill、local-ui 模块的场景）；窄屏。

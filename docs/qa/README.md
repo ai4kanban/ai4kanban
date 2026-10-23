@@ -61,6 +61,7 @@
 - [给图文模板上传按顺序排好的多页展示，其中一页带实况视频](skill/upload-a-carousel-showcase-with-a-live-page/case.md)
 - [不用 Git 工作树的卡片：交付只认这次新加的 Output 行](skill/a-files-delivery-counts-only-new-output-lines/case.md)
 - [一篇博客同时发官网和 dev.to：两份稿子分开交付，dev.to 那份指回原文；下一篇照记下的去向走](skill/deliver-a-blog-post-to-the-site-and-dev-to-as-separate-copies/case.md)
+- [从 ai4kanban 包换装 wildcrane 包](skill/switch-from-the-ai4kanban-package-to-wildcrane/case.md)
 
 ### local-ui
 
@@ -123,8 +124,10 @@
 - [扫过顶栏的按钮，打开再关上「运行历史」](local-ui/open-and-close-the-runs-dialog-from-the-header/case.md)
 - [从「新想法」按钮或 N 键开始一段讨论](local-ui/start-a-discussion-from-new-idea-or-the-n-key/case.md)
 - [在桌面应用的项目菜单里新建一个项目](local-ui/create-a-project-from-the-projects-menu/case.md)
-- [在浏览器标签栏上认出看板的飞鹤图标](local-ui/see-the-crane-on-the-board-s-tab/case.md)
+- [在浏览器标签栏和看板左上角认出 WildCrane 的飞鹤](local-ui/see-the-crane-on-the-board-s-tab/case.md)
 - [打开项目，skill 自动装好；只有出了问题，设置里才出现「安装」](local-ui/skill-is-installed-when-a-project-opens/case.md)
+- [在桌面应用的配置里装上 akb 命令，照提示确认版本](local-ui/install-the-akb-command-from-settings-and-check-it/case.md)
+- [在 macOS 深色和染色图标样式下认出 Dock 里的应用](local-ui/see-the-app-icon-in-dark-and-tinted-modes/case.md)
 
 已补写（2026-10-04）。桌面应用的安装和首次启动没有场景：取证会动到这台电脑上正在用的应用和它的看板。
 
@@ -137,22 +140,23 @@
 - [在联系页发一条消息](site/send-a-message-from-the-contact-page/case.md)
 - [切换官网语言](site/switch-the-site-language/case.md)
 - [按主题浏览博客](site/browse-the-blog-by-topic/case.md)
-- [在官网比较 AI4Kanban 和别的工具](site/compare-ai4kanban-with-another-tool/case.md)
+- [在官网比较 WildCrane 和别的工具](site/compare-ai4kanban-with-another-tool/case.md)
 - [读软件开发方案页](site/read-the-coding-workflow-page/case.md)
 - [读一篇带配图的博客文章](site/read-a-blog-post/case.md)
-- [读创始人讲为什么做 AI4Kanban](site/read-why-tao-is-building-ai4kanban/case.md)
+- [读创始人讲为什么做 WildCrane](site/read-why-tao-is-building-ai4kanban/case.md)
 - [读官网首页](site/read-the-home-page/case.md)
 - [读 SaaS 方案页](site/read-the-saas-solution-page/case.md)
 - [在 /demo 走完一遍交互演示](site/walk-through-the-interactive-demo/case.md)
 - [AI 从 llms.txt 找到文档页](site/read-the-docs-list-in-llms-txt/case.md)
 - [读 Claude Code 介绍页，看先审草稿再交给 Claude Code 是怎么回事](site/read-the-claude-code-page/case.md)
 - [读 Grill Me 介绍页，看一个大想法怎么拆卡、逐卡规划、按依赖交付](site/read-the-grill-me-page/case.md)
-- [读 Codex 介绍页，看 AI4Kanban 在 Codex 之上多了什么](site/read-the-codex-page/case.md)
-- [在官网模板目录里按分类浏览，看动效片段，复制一段提示词去 AI4Kanban 里用](site/browse-the-template-catalog/case.md)
+- [读 Codex 介绍页，看 WildCrane 在 Codex 之上多了什么](site/read-the-codex-page/case.md)
+- [在官网模板目录里按分类浏览，看动效片段，复制一段提示词去 WildCrane 里用](site/browse-the-template-catalog/case.md)
 - [打开已下架模板的旧链接，拿到真正的 404](site/open-a-retired-template-link/case.md)
 - [在官网模板目录里看图文模板：先见骨架，再翻整套竖屏页面，动态页自己播放](site/browse-carousel-templates/case.md)
 - [打开已停掉的 draft-first 旧链接，回到首页](site/open-an-old-draft-first-link/case.md)
 - [在隐私页查官网在浏览器里存了什么，再对照浏览器](site/read-what-the-site-keeps-in-your-browser-on-the-privacy-page/case.md)
+- [打开旧的 ai4kanban.dev 链接，落到 wildcrane.ai 的同一页](site/open-an-old-ai4kanban-dev-link/case.md)
 
 ### docs
 

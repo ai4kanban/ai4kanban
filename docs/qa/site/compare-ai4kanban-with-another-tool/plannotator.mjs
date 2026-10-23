@@ -23,7 +23,7 @@ await p.shot(D + '11-plannotator-top.png', { x: 0, y: 0, width: 1280, height: 90
 const theirs = sec('Plannotator: review within')
 log += `\n# 13. Read section 01\n${await p.ev(txt(theirs))}\nlinks: ${await p.ev(`[...${theirs}.querySelectorAll('a')].map(a=>a.textContent.trim()+' -> '+a.href).join(' | ')`)}\n`
 await shotSection('12-plannotator-theirs.png', theirs)
-const ours = sec('AI4Kanban: from key drafts')
+const ours = sec('WildCrane: from key drafts')
 log += `\n# 14. Read section 02, then hover the info icon\n${await p.ev(txt(ours))}\n`
 await shotSection('13-plannotator-ours.png', ours, 1400)
 const tip = `document.querySelector('button[aria-describedby=pro-tip]')`
@@ -36,7 +36,7 @@ const vy = await p.ev('scrollY')
 await p.shot(D + '13b-plannotator-workflows-tip.png', { x: 140, y: vy + b.y - 160, width: 1000, height: 220 })
 await p.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 5 })
 const table = sec('What comes built in')
-const rows = `[...${table}.querySelectorAll('div.sm\\\\:grid')].slice(1).map(r=>{const c=[...r.querySelectorAll(':scope > div.grid > div')].map(d=>{const s=d.querySelector('svg[aria-label]');return (s?s.getAttribute('aria-label'):'')+(d.innerText.replace(/^(Plannotator|AI4Kanban)\\n?/,'').trim()?' '+d.innerText.replace(/^(Plannotator|AI4Kanban)\\n?/,'').trim():'')});return r.firstElementChild.innerText+' — Plannotator: '+c[0]+', AI4Kanban: '+c[1]}).join('\\n')`
+const rows = `[...${table}.querySelectorAll('div.sm\\\\:grid')].slice(1).map(r=>{const c=[...r.querySelectorAll(':scope > div.grid > div')].map(d=>{const s=d.querySelector('svg[aria-label]');return (s?s.getAttribute('aria-label'):'')+(d.innerText.replace(/^(Plannotator|WildCrane)\\n?/,'').trim()?' '+d.innerText.replace(/^(Plannotator|WildCrane)\\n?/,'').trim():'')});return r.firstElementChild.innerText+' — Plannotator: '+c[0]+', WildCrane: '+c[1]}).join('\\n')`
 log += `\n# 15. Read "What comes built in"\n${await p.ev(rows)}\nnote: ${await p.ev(`${table}.querySelector('p.text-xs')?.innerText ?? ''`)}\n`
 await shotSection('14-plannotator-table.png', table, 1300)
 const dec = sec('Which fits')

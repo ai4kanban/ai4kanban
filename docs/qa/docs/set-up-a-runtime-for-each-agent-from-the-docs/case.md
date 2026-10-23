@@ -13,7 +13,7 @@
    ![首页的接入链接](01-docs-home-link.png)
 
 2. 看 `/docs` 和 `/docs/connectors` 在搜索结果、链接预览里的标题和描述。
-   `/docs` 的标题「AI4Kanban docs — an agent workspace for indie hackers」，描述「Set up AI4Kanban, review key drafts before execution, and deliver development and marketing work with six built-in workflows.」；`/docs/connectors` 的标题「AI4Kanban multi-runtime support — run Claude Code, Codex, Cursor and more」，描述「Connect the coding tool you already use, choose a runtime and model for each agent, and set what a run may touch.」。
+   `/docs` 的标题「WildCrane docs — an agent workspace for indie hackers」，描述「Set up WildCrane, review key drafts before execution, and deliver development and marketing work with six built-in workflows.」；`/docs/connectors` 的标题「WildCrane multi-runtime support — run Claude Code, Codex, Cursor and more」，描述「Connect the coding tool you already use, choose a runtime and model for each agent, and set what a run may touch.」。两页的 canonical 都指向 `https://wildcrane.ai/...`。
    [页面标题与描述](02-page-description.log)
 
 3. 点「Connect a coding agent」。
@@ -43,11 +43,11 @@
 
 ## Feedback
 
-- **首页入口变成一句话里的链接**：原来的「Multi-runtime support」卡片没了，只剩「Connect a coding agent」，点进去还是另开标签页；想换运行时、而不是第一次接入的人，从首页不容易想到点这里，左栏「Multi-runtime」更直接。
-- **叫法三处不一**：首页说「coding agent」，左栏叫「Multi-runtime」，页面描述又是「coding tool」，同一件事读者要自己对上。
-- **顺序是照着做的顺序**：装好 → 添加 → 填设置 → Test，再讲每个 Agent 怎么绑定，四步读完就知道下一步按哪里。
-- **能力表一屏看全**：logo 表头、八列都在表框里，没有横向滚动条。
-- **logo 要认得出才省事**：Claude、OpenAI、Cursor、X 一眼能认；OpenCode、DeepSeek Harness、ZCode 的小图标得悬停才知道是谁，手机上看不到悬停提示。
+- **搜索结果里已是新名字**：两页的标题、描述都写 WildCrane，canonical 指向 wildcrane.ai，分享出去的链接预览不会再出现旧名。
+- **首页入口是一句话里的链接**：只有「Connect a coding agent」，还另开标签页；想换运行时、而不是第一次接入的人，左栏「Multi-runtime」更直接。
+- **叫法三处不一**：首页说「coding agent」，左栏叫「Multi-runtime」，页面描述又是「coding tool」，读者要自己对上。
+- **顺序是照着做的顺序**：装好 → 添加 → 填设置 → Test，四步读完就知道下一步按哪里。
+- **能力表一屏看全**：logo 表头、八列都在表框里；但 OpenCode、DeepSeek Harness、ZCode 的小图标得悬停才知道是谁，手机上看不到提示。
 - **和命令行的说法对得上**：「shows these too」不说「同一张表」，命令行多两项、把 DeepSeek Harness 叫 DSH 也不算出入。
 - **安装要跳出去**：八个工具只给官方文档链接，没有一行安装命令。
 - **没有跑到的**：真的接一个工具并按 Test、在界面里给 Agent 绑定运行时（要真实工具和账号）；窄屏；真鼠标悬停看提示框（只核对了 logo 带 `title` 和 `alt`）。

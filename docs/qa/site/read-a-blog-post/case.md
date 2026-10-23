@@ -8,7 +8,7 @@
 ## Steps
 
 1. 在 `/blog` 点「Why spec-to-code fails, and how we fix it」。
-   到 `/blog/spec-to-code`：主题、日期、阅读时长一行，大标题、导语，作者行写「Tao Wu · Founder of AI4Kanban」，整行链到 `/builder`；下面左侧「ON THIS PAGE」目录，右侧正文。正文里有 4 张配图。
+   到 `/blog/spec-to-code`：主题、日期、阅读时长一行（「WORKFLOW · OCT 10, 2026 · 6 MIN READ」），大标题、导语，作者行写「Tao Wu · Founder of WildCrane」，整行链到 `/builder`；下面左侧「ON THIS PAGE」目录，右侧正文。正文里有 4 张配图。
    ![文章开头](01-post-top.png) · [post.log](post.log)
 
 2. 往下滚到第一张配图。
@@ -21,7 +21,8 @@
 
 ## Feedback
 
+- **新名落到了文章里**：页头换成鹤和「WildCrane」字标，作者行也写「Founder of WildCrane」，读者不会看到旧名。
 - **图和正文融在一起**：浅底配图没有框，像页面的一部分，读起来不被打断。
 - **浅底图边界偏弱**：图的米色底和页面底色接近，只靠圆角分出边界，扫读时不容易一眼看出图从哪里开始。
-- **手机上字太小**：配图整张缩到 342px，图里的小字（「specify」「You review all of it…」）几乎读不清，也不能点开放大。
-- **作者行看不出能点**：「Founder of AI4Kanban」和关于页的头衔一致了，但这一行灰色小字没有下划线，读者很难发现点进去是作者自述。
+- **手机上字太小**：配图缩到 342px，图里的小字（「specify」「You review all of it…」）几乎读不清，也不能点开放大。
+- **作者行看不出能点**：灰色小字、没有下划线，读者很难发现点进去是作者自述。

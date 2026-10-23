@@ -21,8 +21,8 @@ await p.shot(D + '06-orca-top.png', { x: 0, y: 0, width: 1280, height: 900 })
 const orca = `${h('h2', 'Orca: a thin layer')}.closest('section')`
 log += `\n# 7. Read section 01\n${await p.ev(txt(orca))}\nlinks: ${await p.ev(`[...${orca}.querySelectorAll('a')].map(a=>a.textContent.trim()+' -> '+a.href).join(' | ')`)}\n`
 await shotSection('07-orca-codex.png', orca)
-const ours = `${h('h2', 'AI4Kanban: review the drafts')}.closest('section')`
-const rows = `[...${ours}.querySelectorAll('svg[aria-label]')].reduce((a,s,i)=>{const row=s.closest('.grid').parentElement;if(i%2===0)a.push(row.firstElementChild.innerText+' — AI4Kanban: '+s.getAttribute('aria-label'));else a[a.length-1]+=', Orca: '+s.getAttribute('aria-label');return a},[]).join('\\n')`
+const ours = `${h('h2', 'WildCrane: review the drafts')}.closest('section')`
+const rows = `[...${ours}.querySelectorAll('svg[aria-label]')].reduce((a,s,i)=>{const row=s.closest('.grid').parentElement;if(i%2===0)a.push(row.firstElementChild.innerText+' — WildCrane: '+s.getAttribute('aria-label'));else a[a.length-1]+=', Orca: '+s.getAttribute('aria-label');return a},[]).join('\\n')`
 log += `\n# 8. Read section 02's table, then hover the info icon\n${await p.ev(rows)}\n`
 await shotSection('08-ours-table.png', `${ours}.querySelector('svg[aria-label]').closest('.grid').parentElement.parentElement`)
 const tip = `document.querySelector('button[aria-describedby=pro-tip]')`

@@ -8,7 +8,7 @@
 ## Steps
 
 1. 打开 `/docs`。
-   标题「AI4Kanban documentation」，导语「An agent workspace for indie hackers…」；左栏三组「Start here」「How it works」「Using the board」，「Overview」高亮；正文七节，从「Install the desktop app」（只有一张「Download AI4Kanban」卡片，没有安装命令）到「Switch between projects」；整页不出现 npm、`akb` 或 `--board`。
+   页头左上是鹤形 logo 加「WildCrane」字标；标题「WildCrane documentation」，导语「An agent workspace for indie hackers…」；左栏三组「Start here」「How it works」「Using the board」，「Overview」高亮；正文七节，从「Install the desktop app」（只有一张「Download WildCrane」卡片，没有安装命令）到「Switch between projects」；整页不出现「AI4Kanban」，也不出现 npm、`akb` 或 `--board`。
    ![文档首页](01-docs-home.png)
    [首页与配图](daily-loop.log)
 
@@ -26,7 +26,7 @@
    ![Build a card 一节](04-build-a-card.png)
 
 5. 点目录里的「Queue a card that is waiting on another」。
-   标题下先是一张浅蓝紫水彩底上的任务图截图（#311 的五个子任务 #314→#315→#316→#317 / #328 连成一条线，下面是子任务清单），占满正文栏（624px），然后才是讲「被挡住的卡也能构建或细化」的那段。
+   标题下先是一张浅蓝紫水彩底上的任务图截图（#311「Bring team collaboration to AI4Kanban Cloud」的五个子任务 #314→#315→#316→#317 / #328 连成一条线，下面是子任务清单），占满正文栏（624px），然后才是讲「被挡住的卡也能构建或细化」的那段。
    ![任务图](05-queue-task-graph.png)
 
 6. 点目录里的「Review the board」。
@@ -34,7 +34,7 @@
    ![看板与卡片的翻页卡](06-review-the-board.png)
 
 7. 点后面那张露出的一截。
-   卡片截图翻到前面（#38 Sync notes across devices 的详情），看板退到后面；尺寸不变，页面不跳。
+   卡片截图翻到前面（#38 Sync notes across devices 的详情），看板退到后面；尺寸不变，页面不跳。两张图的替代文字都以「The WildCrane board: …」开头。
    ![翻到卡片视图](07-card-view.png)
 
 8. 滚到页面底部。
@@ -51,14 +51,13 @@
 
 ## Feedback
 
+- **改名在首页一眼可见**：页头鹤形 logo、标题、下载卡片都换成了 WildCrane，正文没有漏掉的旧名。
+- **截图里还留着旧名**：任务图写着「Bring team collaboration to AI4Kanban Cloud」，和页头的 WildCrane 在同一屏里，读者会疑惑这是不是同一个产品；卡片已把这些截图列为有意保留，但读的人不知道。
 - **首页先把新手送去第一张卡**：「Deliver your first card」排在安装之后，「The daily loop」放到交付之后再读，顺序对了。
-- **「The daily loop」入口偏弱**：只是配图下面一句里的链接，扫读的人容易错过；左栏仍是最稳的入口。
-- **两张图让长页有了落脚点**：任务图正好放在讲「卡被挡住」的地方，一眼看懂依赖；翻页卡能看到看板和卡片两种视图。
-- **截图字太小**：栏宽 624px 下看板截图里的卡片标题读不出来，只能看个布局；也没有点开放大。
-- **翻页卡不好发现**：后面那张只露出 40px 的一截、没有任何提示，不知道能点；点中间（前面那张）没反应。
+- **「The daily loop」入口偏弱**：只是配图下面一句里的链接，还另开标签页；左栏仍是最稳的入口。
+- **两张图让长页有了落脚点**：任务图放在讲「卡被挡住」的地方，一眼看懂依赖；翻页卡能看到看板和卡片两种视图。
+- **截图字太小、翻页卡难发现**：看板截图里的卡片标题读不出来，也不能放大；后面那张只露出一截、没有提示，不知道能点。
 - **例子对不上**：正文举的是 #4，任务图是 #311、翻页卡是 #38，读者会以为在说别的卡。
-- **手机上整张图都不见**：窄屏只剩文字，读者不知道少了什么；这是有意的，但任务图那节读起来更抽象。
-- **正文链接另开标签页**：点「the daily loop」会新开一页，读完首页再回来攒了好几个标签。
-- **首页和下一页口径不一**：首页刻意不写命令，点进「The daily loop」第一段就是 `akb skill install`、`akb --help`。
-- **翻页落点名字不一致**：往后是「Chat」，点进去标题叫「Discuss ideas and update cards」。
+- **手机上整张图都不见**：窄屏只剩文字，任务图那节读起来更抽象。
+- **口径不一**：首页刻意不写命令，点进「The daily loop」第一段就是 `akb` 命令；往后翻页写「Chat」，进去标题叫「Discuss ideas and update cards」。
 - **没有跑到的**：窄屏下截图（只量了显示与否）、站内搜索、「Copy page」按钮。

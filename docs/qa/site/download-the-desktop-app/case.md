@@ -8,26 +8,39 @@
 ## Steps
 
 1. 用 Mac 打开 `/download`。
-   左边是「AI4Kanban Desktop」，右边橙色块「Download macOS」，按钮「Apple Silicon · v<当前版本>」（这次构建是 v0.10.2）直接给本机的包；下方「All downloads」按 macOS（Apple Silicon、Intel）、Windows（Installer）、Linux（64-bit、ARM64）列出全部五个包。
-   ![Mac 访客看到的下载页](01-mac.png)
+   左边是「WildCrane Desktop」，右边橙色块「Download macOS」，按钮「Apple Silicon · v<当前版本>」（这次构建是 v0.11.2）直接给本机的包 `WildCrane-0.11.2-arm64.dmg`；下方「All downloads」按 macOS（Apple Silicon、Intel）、Windows（Installer）、Linux（64-bit、ARM64）列出全部五个包，文件名都以 `WildCrane-` 开头。「First open」第一步是「Open the `.dmg` and drag **WildCrane** into Applications.」。
+   ![Mac 访客看到的下载页](01-mac.png) · [02b-linux.log](02b-linux.log)
 
 2. 在下方「First open」里点「Windows」。
    说明换成 Windows 首次打开要做的一步：SmartScreen 里点「More info」，再点「Run anyway」。
    ![First open 切到 Windows](02-first-open-windows.png)
 
-3. 换成 Windows 浏览器（改 User-Agent）再打开 `/download`。
-   橙色块变成「Download Windows」，按钮「Installer · v<当前版本>」指向 `AI4Kanban-Setup-<当前版本>.exe`（这次是 0.10.2）。
+3. 再点「Linux」。
+   说明给出一条命令，`chmod +x` 的文件名和页面上 Linux 包的文件名（`WildCrane-0.11.2.AppImage`）对得上，复制就能用。
+   实测失败：说明写的是「`chmod +x AI4Kanban-*.AppImage`, then run it.」，而页面给的包叫 `WildCrane-0.11.2.AppImage`；照抄这条命令会报找不到文件。五种语言都一样。已报待筛选。
+   ![First open 切到 Linux](02b-first-open-linux.png) · [02b-linux.log](02b-linux.log)
+
+4. 展开「Use `akb` in a terminal」。
+   一句「Only Linux needs a step: npm install -g wildcrane.」，装的是新包名 `wildcrane`；中文页同一处也是 `npm install -g wildcrane`。
+   ![命令行一节](02c-terminal.png) · [02b-linux.log](02b-linux.log)
+
+5. 换成 Windows 浏览器（改 User-Agent）再打开 `/download`。
+   橙色块变成「Download Windows」，按钮「Installer · v<当前版本>」指向 `WildCrane-Setup-<当前版本>.exe`（这次是 0.11.2）。
    ![Windows 访客看到的下载页](03-windows-visitor.png)
 
-4. 逐个请求页面上的五个下载链接（`curl -sIL`，只取响应头）。
-   五个都指向 GitHub Releases 的当前版本，跳转后都是 `200 application/octet-stream`。
+6. 逐个请求页面上的五个下载链接（只取响应头）。
+   五个都指向 GitHub Releases 的 `v0.11.2/WildCrane-…`。
+   未能证明：取证时 GitHub 上还没有这些 `WildCrane-*` 文件，五个都回 404；包随发版上传，本地构建证明不了它们能下载。
    [04-links.log](04-links.log)
-   实测失败：本机构建的版本号是 0.10.2，五个链接都指向 `releases/download/v0.10.2/…`，全部返回 404——GitHub 上还没有 v0.10.2 这个 release（最新的是 v0.10.1）。线上站点仍链到 v0.10.1，下次从 main 部署官网就会带上这五个坏链接；已提交 triage。
 
-5. 看把 `/download`、`/zh/download` 和西、日、法三种语言的下载页分享出去时的说明，再读安装清单 `/site.webmanifest`、站点给 AI 的摘要 `/llms.txt` 和 `/index.md`。
-   英文页面标题「Download AI4Kanban for macOS, Windows and Linux」，描述「Download AI4Kanban, an agent workspace for indie hackers. Available for macOS, Windows and Linux.」，分享说明「AI4Kanban: an agent workspace for indie hackers. Download for macOS, Windows and Linux.」；中文页面标题「下载 AI4Kanban —— macOS、Windows 与 Linux 桌面应用」，描述「下载 AI4Kanban，独立开发者的 Agent 工作台。支持 macOS、Windows 和 Linux。」，分享说明「AI4Kanban，独立开发者的 Agent 工作台。下载 macOS、Windows 和 Linux 桌面应用。」——和首页一样叫「独立开发者」，不再是「独立创业者」；西、日、法三页是同一意思的译文（如西语「Descarga AI4Kanban, un espacio de trabajo con agentes para emprendedores independientes. …」、日语「個人開発者のためのエージェントワークスペース、AI4Kanban をダウンロード。…」）。分享标题仍是「Download AI4Kanban」「下载 AI4Kanban」。安装清单的描述换成「An agent workspace for indie hackers. Specialist agents handle coding and marketing, drafting the key parts for you to review before finishing the work.」；`llms.txt` 开头讲独立开发者的 Agent 工作台、6 个内置工作流和只为关键部分出草稿，首页条目是「Home — See the draft. Let agents do the rest.」；`index.md` 是首页的纯文本镜像，从定位行「An agent workspace for indie hackers」和首屏导语开始，接着是「Build the product. Keep marketing moving.」和六个工作流。
+7. 看把 `/download`、`/zh/download` 和西、日、法三种语言的下载页分享出去时的说明，再读安装清单 `/site.webmanifest`、站点给 AI 的摘要 `/llms.txt` 和 `/index.md`。
+   英文页面标题「Download WildCrane for macOS, Windows and Linux」，描述「Download WildCrane, an agent workspace for indie hackers. Available for macOS, Windows and Linux.」，分享标题「Download WildCrane」；中文页面标题「下载 WildCrane —— macOS、Windows 与 Linux 桌面应用」，描述「下载 WildCrane，独立开发者的 Agent 工作台。支持 macOS、Windows 和 Linux。」；西、日、法三页的标题和描述都写 WildCrane（如「Descargar WildCrane para macOS, Windows y Linux」「WildCrane をダウンロード — macOS、Windows、Linux 対応」）。安装清单的描述是「An agent workspace for indie hackers. Specialist agents handle coding and marketing, drafting the key parts for you to review before finishing the work.」；`llms.txt` 标题是「# WildCrane」，链接都指向 `https://wildcrane.ai/…`；`index.md` 以「# WildCrane — You don’t have to manage every detail.」开头，下载地址是 `https://wildcrane.ai/download`。
    [05-meta.log](05-meta.log)
 
 ## Feedback
 
-下载页做对了最要紧的事：认出系统，把对的包放在最大的按钮上，一点就下。Mac 的「首次打开」步骤写得很实在，提前告诉你会被拦、该去哪里放行；Windows 只有一句 SmartScreen 说明，够用但单薄。这次最大的问题不在页面：从 main 构建出来的五个下载链接全指向还没发布的 v0.10.2，点了只会得到 GitHub 的 404 页，读者会以为产品下架了——页面本身没有任何兜底（比如退回上一个版本或链到 Releases 列表）。口径这回统一了：中文下载页、首页和 `llms.txt`、安装清单都说「独立开发者的 Agent 工作台」，从搜索结果、分享卡片到装好的应用说的是同一件事；西语仍是「emprendedores independientes」（独立创业者），和中文的改法不完全对应。大按钮上的架构是页面猜的，这次只在 Apple Silicon 的 Mac 上跑过，Intel Mac 和 Safari 会拿到哪个包没有验证；猜错时按钮上也没有「不是这个？」的提示，只能往下找。
+- **认系统、给对包**：大按钮直接给本机的包，一点就下；Mac 的首次打开步骤写得实在，提前告诉你会被拦、该去哪里放行。
+- **改名在这页基本到位**：标题、按钮、文件名、分享卡片、`llms.txt` 和命令行安装都换成了 WildCrane，五种语言一致。
+- **Linux 那条命令是旧名字**：唯一需要用户照抄的命令还写着 `AI4Kanban-*.AppImage`，和刚下载的文件对不上，Linux 用户第一步就卡住。
+- **改名没有交代**：页面没有一句「原来的 AI4Kanban」，从旧链接或旧文章来的人要自己猜这是同一个产品。
+- **猜错架构没有兜底**：大按钮上的架构是页面猜的，猜错时没有「不是这个？」提示，只能往下找。

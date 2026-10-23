@@ -28,7 +28,7 @@ let s = await shotPart('02-drafts.png', 'What can I review before')
 log += `\n# 3. Read "What can I review before Claude Code builds?"\n${s.text}\n`
 
 s = await shotPart('03-task-lists.png', "Claude Code's task lists")
-log += `\n# 4. Read "How is AI4Kanban different from Claude Code's task lists?"\n${s.text}\n`
+log += `\n# 4. Read "How is WildCrane different from Claude Code's task lists?"\n${s.text}\n`
 
 s = await shotPart('04-codex.png', 'Can I use Codex for writing')
 log += `\n# 5. Read "Can I use Codex for writing and Claude Code for coding?"\n${s.text}\n`

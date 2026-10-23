@@ -20,6 +20,20 @@ const sec = await p.ev(`(()=>{const h=[...document.querySelectorAll('main h2')].
 await p.sleep(300)
 await p.shot(D + '02-first-open-windows.png', { x: 0, y: sec.y - 30, width: 1280, height: Math.min(810, sec.h + 30) })
 console.log(sec.text)
+await p.click(byText('main button, main [role=tab]', 'Linux'))
+await p.sleep(600)
+await p.shot(D + '02b-first-open-linux.png', { x: 0, y: sec.y - 30, width: 1280, height: Math.min(810, sec.h + 30) })
+const linux = await p.ev(`(()=>{const h=[...document.querySelectorAll('main h2')].find(e=>/first open/i.test(e.textContent));return h.parentElement.parentElement.innerText.split('\\n').filter(l=>/AppImage/.test(l)).join(' / ')})()`)
+const files = await p.ev(`[...document.querySelectorAll('main a[href*="releases/download"]')].map(a=>a.href.split('/').pop())`)
+fs.writeFileSync(D + '02b-linux.log', `First open, Linux: ${linux}\nfiles linked on the page: ${files.join(' · ')}\n`)
+console.log(fs.readFileSync(D + '02b-linux.log', 'utf8'))
+await p.click(byText('main button, main summary', 'in a terminal'))
+await p.sleep(600)
+const term = await p.ev(`(()=>{const b=${byText('main button, main summary', 'in a terminal')};const e=b.closest('details')||b.parentElement;e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {y:r.y+scrollY,h:r.height,text:e.innerText}})()`)
+await p.sleep(300)
+await p.shot(D + '02c-terminal.png', { x: 0, y: term.y - 20, width: 1280, height: Math.min(700, term.h + 40) })
+fs.appendFileSync(D + '02b-linux.log', `\nUse akb in a terminal, opened:\n${term.text}\n`)
+const hrefs = await p.ev(`[...new Set([...document.querySelectorAll('main a[href*="releases/download"]')].map(a=>a.href))]`)
 await p.close()
 // Windows visitor
 const w = await open()
@@ -40,3 +54,7 @@ for (const path of ['/download', '/zh/download', '/es/download', '/ja/download',
 meta += '\n/site.webmanifest description: ' + (await (await fetch(S + '/site.webmanifest')).json()).description + '\n'
 for (const f of ['/llms.txt', '/index.md']) meta += `\n${f}:\n` + (await (await fetch(S + f)).text()).split('\n').slice(0, 14).join('\n') + '\n'
 fs.writeFileSync(D + '05-meta.log', meta); console.log(meta)
+// the five download links, headers only
+let links = ''
+for (const u of hrefs) { const r = await fetch(u, { method: 'HEAD' }); links += `HEAD ${u}\n-> ${r.status} ${r.headers.get('content-type')}\n` }
+fs.writeFileSync(D + '04-links.log', links); console.log(links)

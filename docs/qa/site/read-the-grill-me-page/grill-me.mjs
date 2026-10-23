@@ -49,7 +49,7 @@ await p.ev(`document.querySelector('main .mdx-faq').scrollIntoView({block:'start
 const q = `[...document.querySelectorAll('main .mdx-faq summary')].find(s=>s.innerText.includes('replace Grill Me'))`
 await p.click(q); await p.sleep(800)
 const fq = await p.ev(faq)
-log += `\n# 8. The FAQ, "Does AI4Kanban replace Grill Me?" opened\n${JSON.stringify({ ...fq, y: undefined, h: undefined }, null, 1)}\nanswer: ${await p.ev(`(${q}).parentElement.lastElementChild.innerText`)}\n`
+log += `\n# 8. The FAQ, "Does WildCrane replace Grill Me?" opened\n${JSON.stringify({ ...fq, y: undefined, h: undefined }, null, 1)}\nanswer: ${await p.ev(`(${q}).parentElement.lastElementChild.innerText`)}\n`
 await p.shot(D + '08-faq-replace.png', { x: 0, y: fq.y - 30, width: 1280, height: Math.min(fq.h + 60, 900) })
 const cta = await p.ev(`(()=>{const h=[...document.querySelectorAll('main h2, main h3, main p')].find(e=>e.innerText.includes('Scale Grill Me from one plan'));const b=h.closest('section')||h.parentElement;return {text:b.innerText.replace(/\\n+/g,' | '),links:[...b.querySelectorAll('a')].map(a=>a.innerText.trim()+' -> '+a.getAttribute('href'))}})()`)
 log += `\nCTA at the end: ${JSON.stringify(cta)}\n`

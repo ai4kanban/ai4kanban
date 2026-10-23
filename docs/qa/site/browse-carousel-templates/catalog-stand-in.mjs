@@ -10,5 +10,6 @@ http.createServer(async (req, res) => {
   if (!fs.existsSync(LIVE)) { console.log('503', req.url); res.writeHead(503, cors); return res.end('{}') }
   const r = await fetch(`https://api.ai4kanban.dev${req.url}`).catch(() => null)
   console.log(r?.status ?? 'failed', req.url)
-  res.writeHead(r?.status ?? 502, cors); res.end(r ? await r.text() : '{}')
+  res.writeHead(r?.status ?? 502, { ...cors, 'content-type': r?.headers.get('content-type') ?? 'application/json' })
+  res.end(r ? Buffer.from(await r.arrayBuffer()) : '{}')
 }).listen(PORT, '127.0.0.1')
