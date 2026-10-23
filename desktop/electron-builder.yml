@@ -59,6 +59,9 @@ protocols:
 # — the entitlements below are already the ones notarizing requires.
 mac:
   category: public.app-category.developer-tools
+  # Layered so macOS 26+ can draw its dark and tinted icon styles; needs Xcode 26's actool.
+  # Windows and Linux keep build/icon.png.
+  icon: build/icon.icon
   target:
     - target: dmg
       arch: [arm64, x64]

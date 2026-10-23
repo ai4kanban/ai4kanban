@@ -132,6 +132,9 @@ npm run dist:mac        # one system at a time
 build product and is gitignored). Cross-building Windows and Linux from macOS works because
 neither has native modules to compile.
 
+The Mac build needs Xcode 26 or later: its icon is `desktop/build/icon.icon` (Icon Composer),
+which only Xcode 26's `actool` compiles. Edit it in Icon Composer, which ships inside Xcode.
+
 What each system gets, and what we promise about it:
 
 | System | Build | Signed | Tested |
