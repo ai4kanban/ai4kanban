@@ -51,6 +51,7 @@ One line per correction: the mistake, then the design to use instead.
 ## Covering and clipping
 
 - **An overlay always leaves a way off**: one in the pane head, one back in the top row, never a second close.
+- **An enlarged panel covered the chat's input and its handoff buttons**: it stops above the input, which stays usable, and what is behind fades out whole, leaving no clipped fragments.
 - **A thing gets a standing warning or a confirmation, never both**: a confirmation never hides what must be read first.
 - **A hover bubble covered a rule or a clipped row's last item**: place it clear of both.
 - **Cut a scroll through body text, never a caption**: fade a clipped panel into its ground.

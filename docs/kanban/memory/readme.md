@@ -10,6 +10,7 @@ covers it, or a plain-words note.
 - **Start now** builds a sentence, a discussion's plan or a triage item, writing its card first: `akb guide implement`.
 - **Planning** — refine, resolve, next card, module map; matching spec agents always run, inside the card's one planning session: `akb guide refine`, `akb guide resolve`, `akb guide next-card`, `akb guide module-map`.
 - **Revising a card**: a revision that adds images, page copy or a screen has the matching spec agent produce it, and feedback on a draft revises that draft and its preview in place: `akb guide revise`.
+- **Installing the command**: Settings → General offers Install only when `akb` is missing from PATH or older than the board's; `akb install` reads the installed version the same way.
 - **Long drafts**: a planning draft over about 20 lines goes in a card asset, one file per language: `akb guide spec-agent`.
 - **Card stages** (blog, slide deck, social post, product video, video clone): stages are listed on the card, each review is a todo, and the user moves on with Approve (`akb card approve <id>`) rather than a confirmation question: `akb guide multi-stage-drafting`.
 - **Cards finished in planning**: video, deck, social post, blog and video-clone cards end planning with every todo ticked and an Archive prompt, unless the workflow has a build agent; a delivered blog post lives only in its article file.
@@ -73,20 +74,31 @@ covers it, or a plain-words note.
 - **Social post illustrator**: `social-illustrator` makes a social post's images after the copy is approved — the image slots on a carousel's pages, or by default one image for the paragraph of a text-only post that most needs it; boards that already set up Social post get it once: `web/content/docs/agents.mdx`.
 - **Workflows in files**: every workflow is a `WORKFLOW.md` — the built-ins ship with `akb`, a board's own live in `docs/kanban/workflows/<id>/` and travel with the repo; ones saved in the board's settings move there by themselves on the next read.
 - **Live carousel templates**: the carousel template designer's visual slots take images, videos or animated React/HTML components; a live page exports a cover PNG plus a seamless H.264 MP4 loop (needs ffmpeg), pages follow the card's or target platform's ratio and default to 3:4, and the catalog previews a live page by its cover frame.
+- **WildCrane on npm**: the command ships as `npm install -g wildcrane` (`akb` and `wildcrane`); on the old `ai4kanban` package, `npm uninstall -g ai4kanban` first: `akb guide update`.
 
 ## local-ui
 
+- **Dock icon follows macOS 26 icon styles**: the desktop app's icon has its own dark (light crane on a dark plate) and tinted versions, so it no longer shows as a white tile in dark mode; older macOS, Windows and Linux keep the current icon.
+- **Install hint runs a working command**: after installing the `akb` command, Settings and the desktop install window tell you to run `akb --version`, which prints the version instead of failing.
+- **Skill installs when a project opens**: opening a project in the app writes or updates the AI4Kanban skill on its own; Configuration → General shows the Setup group only when the skill or the `akb` command needs attention — just that row, one reason and its button.
+- **New project from the board**: in the desktop app, the project menu offers "New project…" / "新建项目…" above Open folder; it asks for a name and a location (beside the last project by default), and opens the new project in the same window.
+- **New idea, always in reach**: the top-bar New idea button keeps its label at every width, its tip says what it does (share an idea, ask about progress, or move cards), and pressing `N` anywhere on the board opens it (shown on the button on desktop).
+- **New cards stay put**: a discussion that writes cards closes and leaves you where you were; each new card wears an ember outline and shadow on the board until you open it (on a phone, the dot of a column holding one turns ember), and a bell row or link that resolves after you have moved elsewhere no longer pulls you away.
+- **Card chat feel**: a sent message shows in the chat at once (and goes back to the box if it fails), replies type out smoothly with a caret, and the chat rail, folds, "new lines" button and message box glide; all instant under reduced motion.
 - **Pro trial**: Configuration → Billing offers "Start 7-day free trial" / "免费试用 7 天" to an account that never had Pro, shows the days left while it runs, and offers Get Pro once it ends.
 - **Agent characters**: every built-in agent wears its own costume in the agent lists and in the runs office, walking (always facing the way it goes), typing at a desk whose screen shows its kind of work, and sitting on the sofa; a custom agent is the plain robot with its first character on its arm: `kanban-ui/character-design/README.md`.
 - **Desktop app** reopens the last repo, finds your coding agent, installs `akb` and updates in the background: `desktop/README.md`, `kanban-ui/README.md`. The browser board is deprecated: `akb guide local-ui`.
 - **First run and Finish setup**: `kanban-ui/README.md`.
+- **Dialog and rail motion**: every board dialog on a wide window (Insights, Runs, Configuration and the rest) fades and scales in and out, and one reopened while closing turns back; the bell rail slides in and out like the chat; Insights, Runs and Configuration stay tinted while their dialog is up; reduced motion keeps only the fades: `kanban-ui/components/Dialog.tsx`.
+- **Top-row motion**: Triage and bell counts grow in and fade in, the Discuss unread dot fades in, and the row's tips wait 400ms then stay instant while sweeping across controls; all still under reduced motion: `kanban-ui/components/header-motion.tsx`.
+- **Sidebar**: the button beside the logo hides and shows the sidebar and remembers it; `/` jumps to card search, ↑/↓ and Enter open a match; rows, the selection mark, memory folders and discussion rows move briefly, and not at all under reduced motion.
 - **Board, search, Insights, Memory, Archive, Test cases, New idea, Discuss, card buttons, Diff, run cost, resume, assets, language, workflows, several boards**: `kanban-ui/README.md`, `web/content/docs/runs.mdx`.
 - **Switch workflow**: click the card page's Workflow item to move a card to another workflow; locked while a run or delivery is on it, and the card is re-planned.
 - **Workflow agents and schedules**, **global memory**: `web/content/docs/agents.mdx`; an agent's page lists the memories it uses and warns about a missing name.
 - **Runtimes**: `web/content/docs/runs.mdx`, `web/content/docs/connectors.mdx`.
 - **Stages on the card page**: one block shows the stages, where the card stands and, when a draft waits, **Approve, start <next stage>**.
 - **Build agent for planning-only workflows**: Configuration → Workflows → Execute has no picker: **Set up agent** makes (or takes back a leftover) `<workflow>-executor`, and the row's × **Remove agent** deletes it; set, the card builds after planning.
-- **Drafts on a card**: assets, storyboards and decks fold to one row and download or copy their path; a storyboard shows one shot at a time (‹ ›, ←/→); a deck slide may be an `.html`/`.tsx` page, and an enlarged deck pages with ‹ › and ←/→; Markdown assets read as articles; mermaid blocks draw as diagrams; mockups and images zoom.
+- **Drafts on a card**: assets, storyboards and decks fold to one row and download or copy their path; a storyboard shows one shot at a time (‹ ›, ←/→); a deck slide may be an `.html`/`.tsx` page, and an enlarged deck pages with ‹ › and ←/→; Markdown assets read as articles; mermaid blocks draw as diagrams; mockups and images zoom, by button or trackpad pinch (click a mockup to use it).
 - **Downloads**: carousel, deck and product-video storyboards download as an ordered zip; right-click (long-press) a board image to copy or download it.
 - **Notifications** work signed out — cards waiting on you, deliveries that did not land, landings, stopped-short runs — survive a restart and load 30 at a time; signed in, the bell also carries every Cloud board's **To do** and **Landed**, each shown once.
 - **Stale column**: cards untouched for over 5 days (not building) move to their own column, oldest first; a group counts as touched while any subtask is.
@@ -103,15 +115,25 @@ covers it, or a plain-words note.
 - **Cloud settings** retry on their own when Cloud is unreachable; storing a board in Cloud is offered only to team accounts.
 - **Pro**: **Upgrade to Pro** in Configuration → Billing, which lists all 6 workflows under Free and folds the workflow list and credit costs behind each row; a cancelled plan still in its period resumes renewal there.
 - **Live sync**: signing in or out, buying Pro and editing workflows update every open screen at once.
-- **Feature tour** shows once after setup or an upgrade, and can be replayed from Help, Configuration → General or Cloud settings.
+- **Feature tour** shows once after setup or an upgrade, and can be replayed from Help, Configuration → General or Cloud settings; every way out (✕, Skip, Get started, Esc, the backdrop) fades it out the same way.
 - **Cheers** for a finished group and the day's first finished task, once per browser, not at phone width.
 - **Triage source**: items an agent wrote show that agent as source, filterable.
 - **Archive sort**: by delivery time (default) or creation time, newest first.
 - **Removed**: release picker, filters, badges and actions; the feedback-sharing toggle, linked-task search and partner-feedback setting.
+- **Card page** scrolls only vertically; a delivered file's name truncates in a narrow pane.
 - **Agent avatars** draw instantly with their rows — no blank flash when opening Configuration → Workflows.
+- **Discuss sheet motion**: the sheet fades in and out, the plan card slides in beside the conversation and glides between beside and enlarged, plan tabs slide their underline, and the answers and working lines ease in; an enlarged plan stops above the box, with Plan tasks / Start now just over it, so you can reply while reading it. Everything is instant under reduced motion.
+- **Card pages open faster**: the card draws without waiting on git; Implement turns clickable and the Diff tab appears a moment later. An archived card opens without a wait.
+- **0.11.1 fixes a desktop app that could not open its board** (0.11.0, every system): reinstall from the download page, since 0.11.0 cannot update itself.
+- **No flash opening a card**: the board stays put until the card page is ready; a slow open dims whatever was clicked instead of showing an empty page.
+- **WildCrane**: the board, the desktop app and its menus carry the new name and the crane logo; upgrading keeps boards, settings, Cloud sign-in and `akb`.
 
 ## site
 
+- **The site is WildCrane at wildcrane.ai**: every page, doc and language uses the WildCrane name and crane logo; every ai4kanban.dev page 301s to the same path on wildcrane.ai.
+- **WildCrane logo files**: the full logo (ink and white-on-dark), the crane mark, the tab, home-screen, desktop and newsletter icons are in `brand/`, rendered by `node brand/export.mjs`.
+- **Phone menu remembers the language**: picking a language in the header menu on a phone is remembered like the banner and footer picks, so the "available in your language" bar stops coming back.
+- **Privacy policy discloses browser storage**: [/privacy](https://ai4kanban.dev/privacy) now says the site keeps only the language a reader picks (to stop offering the language bar), and `/demo` keeps its layout and typed text, both local and never sent; still no cookies, no identifier, nothing to consent to. Effective 2026-10-22.
 - **Pricing starts the Pro trial**: Pro's button on `/pricing` reads "Start 7-day free trial" / "免费试用 7 天" and starts the trial through the Cloud sign-in; Cloud's Settings offers the same.
 - **Carousel templates show every page**: `/templates/carousel/<name>` lays the example's pages out in order as a swipeable strip (`7 pages` / `共 7 页`), the catalog shows carousel covers portrait, four to a row, and the tab reads `Carousel` / `图文`. Publishers add pages with `pages` in `showcase.json` for `akb cloud template showcase`.
 - **Live carousel pages play**: on a carousel template's page, live pages loop muted while in view and pause when scrolled away; with reduced motion they wait for the play button. Publishers register one as `{ "image", "video" }` in `pages`.
@@ -125,7 +147,7 @@ covers it, or a plain-words note.
 - **[Home page](https://ai4kanban.dev)** tells one story in five sections, all five languages: you don’t manage every detail, you review the key drafts and agents do the rest; how it works, the six workflows (coding and video clone first, blog last; your own workflows via [/docs/agents](https://ai4kanban.dev/docs/agents)), your AI tools, download. The board, task graph, runs office, memory and follow-ups visuals now live in [/docs/daily-loop](https://ai4kanban.dev/docs/daily-loop), [/docs/runs](https://ai4kanban.dev/docs/runs), [/docs/memory](https://ai4kanban.dev/docs/memory) and [/docs/follow-ups](https://ai4kanban.dev/docs/follow-ups).
 - **Positioning** is "You don’t have to manage every detail." under "Agent workspace for indie hackers", in all five languages; wording limits in `positioning.md`; `/index.md` and `llms.txt` tell the same story.
 - **Landing**: the only way in is the app download; `/index.md` and `/llms.txt` mirror it.
-- **Languages**: landing and comparison pages also in `/zh`, `/es`, `/ja`, `/fr`; no browser-language redirect, Markdown mirrors stay English, the footer is translated everywhere, and the desktop header offers the visitor's language when a copy exists.
+- **Languages**: landing and comparison pages also in `/zh`, `/es`, `/ja`, `/fr`; no browser-language redirect, Markdown mirrors stay English, the footer is translated everywhere, and a one-row bar above the header, in the visitor's language, offers that copy when one exists; it stops once they dismiss it or pick a language.
 - **Blog topics** use the same ember tabs as the template catalog.
 - **Navigation**: header has Docs, Pricing, a Resources menu (Blog, Training, Templates), GitHub and Download; comparisons and the language switcher live in the footer.
 - **Agent pages**: [Kanban for Grill Me](https://ai4kanban.dev/agents/kanban-for-grill-me), [Kanban for Codex](https://ai4kanban.dev/agents/kanban-for-codex), `/agents/kanban-for-claude-code` (English only), each in `llms.txt`.
@@ -144,6 +166,8 @@ covers it, or a plain-words note.
 - **`/blog`** is a grid with the newest featured, filtered by topic tabs (`?topic=<slug>`); feed at `/blog/rss.xml`; every post has its own cover (`featured_cover: <name>`).
 - **Product video** is the demo video workflow's name everywhere.
 - **The office shot** on [/docs/runs](https://ai4kanban.dev/docs/runs) and in the README overview shows real agents in their role costumes, each desk screen showing code, a doc or a design.
+- **Home workflow previews** load one after another from the first scroll, so they are drawn by the time a reader reaches them; until then each card shows a quiet placeholder, never a blank frame.
+- **Download page** installs `wildcrane` on Linux, and its downloads are `WildCrane-*` from the first renamed release.
 
 ## docs
 
@@ -158,7 +182,7 @@ covers it, or a plain-words note.
 - **Marketing work** is an ordinary card on the default workflow; its delivery is the file in the repo.
 - **[awesome-agent-kanban](https://github.com/neverchanje/awesome-agent-kanban)** is a public CC0 directory of agent task tools, AI4Kanban listed on the same criteria as the rest.
 - **Video assets**: free shared music, UI sounds and paper backgrounds (CC0) are on `cdn.ai4kanban.dev/video/`.
-- **Shipped pieces**: the "see it first, then build it" product video (English and Chinese); a Chinese Xiaohongshu carousel, "review the UI, not the wall of text"; the blog post "[Visual specs for AI coding](https://ai4kanban.dev/blog/show-the-ui-first)"; the 0.10.0 newsletter (`node scripts/newsletter-send.mjs --issue 2026-10-07`); a 15-page Chinese investor pitch deck, "人只审重点，其余交给 Agent", readable from its slide titles alone. A 15-page investor pitch deck for the template business model (open-source workflows, paid closed-source templates on Cloud), in matching Chinese and English editions.
+- **Shipped pieces**: the "see it first, then build it" product video (English and Chinese); a Chinese Xiaohongshu carousel, "review the UI, not the wall of text"; the blog post "[Visual specs for AI coding](https://ai4kanban.dev/blog/show-the-ui-first)"; the 0.10.0 newsletter (`node scripts/newsletter-send.mjs --issue 2026-10-07`); a 15-page Chinese investor pitch deck, "人只审重点，其余交给 Agent", readable from its slide titles alone. A 15-page investor pitch deck for the template business model (open-source workflows, paid closed-source templates on Cloud), in matching Chinese and English editions, with an acquisition funnel, a $200K / ¥1M ask for 5–7% with 12-month milestones, and a draft-review story for the problem and solution. Both editions carry the WildCrane name and logo.
 - **GitHub README** (`README.md`, `README-zh.md`) opens with "An agent workspace for indie hackers" and shows the six workflows and their agent teams in each agent's role costume (`node scripts/readme-figures.mjs` redraws the figure).
 - **npm package page**: `cli/README.md` opens with "See the draft. Let agents do the rest."
 - **Carousel template designer**: a template has one page per variant (openings, middles, closings in whatever counts it needs), each page stating its image slots and ratios, what the user fills with length limits, and whether overflowing text flows on or is rewritten shorter; it may recreate a reference the card gives.
@@ -172,6 +196,7 @@ covers it, or a plain-words note.
 - **Trial button notices**: back on settings from the pricing page's trial button, subscribers see they already have Pro and accounts that used their trial are told to upgrade.
 - **Motion clips**: the catalog list carries a motion's clip; `akb cloud template showcase` refuses a motion without `recreation.video`.
 - **Live carousel pages**: a showcase's `pages` takes `{ image, video }` items and the template detail answers `pages` as `{ image, video }[]`; a showcase holds up to 30 files.
+- **UI walkthrough launch copy**: the catalog and ai4kanban.dev/templates describe its default screens as WildCrane's; the film itself still shows the old name.
 - **Sign-in, invites, seed-partner grants, free-tier limits, write leases**: `cloud/README.md`.
 - **Workspaces, moving boards, members and roles, the read-only browser view, invite-only preview**: `web/content/docs/local-and-cloud-boards.mdx`; Cloud is free for invited users and pricing may change.
 - **Notifications**: one on/off switch; a card reaching `ready` or raising a user-only question becomes a Cloud event, kept 30 days after it ends; a failed send retries for about four hours.
@@ -185,7 +210,21 @@ covers it, or a plain-words note.
 - **Refunds**: none unless the law requires; a refund or chargeback ends Pro and its credits at once.
 - **Hosted music**: `akb cloud music --seconds <n> --out <file.mp3> "<prompt>"` makes an instrumental MP3 that ends at that length, for Pro, from mainland China too.
 - **Stale column** on the hosted board judges a group by its subtasks, as the desktop app does.
+- **WildCrane in Cloud**: the hosted board, invite email, errors and the Slack app say WildCrane; addresses stay on ai4kanban.dev.
 
 ## telemetry
 
 - **Anonymous usage reporting**: `web/content/docs/local-and-cloud-boards.mdx`, `akb telemetry status|on|off`; nothing else is collected, and the feedback endpoint and stored feedback are gone.
+
+## competitors
+
+- [Multica](multica.md): 开源的托管智能体平台，把 issue 分派给运行在各台电脑上的 AI 编程智能体。
+- [Task Master](task-master.md): 把 PRD 拆成任务清单、供编程智能体逐个执行的任务管理工具。
+- [Hermes Agent Kanban](hermes-agent-kanban.md): 让编程智能体按看板领取和推进任务的看板工具。
+- [Vibe Kanban](vibe-kanban.md): 在看板上给多个编程智能体分派任务并审查其改动的工具。
+- [Plannotator](plannotator.md): 在浏览器批注、审阅编程智能体的计划和代码 diff，并把反馈回传给智能体的开源工具。
+
+### Not competitors (False positives)
+
+- GitHub Issues: 通用议题跟踪工具，不是为用编程智能体开发的人做的规划工具。
+- Linear: 通用项目与议题管理工具，不是为用编程智能体开发的人做的规划工具。

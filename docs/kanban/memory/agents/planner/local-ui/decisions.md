@@ -8,6 +8,7 @@ Settled user-facing answers for the local UI. Read before proposing so you don't
 - **User guide**: `kanban-ui/README.md`; any card changing visible UI behavior updates it.
 - **统计图表时段**：最短 30 天，不做 24 小时或 7 天。
 - **只为值得的里程碑庆祝**：整组完成、release 完成、当天第一次落地才庆祝，并写明在庆祝什么。
+- **庆祝角色**：三个基础机器人一起欢呼，不随完成卡片的负责角色变化。
 - **反馈助手不对用户露出**：配置里不列它，固定用全局默认运行环境。
 - **Agent 角色形态**：穿职业服装的小机器人，靠服装区分职业，不用人形。
 - **自定义 agent 的角色**：共用基础机器人，上臂徽标显示名称首个可见字符，不逐个设计服装。
@@ -69,6 +70,7 @@ Settled user-facing answers for the local UI. Read before proposing so you don't
 
 - **Back/forward**: mouse buttons and a two-finger swipe wherever the system reports them, one covering layer per gesture.
 - **Another board of the same project**: opens in a new window.
+- **Sidebar collapse**: a button, no keyboard shortcut.
 
 ## The app's language
 

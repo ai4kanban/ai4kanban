@@ -8,3 +8,6 @@
 - **zsh 不拆分变量**：`A="node …/ai4kanban.mjs"; $A raw list` 会被当成一个命令名报错；直接写全命令或用函数。`raw list` 的 `--dir` 放在子命令后。
 - **收尾全量核对索引标题**：用脚本把索引里每条链接的标题和 `case.md` 首行逐条比对；旧的不一致（不是本轮子运行造成的）也会被查出来，顺手改掉。
 - **用本次提交的 CLI 取证**：`git archive HEAD cli skill telemetry/contract.ts telemetry/package.json` 解到 `/tmp/qa-*`，链上主检出的 `cli/node_modules`，跑 `node scripts/build.mjs`；少了 `skill/` 或 `telemetry/contract.ts` 会构建失败。
+- **子运行显示 interrupted 不等于没做完**：`run list` 标 `~ interrupted` 的子运行，`run wait <id>` 可能仍给出完整报告；先读报告、看工作树改动和证据目录，确认做完就不必接手。已被上一轮跟进过的卡（场景提交晚于卡的落地）不必再开子运行。
+- **子运行可能卡在自己起的服务上**：`run log` 很久不动、证据和场景都已写完时，多半是它等的 `wrangler pages dev` 没退；直接 `run stop`，杀掉残留进程，自己核对它的改动后收尾。
+- **新的 `AI4KANBAN_HOME` 先进英文的使用上报页**：取看板界面截图前，往它的 `settings.json` 写 `language: "zh"`、`usageDisclosureShown`、`welcomeTourShown` 为 true，才直接进中文看板。

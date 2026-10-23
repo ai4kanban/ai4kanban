@@ -38,8 +38,4 @@ the number at the front of a filename is the task id.
 - [#1812 Cloud card page: point waiting stages to the app instead of a missing Approve](1812-hosted-stage-no-approve.md)
 - [#1819 复刻 Manus「My Computer」介绍视频](1819-clone-manus-my-computer-video.md)
 - [#1869 写一篇 intent-driven development 博客：谁替你把意图讲给 Agent](1869-intent-driven-development-blog.md)
-- [#1924 改写知乎文章：人做规划，agent 做执行](1924-zhihu-humans-plan-agents-execute.md)
 - [#1936 复刻手绘白板讲解视频模板](1936-whiteboard-explainer-template.md)
-- [#1938 Release v0.11.0 with Free Workflows and Pro-Default Templates](1938-release-v0-11-free-workflows.md)
-- [#1939 Deploy Cloud and cloud-ui to Ship the Pro Trial](1939-deploy-pro-trial.md)
-- [#1942 Rework the bilingual pitch deck: funnel, milestones, business model](1942-rework-pitch-deck.md)
