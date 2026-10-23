@@ -86,9 +86,9 @@ const zh: ChromeCopy = {
     repair: "修复",
     writing: "正在写入…",
     failed: "命令未能安装",
-    donePath: "已完成。请打开新的终端，运行 `akb version`。",
+    donePath: "已完成。请打开新的终端，运行 `akb --version`。",
     doneSymlink:
-      "已完成。请在终端中运行 `akb version`；单独输入 `akb` 会为当前项目打开这个应用。",
+      "已完成。请在终端中运行 `akb --version`；单独输入 `akb` 会为当前项目打开这个应用。",
   },
   phone: {
     tabs: { nav: "看板导航", board: "看板", more: "更多" },

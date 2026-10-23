@@ -105,9 +105,9 @@ const en: DesktopCopy = {
       notNow: "Not now",
       failed: "akb was not installed.",
       ready: "akb is ready.",
-      readyWindows: "Open a new terminal and run `akb version`. Typing `akb` on its own opens this app.",
+      readyWindows: "Open a new terminal and run `akb --version`. Typing `akb` on its own opens this app.",
       readyLink:
-        "Run `akb version` in a terminal. Typing `akb` on its own opens this app on the project you are standing in.",
+        "Run `akb --version` in a terminal. Typing `akb` on its own opens this app on the project you are standing in.",
     },
     update: {
       newest: (version) => `AI4Kanban ${version} is the newest version.`,

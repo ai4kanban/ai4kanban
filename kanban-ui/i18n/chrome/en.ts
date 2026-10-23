@@ -86,9 +86,9 @@ const en: ChromeCopy = {
     repair: "Repair",
     writing: "Writing…",
     failed: "the command was not installed",
-    donePath: "Done. Open a new terminal and run `akb version`.",
+    donePath: "Done. Open a new terminal and run `akb --version`.",
     doneSymlink:
-      "Done. Run `akb version` in a terminal — typing `akb` on its own opens this app on the project you are standing in.",
+      "Done. Run `akb --version` in a terminal — typing `akb` on its own opens this app on the project you are standing in.",
   },
   phone: {
     tabs: { nav: "Ways into the board", board: "Board", more: "More" },

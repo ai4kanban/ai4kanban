@@ -104,8 +104,8 @@ const zh: DesktopCopy = {
       notNow: "暂不",
       failed: "akb 未能安装。",
       ready: "akb 已就绪。",
-      readyWindows: "新开一个终端，运行 `akb version`。单独输入 `akb` 会打开这个应用。",
-      readyLink: "在终端里运行 `akb version`。单独输入 `akb` 会在你当前所在的项目上打开这个应用。",
+      readyWindows: "新开一个终端，运行 `akb --version`。单独输入 `akb` 会打开这个应用。",
+      readyLink: "在终端里运行 `akb --version`。单独输入 `akb` 会在你当前所在的项目上打开这个应用。",
     },
     update: {
       newest: (version) => `AI4Kanban ${version} 已是最新版本。`,
