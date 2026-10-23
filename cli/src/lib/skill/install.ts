@@ -313,7 +313,7 @@ export function readCommandState(): CommandState {
 }
 
 function commandVersion(): string | null {
-  const result = spawnSync('akb', ['version'], {
+  const result = spawnSync('akb', ['--version'], {
     encoding: 'utf8',
     timeout: 10_000,
     stdio: ['ignore', 'pipe', 'ignore'],

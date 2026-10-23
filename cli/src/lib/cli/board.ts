@@ -511,7 +511,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary('print the installed version')
     .action(function () {
       if (!cli.version) {
-        throw new BoardError(`\`${cli.program}\` has no version move — \`akb version\` prints it.`, {
+        throw new BoardError(`\`${cli.program}\` has no version move — \`akb --version\` prints it.`, {
           kind: 'unknown-move',
           move: 'version',
         })

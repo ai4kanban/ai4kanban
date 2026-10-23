@@ -202,7 +202,7 @@ export interface RunBoardOptions {
  *   program     how the command is spelled in messages ("akb raw", "kanban")
  *   cwd         where the command was run, for finding the board
  *   installHint what to tell someone who has no board yet
- *   version     what `version` prints; without it the move refuses and names `akb version`
+ *   version     what `version` prints; without it the move refuses and names `akb --version`
  */
 export async function runBoard(argv: string[], options: RunBoardOptions = {}): Promise<number> {
   const {
