@@ -38,3 +38,8 @@ video/
 .playwright-mcp
 
 test-ai4kanban/
+
+# Clone of the private ai4kanban/ai4kanban-evals repo
+/evals/
+# Exported browser login cookies
+*_cookies.txt
