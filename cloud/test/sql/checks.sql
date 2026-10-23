@@ -3204,4 +3204,127 @@ begin
 end
 $templates$;
 
+-- The public API (#2000): the account boundary, the checkpoint order, decisions, immutable
+-- versions, memory scopes, the event feed and API keys.
+do $public_api$
+declare
+  BUDGET constant integer := 100000;
+  A constant uuid := 'a0a0a0a0-1111-4111-8111-111111111111';
+  B constant uuid := 'b0b0b0b0-2222-4222-8222-222222222222';
+  ACTOR constant jsonb := '{"kind": "user", "handle": "api-a"}';
+  WF constant jsonb := '{"id": "wf_x", "name": "Two steps", "checkpoints": [
+    {"key": "draft", "title": "Draft", "artifact_type": "web-page", "question": "", "acceptance": ""},
+    {"key": "final", "title": "Final", "artifact_type": "web-page", "question": "", "acceptance": ""}]}';
+  v_prj text;
+  v_task text;
+  v_bare text;
+  v_cp1 text;
+  v_cp2 text;
+  v_art1 text;
+  v_art2 text;
+  v_json jsonb;
+  v_seq bigint;
+  v_key jsonb;
+begin
+  insert into cloud.accounts (id, handle) values (A, 'api-a'), (B, 'api-b');
+  insert into cloud.admitted_accounts (handle) values ('api-a'), ('api-b');
+
+  v_prj := api.v1_create_project(A, '{"name": "Site", "path": "/work/site"}', BUDGET) ->> 'id';
+  assert v_prj like 'prj\_%', 'a project id carried no prefix';
+  v_task := api.v1_create_task(A, jsonb_build_object('title', 'Landing', 'project', v_prj), WF, BUDGET) ->> 'id';
+  v_bare := api.v1_create_task(A, '{"title": "Loose"}', WF, BUDGET) ->> 'id';
+  select id into v_cp1 from cloud.task_checkpoints where task_id = v_task and position = 1;
+  select id into v_cp2 from cloud.task_checkpoints where task_id = v_task and position = 2;
+  assert v_cp1 is not null and v_cp2 is not null, 'a task did not copy its workflow''s checkpoints';
+
+  -- Another account reads and writes nothing.
+  perform pg_temp.refuses(format('select api.v1_task(%L, %L)', B, v_task), 'AKB20', 'B read A''s task');
+  perform pg_temp.refuses(format('select api.v1_update_project(%L, %L, %L, %s)', B, v_prj, '{"name": "x"}', BUDGET),
+    'AKB20', 'B renamed A''s project');
+  perform pg_temp.refuses(format('select api.v1_create_artifact(%L, %L, %L, %s)', B, v_task, '{"type": "web-page"}', BUDGET),
+    'AKB20', 'B added to A''s task');
+  perform pg_temp.refuses(format('select api.v1_create_task(%L, %L, %L, %s)', B,
+    jsonb_build_object('title', 't', 'project', v_prj), WF, BUDGET), 'AKB20', 'B filed a task under A''s project');
+  assert jsonb_array_length(api.v1_list_tasks(B, null, null, null, 20) -> 'data') = 0, 'B listed A''s tasks';
+
+  -- A checkpoint cannot be skipped.
+  v_art1 := api.v1_create_artifact(A, v_task, jsonb_build_object('type', 'web-page', 'checkpoint', v_cp1), BUDGET) ->> 'id';
+  v_art2 := api.v1_create_artifact(A, v_task, jsonb_build_object('type', 'web-page', 'checkpoint', v_cp2), BUDGET) ->> 'id';
+  perform pg_temp.refuses(format('select api.v1_create_artifact_version(%L, %L, %L, null, %s)', A, v_art2, '{"html": "b"}', BUDGET),
+    'AKB21', 'a version reached a checkpoint ahead of an unapproved one');
+  perform pg_temp.refuses(format('select api.v1_create_decision(%L, %L, %L, %L, %s)', A, v_cp1, '{"decision": "approve"}', ACTOR, BUDGET),
+    'AKB21', 'a decision was taken on a checkpoint with nothing submitted');
+  perform pg_temp.refuses(format('select api.v1_update_task(%L, %L, %L, %s)', A, v_task, '{"status": "done"}', BUDGET),
+    'AKB21', 'a task was done with checkpoints unapproved');
+
+  -- The latest decision sets the checkpoint's status.
+  v_json := api.v1_create_artifact_version(A, v_art1, '{"html": "a1"}', null, BUDGET);
+  assert (v_json ->> 'version')::int = 1, 'a first version was not 1';
+  assert (select status from cloud.task_checkpoints where id = v_cp1) = 'ready', 'a submitted checkpoint was not ready';
+  perform api.v1_create_decision(A, v_cp1, '{"decision": "request_changes", "comment": "Bigger"}', ACTOR, BUDGET);
+  assert (select status from cloud.task_checkpoints where id = v_cp1) = 'changes_requested', 'request_changes did not stick';
+  perform api.v1_create_artifact_version(A, v_art1, '{"html": "a2"}', null, BUDGET);
+  assert (select status from cloud.task_checkpoints where id = v_cp1) = 'ready', 'a new version did not return to ready';
+  v_json := api.v1_create_decision(A, v_cp1, '{"decision": "approve"}', ACTOR, BUDGET);
+  assert (v_json ->> 'artifact_version')::int = 2, 'a decision did not default to the latest version';
+  assert (select status from cloud.task_checkpoints where id = v_cp1) = 'approved', 'approve did not stick';
+  perform pg_temp.refuses(format('select api.v1_create_artifact_version(%L, %L, %L, null, %s)', A, v_art1, '{"html": "a3"}', BUDGET),
+    'AKB21', 'a version reached an approved checkpoint');
+  perform api.v1_create_artifact_version(A, v_art2, '{"html": "b1"}', null, BUDGET);
+  perform pg_temp.refuses(format('select api.v1_create_decision(%L, %L, %L, %L, %s)', A, v_cp1, '{"decision": "request_changes"}', ACTOR, BUDGET),
+    'AKB21', 'a decision reopened a checkpoint behind one that moved on');
+  perform api.v1_create_decision(A, v_cp2, '{"decision": "approve"}', ACTOR, BUDGET);
+  assert api.v1_update_task(A, v_task, '{"status": "done"}', BUDGET) ->> 'status' = 'done', 'an approved task could not be done';
+  perform pg_temp.refuses(format('select api.v1_cancel_task(%L, %L, %s)', A, v_task, BUDGET), 'AKB21', 'a finished task was cancelled');
+
+  -- A version and a decision are never rewritten.
+  perform pg_temp.refuses(format('update cloud.artifact_versions set content = %L where artifact_id = %L', '{}', v_art1),
+    'AKB21', 'an artifact version was rewritten');
+  perform pg_temp.refuses(format('update cloud.decisions set comment = %L where checkpoint_id = %L', 'x', v_cp1),
+    'AKB21', 'a decision was rewritten');
+
+  -- Memory: a task outside a project reads user memory only; deleting a project takes its
+  -- memory and leaves its tasks.
+  perform api.v1_create_memory(A, jsonb_build_object('scope', 'project', 'project', v_prj, 'name', 'stack', 'body', 'Next.js'), BUDGET);
+  perform api.v1_create_memory(A, '{"scope": "user", "name": "tone", "body": "Plain"}', BUDGET);
+  perform pg_temp.refuses(format('select api.v1_create_memory(%L, %L, %s)', A, '{"scope": "user", "name": "tone"}', BUDGET),
+    'AKB21', 'a second memory took a taken name');
+  assert jsonb_array_length(api.v1_list_memories(A, null, null, v_task, null, 20) -> 'data') = 2, 'a project task missed memory';
+  v_json := api.v1_list_memories(A, null, null, v_bare, null, 20);
+  assert jsonb_array_length(v_json -> 'data') = 1 and v_json -> 'data' -> 0 ->> 'scope' = 'user',
+    'a task outside any project read project memory';
+  perform api.v1_delete_project(A, v_prj, BUDGET);
+  assert (select project_id from cloud.tasks where id = v_task) is null, 'a deleted project took its task';
+  assert not exists (select 1 from cloud.memories where account_id = A and scope = 'project'), 'a deleted project left its memory';
+
+  -- Every write is an event, in order.
+  assert (select count(*) from cloud.api_events where account_id = A and type = 'checkpoint.ready') = 3,
+    'a checkpoint becoming ready wrote no event';
+  assert exists (select 1 from cloud.api_events where account_id = A and type = 'memory.deleted'),
+    'a project''s memory went with no event';
+  assert (select bool_and(seq > lag) from (
+    select seq, lag(seq, 1, 0::bigint) over (order by seq) lag from cloud.api_events where account_id = A) x),
+    'events were not in order';
+  select max(seq) into v_seq from cloud.api_events where account_id = A;
+  v_json := api.v1_list_events(A, v_seq - 3, 2);
+  assert jsonb_array_length(v_json -> 'data') = 2 and v_json ->> 'next' = 'evt_' || (v_seq - 1), 'events did not page';
+  assert jsonb_array_length(api.v1_list_events(B, 0, 100) -> 'data') = 0, 'B read A''s events';
+
+  -- A revoked key stops at once.
+  v_key := api.v1_create_api_key(A, 'CI', 'wck_abcd', 'hash-1', BUDGET);
+  assert api.v1_account_for_key('hash-1') ->> 'account_id' = A::text, 'a live key did not resolve';
+  perform pg_temp.refuses(format('select api.v1_revoke_api_key(%L, %L, %s)', B, v_key ->> 'id', BUDGET), 'AKB20', 'B revoked A''s key');
+  perform api.v1_revoke_api_key(A, v_key ->> 'id', BUDGET);
+  assert api.v1_account_for_key('hash-1') is null, 'a revoked key still resolved';
+
+  -- A replayed key answers once; a claim in flight is not taken.
+  assert (api.v1_claim_idempotency(A, 'k1', 'h') ->> 'claimed')::boolean, 'a first claim failed';
+  assert not (api.v1_claim_idempotency(A, 'k1', 'h') ->> 'claimed')::boolean, 'a claim in flight was taken';
+  perform api.v1_finish_idempotency(A, 'k1', 200, '{"ok": true}');
+  assert api.v1_claim_idempotency(A, 'k1', 'h') -> 'response' = '{"ok": true}', 'a finished claim did not replay';
+
+  raise notice 'sql checks: #2000 public API checks passed';
+end
+$public_api$;
+
 rollback;

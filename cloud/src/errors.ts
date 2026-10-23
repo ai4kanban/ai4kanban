@@ -44,6 +44,13 @@ export type RefusalCode =
   | 'trial_used'
   | 'billing_unavailable'
   | 'billing_failed'
+  | 'conflict'
+  | 'read_only'
+  | 'payload_too_large'
+  | 'idempotency_key_reused'
+  | 'idempotency_in_progress'
+  | 'artifacts_unavailable'
+  | 'session_required'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -380,6 +387,26 @@ const CONTACT_RETRY_AFTER_SECONDS = 30 * 60
 const TRAINING_RETRY_AFTER_SECONDS = 5 * 60
 
 export const notFound = (message = 'No such endpoint.') => new Refusal('not_found', 404, message)
+
+/** The public API's (#2000). `conflict` is a state rule: a skipped checkpoint, a finished task. */
+export const conflict = (message: string) => new Refusal('conflict', 409, message)
+
+export const readOnly = (message = 'Built-in workflows cannot be changed.') =>
+  new Refusal('read_only', 403, message)
+
+export const payloadTooLarge = (message: string) => new Refusal('payload_too_large', 413, message)
+
+export const idempotencyKeyReused = () =>
+  new Refusal('idempotency_key_reused', 422, 'This Idempotency-Key was already used for a different request.')
+
+export const idempotencyInProgress = () =>
+  new Refusal('idempotency_in_progress', 409, 'A request with this Idempotency-Key is still running. Retry shortly.', 5)
+
+export const sessionRequired = () =>
+  new Refusal('session_required', 403, 'Sign in to manage API keys. An API key cannot create or revoke keys.')
+
+export const artifactsUnavailable = () =>
+  new Refusal('artifacts_unavailable', 503, 'File storage is not available right now.')
 
 export const methodNotAllowed = () =>
   new Refusal('method_not_allowed', 405, 'That endpoint does not take this method.')

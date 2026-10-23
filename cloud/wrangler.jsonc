@@ -26,13 +26,28 @@
       "binding": "TEMPLATES",
       "bucket_name": "ai4kanban-templates",
       "preview_bucket_name": "ai4kanban-templates-dev"
+    },
+    // Public API artifact files (#2000). Private: read through `/v1/artifacts/…/file`.
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "ai4kanban-artifacts",
+      "preview_bucket_name": "ai4kanban-artifacts-dev"
     }
   ],
 
   // Hosted music's model refuses some users' countries, which a subrequest made while serving
   // them carries; one made from this object's alarm carries none (#1828).
-  "durable_objects": { "bindings": [{ "name": "MUSIC_CALLS", "class_name": "MusicCall" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MusicCall"] }],
+  // One EventHub per account holds its open `/v1/events/stream` connections (#2000).
+  "durable_objects": {
+    "bindings": [
+      { "name": "MUSIC_CALLS", "class_name": "MusicCall" },
+      { "name": "EVENT_HUBS", "class_name": "EventHub" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["MusicCall"] },
+    { "tag": "v2", "new_sqlite_classes": ["EventHub"] }
+  ],
 
   "observability": { "enabled": true }
 }

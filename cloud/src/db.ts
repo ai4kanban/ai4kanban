@@ -11,6 +11,7 @@ import {
   alreadyActed,
   boardNotEmpty,
   cardLocked,
+  conflict,
   dailyWriteBudgetReached,
   handleNotAdmitted,
   lastOwner,
@@ -87,6 +88,11 @@ export const PG_TRAINING_TOO_MANY_ATTEMPTS = 'AKB18'
 /** SQLSTATE publishing a template under a name already taken raises (#1708). */
 export const PG_TEMPLATE_EXISTS = 'AKB19'
 
+/** SQLSTATEs the public API raises (#2000): a row the account does not hold, and a state
+ *  rule broken. */
+export const PG_V1_NOT_FOUND = 'AKB20'
+export const PG_V1_CONFLICT = 'AKB21'
+
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
 
@@ -159,6 +165,8 @@ export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_TRAINING_SLOT_TAKEN) return trainingSlotTaken()
   if (error.code === PG_TRAINING_TOO_MANY_ATTEMPTS) return trainingTooManyAttempts()
   if (error.code === PG_TEMPLATE_EXISTS) return templateExists(error.message)
+  if (error.code === PG_V1_NOT_FOUND) return notFound(error.message)
+  if (error.code === PG_V1_CONFLICT) return conflict(error.message ?? '')
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

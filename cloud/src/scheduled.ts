@@ -52,6 +52,7 @@ export async function runScheduled(
   messages: Record<string, DeliveryRun>
   sweep: Sweep
   operations: Prune
+  v1: Record<string, number>
 }> {
   const heartbeat = await call<Heartbeat>(env, 'service_heartbeat')
   console.log('cloud: heartbeat', { ...heartbeat, daily_write_budget: DAILY_WRITE_BUDGET })
@@ -119,5 +120,14 @@ export async function runScheduled(
   }
   if (operations.deleted > 0) console.log('cloud: pruned operation records', operations)
 
-  return { heartbeat, mail, training, contact, messages, sweep, operations }
+  // The public API's (#2000): events past 30 days, replays past a day, abandoned uploads.
+  let v1: Record<string, number> = {}
+  try {
+    v1 = await call<Record<string, number>>(env, 'v1_sweep')
+  } catch (error) {
+    console.error('cloud: public API sweep failed', error)
+  }
+  if (Object.values(v1).some((n) => n > 0)) console.log('cloud: swept public API rows', v1)
+
+  return { heartbeat, mail, training, contact, messages, sweep, operations, v1 }
 }

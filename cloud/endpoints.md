@@ -282,6 +282,48 @@ back and no other.
 The coach's hours are deployed configuration in `src/training-schedule.ts` (UTC+8 weekly hours
 and dated exceptions): edit and deploy. The database holds only the hours taken.
 
+## Public API (v1)
+
+Projects, workflows, tasks, checkpoints, artifacts, decisions, memory and their events. Every
+route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), also served at
+`GET /v1/openapi.json`; routing is `src/v1/index.ts`. WildCrane's own surfaces call nothing else.
+
+- **Authentication**: `Authorization: Bearer` takes a sign-in token or an API key (`wck_…`). A
+  key acts for its account, is shown once on creation and stops working the moment it is
+  revoked. Creating and revoking keys needs a sign-in. Any browser origin may call (CORS `*`).
+- **Ownership**: every resource belongs to one account. Another account's id answers
+  `not_found`, as a missing one does.
+- **Ids**: prefixed by type — `prj_`, `wf_`, `task_`, `cp_`, `art_`, `dec_`, `mem_`, `key_`,
+  `upl_`, `evt_`. Built-in workflows are `wf_builtin_…` and read-only.
+- **Pagination**: `limit` (1–100, default 20) and `after`; a list answers `{ "data", "next" }`,
+  and `next` is the `after` of the following page, `null` on the last.
+- **Errors**: the shape in [Refusals](#refusals). A broken state rule — a skipped checkpoint, a
+  decision with nothing submitted, a write to a finished task — is `conflict`.
+- **Idempotency**: every create but an API key takes `Idempotency-Key`. A retry with the same
+  key and body answers the first response with `Idempotent-Replayed: true`; a failed attempt
+  keeps nothing. Keys are kept a day.
+- **Checkpoints**: a task copies its workflow and gets one checkpoint per step, `pending`. A
+  version on a checkpoint's artifact makes it `ready` — only once every earlier one is
+  `approved`. The latest decision sets it `approved` or `changes_requested`; a new version
+  returns it to `ready`. `done` needs every checkpoint approved.
+- **Artifacts**: inline JSON up to 256 KB per version, or a file up to 50 MB: `POST
+  /v1/artifacts/{id}/uploads`, `PUT` the bytes to its `url` within an hour, then submit a
+  version naming the upload. Versions and decisions never change.
+- **Memory**: `project` (with `project`) or `user` scope, Markdown up to 64 KB. `?task=` lists
+  what that task may read: user memory and its own project's. Deleting a project deletes its
+  memory; its tasks stay, with no project.
+- **Events**: each change writes one, in order per account, kept 30 days: `project.created`,
+  `.updated`, `.deleted`; `workflow.created`, `.updated`, `.deleted`; `task.created`,
+  `.updated`, `.cancelled`; `checkpoint.ready`, `.approved`, `.changes_requested`;
+  `artifact.created`, `artifact.version_created`; `decision.created`; `memory.updated`,
+  `.deleted`. `data` is the resource after the change. Page them with `GET /v1/events?after=`,
+  or hold `GET /v1/events/stream` (SSE) and resume with `Last-Event-ID`. A sign-in reading the
+  page passes `after` (empty starts at the oldest); without it the request is the v0.11 feed
+  above.
+- **Compatibility**: within `v1` fields and endpoints are only added, never changed or removed.
+  A breaking change ships as `v2`; an endpoint on its way out answers `Deprecation` and `Sunset`
+  at least six months before it is removed.
+
 ## Refusals
 
 Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a user as is.
@@ -316,5 +358,12 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `credits_used_up` | This month's AI credits are used up. Carries `retry-after` to the next UTC month; on the trial, none. |
 | `trial_used` | This account has had a trial, a subscription or a seed grant. |
 | `billing_unavailable` / `billing_failed` | This build carries no Creem store, or Creem did not answer. Retry later. |
+| `conflict` | A public API state rule: a skipped checkpoint, nothing to decide on, a finished task, a name already taken. |
+| `read_only` | A built-in workflow cannot be changed or deleted. |
+| `payload_too_large` | A field, inline artifact (256 KB), memory (64 KB) or file (50 MB) over its limit. |
+| `idempotency_key_reused` | One `Idempotency-Key`, two different requests. |
+| `idempotency_in_progress` | The first request under this key is still running. Carries `retry-after`. |
+| `session_required` | API keys are created and revoked with a sign-in, not with a key. |
+| `artifacts_unavailable` | This build carries no artifact bucket. |
 | `daily_write_budget_reached` | The service's daily write budget is spent. |
 | `storage_limit_reached` | The database turned read-only at its size limit. |

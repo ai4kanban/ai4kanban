@@ -52,6 +52,11 @@ export interface Env {
   /** Where hosted music calls its model from (#1828). Optional: without it the call goes out
    *  directly, carrying the user's country. */
   MUSIC_CALLS?: DurableObjectNamespace
+  /** Artifact files of the public API (#2000). Optional: without it uploads and file reads refuse. */
+  ARTIFACTS?: R2Bucket
+  /** One `EventHub` per account, holding its open event streams (#2000). Optional: without it
+   *  `/v1/events/stream` refuses and the paged read still answers. */
+  EVENT_HUBS?: DurableObjectNamespace
   /** The commit this build was deployed from, set by `npm run deploy`; `+dirty` when the
    *  Worker files had uncommitted changes. */
   COMMIT?: string

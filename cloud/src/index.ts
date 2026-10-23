@@ -54,6 +54,7 @@ import { CATALOG_CORS, isCatalogPath, routeCatalog } from './catalog.ts'
 import { corsHeaders, isTrainingPath, routeTraining } from './training.ts'
 import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
 import { routeWorkspace } from './workspaces.ts'
+import { V1_CORS, isV1Path, isV1Request, routeV1 } from './v1/index.ts'
 
 interface SelfCheck {
   writes_today: number
@@ -61,6 +62,7 @@ interface SelfCheck {
 }
 
 export { MusicCall } from './music.ts'
+export { EventHub } from './v1/stream.ts'
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -70,7 +72,8 @@ export default {
     const { pathname } = new URL(request.url)
     const cors = isTrainingPath(pathname) || isContactPath(pathname)
       ? corsHeaders(request)
-      : isCatalogPath(pathname) ? CATALOG_CORS : {}
+      : isCatalogPath(pathname) ? CATALOG_CORS
+      : isV1Path(pathname) ? V1_CORS : {}
     try {
       requireEnv(env)
       if (request.method === 'OPTIONS' && Object.keys(cors).length > 0) {
@@ -98,6 +101,9 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     requireMethod(request, 'GET')
     return json({ service: 'ai4kanban-cloud', ok: true, ...(env.COMMIT ? { commit: env.COMMIT } : {}) })
   }
+
+  // The public API (#2000): `src/v1/`.
+  if (isV1Request(request, url)) return routeV1(request, env, ctx, url)
 
   // The one route open to a verified sign-in we have not admitted (#326), so the app can
   // name the account it refused rather than showing a refusal about nobody.

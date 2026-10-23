@@ -13,6 +13,7 @@ cloud/
 │                   the schema checks
 ├── test/           the Worker's checks; test/sql/ is the schema's, run on a real PostgreSQL
 ├── endpoints.md    every route, its body, and the refusal codes
+├── openapi.json    the public API (`src/v1/`), OpenAPI 3.1
 └── wrangler.jsonc  the route, the hourly schedule, and nothing secret
 ```
 
