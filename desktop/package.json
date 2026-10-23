@@ -1,12 +1,12 @@
 {
   "name": "ai4kanban-desktop",
-  "productName": "AI4Kanban",
+  "productName": "WildCrane",
   "version": "0.11.2",
   "private": true,
-  "description": "The AI4Kanban board as a desktop app — no terminal, no Node, nothing to install first.",
+  "description": "The WildCrane board as a desktop app — no terminal, no Node, nothing to install first.",
   "license": "Apache-2.0",
-  "author": "AI4Kanban contributors",
-  "homepage": "https://ai4kanban.dev/",
+  "author": "WildCrane contributors",
+  "homepage": "https://wildcrane.ai/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ai4kanban/ai4kanban.git",

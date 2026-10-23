@@ -32,7 +32,7 @@ import { sayFailure } from "@/lib/start-failure";
 
 /** The published page that lists every event and field — what "Privacy details" opens, and
  *  what the Configuration row links to. In the app it opens the user's browser. */
-const PRIVACY_URL = "https://ai4kanban.dev/privacy";
+const PRIVACY_URL = "https://wildcrane.ai/privacy";
 
 // ---- the onboarding step ----------------------------------------------------
 

@@ -44,7 +44,7 @@ const zh: DownloadCopy = {
     title: "在终端中使用 `akb`",
     mac: "打开一次应用，终端里就能用 `akb`。",
     windows: "新开一个终端，就能用 `akb`。",
-    linux: "只有 Linux 需要手动一步：`npm install -g ai4kanban`。",
+    linux: "只有 Linux 需要手动一步：`npm install -g wildcrane`。",
   },
 };
 

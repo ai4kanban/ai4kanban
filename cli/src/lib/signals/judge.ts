@@ -396,7 +396,7 @@ const ASK_MS = 60_000
 /** Ask Cloud; answers, or throws why not. `pro-required` and `signed-out` end the whole sort. */
 export async function ask(body: Record<string, unknown>, sourceId: string): Promise<Record<string, Answer | undefined>> {
   const token = await accessToken()
-  if (!token.ok) die('not signed in to AI4Kanban Cloud', { kind: 'signed-out' })
+  if (!token.ok) die('not signed in to WildCrane Cloud', { kind: 'signed-out' })
   let res: Response
   try {
     res = await fetch(`${cloudEndpoints().api}/v1/judge`, {

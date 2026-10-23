@@ -76,7 +76,7 @@ export function NoBoard({
             stack={!desktop}
             body={desktop ? c.startApp : c.startBrowser}
           >
-            {desktop ? <MakeBoardHere desktop /> : <CopyCommand text="npx ai4kanban install" />}
+            {desktop ? <MakeBoardHere desktop /> : <CopyCommand text="npx wildcrane install" />}
           </Cause>
 
           <Cause
@@ -141,7 +141,7 @@ export function NoRules({ why, desktop = false }: { why: string; desktop?: boole
             {desktop ? (
               <PickAnotherProject desktop />
             ) : (
-              <CopyCommand text="npm install -g ai4kanban" />
+              <CopyCommand text="npm install -g wildcrane" />
             )}
           </Cause>
 

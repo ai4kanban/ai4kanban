@@ -65,7 +65,7 @@ const en: TourCopy = {
     label: "QA feedback",
     feedback: "On phones, the Export button is hidden under the bottom bar",
   },
-  replay: { note: "Discover what AI4Kanban can do for you.", button: "View again" },
+  replay: { note: "Discover what WildCrane can do for you.", button: "View again" },
 };
 
 export default en;

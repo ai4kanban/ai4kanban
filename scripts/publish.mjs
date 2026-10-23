@@ -18,7 +18,9 @@ import { fileURLToPath } from 'node:url'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PROXIES = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
 const NPMJS = 'https://registry.npmjs.org/'
-const SITE = 'https://ai4kanban.dev/download'
+const SITE = 'https://wildcrane.ai/download'
+const PACKAGE = 'wildcrane'
+const DEPRECATED = 'ai4kanban is now wildcrane: npm uninstall -g ai4kanban && npm install -g wildcrane'
 
 // What scripts/sync-version.mjs stamps, minus cli/dist/ (not in git).
 const VERSION_FILES = [
@@ -45,13 +47,13 @@ const DIST = path.join(CLONE, 'desktop', 'dist')
 
 // Seven builds and the four feeds the in-app install reads. No blockmaps: nothing reads them.
 const ASSETS = [
-  `AI4Kanban-${version}-arm64.dmg`,
-  `AI4Kanban-${version}.dmg`,
-  `AI4Kanban-${version}-arm64-mac.zip`,
-  `AI4Kanban-${version}-mac.zip`,
-  `AI4Kanban-Setup-${version}.exe`,
-  `AI4Kanban-${version}.AppImage`,
-  `AI4Kanban-${version}-arm64.AppImage`,
+  `WildCrane-${version}-arm64.dmg`,
+  `WildCrane-${version}.dmg`,
+  `WildCrane-${version}-arm64-mac.zip`,
+  `WildCrane-${version}-mac.zip`,
+  `WildCrane-Setup-${version}.exe`,
+  `WildCrane-${version}.AppImage`,
+  `WildCrane-${version}-arm64.AppImage`,
   'latest.yml',
   'latest-mac.yml',
   'latest-linux.yml',
@@ -60,8 +62,8 @@ const ASSETS = [
 
 // Each unpacked build, and where its board server sits inside it.
 const SERVERS = [
-  'mac/AI4Kanban.app/Contents/Resources',
-  'mac-arm64/AI4Kanban.app/Contents/Resources',
+  'mac/WildCrane.app/Contents/Resources',
+  'mac-arm64/WildCrane.app/Contents/Resources',
   'win-unpacked/resources',
   'win-arm64-unpacked/resources',
   'linux-unpacked/resources',
@@ -192,10 +194,26 @@ async function probeServer(resources) {
   }
 }
 
+// `npm_config_registry` from a pnpm shell would beat the npmrc and send a publish to a mirror.
+const npmEnv = () => without(BUILD_ENV, ['npm_config_registry', 'NPM_CONFIG_REGISTRY'])
+
+// The global ~/.npmrc points at a read-only mirror, so writes get a throwaway one with the token.
+function withNpmToken(fn) {
+  const token = process.env.NPM_TOKEN || readDotEnv(path.join(ROOT, '.env')).NPM_TOKEN
+  if (!token) throw new StepError('no NPM_TOKEN', `put NPM_TOKEN=… in ${path.join(ROOT, '.env')}`)
+  const rc = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'rel-npmrc-')), '.npmrc')
+  fs.writeFileSync(rc, `registry=${NPMJS}\n//registry.npmjs.org/:_authToken=${token}\n`, { mode: 0o600 })
+  try {
+    fn(rc)
+  } finally {
+    fs.rmSync(path.dirname(rc), { recursive: true, force: true })
+  }
+}
+
 const MAC_CHECKLIST = `
 Check the build on macOS before anything leaves this machine:
 
-  1. Open ${DIST}/mac-arm64/AI4Kanban.app and run one task end to end.
+  1. Open ${DIST}/mac-arm64/WildCrane.app and run one task end to end.
   2. Keep a build of this code stamped a version lower than ${version}, outside dist/ —
      after publishing, it is the only proof the real feed installs (desktop/README.md,
      "Keeping a fixture for the published feed").
@@ -277,27 +295,24 @@ const STEPS = [
   {
     name: 'publish cli',
     run() {
-      // `npm_config_registry` from a pnpm shell would beat the npmrc and send this to a mirror.
-      const env = without(BUILD_ENV, ['npm_config_registry', 'NPM_CONFIG_REGISTRY'])
-      const published = spawnSync('npm', ['view', `ai4kanban@${version}`, 'version', `--registry=${NPMJS}`], {
+      const env = npmEnv()
+      const published = spawnSync('npm', ['view', `${PACKAGE}@${version}`, 'version', `--registry=${NPMJS}`], {
         env,
         encoding: 'utf8',
       })
-      if (published.stdout.trim() === version) return console.log(`  ai4kanban@${version} is already on npm`)
-      // The global ~/.npmrc points at a read-only mirror.
-      const token = process.env.NPM_TOKEN || readDotEnv(path.join(ROOT, '.env')).NPM_TOKEN
-      if (!token) throw new StepError('no NPM_TOKEN', `put NPM_TOKEN=… in ${path.join(ROOT, '.env')}`)
-      const rc = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'rel-npmrc-')), '.npmrc')
-      fs.writeFileSync(rc, `registry=${NPMJS}\n//registry.npmjs.org/:_authToken=${token}\n`, { mode: 0o600 })
-      try {
-        run('npm', ['publish', `--registry=${NPMJS}`], {
-          cwd: path.join(CLONE, 'cli'),
-          env: { ...env, NPM_CONFIG_USERCONFIG: rc },
-        })
-      } finally {
-        fs.rmSync(path.dirname(rc), { recursive: true, force: true })
-      }
+      if (published.stdout.trim() === version) return console.log(`  ${PACKAGE}@${version} is already on npm`)
+      withNpmToken((rc) => run('npm', ['publish', `--registry=${NPMJS}`], {
+        cwd: path.join(CLONE, 'cli'),
+        env: { ...env, NPM_CONFIG_USERCONFIG: rc },
+      }))
     },
+  },
+  {
+    // The old package name: every version points at the new one. Re-running it is harmless.
+    name: 'deprecate ai4kanban',
+    run: () => withNpmToken((rc) => run('npm', ['deprecate', 'ai4kanban', DEPRECATED, `--registry=${NPMJS}`], {
+      env: { ...npmEnv(), NPM_CONFIG_USERCONFIG: rc },
+    })),
   },
   {
     name: 'smoke-test cli',
@@ -305,12 +320,12 @@ const STEPS = [
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-smoke-'))
       try {
         git(['init', '--quiet'], { cwd: dir })
-        run('npx', ['--yes', `ai4kanban@${version}`, 'install'], {
+        run('npx', ['--yes', `${PACKAGE}@${version}`, 'install'], {
           cwd: dir,
           env: { ...without(BUILD_ENV, ['npm_config_registry']), NPM_CONFIG_REGISTRY: NPMJS },
         })
         if (!fs.existsSync(path.join(dir, 'docs', 'kanban'))) {
-          throw new StepError(`\`npx ai4kanban@${version} install\` made no docs/kanban/`)
+          throw new StepError(`\`npx ${PACKAGE}@${version} install\` made no docs/kanban/`)
         }
       } finally {
         fs.rmSync(dir, { recursive: true, force: true })

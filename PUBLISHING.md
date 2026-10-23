@@ -1,6 +1,6 @@
-# Publishing AI4Kanban
+# Publishing WildCrane
 
-Everything ships from this one repo. Two things need publishing on npm — the `ai4kanban`
+Everything ships from this one repo. Two things need publishing on npm — the `wildcrane`
 CLI, and the frozen `ai4kanban-ui` board UI — and the desktop app ships as files on the
 GitHub release. The plugin and the skill ship by pushing to GitHub; directories read the
 repo directly.
@@ -10,10 +10,10 @@ repo directly.
 | Piece | Where it lives | How it ships |
 | --- | --- | --- |
 | Skill (`skill/`) + plugin/marketplace manifests | this repo | `git push` — nothing to publish |
-| Setup CLI | npm `ai4kanban` | `npm publish` from `cli/` |
+| Setup CLI | npm `wildcrane` (`ai4kanban` until 0.11, deprecated) | `npm publish` from `cli/` |
 | Board app | GitHub release for the version tag | `npm run dist` from `desktop/`, then upload |
 | Board UI (frozen) | npm `ai4kanban-ui` | **deprecated — no new releases**, see below |
-| Landing page | ai4kanban.dev (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |
+| Landing page | wildcrane.ai (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |
 | Cloud | api.ai4kanban.dev (Cloudflare Workers + Supabase) | `npm run migrate` then `npm run deploy` from `cloud/` — every release whose `cloud/` changed, before `npm publish` |
 | Hosted board | cloud.ai4kanban.dev (Cloudflare Workers) | `env -u NODE_ENV npm run deploy` from `cloud-ui/` — together with `cloud/`, whenever `cloud-ui/` or the `kanban-ui/` screens it draws changed; `cloud/` links to its pages, so a stale one breaks them |
 | Usage endpoint | t.ai4kanban.dev (Cloudflare Workers) | `npm run deploy` from `telemetry/` — only when it or `telemetry/contract.ts` changed, and always before the sender that needs it |
@@ -51,11 +51,13 @@ all share the one version, so they ship together. The app compares its own versi
 the newest GitHub release to tell the user a newer one is out, and installs that release
 from inside itself — so an unstamped app would nag forever.
 
-Tag every release. `npx ai4kanban update` links `…/compare/v<old>...v<new>`, which only
+Tag every release. `akb update` links `…/compare/v<old>...v<new>`, which only
 resolves if the tags exist.
 
-Never rename the plugin slug (`kanban`) or either npm package — a rename breaks everyone's
-install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm and that's all.
+Never rename the plugin slug (`kanban`) or an npm package again — a rename breaks everyone's
+install. The one rename, `ai4kanban` → `wildcrane`, is carried by the `deprecate ai4kanban`
+step in `scripts/publish.mjs`; the Slack and Lark apps' names are changed by hand in their
+consoles (`cloud/slack-manifest.json` holds Slack's). `kanban-skill-ui` is the retired old UI name; it's deprecated on npm and that's all.
 
 ## Release checklist
 
@@ -69,7 +71,7 @@ node scripts/publish.mjs <new-version> --checked  # push, release, site
 It runs the whole release from a clone of the tag at `/tmp/rel-<new-version>`, and stops on
 the first failure with what to fix. Re-run the same command to continue from that step.
 
-**The macOS check is yours.** Open the clone's `desktop/dist/mac-arm64/AI4Kanban.app` and
+**The macOS check is yours.** Open the clone's `desktop/dist/mac-arm64/WildCrane.app` and
 run a task end to end. Keep one build of this code stamped a version *lower* than the
 release, outside `desktop/dist/` — it is the only way to prove the published feed installs
 (#372), and it cannot be made after the release. See `desktop/README.md`.
@@ -92,8 +94,8 @@ Why each step is the way it is — every one was a silent failure once:
   The script then checks the live page links the new tag.
 
 If a build's file name changes, update `ASSETS` in `scripts/publish.mjs` and
-`web/components/download/builds.ts`. The Windows installer is
-`AI4Kanban-Setup-<version>.exe` from v0.8.1 on; older releases carry
+`web/components/download/builds.ts`. The builds are `WildCrane-*` from the rename on;
+older releases carry `AI4Kanban-*`, and before v0.8.1 the Windows installer was
 `AI4Kanban.Setup.<version>.exe`.
 
 Nothing to do for `kanban-ui/` — it is frozen (below).
@@ -140,7 +142,7 @@ What each system gets, and what we promise about it:
 | System | Build | Signed | Tested |
 | --- | --- | --- | --- |
 | macOS arm64 + x64 | `.dmg`, `.zip` | no | yes, each release |
-| Windows x64 + arm64 | `AI4Kanban-Setup-<version>.exe` (NSIS) | no | no |
+| Windows x64 + arm64 | `WildCrane-Setup-<version>.exe` (NSIS) | no | no |
 | Linux x64 + arm64 | `.AppImage` | no | no |
 
 Nothing is signed this release, and Windows and Linux are built and published untested. The
@@ -160,8 +162,8 @@ still calls the app unidentified and blocks the first open, which is the warning
 download page walks the user through. Confirm the build got one:
 
 ```
-codesign -dv --verbose=2 desktop/dist/mac-arm64/AI4Kanban.app   # Signature=adhoc
-spctl -a -vvv -t install desktop/dist/mac-arm64/AI4Kanban.app   # rejected — expected, until #182
+codesign -dv --verbose=2 desktop/dist/mac-arm64/WildCrane.app   # Signature=adhoc
+spctl -a -vvv -t install desktop/dist/mac-arm64/WildCrane.app   # rejected — expected, until #182
 ```
 
 Check it the way a user meets it: download the `.dmg` on a machine that has never run the

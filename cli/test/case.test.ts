@@ -293,7 +293,7 @@ describe('what the turn is told', () => {
 
   it('says nothing about a card in an ordinary discussion', () => {
     const said = chatPrompt('discussion-d1', 'what should we build next', { resuming: true })
-    assert.ok(!said.includes('AI4Kanban team'))
+    assert.ok(!said.includes('WildCrane team'))
   })
 })
 

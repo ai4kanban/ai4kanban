@@ -115,7 +115,7 @@ export const APP_LABELS = {
   signIn: 'Sign in with GitHub',
 }
 
-const SET_UP_URL = 'https://ai4kanban.dev/cloud'
+const SET_UP_URL = 'https://wildcrane.ai/cloud'
 const ALPHA =
   'Cloud is in alpha and still under development. Access is currently free for invited users; pricing may change in the future.'
 const ABOUT =
@@ -129,9 +129,9 @@ function approval(record: Queued) {
   const already = 'Already signed in? The pane shows you’re in next time you open it.'
   return {
     to: record.email,
-    subject: 'You’re in the AI4Kanban Cloud preview',
+    subject: 'You’re in the WildCrane Cloud preview',
     text: [
-      `Open AI4Kanban, go to ${path}, and click ${signIn}.`,
+      `Open WildCrane, go to ${path}, and click ${signIn}.`,
       already,
       '',
       `Set up Cloud: ${SET_UP_URL}`,
@@ -143,10 +143,10 @@ function approval(record: Queued) {
     html: [
       // White on every layer, so no client's own background shows through.
       '<!doctype html><html lang="en" style="background-color:#ffffff"><body style="background-color:#ffffff;margin:0;padding:24px 16px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Helvetica,Arial,sans-serif;color:#24231f">',
-      `<div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0">Open AI4Kanban, go to ${path}, and sign in with GitHub.</div>`,
+      `<div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0">Open WildCrane, go to ${path}, and sign in with GitHub.</div>`,
       '<div style="max-width:520px;background-color:#ffffff;margin:0 auto">',
       '<h1 style="font-size:22px;line-height:1.3;margin:0 0 16px">You’re in the Cloud preview</h1>',
-      `<p style="font-size:17px;line-height:1.55;margin:0 0 24px">Open AI4Kanban, go to <b>${path}</b>, and click <b>${signIn}</b>. ${already}</p>`,
+      `<p style="font-size:17px;line-height:1.55;margin:0 0 24px">Open WildCrane, go to <b>${path}</b>, and click <b>${signIn}</b>. ${already}</p>`,
       `<a href="${SET_UP_URL}" style="display:inline-block;background:#dd4f1e;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:6px">Set up Cloud</a>`,
       `<p style="font-size:14px;line-height:1.6;color:#635a4e;margin:28px 0 0">${ALPHA}</p>`,
       `<p style="font-size:14px;line-height:1.6;color:#635a4e;margin:12px 0 0">${ABOUT}</p>`,
@@ -161,9 +161,9 @@ function requestNotice(record: Queued) {
   return {
     to: SUPPORT_EMAIL,
     replyTo: record.email,
-    subject: `AI4Kanban Cloud: invite request from @${handle}`,
+    subject: `WildCrane Cloud: invite request from @${handle}`,
     text: [
-      `@${handle} asked for an AI4Kanban Cloud invite.`,
+      `@${handle} asked for an WildCrane Cloud invite.`,
       '',
       `    handle   @${handle}`,
       `    email    ${record.email}`,

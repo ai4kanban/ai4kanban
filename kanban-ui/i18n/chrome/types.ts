@@ -9,7 +9,7 @@ export type ChromeCopy = {
   header: {
     /** The mark that leads home — its tooltip and what a screen reader reads. */
     home: string;
-    /** The quiet mark that opens AI4Kanban's own repository in a browser — its
+    /** The quiet mark that opens WildCrane's own repository in a browser — its
      *  tooltip and what a screen reader reads. Name the product: on a board that
      *  is itself a repo, "GitHub" alone reads as the user's own. */
     github: string;

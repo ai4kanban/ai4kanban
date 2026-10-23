@@ -19,8 +19,8 @@ export const viewport: Viewport = {
 // link preview get exactly what a signed-out visitor gets — the product's name and no board
 // name, no card title, and no answer to whether that workspace exists.
 export const metadata: Metadata = {
-  title: "AI4Kanban",
-  description: "AI4Kanban",
+  title: "WildCrane",
+  description: "WildCrane",
   robots: { index: false, follow: false },
   icons: { icon: TAB_ICON },
 };

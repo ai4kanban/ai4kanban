@@ -73,6 +73,55 @@ test("a Mac swap that fails partway puts the old bundle back and reopens it", ()
   assert.equal(fs.readFileSync(opened, "utf8"), bundle, "the version that was running starts next time");
 });
 
+test("a Mac swap across the rename lands as WildCrane.app, removes the old bundle and repoints akb", () => {
+  const { root, opened, opener } = sandbox();
+  const bundle = path.join(root, "AI4Kanban.app");
+  const stage = path.join(root, ".ai4kanban-update");
+  const staged = path.join(stage, "app", "WildCrane.app");
+  const launcher = path.join("Contents", "Resources", "bin", "akb");
+  fs.mkdirSync(path.dirname(path.join(bundle, launcher)), { recursive: true });
+  fs.writeFileSync(path.join(bundle, launcher), "old");
+  fs.mkdirSync(path.dirname(path.join(staged, launcher)), { recursive: true });
+  fs.writeFileSync(path.join(staged, launcher), "new");
+  const link = path.join(root, "bin", "akb");
+  fs.mkdirSync(path.dirname(link));
+  fs.symlinkSync(path.join(bundle, launcher), link);
+
+  const code = run(macSwapScript({ pid: GONE, bundle, staged, stage, links: [link] }, opener), root);
+
+  const dest = path.join(root, "WildCrane.app");
+  assert.equal(code, 0);
+  assert.equal(fs.readFileSync(path.join(dest, launcher), "utf8"), "new");
+  assert.equal(fs.existsSync(bundle), false, "the old bundle is gone");
+  assert.equal(fs.existsSync(`${bundle}.old`), false);
+  assert.equal(fs.existsSync(stage), false);
+  assert.equal(fs.readlinkSync(link), path.join(dest, launcher), "akb points at the new bundle");
+  assert.equal(fs.readFileSync(opened, "utf8"), dest, "the renamed app is reopened");
+});
+
+test("a Mac swap across the rename that fails puts the old bundle and any WildCrane.app back", () => {
+  const { root, opened, opener } = sandbox();
+  const bundle = path.join(root, "AI4Kanban.app");
+  const dest = path.join(root, "WildCrane.app");
+  const stage = path.join(root, ".ai4kanban-update");
+  fs.mkdirSync(bundle);
+  fs.writeFileSync(path.join(bundle, "version"), "0.11.2");
+  // A copy the user dragged in by hand, and a download that is gone by swap time.
+  fs.mkdirSync(dest);
+  fs.writeFileSync(path.join(dest, "version"), "0.12.0");
+  fs.mkdirSync(stage, { recursive: true });
+  const staged = path.join(stage, "app", "WildCrane.app");
+
+  const code = run(macSwapScript({ pid: GONE, bundle, staged, stage }, opener), root);
+
+  assert.equal(code, 1);
+  assert.equal(fs.readFileSync(path.join(bundle, "version"), "utf8"), "0.11.2");
+  assert.equal(fs.readFileSync(path.join(dest, "version"), "utf8"), "0.12.0");
+  assert.equal(fs.existsSync(`${bundle}.old`), false);
+  assert.equal(fs.existsSync(`${dest}.old`), false);
+  assert.equal(fs.readFileSync(opened, "utf8"), bundle, "the version that was running starts next time");
+});
+
 test("the Linux swap replaces the AppImage at the path it was launched from", () => {
   const { root, opened, opener } = sandbox();
   const file = path.join(root, "AI4Kanban.AppImage");

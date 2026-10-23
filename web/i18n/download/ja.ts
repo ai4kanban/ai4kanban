@@ -44,7 +44,7 @@ const ja: DownloadCopy = {
     title: "ターミナルで `akb` を使う",
     mac: "アプリを一度開けば、ターミナルで `akb` が使えます。",
     windows: "ターミナルを開き直せば `akb` が使えます。",
-    linux: "手動の作業が必要なのは Linux だけです: `npm install -g ai4kanban`。",
+    linux: "手動の作業が必要なのは Linux だけです: `npm install -g wildcrane`。",
   },
 };
 

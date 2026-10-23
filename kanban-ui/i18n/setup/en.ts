@@ -13,7 +13,7 @@ const en: SetupCopy = {
   stepTitles: { project: "Project", agent: "Agent" },
   reading: "Reading the board…",
   privacy: {
-    title: "Help improve AI4Kanban",
+    title: "Help improve WildCrane",
     blurb:
       "Share anonymous feature use and failures — counts and names of events, nothing you write. Never code, card text, project names or file paths.",
     share: "Share anonymous usage",

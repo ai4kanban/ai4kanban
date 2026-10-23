@@ -103,7 +103,7 @@ describe('akb cloud template', () => {
     serve({})
     const { code, err } = await akb(['cloud', 'template', 'list-tags', '--category', 'ui'])
     assert.equal(code, 1)
-    assert.match(err, /未登录 AI4Kanban Cloud/)
+    assert.match(err, /未登录 WildCrane Cloud/)
     assert.match(err, /可以不用模板继续。\nYou can continue without a template\./)
     assert.equal(sent.length, 0)
   })

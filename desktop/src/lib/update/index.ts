@@ -23,6 +23,7 @@ import https from "node:https";
 import path from "node:path";
 import { app } from "electron";
 import type { UpdateFailure, UpdateStatus } from "../../shared/bridge";
+import { linksInto } from "../command";
 import { fetchFile } from "./download";
 import { UpdateFailed, failureOf, failureOfStatus } from "./failure";
 import {
@@ -144,7 +145,7 @@ function hooksFor(t: Target, version: string, changed: () => void): SessionHooks
       if (t.kind === "windows") return runWindowsInstaller(file);
       if (t.kind === "mac") {
         return detach(
-          macSwapScript({ pid: process.pid, bundle: t.bundle, staged: file, stage: stageDir(t) }),
+          macSwapScript({ pid: process.pid, bundle: t.bundle, staged: file, stage: stageDir(t), links: linksInto(t.bundle) }),
           "ai4kanban-swap.sh",
         );
       }

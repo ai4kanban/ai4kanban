@@ -44,7 +44,7 @@ const es: DownloadCopy = {
     title: "Usar `akb` en una terminal",
     mac: "Abre la app una vez y `akb` funciona en tu terminal.",
     windows: "Abre una terminal nueva y `akb` funciona.",
-    linux: "Solo Linux pide un paso: `npm install -g ai4kanban`.",
+    linux: "Solo Linux pide un paso: `npm install -g wildcrane`.",
   },
 };
 

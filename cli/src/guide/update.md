@@ -7,14 +7,16 @@ inside the command, so a newer command is a newer set of flows everywhere at onc
 ## 1. A newer command
 
 ```
-npm install -g ai4kanban@latest
+npm install -g wildcrane@latest
 ```
 
 `akb update` can't do this one to itself — replacing the file that is running is how you
 get half a command — so it checks npm and names this line when it is behind.
 
-No global install? `npx --yes ai4kanban@latest <command>` is the same command, fetched
+No global install? `npx --yes wildcrane@latest <command>` is the same command, fetched
 each time.
+
+Still on the old `ai4kanban` package? Run `npm uninstall -g ai4kanban` first; both install `akb`.
 
 ## 2. A repaired board
 

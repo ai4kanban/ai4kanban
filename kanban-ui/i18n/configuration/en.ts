@@ -531,7 +531,7 @@ const en: ConfigurationCopy = {
     checking: "Checking…",
     checkAgain: "Check again",
     writing: "Writing…",
-    skillRow: "AI4Kanban skill",
+    skillRow: "WildCrane skill",
     commandRow: "akb command",
     status: {
       unchecked: "Couldn't check",
@@ -564,7 +564,7 @@ const en: ConfigurationCopy = {
     button: { add: "Add the skill", addRest: "Add the rest", update: "Update the skill" },
     notWritten: "Couldn't add the skill to this project. Check that the project folder is writable.",
     behind: {
-      runThis: "Run this in a terminal to use the current AI4Kanban flows:",
+      runThis: "Run this in a terminal to use the current WildCrane flows:",
       copy: "Copy",
     },
   },
@@ -670,11 +670,11 @@ const en: ConfigurationCopy = {
     notifySignIn: {
       title: "Sign in to get notifications",
       body: "Invite-only preview",
-      needsApp: "Signing in needs the AI4Kanban app.",
+      needsApp: "Signing in needs the WildCrane app.",
     },
     storage: {
       title: "Cloud storage",
-      note: "Moving needs the AI4Kanban app and a Cloud invite. The board pauses while it moves and comes back at the end.",
+      note: "Moving needs the WildCrane app and a Cloud invite. The board pauses while it moves and comes back at the end.",
       checking: "Checking where this board is stored…",
       where: "Stored in",
       whereCloud: "Cards, archive, memory and settings live in your Cloud workspace.",
@@ -686,7 +686,7 @@ const en: ConfigurationCopy = {
       storeHint:
         "On, the whole board moves into a new Cloud workspace. Off, it all comes back to docs/kanban/.",
       storeLabel: "Store this board in Cloud",
-      needsApp: "Moving runs in the AI4Kanban app. Open this board there to switch storage.",
+      needsApp: "Moving runs in the WildCrane app. Open this board there to switch storage.",
       tooOld: "This project runs an older akb that cannot move the board. Update it first.",
 
       onTitle: "Move to Cloud",
@@ -769,7 +769,7 @@ const en: ConfigurationCopy = {
     signIn: "Sign in with GitHub",
     signInAgain: "Sign in again",
     needsApp:
-      "Signing in needs the AI4Kanban app — the consent screen comes back to it. Open this project there once, and every terminal on this machine is signed in with it.",
+      "Signing in needs the WildCrane app — the consent screen comes back to it. Open this project there once, and every terminal on this machine is signed in with it.",
     waiting: "Waiting for the consent screen in your browser…",
     finishFailed: "that sign-in did not complete",
     signOutFailed: "couldn't sign out",
@@ -791,10 +791,10 @@ const en: ConfigurationCopy = {
       pickChannel: "— pick a conversation —",
       loadingChannels: "Reading Slack…",
       noChannels:
-        "Nothing to post to yet. Invite AI4Kanban to a channel in Slack, then pick it here.",
+        "Nothing to post to yet. Invite WildCrane to a channel in Slack, then pick it here.",
       refused: "Slack refused the last message",
       needsApp:
-        "Connecting Slack needs the AI4Kanban app — the consent screen comes back to it.",
+        "Connecting Slack needs the WildCrane app — the consent screen comes back to it.",
       unavailable: "This Cloud service carries no Slack app to connect to.",
       connectFailed: "that connection could not be started",
       saveFailed: "that destination could not be saved",
@@ -803,7 +803,7 @@ const en: ConfigurationCopy = {
     lark: {
       title: "Lark",
       install:
-        "An administrator installs AI4Kanban in your organisation from its app directory first.",
+        "An administrator installs WildCrane in your organisation from its app directory first.",
       checking: "Checking…",
       connect: (cloud) => `Connect ${cloud}`,
       connecting: "Connecting…",
@@ -813,10 +813,10 @@ const en: ConfigurationCopy = {
       postsTo: "Posts to",
       pickChat: "— pick a chat —",
       loadingChats: "Reading Lark…",
-      noChats: "Nothing to post to yet. Add AI4Kanban to a group in Lark, then pick it here.",
+      noChats: "Nothing to post to yet. Add WildCrane to a group in Lark, then pick it here.",
       connectedBy: (person) => `Connected by ${person}.`,
       refused: (cloud) => `${cloud} refused the last message`,
-      needsApp: "Connecting Lark needs the AI4Kanban app — the consent screen comes back to it.",
+      needsApp: "Connecting Lark needs the WildCrane app — the consent screen comes back to it.",
       unavailable: "This Cloud service carries no Lark app to connect to.",
       comingSoon: "Coming soon",
       connectFailed: "that connection could not be started",

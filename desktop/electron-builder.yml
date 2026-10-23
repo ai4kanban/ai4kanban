@@ -2,8 +2,8 @@
 # package.json — they build the board UI into resources/server/ first, which is
 # the one thing this file expects to already be there.
 appId: dev.ai4kanban.app
-productName: AI4Kanban
-copyright: Copyright © AI4Kanban contributors
+productName: WildCrane
+copyright: Copyright © WildCrane contributors
 
 directories:
   output: dist
@@ -42,7 +42,7 @@ afterPack: scripts/after-pack.js
 # This is what writes CFBundleURLTypes on macOS and the registry keys on Windows; the
 # running app still claims it itself (src/main.ts), which is what makes a checkout work.
 protocols:
-  - name: AI4Kanban
+  - name: WildCrane
     schemes:
       - ai4kanban
 
@@ -75,7 +75,7 @@ mac:
   notarize: false
 
 dmg:
-  title: AI4Kanban ${version}
+  title: WildCrane ${version}
 
 # Every dmg, mac zip and the exe gets a `.blockmap` beside it. It is electron-updater's
 # chunk index, and this app's updater is its own — `PUBLISHING.md` leaves them in `dist/`.
@@ -93,10 +93,10 @@ win:
 
 nsis:
   # The name `latest.yml` points at. electron-builder writes that file naming
-  # `AI4Kanban-Setup-<version>.exe` whatever the installer is actually called, and
+  # `WildCrane-Setup-<version>.exe` whatever the installer is actually called, and
   # the default spells it with spaces — which GitHub then publishes with dots. One
   # name, so the in-app install (#372) finds the file it was told about.
-  artifactName: AI4Kanban-Setup-${version}.${ext}
+  artifactName: WildCrane-Setup-${version}.${ext}
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true

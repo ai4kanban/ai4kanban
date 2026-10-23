@@ -4,12 +4,12 @@ import type { ChromeCopy } from "./types";
 
 const zh: ChromeCopy = {
   window: {
-    title: "AI4Kanban",
+    title: "WildCrane",
     description: "本地看板，把工作交给 Agent 完成。",
   },
   header: {
     home: "全部卡片",
-    github: "在 GitHub 上查看 AI4Kanban",
+    github: "在 GitHub 上查看 WildCrane",
     triage: "待筛选",
     triageWaiting: (n) => `待筛选 · ${n} 条待处理`,
     newIdea: "说个想法、问进度或安排卡片",
@@ -67,7 +67,7 @@ const zh: ChromeCopy = {
   },
   app: {
     notice:
-      "**AI4Kanban 推出了桌面应用。** 同一个看板，放在独立窗口中，无需预先安装 Node 或 npx，也不必一直开着终端。继续在浏览器中使用也完全可以，我们会持续支持。",
+      "**WildCrane 推出了桌面应用。** 同一个看板，放在独立窗口中，无需预先安装 Node 或 npx，也不必一直开着终端。继续在浏览器中使用也完全可以，我们会持续支持。",
     get: "获取应用",
     hide: "在重新打开这个标签页前不再提示",
   },

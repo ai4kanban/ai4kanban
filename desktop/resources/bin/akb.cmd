@@ -11,13 +11,13 @@ set "A4K_RESOURCES=%A4K_BIN%.."
 set "A4K_APP=%A4K_RESOURCES%\.."
 set "A4K_CLI=%A4K_RESOURCES%\cli\bin\ai4kanban.mjs"
 
-for %%F in ("%A4K_APP%\AI4Kanban.exe") do set "A4K_EXE=%%~fF"
+for %%F in ("%A4K_APP%\WildCrane.exe") do set "A4K_EXE=%%~fF"
 if not exist "%A4K_EXE%" (
-  echo akb: could not find the AI4Kanban app around "%A4K_RESOURCES%" 1>&2
+  echo akb: could not find the WildCrane app around "%A4K_RESOURCES%" 1>&2
   exit /b 1
 )
 if not exist "%A4K_CLI%" (
-  echo akb: the command is missing from this AI4Kanban app 1>&2
+  echo akb: the command is missing from this WildCrane app 1>&2
   exit /b 1
 )
 

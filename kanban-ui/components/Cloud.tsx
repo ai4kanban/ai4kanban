@@ -79,8 +79,8 @@ import { sayFailure } from "@/lib/start-failure";
 import { accountChanged, cloudAccount } from "@/lib/window-state";
 
 /** The published pages signing in agrees to. */
-const PRIVACY_URL = "https://ai4kanban.dev/privacy";
-const TERMS_URL = "https://ai4kanban.dev/terms";
+const PRIVACY_URL = "https://wildcrane.ai/privacy";
+const TERMS_URL = "https://wildcrane.ai/terms";
 
 /** The answers this pane takes off the app's URL scheme: a finished sign-in, and a finished
  *  connection to either chat. The card link is the window's and arrives elsewhere (#320). */

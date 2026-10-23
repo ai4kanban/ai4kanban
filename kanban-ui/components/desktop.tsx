@@ -51,7 +51,7 @@ import {
 import { sayFailure } from "@/lib/start-failure";
 
 /** Where a person gets the app. One place, named here, used by both notices. */
-export const DOWNLOAD_URL = "https://ai4kanban.dev/download";
+export const DOWNLOAD_URL = "https://wildcrane.ai/download";
 
 // --- system notifications (#319) ---------------------------------------------
 // The bell decides WHAT to say; the app decides whether it interrupts. Focus is the app's

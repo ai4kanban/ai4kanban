@@ -287,7 +287,7 @@ async function resolve(
     return {
       ok: false,
       words:
-        'AI4Kanban does not know who you are here. Connect Lark in Configuration → Notifications to press this as your account.',
+        'WildCrane does not know who you are here. Connect Lark in Configuration → Notifications to press this as your account.',
     }
   }
   if (actorRow.revoked) {
@@ -301,7 +301,7 @@ async function resolve(
     p_subject: actorRow.ownerId,
     p_event: eventId,
   })
-  if (!row) return { ok: false, words: 'That task is not on your AI4Kanban account. Nothing changed.' }
+  if (!row) return { ok: false, words: 'That task is not on your WildCrane account. Nothing changed.' }
   // An event already answered is deliberately not refused here: that is what this press's own
   // retry finds, and only the recorded op id tells it from a second press. `record` settles
   // both.

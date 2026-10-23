@@ -97,7 +97,7 @@ export interface HostedCopy {
 }
 
 const en: HostedCopy = {
-  title: "AI4Kanban",
+  title: "WildCrane",
   backToBoard: "Board",
   signOut: "Sign out",
   signIn: "Sign in",
@@ -107,7 +107,7 @@ const en: HostedCopy = {
     "This board is not readable by this account. Sign in as an account it belongs to, or ask its owner for the link.",
   unavailable: "The board could not be read just now. Try again shortly.",
   noSuchCard: "This board has no card with that number.",
-  noWorkspace: "No workspace yet. Make one in the AI4Kanban app, and it opens here.",
+  noWorkspace: "No workspace yet. Make one in the WildCrane app, and it opens here.",
   chooseWorkspace: "Your workspaces",
   readOnly: "Read-only",
   openInApp: "Open in the app",
@@ -115,7 +115,7 @@ const en: HostedCopy = {
   pressRefused: "This card has moved on. Reload to see where it stands.",
   account: "Account",
   settings: "Settings",
-  settingsInApp: "Board and machine settings live in the AI4Kanban app.",
+  settingsInApp: "Board and machine settings live in the WildCrane app.",
   accountUnavailable: "Your account could not be read just now. Try again shortly.",
   plan: "Plan",
   free: "Free",
@@ -153,11 +153,11 @@ const en: HostedCopy = {
   resume: "Resume renewal",
   resumeFailed: "Renewal could not be resumed. Try again.",
   checkoutDone: "Payment complete",
-  checkoutDoneBody: "Head back to AI4Kanban. Pro unlocks there on its own — no need to sign in again.",
+  checkoutDoneBody: "Head back to WildCrane. Pro unlocks there on its own — no need to sign in again.",
 };
 
 const zh: HostedCopy = {
-  title: "AI4Kanban",
+  title: "WildCrane",
   backToBoard: "看板",
   signOut: "退出登录",
   signIn: "登录",
@@ -166,7 +166,7 @@ const zh: HostedCopy = {
   refused: "当前账号无法读取该看板。请使用其所属账号登录，或向其所有者索取链接。",
   unavailable: "暂时无法读取该看板，请稍后重试。",
   noSuchCard: "该看板没有此编号的卡片。",
-  noWorkspace: "尚无工作区。在 AI4Kanban 应用中创建后，即可在此打开。",
+  noWorkspace: "尚无工作区。在 WildCrane 应用中创建后，即可在此打开。",
   chooseWorkspace: "你的工作区",
   readOnly: "只读",
   openInApp: "在应用中打开",
@@ -174,7 +174,7 @@ const zh: HostedCopy = {
   pressRefused: "该卡片已发生变化，请刷新查看当前状态。",
   account: "账号",
   settings: "设置",
-  settingsInApp: "看板与电脑设置在 AI4Kanban 应用中。",
+  settingsInApp: "看板与电脑设置在 WildCrane 应用中。",
   accountUnavailable: "暂时无法读取账号信息，请稍后重试。",
   plan: "套餐",
   free: "免费版",
@@ -212,7 +212,7 @@ const zh: HostedCopy = {
   resume: "恢复续费",
   resumeFailed: "无法恢复续费，请重试。",
   checkoutDone: "付款成功",
-  checkoutDoneBody: "请回到 AI4Kanban，Pro 会自动解锁，无需再次登录。",
+  checkoutDoneBody: "请回到 WildCrane，Pro 会自动解锁，无需再次登录。",
 };
 
 export const getHostedCopy = (language: Language): HostedCopy => (language === "zh" ? zh : en);

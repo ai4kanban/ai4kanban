@@ -94,7 +94,7 @@ export const notAdmitted = () =>
   new Refusal(
     'not_admitted',
     403,
-    'AI4Kanban Cloud is an invite-only preview and this account is not in it yet. ' +
+    'WildCrane Cloud is an invite-only preview and this account is not in it yet. ' +
       'Ask us for an invite and we will email you when you are in.',
   )
 
@@ -141,7 +141,7 @@ export const handleNotAdmitted = (message?: string) =>
     'handle_not_admitted',
     404,
     message ||
-      'AI4Kanban Cloud has no admitted account for that GitHub handle. They have to sign in ' +
+      'WildCrane Cloud has no admitted account for that GitHub handle. They have to sign in ' +
         'to Cloud and be admitted before they can be added.',
   )
 
@@ -193,7 +193,7 @@ export const slackUnavailable = () =>
   new Refusal(
     'slack_unavailable',
     503,
-    'This AI4Kanban Cloud service carries no Slack app to connect to.',
+    'This WildCrane Cloud service carries no Slack app to connect to.',
   )
 
 export const slackNotConnected = () =>
@@ -213,7 +213,7 @@ export const larkUnavailable = (cloud: string) =>
   new Refusal(
     'lark_unavailable',
     503,
-    `This AI4Kanban Cloud service carries no ${cloud} app to connect to.`,
+    `This WildCrane Cloud service carries no ${cloud} app to connect to.`,
   )
 
 export const larkNotConnected = () =>

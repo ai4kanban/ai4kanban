@@ -1,4 +1,4 @@
-// AI4Kanban, as an app you open.
+// WildCrane, as an app you open.
 //
 // What it does, in order: read the user's shell environment so runs can find
 // their coding agent, open the project it had open last (or, the first time,
@@ -76,6 +76,10 @@ import {
   type NotificationAlert,
   type ProjectInfo,
 } from "./shared/bridge";
+
+// The data folder stays where releases before the rename kept it, so the page's own storage
+// (language, panels) and the single-instance lock carry over. Set before anything reads it.
+app.setPath("userData", path.join(app.getPath("appData"), "AI4Kanban"));
 
 let servers: BoardServers | null = null;
 // The environment a terminal would have given us, read once at start. Every run inherits
@@ -378,7 +382,7 @@ function createWindow(from?: Win): Win {
     minHeight: 520,
     show: false,
     backgroundColor: "#faf6ef", // the board's own cream, so the first paint doesn't flash white
-    title: "AI4Kanban",
+    title: "WildCrane",
     ...(MAC ? { titleBarStyle: "hidden" as const, trafficLightPosition: { x: 14, y: 14 } } : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -402,7 +406,7 @@ function createWindow(from?: Win): Win {
 
   win.once("ready-to-show", () => win.show());
   // The title belongs to the app, not to the page (#495). Every board page calls itself
-  // "AI4Kanban", and a window takes its title from the document unless it is stopped —
+  // "WildCrane", and a window takes its title from the document unless it is stopped —
   // which would paint over the project and board this window is on the moment it loads,
   // leaving every window in the switcher named the same thing.
   win.on("page-title-updated", (e) => e.preventDefault());
@@ -457,15 +461,15 @@ function openDialog(w: Win | null, options: OpenDialogOptions) {
  *  than one that gains a word. */
 function paintTitle(w: Win): void {
   const project = w.project;
-  if (!project) return void w.win.setTitle("AI4Kanban");
+  if (!project) return void w.win.setTitle("WildCrane");
   const name = path.basename(project) || project;
-  w.win.setTitle(`${name} — AI4Kanban`);
+  w.win.setTitle(`${name} — WildCrane`);
   const board = w.board;
   if (!board) return;
   void boardWord(project, board).then((word) => {
     // The window has been closed, or moved to another board, while the rules were read.
     if (!word || w.win.isDestroyed() || w.board !== board) return;
-    w.win.setTitle(`${name} · ${word} — AI4Kanban`);
+    w.win.setTitle(`${name} · ${word} — WildCrane`);
   });
 }
 

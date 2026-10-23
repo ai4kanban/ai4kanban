@@ -316,7 +316,7 @@ async function resolve(
     return {
       ok: false,
       words:
-        'AI4Kanban does not know who you are here. Connect Slack in Configuration → Notifications to press this as your account.',
+        'WildCrane does not know who you are here. Connect Slack in Configuration → Notifications to press this as your account.',
     }
   }
   if (actorRow.revoked) {
@@ -330,7 +330,7 @@ async function resolve(
     p_subject: actorRow.ownerId,
     p_event: carried.eventId,
   })
-  if (!event) return { ok: false, words: 'That task is not on your AI4Kanban account. Nothing changed.' }
+  if (!event) return { ok: false, words: 'That task is not on your WildCrane account. Nothing changed.' }
   if (event.acted) return { ok: false, words: 'That was already answered. Nothing changed.' }
   if (event.revision !== carried.revision) {
     return {

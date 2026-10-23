@@ -1223,7 +1223,7 @@ function feedbackLines(feedback: { cardId: number; share: boolean } | undefined)
   if (!feedback) return ''
   return feedback.share
     ? `This conversation is about task #${feedback.cardId} on this board, it has ended, and the ` +
-        `user shared it with the AI4Kanban team. Collect and submit it now — follow ` +
+        `user shared it with the WildCrane team. Collect and submit it now — follow ` +
         `\`akb guide feedback\`.`
     : `This message is about task #${feedback.cardId} on this board. Nothing has been shared, ` +
         `so collect nothing and submit nothing — read the card and answer them in the discussion.`

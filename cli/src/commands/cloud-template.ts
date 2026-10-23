@@ -25,8 +25,8 @@ const WITHOUT: Said = { zh: '可以不用模板继续。', en: 'You can continue
 
 const T = {
   pro_required: {
-    zh: '这个模板需要 Pro。升级 Pro：https://ai4kanban.dev/pricing',
-    en: 'This template needs Pro. Upgrade at https://ai4kanban.dev/pricing',
+    zh: '这个模板需要 Pro。升级 Pro：https://wildcrane.ai/pricing',
+    en: 'This template needs Pro. Upgrade at https://wildcrane.ai/pricing',
   },
   not_found: { zh: '模板库里没有这个模板。', en: 'There is no template with this name.' },
   failed: { zh: '模板库暂时无法使用，请稍后重试。', en: 'Templates are not available right now. Try again later.' },

@@ -13,7 +13,7 @@ import { die } from '../lib/paths'
 import { say } from '../lib/io'
 import type { MoveResult } from '../lib/types'
 
-const PRIVACY_URL = 'https://ai4kanban.dev/privacy'
+const PRIVACY_URL = 'https://wildcrane.ai/privacy'
 const SENT = `  What is sent, and how to have it deleted: ${PRIVACY_URL}`
 
 export function cmdTelemetry(args: string[], program: string): MoveResult {

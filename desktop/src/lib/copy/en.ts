@@ -5,13 +5,13 @@ import type { DesktopCopy } from "./types";
 const en: DesktopCopy = {
   menu: {
     app: {
-      about: "About AI4Kanban",
+      about: "About WildCrane",
       checkUpdates: "Check for Updates…",
       services: "Services",
-      hide: "Hide AI4Kanban",
+      hide: "Hide WildCrane",
       hideOthers: "Hide Others",
       unhide: "Show All",
-      quit: "Quit AI4Kanban",
+      quit: "Quit WildCrane",
     },
     file: {
       title: "File",
@@ -59,7 +59,7 @@ const en: DesktopCopy = {
       front: "Bring All to Front",
       close: "Close",
     },
-    help: { title: "Help", tour: "Welcome Tour", guide: "AI4Kanban Guide", downloads: "Downloads" },
+    help: { title: "Help", tour: "Welcome Tour", guide: "WildCrane Guide", downloads: "Downloads" },
   },
   launcher: {
     openFolder: "Open folder",
@@ -96,11 +96,11 @@ const en: DesktopCopy = {
     command: {
       ask: "Put the akb command on your PATH?",
       detailWindows: (folder) =>
-        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This puts the app's own folder (${folder}) on your PATH. Updating the app updates the command.\n\nA new PATH entry only reaches terminals opened after it.\n\nYou can do this later from Configuration → General.`,
+        `WildCrane carries its own copy of akb — the command a coding agent drives this board with. This puts the app's own folder (${folder}) on your PATH. Updating the app updates the command.\n\nA new PATH entry only reaches terminals opened after it.\n\nYou can do this later from Configuration → General.`,
       detailLink: (path) =>
-        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command.\n\nYou can do this later from Configuration → General.`,
+        `WildCrane carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command.\n\nYou can do this later from Configuration → General.`,
       detailLinkPassword: (path) =>
-        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command. macOS asks for your administrator password to write there.\n\nYou can do this later from Configuration → General.`,
+        `WildCrane carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command. macOS asks for your administrator password to write there.\n\nYou can do this later from Configuration → General.`,
       install: "Install",
       notNow: "Not now",
       failed: "akb was not installed.",
@@ -110,17 +110,17 @@ const en: DesktopCopy = {
         "Run `akb --version` in a terminal. Typing `akb` on its own opens this app on the project you are standing in.",
     },
     update: {
-      newest: (version) => `AI4Kanban ${version} is the newest version.`,
-      out: (version) => `AI4Kanban ${version} is out.`,
-      downloading: "AI4Kanban is downloading it in the background. You will be asked to restart when it is ready.",
-      ready: (version) => `AI4Kanban ${version} is downloaded.`,
-      readyDetail: "Restarting closes AI4Kanban and opens the new version.",
+      newest: (version) => `WildCrane ${version} is the newest version.`,
+      out: (version) => `WildCrane ${version} is out.`,
+      downloading: "WildCrane is downloading it in the background. You will be asked to restart when it is ready.",
+      ready: (version) => `WildCrane ${version} is downloaded.`,
+      readyDetail: "Restarting closes WildCrane and opens the new version.",
       restart: "Restart to update",
       later: "Later",
       close: "Close",
-      failed: (reason) => `${reason}\n\nAI4Kanban will try again the next time it starts.`,
+      failed: (reason) => `${reason}\n\nWildCrane will try again the next time it starts.`,
     },
-    startFailed: "AI4Kanban could not start the board",
+    startFailed: "WildCrane could not start the board",
   },
   command: {
     blockedSource:
@@ -128,12 +128,12 @@ const en: DesktopCopy = {
     blockedLinux:
       "The Linux build unpacks itself somewhere new every time it runs, so there is no lasting path to point at.",
     blockedImage:
-      "AI4Kanban is running from a disk image. Move it into Applications first, then open it from there.",
+      "WildCrane is running from a disk image. Move it into Applications first, then open it from there.",
     blockedTranslocated:
-      "macOS is running AI4Kanban from a temporary copy of itself. Move it into Applications first, then open it from there.",
+      "macOS is running WildCrane from a temporary copy of itself. Move it into Applications first, then open it from there.",
     blockedDownloads:
-      "AI4Kanban is running from Downloads. Move it into Applications first, then open it from there.",
-    password: (folder) => `AI4Kanban needs your password to put the akb command in ${folder}.`,
+      "WildCrane is running from Downloads. Move it into Applications first, then open it from there.",
+    password: (folder) => `WildCrane needs your password to put the akb command in ${folder}.`,
     cancelled: "cancelled — nothing was written.",
     noWay: "this system has no way to install the command.",
     held: (path, holder) =>
@@ -151,11 +151,11 @@ const en: DesktopCopy = {
       timeout: "The connection timed out while downloading the update.",
       server: "The update service is unavailable right now.",
       disk: "There is not enough disk space for the update.",
-      permission: "AI4Kanban does not have permission to write the update.",
+      permission: "WildCrane does not have permission to write the update.",
       checksum: "The downloaded update failed its integrity check, so it was thrown away.",
-      readOnly: "AI4Kanban is in a read-only location, so it cannot update itself.",
+      readOnly: "WildCrane is in a read-only location, so it cannot update itself.",
       noBuild: "This release has no build for this computer.",
-      notInstallable: "This copy of AI4Kanban cannot update itself.",
+      notInstallable: "This copy of WildCrane cannot update itself.",
       unknown: "The update could not be installed.",
     },
   },

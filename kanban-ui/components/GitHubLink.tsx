@@ -1,6 +1,6 @@
 "use client";
 
-// The one way out of the app in the top row: AI4Kanban's own repository.
+// The one way out of the app in the top row: WildCrane's own repository.
 //
 // It is the header's ordinary control — the same press-down block as Chat
 // beside it (components/button.tsx, ghost at `xs`), so the row stays one

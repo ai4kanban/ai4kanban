@@ -10,7 +10,7 @@ tasks, the Configuration dialog) is documented with the app itself:
 
 ## Get the app
 
-Download it and open it: <https://ai4kanban.dev/download>
+Download it and open it: <https://wildcrane.ai/download>
 
 Nothing to install first — no Node, no npx, no terminal. It asks which project folder to
 open the first time and remembers it; the folder path in its header opens another one. A

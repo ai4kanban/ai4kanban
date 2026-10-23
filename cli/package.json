@@ -1,7 +1,7 @@
 {
-  "name": "ai4kanban",
+  "name": "wildcrane",
   "version": "0.11.2",
-  "description": "AI4Kanban's `akb` command \u2014 scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
+  "description": "WildCrane's `akb` command \u2014 scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
   "keywords": [
     "kanban",
     "claude",
@@ -13,7 +13,7 @@
     "board"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://ai4kanban.dev/",
+  "homepage": "https://wildcrane.ai/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ai4kanban/ai4kanban.git",
@@ -21,8 +21,8 @@
   },
   "type": "module",
   "bin": {
-    "ai4kanban": "bin/ai4kanban.mjs",
-    "akb": "bin/ai4kanban.mjs"
+    "akb": "bin/ai4kanban.mjs",
+    "wildcrane": "bin/ai4kanban.mjs"
   },
   "files": [
     "bin/",

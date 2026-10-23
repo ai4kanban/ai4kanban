@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "AI4Kanban storyboard",
+  "title": "WildCrane storyboard",
   "description": "Structure only. This agent's `scripts/validate-storyboard.mjs` also checks unique shot IDs, that shots start at 0 and meet at their boundaries, and that every frame is a readable same-card image at most 1280px wide.",
   "type": "object",
   "additionalProperties": false,

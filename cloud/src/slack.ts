@@ -127,7 +127,7 @@ export async function finishSlackInstall(env: Env, request: Request): Promise<Re
   if (!done.ok) {
     return page(
       done.reason === 'actor_taken'
-        ? 'That Slack account is already connected to another AI4Kanban account. Disconnect it there first.'
+        ? 'That Slack account is already connected to another WildCrane account. Disconnect it there first.'
         : 'That connection was started too long ago. Start it again from the app.',
     )
   }

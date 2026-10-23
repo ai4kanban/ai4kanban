@@ -99,8 +99,8 @@ describe('akb cloud image / tts / music', () => {
     answer(() => assert.fail('nothing is sent while signed out'))
     const { code, err } = await akb(['cloud', 'tts', '--voice', 'Ava', '--out', 'a.wav', 'hi'])
     assert.equal(code, 1)
-    assert.match(err, /^未登录 AI4Kanban Cloud/)
-    assert.match(err, /Not signed in to AI4Kanban Cloud/)
+    assert.match(err, /^未登录 WildCrane Cloud/)
+    assert.match(err, /Not signed in to WildCrane Cloud/)
     assert.match(err, /npx hyperframes tts --list/)
   })
 

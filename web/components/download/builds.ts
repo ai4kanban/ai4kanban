@@ -29,8 +29,8 @@ const SYSTEMS: { os: OS; name: string; builds: Build[] }[] = [
     builds: [
       // Apple Silicon first, and not only because it is newer: no browser but
       // Chromium will say which Mac this is, so this row is also the guess.
-      { label: "Apple Silicon", arch: "arm", file: (v) => `AI4Kanban-${v}-arm64.dmg` },
-      { label: "Intel", arch: "x86", file: (v) => `AI4Kanban-${v}.dmg` },
+      { label: "Apple Silicon", arch: "arm", file: (v) => `WildCrane-${v}-arm64.dmg` },
+      { label: "Intel", arch: "x86", file: (v) => `WildCrane-${v}.dmg` },
     ],
   },
   {
@@ -38,15 +38,15 @@ const SYSTEMS: { os: OS; name: string; builds: Build[] }[] = [
     name: "Windows",
     // One NSIS installer covers x64 and arm64, so there is nothing to pick.
     builds: [
-      { label: "Installer", arch: null, file: (v) => `AI4Kanban-Setup-${v}.exe` },
+      { label: "Installer", arch: null, file: (v) => `WildCrane-Setup-${v}.exe` },
     ],
   },
   {
     os: "linux",
     name: "Linux",
     builds: [
-      { label: "64-bit", arch: "x86", file: (v) => `AI4Kanban-${v}.AppImage` },
-      { label: "ARM64", arch: "arm", file: (v) => `AI4Kanban-${v}-arm64.AppImage` },
+      { label: "64-bit", arch: "x86", file: (v) => `WildCrane-${v}.AppImage` },
+      { label: "ARM64", arch: "arm", file: (v) => `WildCrane-${v}-arm64.AppImage` },
     ],
   },
 ];

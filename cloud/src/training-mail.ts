@@ -143,7 +143,7 @@ function confirmation(record: Queued, manageLink?: string) {
     from: TRAINING_MAIL_FROM,
     to: record.email,
     replyTo: TRAINING_COACH_EMAIL,
-    subject: `Your AI4Kanban training session — ${whenLine(record)}`,
+    subject: `Your WildCrane training session — ${whenLine(record)}`,
     text: [
       `Your session is booked. Reference ${record.reference}.`,
       '',
@@ -217,7 +217,7 @@ function cancelled(record: Queued) {
     from: TRAINING_MAIL_FROM,
     to: record.email,
     replyTo: TRAINING_COACH_EMAIL,
-    subject: `Cancelled: AI4Kanban training ${record.reference}`,
+    subject: `Cancelled: WildCrane training ${record.reference}`,
     text: [
       `Your session on ${whenLine(record)} is cancelled, and that hour is open again.`,
       '',

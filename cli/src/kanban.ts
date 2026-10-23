@@ -582,7 +582,7 @@ if (invokedDirectly()) {
     } else {
       void runBoard(argv.slice(1), {
         program: `node ${SELF} raw`,
-        version: `ai4kanban ${SKILL_VERSION}`,
+        version: `wildcrane ${SKILL_VERSION}`,
       }).then((code) => {
         process.exitCode = code
       })
@@ -593,7 +593,7 @@ if (invokedDirectly()) {
     // and nowhere else.
     void runBoard(argv, {
       program: `node ${SELF}`,
-      version: `ai4kanban ${SKILL_VERSION}`,
+      version: `wildcrane ${SKILL_VERSION}`,
     }).then((code) => {
       process.exitCode = code
     })

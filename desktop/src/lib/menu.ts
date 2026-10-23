@@ -23,7 +23,7 @@ import { DEFAULT_LANGUAGE } from "./rules";
 import { DOWNLOADS_URL } from "./update";
 import type { ProjectInfo } from "../shared/bridge";
 
-const DOCS_URL = "https://ai4kanban.dev/";
+const DOCS_URL = "https://wildcrane.ai/";
 
 // How many projects Open Recent shows. The header's list has them all; a menu
 // that runs down the screen helps nobody.

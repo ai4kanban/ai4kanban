@@ -1,7 +1,7 @@
 #!/bin/sh
 # The `akb` command, as the app carries it (#226).
 #
-# `/usr/local/bin/akb` is a symlink to this file inside AI4Kanban.app, the way
+# `/usr/local/bin/akb` is a symlink to this file inside WildCrane.app, the way
 # `/usr/local/bin/cursor` is a symlink into Cursor.app. Nothing is copied out of
 # the app, so updating the app updates the command and there is no second thing
 # to keep fresh.
@@ -39,15 +39,16 @@ contents=$(dirname "$resources")
 cli="$resources/cli/bin/ai4kanban.mjs"
 
 if [ ! -f "$cli" ]; then
-  echo "akb: the command is missing from this AI4Kanban app ($cli)" >&2
+  echo "akb: the command is missing from this WildCrane app ($cli)" >&2
   exit 1
 fi
 
 # The app's own executable, and the Node to run children with.
 if [ -d "$contents/MacOS" ]; then
-  app=$(dirname "$contents")
-  name=$(basename "$app" .app)
-  exe="$contents/MacOS/$name"
+  # Named after the executable, not the bundle: an update from before the rename puts
+  # WildCrane's executable inside a bundle still called AI4Kanban.app.
+  exe=$(find "$contents/MacOS" -maxdepth 1 -type f -perm -u+x 2>/dev/null | head -n 1)
+  name=$(basename "$exe")
   # Electron's helper binary is the same Node inside a bundle marked LSUIElement,
   # so a command run from a terminal takes no Dock tile (see lib/node-binary.ts).
   node="$contents/Frameworks/$name Helper.app/Contents/MacOS/$name Helper"
@@ -61,7 +62,7 @@ else
 fi
 
 if [ -z "$exe" ] || [ ! -x "$exe" ]; then
-  echo "akb: could not find the AI4Kanban app around $resources" >&2
+  echo "akb: could not find the WildCrane app around $resources" >&2
   exit 1
 fi
 

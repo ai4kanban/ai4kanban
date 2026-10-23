@@ -1,4 +1,4 @@
-# AI4Kanban, as an app
+# WildCrane, as an app
 
 The board in a window. Download it, open it, point it at a project — no Node, no npx, no
 terminal to keep alive.
@@ -27,7 +27,7 @@ time it is opened:
   [download page](https://ai4kanban.dev/download) spells out every click.
 - **Windows** — SmartScreen says "Windows protected your PC". Click **More info** →
   **Run anyway**.
-- **Linux** — make it executable and run it: `chmod +x AI4Kanban-*.AppImage && ./AI4Kanban-*.AppImage`.
+- **Linux** — make it executable and run it: `chmod +x WildCrane-*.AppImage && ./WildCrane-*.AppImage`.
 
 ## What it is
 
@@ -165,17 +165,17 @@ node ../scripts/sync-version.mjs 0.9.0
 npm run dist:mac
 
 # 3. Install the lower one the way a user would (macOS: open dist/*.dmg, drag it
-#    into /Applications; Windows: run dist/AI4Kanban-Setup-0.9.0.exe; Linux:
-#    chmod +x dist/AI4Kanban-0.9.0.AppImage).
+#    into /Applications; Windows: run dist/WildCrane-Setup-0.9.0.exe; Linux:
+#    chmod +x dist/WildCrane-0.9.0.AppImage).
 
 # 4. Serve the feed and open the lower build against it.
 (cd /tmp/feed && python3 -m http.server 8099) &
-AI4KANBAN_UPDATE_FEED=http://127.0.0.1:8099/ open -a /Applications/AI4Kanban.app
+AI4KANBAN_UPDATE_FEED=http://127.0.0.1:8099/ open -a /Applications/WildCrane.app
 ```
 
 On Windows and Linux, set the variable in the shell that launches the installed build
 instead — `set AI4KANBAN_UPDATE_FEED=http://127.0.0.1:8099/` before running the `.exe`'s
-shortcut target, or `AI4KANBAN_UPDATE_FEED=… ./AI4Kanban-0.9.0.AppImage`.
+shortcut target, or `AI4KANBAN_UPDATE_FEED=… ./WildCrane-0.9.0.AppImage`.
 
 The app downloads 0.9.1 on its own — nothing to press, and nothing on screen until it is
 done. Press **Restart**, and the app is 0.9.1 with its board, its settings and its `akb` link
@@ -185,7 +185,7 @@ intact.
 are retried three times before the chip says anything, so allow ~13 minutes:
 
 - **A build that does not match its sha512** — append a byte to one file in `/tmp/feed`
-  without touching its `latest*.yml`: `printf x >> /tmp/feed/AI4Kanban-0.9.1-arm64-mac.zip`.
+  without touching its `latest*.yml`: `printf x >> /tmp/feed/WildCrane-0.9.1-arm64-mac.zip`.
   The download runs to the end and is thrown away.
 - **A download that is interrupted** — stop the http server partway through the download
   (`kill %1`), or unplug the network. Put it back before the third retry and the update

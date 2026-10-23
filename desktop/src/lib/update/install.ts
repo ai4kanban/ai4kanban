@@ -169,41 +169,60 @@ if kill -0 "$PID" 2>/dev/null; then
   exit 1
 fi`;
 
+/** Where the launcher sits inside a Mac bundle — what an `akb` symlink points at. */
+export const MAC_LAUNCHER = path.join("Contents", "Resources", "bin", "akb");
+
 /**
  * The script that swaps a Mac bundle once the app has gone.
  *
- * Move the old one aside, move the new one into the same path, reopen it. Any
- * step that fails puts the old bundle back and reopens that instead, so the
- * version the user was running is what starts next time. `opener` is a
+ * The new bundle goes beside the old one under its own name, so an upgrade
+ * across the rename lands as WildCrane.app and the old bundle goes. Any step
+ * that fails puts the old bundle back and reopens that instead, so the version
+ * the user was running is what starts next time. `links` are the `akb`
+ * symlinks pointing into the old bundle; each is repointed where the folder
+ * allows, and the app's launch-time repair asks for the rest. `opener` is a
  * parameter so the swap can be exercised without launching anything.
  */
 export function macSwapScript(
-  args: { pid: number; bundle: string; staged: string; stage: string },
+  args: { pid: number; bundle: string; staged: string; stage: string; links?: string[] },
   opener = "/usr/bin/open",
 ): string {
-  const backup = `${args.bundle}.old`;
+  const dest = path.join(path.dirname(args.bundle), path.basename(args.staged));
+  const renamed = dest !== args.bundle;
+  const relink = renamed
+    ? (args.links ?? []).map((l) => `  ln -sfn ${quote(path.join(dest, MAC_LAUNCHER))} ${quote(l)} 2>/dev/null || true\n`).join("")
+    : "";
   return `#!/bin/sh
-# Put the new AI4Kanban in place, once the old one has quit (#372).
+# Put the new WildCrane in place, once the old one has quit (#372).
 set -u
 PID=${args.pid}
 APP=${quote(args.bundle)}
+DEST=${quote(dest)}
 NEW=${quote(args.staged)}
-BACKUP=${quote(backup)}
+BACKUP=${quote(`${args.bundle}.old`)}
+ASIDE=${quote(`${dest}.old`)}
 STAGE=${quote(args.stage)}
 
 ${WAIT}
 
-rm -rf "$BACKUP"
+rm -rf "$BACKUP"${renamed ? ' "$ASIDE"' : ""}
 if ! mv "$APP" "$BACKUP"; then
   rm -rf "$STAGE"
   exit 1
 fi
-if mv "$NEW" "$APP"; then
-  rm -rf "$BACKUP" "$STAGE"
+${renamed ? `if [ -e "$DEST" ] && ! mv "$DEST" "$ASIDE"; then
+  mv "$BACKUP" "$APP"
+  rm -rf "$STAGE"
   ${opener} "$APP"
+  exit 1
+fi
+` : ""}if mv "$NEW" "$DEST"; then
+  rm -rf "$BACKUP"${renamed ? ' "$ASIDE"' : ""} "$STAGE"
+${relink}  ${opener} "$DEST"
   exit 0
 fi
-mv "$BACKUP" "$APP"
+${renamed ? `if [ -e "$ASIDE" ]; then mv "$ASIDE" "$DEST"; fi
+` : ""}mv "$BACKUP" "$APP"
 rm -rf "$STAGE"
 ${opener} "$APP"
 exit 1
@@ -218,7 +237,7 @@ export function linuxSwapScript(
   const backup = `${args.file}.old`;
   const launch = opener || `"$APP" &`;
   return `#!/bin/sh
-# Put the new AI4Kanban in place, once the old one has quit (#372).
+# Put the new WildCrane in place, once the old one has quit (#372).
 set -u
 PID=${args.pid}
 APP=${quote(args.file)}

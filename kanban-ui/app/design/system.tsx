@@ -458,7 +458,7 @@ export function DesignSystem() {
       <Section
         id="mark"
         title="The mark"
-        note="components/Logo.tsx — the site's geometry in this app's colour: a square block carrying three board columns that share a top and step down as work leaves the board. It is filled with nb-accent and wears no frame and no shadow, unlike every other filled block here. A button is 40px tall and can carry a 1.5px hairline; at 22px the same line is a seventh of the width and turns the ember muddy. On cream the fill finds its own edge."
+        note="components/Logo.tsx — the crane from brand/: ink body, ember crest, no block behind it. The lockup adds the wordmark from brand/logo.svg as a path, so no display face loads."
       >
         <div className="nb-panel px-5 py-5">
           <Label>at the sizes the app actually draws it</Label>
@@ -489,9 +489,8 @@ export function DesignSystem() {
             </div>
           </div>
           <p className="mt-4 max-w-3xl text-[12.5px] leading-relaxed text-nb-ink-soft">
-            The tab icon in app/layout.tsx is the same three columns as a data URI —
-            the board runs from a local server with no public/, so the favicon is
-            inlined rather than served.
+            The tab icon in app/layout.tsx is the same crane as a data URI — the board
+            runs from a local server with no public/, so the favicon is inlined.
           </p>
         </div>
       </Section>
@@ -1164,9 +1163,9 @@ export function DesignSystem() {
         own system, in the azure this app trades for the ember, is at{" "}
         <a
           className="font-[700] text-nb-accent-deep hover:underline"
-          href="https://ai4kanban.dev/design"
+          href="https://wildcrane.ai/design"
         >
-          ai4kanban.dev/design
+          wildcrane.ai/design
         </a>
         .
       </p>

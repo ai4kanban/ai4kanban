@@ -4,12 +4,12 @@ import type { ChromeCopy } from "./types";
 
 const en: ChromeCopy = {
   window: {
-    title: "AI4Kanban",
+    title: "WildCrane",
     description: "Local kanban board — spawn agents to do the work.",
   },
   header: {
     home: "All cards",
-    github: "AI4Kanban on GitHub",
+    github: "WildCrane on GitHub",
     triage: "Triage",
     triageWaiting: (n) => `Triage · ${n} waiting`,
     newIdea: "Share an idea, ask about progress, or move cards",

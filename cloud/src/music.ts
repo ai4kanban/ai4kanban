@@ -94,7 +94,7 @@ const ask = (env: Env, body: string) =>
     headers: {
       authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
       'content-type': 'application/json',
-      'x-title': 'AI4Kanban Cloud',
+      'x-title': 'WildCrane Cloud',
     },
     body,
   })

@@ -71,7 +71,7 @@ export const CLOCK_SKEW_SECONDS = 60
 
 /** Who an invitation comes from. The root name is what Resend verifies; it signs with a DKIM
  *  key there and keeps its return path on `send.`, so the mailbox MX and SPF stay untouched. */
-export const MAIL_FROM = 'AI4Kanban <invites@ai4kanban.dev>'
+export const MAIL_FROM = 'WildCrane <invites@ai4kanban.dev>'
 
 /** Where a reply lands, for both messages. The one mailbox a person reads. */
 export const SUPPORT_EMAIL = 'support@ai4kanban.dev'
@@ -177,6 +177,8 @@ export const LARK_TEXT_LIMIT = 3000
  *  browser on. Everything else gets no CORS header at all, so a page on another site cannot
  *  read the answer even though the request reaches us. */
 export const TRAINING_ALLOWED_ORIGINS = [
+  'https://wildcrane.ai',
+  'https://www.wildcrane.ai',
   'https://ai4kanban.dev',
   'https://www.ai4kanban.dev',
   'http://localhost:3000',
@@ -202,7 +204,7 @@ export const TRAINING_MAX_PROJECT = 2000
 
 /** Who a booking's messages come from, and where the coach reads their copy. `MAIL_FROM`
  *  above is the invitation sender; a booking is not an invitation, so it says what it is. */
-export const TRAINING_MAIL_FROM = 'AI4Kanban Training <training@ai4kanban.dev>'
+export const TRAINING_MAIL_FROM = 'WildCrane Training <training@ai4kanban.dev>'
 export const TRAINING_COACH_EMAIL = SUPPORT_EMAIL
 
 /** The outbox's batch and attempt ceiling. #327's numbers, for #327's reasons. */
@@ -211,8 +213,8 @@ export const TRAINING_MAIL_MAX_ATTEMPTS = 5
 
 /** Where the training page lives. A manage link is this plus the booking's reference and its
  *  token, so a message can be written from the scheduled run with no request to read it off. */
-export const TRAINING_PAGE_URL = 'https://ai4kanban.dev/training'
-export const TRAINING_TERMS_URL = 'https://ai4kanban.dev/terms#training'
+export const TRAINING_PAGE_URL = 'https://wildcrane.ai/training'
+export const TRAINING_TERMS_URL = 'https://wildcrane.ai/terms#training'
 
 /** The GitHub handles allowed to read the booking records. An admitted Cloud account is not
  *  enough: these rows are other people's names, addresses and project notes, and the preview
@@ -237,6 +239,6 @@ export const CONTACT_ATTEMPT_SALT = 'ai4kanban-contact-v1'
 export const CONTACT_MAX_MESSAGE = 5000
 export const CONTACT_MAX_WORKFLOW = 5000
 
-export const CONTACT_MAIL_FROM = 'AI4Kanban Contact <contact@ai4kanban.dev>'
+export const CONTACT_MAIL_FROM = 'WildCrane Contact <contact@ai4kanban.dev>'
 export const CONTACT_MAIL_BATCH = 20
 export const CONTACT_MAIL_MAX_ATTEMPTS = 5

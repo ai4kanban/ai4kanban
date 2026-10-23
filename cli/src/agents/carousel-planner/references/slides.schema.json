@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "AI4Kanban slide storyboard",
+  "title": "WildCrane slide storyboard",
   "description": "Structure only. This agent's `scripts/validate-storyboard.mjs` also checks unique slide IDs and that every preview is a same-card page, or a readable image at most 1280px wide. Array order is page order; `size` is the slide canvas in pixels.",
   "type": "object",
   "additionalProperties": false,

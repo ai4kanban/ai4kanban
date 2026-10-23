@@ -1,13 +1,13 @@
 {
   "display_information": {
-    "name": "AI4Kanban",
+    "name": "WildCrane",
     "description": "Review a waiting task and decide it without leaving Slack.",
     "background_color": "#1d2026",
-    "long_description": "AI4Kanban is a file-based task board your coding agent works from. When a task is ready for review or is waiting on a decision only you can make, the board's Cloud service posts it here — the card's summary, its review notes, and the decision itself as buttons. Pressing Implement records the decision in Cloud straight away and your board's machine runs it the next time that machine is reachable, so a task is settled from a phone with nothing in front of you. The app never reads a message, including its own."
+    "long_description": "WildCrane is a file-based task board your coding agent works from. When a task is ready for review or is waiting on a decision only you can make, the board's Cloud service posts it here — the card's summary, its review notes, and the decision itself as buttons. Pressing Implement records the decision in Cloud straight away and your board's machine runs it the next time that machine is reachable, so a task is settled from a phone with nothing in front of you. The app never reads a message, including its own."
   },
   "features": {
     "bot_user": {
-      "display_name": "AI4Kanban",
+      "display_name": "WildCrane",
       "always_online": false
     }
   },

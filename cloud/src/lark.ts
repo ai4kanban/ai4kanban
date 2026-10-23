@@ -2,7 +2,7 @@
  * The account's one Lark connection (#351) — making it, pointing it somewhere, ending it.
  *
  * Lark is 飞书 and Lark international, which are two platforms rather than two addresses of
- * one: an AI4Kanban app is listed in each directory, each reviews its own listing, and each
+ * one: an WildCrane app is listed in each directory, each reviews its own listing, and each
  * answers on its own host. Which cloud a connection came from is the connection's, and no
  * board and no card ever learns about it.
  *
@@ -148,7 +148,7 @@ export async function finishLarkConnect(
         ? `${named} did not complete the connection: you did not grant it.`
         : // The one refusal a person can act on: an authorization cannot finish for a tenant
           // where the app is not installed, and installing it is a move in Lark.
-          `${named} did not complete the connection: ${refused}. If AI4Kanban is not installed in your organisation yet, install it from the ${named} app directory and connect again.`,
+          `${named} did not complete the connection: ${refused}. If WildCrane is not installed in your organisation yet, install it from the ${named} app directory and connect again.`,
     )
   }
   const code = url.searchParams.get('code') ?? ''
@@ -178,7 +178,7 @@ export async function finishLarkConnect(
   if (!done.ok) {
     return page(
       done.reason === 'actor_taken'
-        ? `That ${named} account is already connected to another AI4Kanban account. Disconnect it there first.`
+        ? `That ${named} account is already connected to another WildCrane account. Disconnect it there first.`
         : 'That connection was started too long ago. Start it again from the app.',
     )
   }
@@ -245,7 +245,7 @@ export async function readLarkConnection(
 }
 
 /** The clouds this build carries an app for. Both are always listed: a pane that hid the one
- *  it cannot offer would leave a 飞书 team wondering whether AI4Kanban knows about 飞书. */
+ *  it cannot offer would leave a 飞书 team wondering whether WildCrane knows about 飞书. */
 const offers = (env: Env): LarkCloudOffer[] =>
   (Object.keys(LARK_HOSTS) as LarkCloud[]).map((cloud) => ({
     cloud,

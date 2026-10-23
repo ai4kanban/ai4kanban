@@ -1039,7 +1039,7 @@ export function AddSkillFirst() {
   );
 }
 
-const ADD_SKILL_COMMAND = "npx ai4kanban@latest skill install";
+const ADD_SKILL_COMMAND = "npx wildcrane@latest skill install";
 
 // The checklist writes a step's file paths in backticks. Render those as code and
 // leave the rest as plain text — the wording is the script's, shown as written.

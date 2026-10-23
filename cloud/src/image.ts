@@ -62,7 +62,7 @@ export async function generateImage(env: Env, user: string, body: unknown): Prom
       headers: {
         authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
         'content-type': 'application/json',
-        'x-title': 'AI4Kanban Cloud',
+        'x-title': 'WildCrane Cloud',
       },
       body: JSON.stringify({
         model: IMAGE_MODEL,

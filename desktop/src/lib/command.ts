@@ -74,7 +74,7 @@ function linkNeedsPassword(link: string): boolean {
   }
 }
 
-/** The tail of a path that says "this is our launcher inside an AI4Kanban app". The link is
+/** The tail of a path that says "this is our launcher inside our app". The link is
  *  replaced only when it points at one of these — anything else is somebody else's `akb`. */
 const OURS = MAC ? path.join("Contents", "Resources", "bin", "akb") : path.join("resources", "bin", "akb");
 
@@ -135,6 +135,19 @@ function blockedReason(): string | null {
 function linkTarget(link: string): string {
   const raw = fs.readlinkSync(link);
   return path.resolve(path.dirname(link), raw);
+}
+
+/** The `akb` symlinks pointing into this bundle — what an update that renames the bundle
+ *  repoints (lib/update/install.ts). */
+export function linksInto(bundle: string): string[] {
+  const home = app.getPath("home");
+  return [path.join(home, ".local", "bin", "akb"), path.join(home, "bin", "akb"), SYSTEM_LINK].filter((link) => {
+    try {
+      return lstat(link)?.isSymbolicLink() && linkTarget(link).startsWith(`${bundle}${path.sep}`);
+    } catch {
+      return false;
+    }
+  });
 }
 
 /** What is at one link path, in the four words the pane says out loud. */

@@ -1,6 +1,6 @@
 // Making a board in a folder that has none (#178).
 //
-// Outside the app this is `npx ai4kanban install`, and the "no board here"
+// Outside the app this is `npx wildcrane install`, and the "no board here"
 // screen says so. In the app there is no terminal to type it into and no Node to
 // run npx with, so the app carries that very command — `resources/cli`, the same
 // `cli/` package published to npm — and runs it under Electron's own Node. Same

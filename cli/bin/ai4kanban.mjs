@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 //
-// ai4kanban — the loader. Installed as `akb` too; `npx --yes ai4kanban@latest <command>` runs
+// wildcrane — the loader. Installed as `akb` too; `npx --yes wildcrane@latest <command>` runs
 // it without installing anything.
 //
 // It does three things and nothing else: work out how the command was typed, find this
@@ -101,7 +101,7 @@ async function main() {
 
   const { runAgent } = loaded
   if (typeof runAgent !== 'function') {
-    fail('this copy of the board rules is too old for this command — `npm install -g ai4kanban@latest`, then `akb update`')
+    fail('this copy of the board rules is too old for this command — `npm install -g wildcrane@latest`, then `akb update`')
   }
   process.exitCode = await runAgent(argv, shared)
 }

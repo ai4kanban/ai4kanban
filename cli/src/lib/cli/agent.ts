@@ -349,7 +349,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   const cloud = withShared(program.command('cloud'))
     .summary('the account this MACHINE acts as')
     .description(
-      'A sign-in is started in the AI4Kanban app, under Configuration → Cloud, and nowhere else: ' +
+      'A sign-in is started in the WildCrane app, under Configuration → Cloud, and nowhere else: ' +
         'the consent screen opens in your own browser and comes back to the app. Once per machine — every ' +
         `\`${cli.program}\` on it then acts as that account, because they read the one session the app ` +
         'wrote, outside every repository. Cloud is an invite-only preview.',
@@ -490,7 +490,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   withShared(template.command('showcase'))
     .argument('<name>', 'the published template')
     .argument('<dir>', 'a folder holding showcase.json and the files it names')
-    .summary("set what ai4kanban.dev/templates shows for a template (maintainers only)")
+    .summary("set what wildcrane.ai/templates shows for a template (maintainers only)")
     .action(async function (this: Command, name: string, dir: string) {
       await boardless(this, cli, () => templateShowcase(name, dir))
     })
@@ -510,7 +510,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       'On unless it is turned off, for the app and for every `akb` on this machine — one answer, held ' +
         'outside every repository like the Cloud sign-in. The app asks once in an onboarding step; this ' +
         'never prompts, so a terminal-only user turns it off here. What is sent, and how to have it ' +
-        'deleted: https://ai4kanban.dev/privacy',
+        'deleted: https://wildcrane.ai/privacy',
     )
     .action(async function (this: Command) {
       await boardless(this, cli, (p) => cmdTelemetry([], p))

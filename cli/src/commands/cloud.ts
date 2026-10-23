@@ -133,7 +133,7 @@ async function slackLines(): Promise<string[]> {
   const where = held.channelName || 'nowhere yet — pick a conversation in the app'
   return held.revoked
     ? ['', `Slack (${held.teamName}) refused the last message: ${held.lastError}`,
-       'Connect again in the AI4Kanban app, under Configuration → Notifications.']
+       'Connect again in the WildCrane app, under Configuration → Notifications.']
     : ['', `Slack posts to ${where}${held.teamName ? ` in ${held.teamName}` : ''}.`]
 }
 
@@ -147,7 +147,7 @@ async function larkLines(): Promise<string[]> {
   const where = held.destinationName || 'nowhere yet — pick a chat in the app'
   return held.revoked
     ? ['', `${held.cloudName} refused the last message: ${held.lastError}`,
-       'Connect again in the AI4Kanban app, under Configuration → Notifications.']
+       'Connect again in the WildCrane app, under Configuration → Notifications.']
     : ['', `${held.cloudName} posts to ${where}.`]
 }
 
@@ -179,7 +179,7 @@ function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: 
       lines.push('Not signed in to Cloud. Nothing on this machine reaches it.')
       lines.push(
         account.configured
-          ? 'Sign in from the AI4Kanban app, under Configuration → Cloud. It is once per machine.'
+          ? 'Sign in from the WildCrane app, under Configuration → Cloud. It is once per machine.'
           : account.message ?? '',
       )
       break
@@ -195,13 +195,13 @@ function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: 
       lines.push(
         account.inviteRequestedAt
           ? `You asked for an invite on ${account.inviteRequestedAt.slice(0, 10)}. We answer by email.`
-          : 'Request an invite in the AI4Kanban app, under Configuration → Cloud.',
+          : 'Request an invite in the WildCrane app, under Configuration → Cloud.',
       )
       lines.push(`Sign out with \`${program} cloud sign-out\`.`)
       break
     case 'expired':
       lines.push(`Your Cloud sign-in as ${who} has expired.`)
-      lines.push('Sign in again from the AI4Kanban app, under Configuration → Cloud.')
+      lines.push('Sign in again from the WildCrane app, under Configuration → Cloud.')
       break
   }
   if (account.error) lines.push(`Cloud could not be reached: ${account.error}`)
@@ -214,16 +214,16 @@ export type Said = { zh: string; en: string }
 
 export const SAID = {
   'signed-out': {
-    zh: '未登录 AI4Kanban Cloud。请在 AI4Kanban 应用的“配置 → Cloud”中登录后重试。',
-    en: 'Not signed in to AI4Kanban Cloud. Sign in from Configuration → Cloud in the AI4Kanban app, then try again.',
+    zh: '未登录 WildCrane Cloud。请在 WildCrane 应用的“配置 → Cloud”中登录后重试。',
+    en: 'Not signed in to WildCrane Cloud. Sign in from Configuration → Cloud in the WildCrane app, then try again.',
   },
   expired: {
-    zh: 'AI4Kanban Cloud 登录已过期。请在 AI4Kanban 应用的“配置 → Cloud”中重新登录后重试。',
-    en: 'Your AI4Kanban Cloud sign-in has expired. Sign in again from Configuration → Cloud in the AI4Kanban app, then try again.',
+    zh: 'WildCrane Cloud 登录已过期。请在 WildCrane 应用的“配置 → Cloud”中重新登录后重试。',
+    en: 'Your WildCrane Cloud sign-in has expired. Sign in again from Configuration → Cloud in the WildCrane app, then try again.',
   },
   unreachable: {
-    zh: '无法连接 AI4Kanban Cloud。请检查网络后重试。',
-    en: 'Could not reach AI4Kanban Cloud. Check your connection and try again.',
+    zh: '无法连接 WildCrane Cloud。请检查网络后重试。',
+    en: 'Could not reach WildCrane Cloud. Check your connection and try again.',
   },
   credits_used_up: {
     zh: '本月积分已用完，下月 1 日（UTC）重置；可在桌面应用的 Billing 页查看余额。',
@@ -284,8 +284,8 @@ export async function cloudImage(
     body: { prompt, aspect: opts.aspect, references },
     out: opts.out,
     pro_required: {
-      zh: '图像生成是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
-      en: 'Image generation is a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+      zh: '图像生成是 Pro 功能。升级 Pro：https://wildcrane.ai/pricing',
+      en: 'Image generation is a Pro feature. Upgrade at https://wildcrane.ai/pricing',
     },
     failed: { zh: '图像暂时无法生成，请稍后重试。', en: 'The image could not be generated right now. Try again later.' },
     fallback: {
@@ -313,8 +313,8 @@ export async function cloudTts(
     body: { voice, text },
     out: opts.out,
     pro_required: {
-      zh: '托管声音是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
-      en: 'Hosted voices are a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+      zh: '托管声音是 Pro 功能。升级 Pro：https://wildcrane.ai/pricing',
+      en: 'Hosted voices are a Pro feature. Upgrade at https://wildcrane.ai/pricing',
     },
     failed: {
       zh: '托管声音暂时无法生成旁白，请稍后重试。',
@@ -346,8 +346,8 @@ export async function cloudMusic(
     body: { prompt, seconds },
     out: opts.out,
     pro_required: {
-      zh: '托管配乐是 Pro 功能。升级 Pro：https://ai4kanban.dev/pricing',
-      en: 'Hosted music is a Pro feature. Upgrade at https://ai4kanban.dev/pricing',
+      zh: '托管配乐是 Pro 功能。升级 Pro：https://wildcrane.ai/pricing',
+      en: 'Hosted music is a Pro feature. Upgrade at https://wildcrane.ai/pricing',
     },
     failed: { zh: '托管配乐暂时无法生成，请稍后重试。', en: 'Hosted music could not be generated right now. Try again later.' },
     fallback: {

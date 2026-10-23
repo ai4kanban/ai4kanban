@@ -9,7 +9,7 @@ Use `akb` as the source of truth. Load the relevant command's instructions inste
 reconstructing workflows from memory.
 
 <!-- command -->
-Use `akb` in the commands below. If it is not on `PATH`, use `npx --yes ai4kanban@latest`
+Use `akb` in the commands below. If it is not on `PATH`, use `npx --yes wildcrane@latest`
 instead, state that once, and never install the command globally.
 <!-- /command -->
 

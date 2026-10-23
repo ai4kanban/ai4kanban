@@ -28,7 +28,7 @@ import { DesignSystem } from "./system";
 //   group or a schedule, peach something in the way.
 
 export const metadata: Metadata = {
-  title: "Design system · AI4Kanban",
+  title: "Design system · WildCrane",
 };
 
 export default function DesignPage() {

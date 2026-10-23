@@ -59,7 +59,7 @@ const CONTENTS = 'SKILL.md (the note)'
 
 /** How a person gets a newer command. Never run from here — a global install is the user's
  *  line to type, the same way `akb update` names it instead of replacing itself. */
-export const NEWER_COMMAND_LINE = 'npm install -g ai4kanban@latest'
+export const NEWER_COMMAND_LINE = 'npm install -g wildcrane@latest'
 
 // The version an install leaves on the note, on its own last line. It is how a project says
 // which release wrote its skill folder — `akb update` reads it back to say where the project
@@ -175,7 +175,7 @@ export function readSkillState(root?: string): SkillState {
  *  through, and working through it is where a run goes wrong. */
 const COMMAND_BLOCK = /<!-- command -->\n[\s\S]*?\n<!-- \/command -->/
 
-const NPX = `npx --yes ai4kanban@${SKILL_VERSION}`
+const NPX = `npx --yes wildcrane@${SKILL_VERSION}`
 
 function commandParagraph(command: string): string {
   // `akb` is only ever what a reader on ANOTHER machine finds — this note is committed, and
@@ -193,7 +193,7 @@ function commandParagraph(command: string): string {
     return [
       '`akb` is not installed on this machine. Use `' + command + '` wherever a command',
       'below says `akb`. Never install the command globally; you may suggest',
-      '`npm install -g ai4kanban` to the user.',
+      '`npm install -g wildcrane` to the user.',
     ].join('\n')
   }
   // The command on its own line, in a block: it can be a long absolute path, and a path
@@ -206,7 +206,7 @@ function commandParagraph(command: string): string {
     '```',
     '',
     'If that is missing too, use `' + NPX + '` instead. Never install the command globally;',
-    'you may suggest `npm install -g ai4kanban` to the user.',
+    'you may suggest `npm install -g wildcrane` to the user.',
   ].join('\n')
 }
 

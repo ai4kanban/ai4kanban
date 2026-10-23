@@ -52,7 +52,7 @@ export async function speak(env: Env, ctx: ExecutionContext, user: string, body:
       headers: {
         authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
         'content-type': 'application/json',
-        'x-title': 'AI4Kanban Cloud',
+        'x-title': 'WildCrane Cloud',
       },
       body: JSON.stringify({
         model: SPEECH_MODEL,

@@ -63,7 +63,7 @@ export async function judge(env: Env, user: string, body: unknown): Promise<Resp
       headers: {
         authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
         'content-type': 'application/json',
-        'x-title': 'AI4Kanban Cloud',
+        'x-title': 'WildCrane Cloud',
       },
       body: JSON.stringify({ model: JUDGE_MODEL, state, questions: asked }),
     })

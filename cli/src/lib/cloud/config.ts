@@ -52,4 +52,4 @@ export function cloudConfigured(): boolean {
 
 /** The one line every screen shows when it isn't. */
 export const NOT_CONFIGURED =
-  'This build of AI4Kanban carries no Cloud project to sign in against.'
+  'This build of WildCrane carries no Cloud project to sign in against.'

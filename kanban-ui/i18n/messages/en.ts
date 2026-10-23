@@ -27,7 +27,7 @@ const en: MessagesCopy = {
     noneLookedIn: (paths) =>
       `This board has no copy of the board's rules to read it with — there is no \`akb\` on the PATH, and nothing at ${paths}.`,
     tooOld: (path) => `The board's rules at ${path} are too old for this board.`,
-    installIt: "Run `npm install -g ai4kanban` to install one.",
+    installIt: "Run `npm install -g wildcrane` to install one.",
     tooOldForCloud: "The board's rules in this project are too old to sign in to Cloud.",
     tooOldForChat: "This board's copy of the board's rules is too old to hold a conversation.",
     tooOldForSkip: "This board's rules are too old to skip a question.",
@@ -37,28 +37,28 @@ const en: MessagesCopy = {
     tooOldForNotifications: "The board's rules in this project are too old for Cloud notifications.",
     tooOldForPictures: "This board's command is too old to take a picture. Update it.",
     tooOldForSetup: "This board's rules are too old to hold the first-run conversation.",
-    updateIt: "Run `npm install -g ai4kanban` to update it.",
+    updateIt: "Run `npm install -g wildcrane` to update it.",
   },
   tooOld: {
-    autoDelivery: "this board's rules are older than auto-delivery — run `npm install -g ai4kanban`.",
-    silenceLimit: "this board's rules are older than the silence limit — run `npm install -g ai4kanban`.",
-    deliveries: "this board's rules are older than deliveries — run `npm install -g ai4kanban`.",
+    autoDelivery: "this board's rules are older than auto-delivery — run `npm install -g wildcrane`.",
+    silenceLimit: "this board's rules are older than the silence limit — run `npm install -g wildcrane`.",
+    deliveries: "this board's rules are older than deliveries — run `npm install -g wildcrane`.",
     worktrees:
-      "this board's rules are older than delivery worktrees — run `npm install -g ai4kanban`.",
+      "this board's rules are older than delivery worktrees — run `npm install -g wildcrane`.",
     resumeDelivery:
-      "this board's rules are older than carrying a delivery on — run `npm install -g ai4kanban`.",
+      "this board's rules are older than carrying a delivery on — run `npm install -g wildcrane`.",
     agents: "the board's rules in this project are too old to read and write this board's agents",
     language:
-      "this board's rules are older than the language setting — run `npm install -g ai4kanban`.",
+      "this board's rules are older than the language setting — run `npm install -g wildcrane`.",
     skillInstall: "the board's rules in this project are too old to install the skill",
     specAgentSwitch: "the board's rules in this project are too old to switch a spec agent",
     specAgentSetting: "the board's rules in this project are too old to set a spec agent",
     runtimes:
-      "this board's rules are older than named runtimes — run `npm install -g ai4kanban`.",
+      "this board's rules are older than named runtimes — run `npm install -g wildcrane`.",
     usageReporting:
-      "this board's rules are older than the usage-reporting setting — run `npm install -g ai4kanban`.",
+      "this board's rules are older than the usage-reporting setting — run `npm install -g wildcrane`.",
     schedules:
-      "this board's rules are older than these schedule settings — run `npm install -g ai4kanban`.",
+      "this board's rules are older than these schedule settings — run `npm install -g wildcrane`.",
   },
   actions: {
     noSuchCard: "that is not a card on this board.",
@@ -76,7 +76,7 @@ const en: MessagesCopy = {
     noPlan: () => "This discussion has no plan to start from yet",
     planHanded: () => "This plan was already handed off",
     noProcess: () => "The run could not be started",
-    rules: () => "This board's rules are too old — update the ai4kanban command",
+    rules: () => "This board's rules are too old — update the akb command",
     runNotFound: (a) => `No run matches "${a.id}".`,
     runAmbiguous: (a) => `"${a.id}" matches more than one run. Use more of its ID.`,
     runGoing: () => "That run is still going.",

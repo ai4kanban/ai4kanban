@@ -31,7 +31,7 @@ import type { SkillFolder } from '../lib/skill/types'
 import type { MoveResult } from '../lib/types'
 import { SKILL_VERSION } from '../version'
 
-const NAME = 'ai4kanban'
+const NAME = 'wildcrane'
 const REPO = 'https://github.com/ai4kanban/ai4kanban'
 
 /** How a person gets this command, and how they move to a newer one. Every terminal example
@@ -130,7 +130,7 @@ export async function cmdInstall(ctx: SetupContext): Promise<MoveResult> {
   const report = new Report()
   const board = ctx.board ?? null
   const where = board ? path.relative(ctx.dir, board) || board : 'docs/kanban'
-  say(`ai4kanban ${SKILL_VERSION} — installing into ${ctx.dir}`)
+  say(`wildcrane ${SKILL_VERSION} — installing into ${ctx.dir}`)
   say('')
   // A board named outright says nothing about the board above it: a second board in a repo
   // that already has one is the whole point of naming it (#407).
@@ -181,7 +181,7 @@ export async function cmdSkill(ctx: SetupContext, mode: 'install' | 'refresh' | 
 
   if (!mode) {
     const state = readSkillState(ctx.dir)
-    say(`ai4kanban ${SKILL_VERSION} — the coding agent skill in ${ctx.dir}`)
+    say(`wildcrane ${SKILL_VERSION} — the coding agent skill in ${ctx.dir}`)
     say('')
     for (const folder of state.folders) say(`  ${folder.path}/ — ${sayFolder(folder)} (${folder.agent})`)
     sayHookState(ctx.dir)
@@ -193,7 +193,7 @@ export async function cmdSkill(ctx: SetupContext, mode: 'install' | 'refresh' | 
     return { installed: state.installed, outdated: state.outdated }
   }
 
-  say(`ai4kanban ${SKILL_VERSION} — adding the coding agent skill to ${ctx.dir}`)
+  say(`wildcrane ${SKILL_VERSION} — adding the coding agent skill to ${ctx.dir}`)
   say('')
   const { result } = placeSkill(ctx, 'install', report)
   report.sayDid()
@@ -316,7 +316,7 @@ function sayHookState(root: string): void {
  *  does the repair with the version it has. */
 export async function cmdUpdate(ctx: SetupContext): Promise<MoveResult> {
   const report = new Report()
-  say(`ai4kanban ${SKILL_VERSION} — updating ${ctx.dir}`)
+  say(`wildcrane ${SKILL_VERSION} — updating ${ctx.dir}`)
   const { result, from } = placeSkill(ctx, 'update', report)
   const placed = result.wrote
   if (!placed.length) {

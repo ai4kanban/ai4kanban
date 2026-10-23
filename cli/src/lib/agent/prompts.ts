@@ -558,7 +558,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // again after a failure carries on rather than redoing what finished.
     case 'setup':
       return [
-        `Finish setting up the AI4Kanban board in this repo — the one under \`docs/kanban/\`.`,
+        `Finish setting up the WildCrane board in this repo — the one under \`docs/kanban/\`.`,
         `Read \`${command} guide setup\` and \`${command} guide board\` together in your first shell call, then follow setup from the first unticked box in \`docs/kanban/setup-checklist.md\`.`,
         `At the tasks step, read \`${command} guide add-task\` once. Do not call any other guide or help command during setup.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
