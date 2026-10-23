@@ -1,9 +1,10 @@
 "use client";
 
-// Zoom for a mockup or image (#1637): 25%–400% in ×1.25 steps, plus fit to width. Buttons only —
-// the desktop app's ⌘+/⌘- zoom the whole window, and a mockup's frame swallows pinch gestures.
+// Zoom for a mockup or image (#1637): 25%–400% in ×1.25 steps, plus fit to width. A trackpad
+// pinch zooms too (#1990): Chromium reports it as a ctrl+wheel. A frame swallows every wheel over
+// it, so a screen sits under a `Shield` that catches them; a click lifts it until the pointer leaves.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 
@@ -29,6 +30,81 @@ export function useZoom(start?: number): Zoom {
   const setFit = useCallback((f: number) => setFitState((prev) => (Math.abs(prev - f) < EPS ? prev : f)), []);
   const scale = manual ?? fit;
   return { scale, fit, fitted: manual === null || Math.abs(manual - fit) < EPS, setFit, set };
+}
+
+const clamp = (scale: number) => Math.min(MAX, Math.max(MIN, scale));
+
+/** Pinch-to-zoom over `area`, a scroller whose first child is the zoomed view, keeping the
+ *  point under the cursor still. One scale change per frame. A plain wheel is left alone: it
+ *  pans a zoomed view and scrolls the page past one at fit. */
+export function usePinch(zoom: Zoom, area: React.RefObject<HTMLElement | null>, enabled = true) {
+  const latest = useRef(zoom);
+  latest.current = zoom;
+  const anchor = useRef<{ x: number; y: number; fx: number; fy: number } | null>(null);
+  useEffect(() => {
+    const el = area.current;
+    if (!el || !enabled) return;
+    let factor = 1;
+    let frame = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const view = el.firstElementChild;
+      if (!view || !latest.current.scale) return;
+      if (!frame) {
+        const r = view.getBoundingClientRect();
+        anchor.current = { x: e.clientX, y: e.clientY, fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height };
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          const z = latest.current;
+          z.set(clamp(z.scale * factor));
+          factor = 1;
+        });
+      }
+      factor *= Math.exp(-Math.max(-50, Math.min(50, e.deltaY)) / 100);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      cancelAnimationFrame(frame);
+    };
+  }, [area, enabled]);
+  useLayoutEffect(() => {
+    const a = anchor.current;
+    const el = area.current;
+    const view = el?.firstElementChild;
+    anchor.current = null;
+    if (!a || !el || !view) return;
+    const r = view.getBoundingClientRect();
+    el.scrollLeft += r.left + a.fx * r.width - a.x;
+    el.scrollTop += r.top + a.fy * r.height - a.y;
+  }, [zoom.scale, area]);
+}
+
+/** Lies over a screen's frame so a pinch reaches the page. A click lifts it, handing the frame
+ *  its pointer back — to click or scroll inside — until the pointer leaves. Its parent must be
+ *  positioned. */
+export function Shield() {
+  const el = useRef<HTMLSpanElement>(null);
+  const [lifted, setLifted] = useState(false);
+  useEffect(() => {
+    if (!lifted) return;
+    // The frame gets every move over it, so a move this page sees elsewhere means the pointer left.
+    const back = (e: PointerEvent) => {
+      if (!el.current?.parentElement?.contains(e.target as Node)) setLifted(false);
+    };
+    window.addEventListener("pointermove", back);
+    return () => window.removeEventListener("pointermove", back);
+  }, [lifted]);
+  return (
+    <span
+      ref={el}
+      aria-hidden
+      className="absolute inset-0 z-[1]"
+      style={lifted ? { pointerEvents: "none" } : undefined}
+      onClick={() => setLifted(true)}
+    />
+  );
 }
 
 /** Reports `fitOf(width)` for the element's width, now and whenever it changes. `fitOf`

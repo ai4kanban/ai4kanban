@@ -35,7 +35,7 @@ import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
 import { Window } from "./Window";
-import { useFitWidth, useZoom, ZoomControls } from "./zoom";
+import { Shield, useFitWidth, usePinch, useZoom, ZoomControls } from "./zoom";
 
 /** The panel's side padding, `px-6`. */
 const PAD = 48;
@@ -123,6 +123,7 @@ export function MockupPage({
   const zoomable = !showCode && width !== undefined;
   const fitOf = useMemo(() => (width ? (panel: number) => (panel - PAD) / width : null), [width]);
   const panel = useFitWidth<HTMLDivElement>(zoom.setFit, fitOf);
+  usePinch(zoom, panel, zoomable);
   const refresh = useCallback(() => router.refresh(), [router]);
 
   // The same two triggers the memory page catches up on: a run finishing, and the window
@@ -253,12 +254,13 @@ export function MockupPage({
                 ) : (
                   view.doc &&
                   (device === "mobile" ? (
-                    <span className="mx-auto block w-max">
+                    <span className="relative mx-auto block w-max">
                       <Phone scale={scale} doc={view.doc} title={view.src} scripts={view.scripts} />
+                      <Shield />
                     </span>
                   ) : (
                     <span
-                      className="block overflow-hidden"
+                      className="relative block overflow-hidden"
                       style={{ width: SCREENS.desktop.w * scale, height: SCREENS.desktop.h * scale }}
                     >
                       <iframe
@@ -274,6 +276,7 @@ export function MockupPage({
                           transformOrigin: "top left",
                         }}
                       />
+                      <Shield />
                     </span>
                   ))
                 )}

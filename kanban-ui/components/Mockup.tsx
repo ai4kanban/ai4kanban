@@ -38,7 +38,7 @@ import { useCopyText } from "./copy";
 import { MediaPlayer } from "./MediaPlayer";
 import { HyperframePlayer } from "./HyperframePlayer";
 import { ImageMenu } from "./image-preview";
-import { useFitWidth, useZoom, ZoomControls, type Zoom } from "./zoom";
+import { Shield, useFitWidth, usePinch, useZoom, ZoomControls, type Zoom } from "./zoom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 const { w: W, h: H } = SCREENS.desktop;
@@ -192,9 +192,13 @@ function Drawing({ text }: { text: string }) {
 }
 
 /** The box a zoomed view scrolls in: as high as the view at fit, centering anything smaller. */
-function ZoomArea({ height, zoomed, children }: { height?: number; zoomed: boolean; children: React.ReactNode }) {
+function ZoomArea({ height, zoom, children }: { height?: number; zoom: Zoom; children: React.ReactNode }) {
+  const area = useRef<HTMLSpanElement>(null);
+  usePinch(zoom, area);
+  const zoomed = zoom.scale > zoom.fit;
   return (
     <span
+      ref={area}
       className="flex w-full overflow-auto bg-nb-wash"
       style={{ height, overscrollBehavior: zoomed ? "contain" : undefined }}
     >
@@ -238,7 +242,7 @@ function Picture({ image, src, alt, zoom }: { image: string; src: string; alt: s
   const inner = (badge: React.ReactNode) => (
     <>
       <span ref={box} className="block w-full">
-        <ZoomArea height={size && fit ? size.h * fit : undefined} zoomed={scale > fit}>
+        <ZoomArea height={size && fit ? size.h * fit : undefined} zoom={zoom}>
           {img}
         </ZoomArea>
       </span>
@@ -278,9 +282,10 @@ function PhoneScreen({ doc, title, scripts, zoom }: { doc: string; title: string
   const { scale, fit } = zoom;
   return (
     <span ref={box} className="block w-full">
-      <ZoomArea height={(fit ? PHONE_H * fit : PHONE_H * PHONE_SCALE) + 2 * BAND_PAD} zoomed={scale > fit}>
-        <span className="m-auto block shrink-0" style={{ padding: `${BAND_PAD}px 12px` }}>
+      <ZoomArea height={(fit ? PHONE_H * fit : PHONE_H * PHONE_SCALE) + 2 * BAND_PAD} zoom={zoom}>
+        <span className="relative m-auto block shrink-0" style={{ padding: `${BAND_PAD}px 12px` }}>
           {scale > 0 && <Phone scale={scale} doc={doc} title={title} scripts={scripts} />}
+          <Shield />
         </span>
       </ZoomArea>
     </span>
@@ -298,8 +303,8 @@ function Screen({ doc, title, scripts, zoom }: { doc: string; title: string; scr
   const { scale, fit } = zoom;
   return (
     <span ref={box} className="block w-full">
-      <ZoomArea height={fit ? H * fit : H} zoomed={scale > fit}>
-        <span className="m-auto block shrink-0 overflow-hidden" style={{ width: W * scale, height: H * scale }}>
+      <ZoomArea height={fit ? H * fit : H} zoom={zoom}>
+        <span className="relative m-auto block shrink-0 overflow-hidden" style={{ width: W * scale, height: H * scale }}>
           <iframe
             // No forms, no origin of its own. Everything else the mockup must not do — the
             // network, the fonts — the document's own CSP stops.
@@ -314,6 +319,7 @@ function Screen({ doc, title, scripts, zoom }: { doc: string; title: string; scr
               transformOrigin: "top left",
             }}
           />
+          <Shield />
         </span>
       </ZoomArea>
     </span>
