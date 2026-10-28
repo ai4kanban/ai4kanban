@@ -504,6 +504,17 @@ export const taskChat = (task: string) => ({
   stop: () => json<import("@review/api").Chat>(call(`/v1/tasks/${enc(task)}/chat/stop`, post())),
 });
 
+/** Stops a reply still running, then deletes an idea conversation or empties a task's chat. */
+export async function closeChat(c: ChatRow) {
+  if (c.discussion === undefined) {
+    if (c.state === "replying") await taskChat(c.task).stop();
+    await taskChat(c.task).clear();
+    return;
+  }
+  if (c.state === "replying") await discussionChat(c.discussion).stop();
+  await call(`/v1/discussions/${enc(c.discussion)}`, { method: "DELETE" });
+}
+
 export const readProjectAgents = (project: string) => json<ProjectAgents>(call(`/v1/projects/${enc(project)}/agents`));
 export const updateProjectAgent = (project: string, agent: string, body: { rule?: string; schedule?: { on: boolean; cadence: string } }) =>
   json<ProjectAgent>(call(`/v1/projects/${enc(project)}/agents/${enc(agent)}`, { method: "PUT", body: JSON.stringify(body) }));

@@ -23,6 +23,8 @@ export interface Store {
   setCurrent: (id: string) => void;
   tasks: api.Task[] | null;
   chats: api.ChatRow[];
+  /** Takes a closed chat off the list. */
+  dropChat: (id: string) => void;
   /** The workspace's triage items: every open one, and the pages of sorted ones read so far. */
   triage: api.TriageItem[] | null;
   triageFailed: boolean;
@@ -276,6 +278,7 @@ export function StoreProvider({ me, workspaces: first, children }: { me: api.Me;
     setCurrent,
     tasks,
     chats,
+    dropChat: (id) => setChats((was) => was.filter((c) => (c.discussion ?? c.task) !== id)),
     triage,
     triageFailed,
     triageHistoryDone: !!history && history.next === null,

@@ -3,16 +3,18 @@
 // chat or an idea conversation; one in no project counts as general's), the archive at the foot. The rail has no surface: it sits on the window's cream.
 // 收起左栏 sits beside the archive; collapsed, a narrow bar of icons keeps 展开左栏 in that spot.
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FiArchive, FiBarChart2, FiGrid, FiSearch, FiSidebar, FiTerminal, FiX } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FiArchive, FiBarChart2, FiGrid, FiLoader, FiSearch, FiSidebar, FiTerminal, FiX } from "react-icons/fi";
 import { LuSquareKanban } from "react-icons/lu";
+import { Button } from "@review/components/button";
 import { HAIRLINE } from "@review/components/chrome";
 import { cn } from "@review/lib/utils";
-import { HOST_NAMES, type ChatRow, type Task } from "../api";
+import { closeChat, HOST_NAMES, type ChatRow, type Task } from "../api";
 import { T } from "../i18n";
 import { numberOf } from "../lib/card";
 import { Link, navigate, useLocation } from "../router";
 import { useStore } from "../store";
+import { useDismiss } from "./Header";
 
 const ROW = "flex h-[34px] items-center gap-2 rounded-[8px] px-2.5 text-[13px] text-nb-ink no-underline hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]";
 const ACTIVE = "border-[1.5px] border-nb-ink bg-nb-paper font-[700] hover:bg-nb-paper";
@@ -137,31 +139,99 @@ export function chatsHere(store: ReturnType<typeof useStore>, chats = store.chat
 export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: string; big?: boolean }) {
   const store = useStore();
   const mine = chatsHere(store, chats);
+  const [asking, setAsking] = useState<string | null>(null);
   if (!mine.length) return big ? <p className="px-4 py-3 text-[13px] text-nb-ink-soft">{T.noChats}</p> : null;
   return (
     <>
       <span className={cn("px-2.5 pb-1 text-[11px] font-[700] text-nb-ink-soft", big && "px-4 pt-2")}>{T.chats}</span>
       {mine.map((c) => {
         const id = c.discussion ?? c.task;
-        const on = active === id;
+        const on = !big && active === id;
         return (
-          <Link key={id} href={"key" in c ? `/tasks/${encodeURIComponent(c.key)}?chat=1` : `/discussions/${encodeURIComponent(c.discussion)}`} className={cn(ROW, on && ACTIVE, big && "h-11 rounded-none px-4 text-[14px]")}>
-            <span className={cn("min-w-0 flex-1 truncate", c.state === "waiting_you" && !on && "font-[700]")}>{c.title}</span>
-            {c.host && (
-              <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.idea.from(HOST_NAMES[c.host])} aria-label={T.idea.from(HOST_NAMES[c.host])}>
-                <FiTerminal size={12} aria-hidden />
-              </span>
-            )}
-            {c.state === "replying" && (
-              <span className="nb-tip shrink-0 animate-pulse text-[13px] font-[800] leading-none tracking-[1px] text-nb-ink-soft" data-tip={T.chatReplying} aria-label={T.chatReplying}>
-                ···
-              </span>
-            )}
-            {c.state === "waiting_you" && <span className="nb-tip size-1.5 shrink-0 rounded-full bg-nb-accent" data-tip={T.chatYou} aria-label={T.chatYou} />}
-          </Link>
+          <div key={id} className="group relative shrink-0">
+            <Link
+              href={"key" in c ? `/tasks/${encodeURIComponent(c.key)}?chat=1` : `/discussions/${encodeURIComponent(c.discussion)}`}
+              className={cn(ROW, on && ACTIVE, big ? "h-11 rounded-none px-4 pr-12 text-[14px]" : "group-hover:pr-9", !big && asking === id && "pr-9", !on && asking === id && "bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]")}
+            >
+              <span className={cn("min-w-0 flex-1 truncate", c.state === "waiting_you" && !on && "font-[700]")}>{c.title}</span>
+              {c.host && (
+                <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.idea.from(HOST_NAMES[c.host])} aria-label={T.idea.from(HOST_NAMES[c.host])}>
+                  <FiTerminal size={12} aria-hidden />
+                </span>
+              )}
+              {c.state === "replying" && (
+                <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.chatReplying} aria-label={T.chatReplying}>
+                  <FiLoader size={12} className="animate-spin" aria-hidden />
+                </span>
+              )}
+              {c.state === "waiting_you" && <span className="nb-tip size-1.5 shrink-0 rounded-full bg-nb-accent" data-tip={T.chatYou} aria-label={T.chatYou} />}
+            </Link>
+            <CloseChat
+              chat={c}
+              big={big}
+              open={asking === id}
+              onOpen={(open) => setAsking(open ? id : null)}
+              onClosed={() => {
+                store.dropChat(id);
+                if (active === id) navigate("/new");
+              }}
+            />
+          </div>
         );
       })}
     </>
+  );
+}
+
+/** 关闭对话 (×) beside a row: shown on hover, always on a phone; it asks first and says what goes. */
+function CloseChat({ chat, big, open, onOpen, onClosed }: { chat: ChatRow; big?: boolean; open: boolean; onOpen: (open: boolean) => void; onClosed: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const dismiss = useCallback(() => !busy && onOpen(false), [busy, onOpen]);
+  const box = useDismiss<HTMLDivElement>(open, dismiss);
+  useEffect(() => setFailed(false), [open]);
+  const close = async () => {
+    setBusy(true);
+    setFailed(false);
+    try {
+      await closeChat(chat);
+      onOpen(false);
+      onClosed();
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div ref={box} className="contents">
+      <span className={cn("absolute inset-y-0 right-1 flex items-center", big && "right-2", !big && !open && "hidden group-hover:flex")}>
+        <button
+          type="button"
+          onClick={() => onOpen(!open)}
+          aria-label={T.closeChat}
+          data-tip={T.closeChat}
+          className={cn(ICON, "nb-tip-end", big ? "size-8" : "size-6", open && "bg-nb-wash text-nb-ink")}
+        >
+          <FiX size={big ? 15 : 13} aria-hidden />
+        </button>
+      </span>
+      {open && (
+        <div ref={(el) => el?.scrollIntoView({ block: "nearest" })} role="dialog" className={cn("nb-panel absolute top-[calc(100%+6px)] z-20 bg-nb-paper p-3", big ? "right-3 w-[260px]" : "inset-x-0")}>
+          <p className="text-[13px] font-[700] text-nb-ink">{T.closeAsk}</p>
+          <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{chat.discussion ? T.closeIdeaBody : T.closeTaskBody}</p>
+          {failed && <p className="mt-1 text-[12px] leading-snug text-nb-peach-ink">{T.closeFailed}</p>}
+          <div className="mt-3 flex justify-end gap-2">
+            <Button variant="ghost" size="xs" disabled={busy} onClick={() => onOpen(false)}>
+              {T.cancel}
+            </Button>
+            <Button size="xs" disabled={busy} onClick={() => void close()}>
+              {T.closeYes}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

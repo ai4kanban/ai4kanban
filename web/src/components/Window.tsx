@@ -102,7 +102,7 @@ export function Window({
         <div className="relative min-h-0 flex-1 overflow-hidden">
           {tab === "chats" ? (
             <div className="flex h-full flex-col overflow-y-auto py-1">
-              <ChatList chats={store.chats} big />
+              <ChatList chats={store.chats} active={activeChat} big />
             </div>
           ) : tab === "more" ? (
             <PhoneMore current={current?.id} archiveHref={archiveHref} needs={needs} />
