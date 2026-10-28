@@ -61,7 +61,7 @@ export function BillingPanel() {
 
   if (failed && !read)
     return (
-      <div className={`${ROW} max-w-[640px] pt-0 pb-4`}>
+      <div className={`${ROW} pt-0 pb-4`}>
         <p className="flex items-center gap-2 text-[13.5px] text-nb-ink-soft">
           <FiAlertCircle size={14} className="shrink-0" aria-hidden />
           {T.billing.failed}
@@ -77,7 +77,7 @@ export function BillingPanel() {
   const t = T.billing;
   const { credits, quota } = read;
   return (
-    <div className="flex max-w-[640px] flex-col">
+    <div className="flex flex-col">
       <PlanRow billing={read.billing} />
       {credits && (
         <Figure
