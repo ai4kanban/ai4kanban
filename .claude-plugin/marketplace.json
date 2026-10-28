@@ -8,8 +8,8 @@
       "description": "Shape ideas with Claude and start them as WildCrane tasks.",
       "source": {
         "source": "archive",
-        "url": "https://github.com/ai4kanban/ai4kanban/releases/download/plugin-v0.1.1/wildcrane-plugin.zip",
-        "sha256": "ca0e4925a0f7ce9be0880ddd0add354a26aa5404ea3a3a191af27f3ad0b516a2"
+        "url": "https://github.com/ai4kanban/ai4kanban/releases/download/plugin-v0.1.2/wildcrane-plugin.zip",
+        "sha256": "3b4caa084a5ba7e3c9848fd89ab8782ca51b0f5614cb50761eca2ff46d1c84ac"
       }
     }
   ]
