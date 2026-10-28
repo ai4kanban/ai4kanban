@@ -370,7 +370,8 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   group folder (`todo/<number>-<slug>/`) has that folder's task as its parent. A card file is named
   by its task's number: `todo/<number>-<slug>.md`, or a group's `todo/<number>-<slug>/root.md`.
   `POST /v1/tasks` takes `metadata` (`priority`, `roi`, `modules`, `related`, `blocked_by`, as
-  `PUT /v1/tasks/{id}/card` takes them) for the card its first step writes. A step for a
+  `PUT /v1/tasks/{id}/card` takes them) for the card its first step writes, and `images` (#2182,
+  as a chat message's) that step puts on the card. A step for a
   task with a blocker not yet `done` or `cancelled` waits on it (`queued`, no job), planning too. When a task
   becomes `done` or `cancelled`, its project's cards change as `akb raw archive` / `reject`
   change a local board's: cards it blocked get a revise queued in their `schedule`, every
@@ -485,7 +486,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   its job's `usage`, `cost_usd` and `duration_ms`, null for an older one.
 - **Discussions** (#2073): the caller's own conversation drafting up to 10 ideas, never on a board
   and never an open task; anyone else reads `not_found`. `POST /v1/discussions` `{ workspace?,
-  project?, body, runtime? }` makes one with its first message (201; nothing is made when that is
+  project?, body, runtime?, images? }` makes one with its first message (201; nothing is made when that is
   refused); `GET`, `DELETE /v1/discussions/{id}` (unstarted ideas go; started tasks stay with
   `discussion: null`); `POST`, `DELETE …/chat`, `POST …/chat/stop` as a task chat's (`{ body, runtime?, images? }`, one of your
   runtime ids), run on your Runner, in the project's folder when placed there. It reads `{ id,

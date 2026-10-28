@@ -11,6 +11,7 @@ import { FiAlertCircle, FiArrowUp, FiCheck, FiChevronDown, FiEdit2, FiLayout, Fi
 import { AgentMark } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { ITEM, Menu, POPUP_PANEL } from "@review/components/menu";
+import { StagedThumbs, useStagedImages } from "@review/components/staged-images";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { REVIEW, T, workflowName } from "../i18n";
@@ -53,6 +54,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
   const [runtime, setRuntime] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState<string | null>(null);
+  const pics = useStagedImages(REVIEW.ai, setTrouble);
   const box = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -98,7 +100,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
   }, [home]);
 
   const rt = runtimes?.data.find((r) => r.id === runtime);
-  const ready = !!text.trim() && !busy && (!triage || pick.kind === "flow") && !(rt && runnerGone(runtimes!, rt));
+  const ready = (!!text.trim() || pics.staged.length > 0) && !busy && (!triage || pick.kind === "flow") && !(rt && runnerGone(runtimes!, rt));
 
   const send = async () => {
     if (!ready) return;
@@ -107,12 +109,12 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
     setTrouble(null);
     try {
       if (pick.kind === "auto") {
-        const d = await api.createDiscussion({ workspace: store.ws.id, body: request, ...(current ? { project: current.id } : {}), ...(runtime ? { runtime } : {}) });
+        const d = await api.createDiscussion({ workspace: store.ws.id, body: request, ...(current ? { project: current.id } : {}), ...(runtime ? { runtime } : {}), images: pics.images });
         store.reload();
         navigate(`/discussions/${encodeURIComponent(d.id)}`);
         return;
       }
-      const line = request.split("\n")[0]!.trim();
+      const line = request.split("\n")[0]!.trim() || pics.images[0]!.name;
       const changed = pick.kind === "edit" ? workflows.find((w) => w.id === pick.id) : undefined;
       const task = await api.createTask({
         title: (changed ? T.builder.editTitle(workflowName(changed), line) : line).slice(0, 200),
@@ -123,6 +125,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
         ...(runtime ? { runtime } : {}),
         ...(pick.kind === "edit" ? { context: { workflow: pick.id } } : {}),
         ...(triage ? { triage: triage.id } : {}),
+        images: pics.images,
       });
       if (triage) store.patchTriage({ ...triage, state: "carded", task: task.id, updated_at: new Date().toISOString() });
       store.patchTask(task);
@@ -139,7 +142,12 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
 
   return (
     <Window noPhoneBar={first}>
-      <div className="flex h-full flex-col items-center justify-center overflow-y-auto px-8 pb-24 max-md:px-4 max-md:pb-10">
+      <div className="relative flex h-full flex-col items-center justify-center overflow-y-auto px-8 pb-24 max-md:px-4 max-md:pb-10" {...pics.drop}>
+        {pics.dragging && (
+          <div className="pointer-events-none absolute inset-3 z-[2] grid place-items-center rounded-[14px] border-[1.5px] border-dashed border-nb-accent bg-nb-paper/90 text-[13px] text-nb-ink-soft">
+            {REVIEW.ai.dropImages}
+          </div>
+        )}
         <div className="flex w-full max-w-[720px] flex-col items-center">
           <h1 className="text-center text-[27px] font-[800] leading-[1.2] tracking-[-0.025em] max-md:text-[22px]">{T.headline}</h1>
           <div className="mt-7 w-full">
@@ -153,11 +161,13 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
               </Note>
             ) : null}
             <div className="nb-panel relative z-[1] flex flex-col gap-3 px-5 pb-3 pt-4 max-md:px-4">
+              <StagedThumbs c={REVIEW.ai} staged={pics.staged} onRemove={pics.remove} />
               <textarea
                 ref={box}
                 rows={2}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
+                onPaste={pics.paste}
                 placeholder={placeholder}
                 aria-label={placeholder}
                 className="max-h-[320px] min-h-[56px] w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft focus:outline-none max-md:max-h-[40dvh] max-md:min-h-[104px] max-md:text-[16px]"

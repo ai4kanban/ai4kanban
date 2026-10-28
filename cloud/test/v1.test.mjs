@@ -340,6 +340,20 @@ describe('workflows', () => {
     assert.deepEqual(callsTo('v1_create_task')[0].body.p_workflow, { id: 'wf_own', builtin: false })
   })
 
+  it('keeps a new task’s pictures for its first step (#2182)', async () => {
+    db.v1_create_task = () => ({ id: 'task_1' })
+    const png = (name) => ({ name, type: 'image/png', content: 'aGk=' })
+    await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_own' } })
+    assert.equal(callsTo('v1_create_task')[0].body.p_fields.images, undefined)
+    assert.equal((await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_own', images: [png('a.png')] } })).status, 201)
+    assert.deepEqual(callsTo('v1_create_task')[1].body.p_fields.images, [png('a.png')])
+    for (const images of [[png('a'), png('b'), png('c'), png('d'), png('e')], [{ ...png('a'), content: '%' }], 'a.png']) {
+      assert.equal((await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_own', images } })).status, 400, JSON.stringify(images))
+    }
+    const huge = { ...png('a'), content: 'A'.repeat(5_600_004) }
+    assert.equal((await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_own', images: [huge] } })).status, 413)
+  })
+
   it('takes a new task’s card fields as the card’s metadata (#2108)', async () => {
     db.v1_create_task = () => ({ id: 'task_1' })
     const metadata = { priority: 'high', roi: 'low', modules: ['web'], related: ['3'], blocked_by: ['WC-2'] }
@@ -1063,6 +1077,15 @@ describe('discussions (#2073)', () => {
     for (const body of [{}, { body: ' ' }, { body: 'x', runtime: 'task' }, { body: 'x', project: 'p' }, { body: 'x', workspace: 'w' }]) {
       assert.equal((await send('/v1/discussions', { method: 'POST', body })).status, 400, JSON.stringify(body))
     }
+    // Pictures go with the first message (#2182), checked as a chat's.
+    const png = (name) => ({ name, type: 'image/png', content: 'aGk=' })
+    const pictured = await (await send('/v1/discussions', { method: 'POST', body: { images: [png('a.png'), png('a.png')] } })).json()
+    assert.deepEqual(pictured.p_fields, { body: '', images: [png('a.png'), png('a-2.png')] })
+    for (const images of [[png('a'), png('b'), png('c'), png('d'), png('e')], [{ ...png('a'), type: 'text/plain' }], [png('../a')]]) {
+      assert.equal((await send('/v1/discussions', { method: 'POST', body: { body: 'x', images } })).status, 400, JSON.stringify(images))
+    }
+    const huge = { ...png('a'), content: 'A'.repeat(5_600_004) }
+    assert.equal((await send('/v1/discussions', { method: 'POST', body: { body: 'x', images: [huge] } })).status, 413)
     assert.equal((await (await send('/v1/discussions/dsc_1')).json()).id, 'dsc_1')
     assert.equal((await send('/v1/discussions/task_1')).status, 400)
     const sent = await (await send('/v1/discussions/dsc_1/chat', { method: 'POST', body: { body: 'More' } })).json()

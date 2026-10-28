@@ -1049,6 +1049,15 @@ describe('flow jobs (#2020)', () => {
     assert.ok(!cloud.log.includes('GET /v1/tasks/task_1'))
   })
 
+  it('puts the pictures a create job carries on the card it makes (#2182)', async () => {
+    const job = await flowJob('j1', { verb: 'create' }, { attachments: [{ name: 'home "shot".png', content: 'aGk=' }] })
+    assert.equal(job.outcome, 'done', job.reason)
+    const card = fs.readFileSync(path.join(board(), 'todo', '2-pricing-page.md'), 'utf8')
+    assert.match(card, /\n\n<Asset src="\.assets\/2\/1-home-shot-\.png" label="home shot\.png" \/>\n/)
+    const ref = JSON.parse(cloud.file('assets/task_1.json')!)['.assets/2/1-home-shot-.png']
+    assert.equal(cloud.task.artifacts.get(ref.artifact)![0]!.toString(), 'hi')
+  })
+
   it('runs resolve, revise and approve on the card it made, and implement until the delivery lands', async () => {
     await flowJob('j1', { verb: 'create' })
     await flowJob('j2', { verb: 'resolve', card: 2, text: 'Monthly' })

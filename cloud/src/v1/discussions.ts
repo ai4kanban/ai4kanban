@@ -14,19 +14,20 @@ import { workflowFor } from './workflows.ts'
 
 type Fields = Record<string, unknown>
 
-/** `{ body, runtime? }`: one of the caller's runtime ids; a discussion has no task to follow. */
+/** `{ body, runtime?, images? }`: one of the caller's runtime ids; a discussion has no task to follow. */
 export function discussionChatInput(body: Fields) {
   if (body.runtime === 'task') throw badRequest('That is not a runtime id.')
   return chatInput(body)
 }
 
 export function discussionInput(body: Fields): Fields {
-  const { p_body, p_runtime } = discussionChatInput(body)
+  const { p_body, p_runtime, p_images } = discussionChatInput(body)
   return Object.fromEntries(Object.entries({
     workspace: body.workspace == null ? undefined : idOf(body.workspace, 'ws', 'workspace'),
     project: body.project == null ? undefined : idOf(body.project, 'prj', 'project'),
     body: p_body,
     runtime: p_runtime ?? undefined,
+    images: p_images,
   }).filter(([, v]) => v !== undefined))
 }
 

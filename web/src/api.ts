@@ -434,8 +434,8 @@ export const testRuntime = (id: string) => json<RuntimeTest>(call(`/v1/runtimes/
 export const BUILDER = "wf_builtin_workflow_builder";
 export const readWorkflow = (id: string) => json<Workflow>(call(`/v1/workflows/${enc(id)}`));
 export const deleteWorkflow = (id: string) => json<unknown>(call(`/v1/workflows/${enc(id)}`, { method: "DELETE" }));
-export const createTask = (body: { title: string; request: string; project?: string; workspace: string; workflow: string; runtime?: string; context?: { workflow: string }; triage?: string; skip_plan?: boolean }) =>
-  json<Task>(call("/v1/tasks", { ...post({ ...body, source: "web", run: true }), headers: { "idempotency-key": crypto.randomUUID() } }));
+export const createTask = ({ images, ...body }: { title: string; request: string; project?: string; workspace: string; workflow: string; runtime?: string; context?: { workflow: string }; triage?: string; skip_plan?: boolean; images?: ChatImage[] }) =>
+  json<Task>(call("/v1/tasks", { ...post({ ...body, ...(images?.length ? { images } : {}), source: "web", run: true }), headers: { "idempotency-key": crypto.randomUUID() } }));
 export const cancelTask = (task: string, reason?: string) => json<Task>(call(`/v1/tasks/${enc(task)}/cancel`, post(reason ? { reason } : undefined)));
 export const stopTask = (task: string) => json<Task>(call(`/v1/tasks/${enc(task)}/stop`, post()));
 export const resumeTask = (task: string) => json<Task>(call(`/v1/tasks/${enc(task)}/resume`, post()));
@@ -479,8 +479,8 @@ export async function openJobLog(id: string, after: number): Promise<WebSocket |
   return new WebSocket(`${API_URL.replace(/^http/, "ws")}/v1/runner/jobs/${enc(id)}/stream?after=${after}`, ["bearer", session.access_token]);
 }
 
-export const createDiscussion = (body: { workspace: string; project?: string; body: string; runtime?: string }) =>
-  json<Discussion>(call("/v1/discussions", { ...post(body), headers: { "idempotency-key": crypto.randomUUID() } }));
+export const createDiscussion = ({ images, ...body }: { workspace: string; project?: string; body: string; runtime?: string; images?: ChatImage[] }) =>
+  json<Discussion>(call("/v1/discussions", { ...post({ ...body, ...(images?.length ? { images } : {}) }), headers: { "idempotency-key": crypto.randomUUID() } }));
 export const readDiscussion = (id: string) => json<Discussion>(call(`/v1/discussions/${enc(id)}`));
 export const deleteIdea = (id: string, idea: string) => json<Discussion>(call(`/v1/discussions/${enc(id)}/ideas/${enc(idea)}`, { method: "DELETE" }));
 export const setIdeaWorkflow = (id: string, idea: string, workflow: string) =>

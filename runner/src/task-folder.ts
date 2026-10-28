@@ -450,6 +450,12 @@ function assetPath(ws: TaskFolder, name: string, card: string): string | null {
   return file.startsWith(ws.board + path.sep) ? file : null
 }
 
+/** Where the card's `.assets/<id>/` files are. */
+export function cardAssetsDir(ws: TaskFolder, id: number): string | null {
+  const state = stateDir(ws)
+  return state && path.join(state, 'assets', String(id))
+}
+
 function stateDir(ws: TaskFolder): string | null {
   try {
     return projectStateDir(ws.board)

@@ -16,7 +16,7 @@ import { quoteArg } from '../../cli/src/lib/agent/argv'
 import { RAW_ARGS_KEY } from '../../cli/src/lib/agent/harnesses/types'
 import { LABELS, providerKey, providerOf, secretKeys, settingKeys } from './runtimes'
 import { secretsOf } from './secrets'
-import { SKILL_FOLDERS, akbCardOf, cardFile, findCard, mcpServersOf, pull, push, resetSorted, workspaceOf, type McpServers, type TaskFolder } from './task-folder'
+import { SKILL_FOLDERS, akbCardOf, cardAssetsDir, cardFile, findCard, mcpServersOf, pull, push, resetSorted, workspaceOf, type McpServers, type TaskFolder } from './task-folder'
 import { workflowName } from '../../cloud/src/board-files.ts'
 import { clearLaid, layOut } from './triage'
 import { draftLine, isBuilder, placeDraft } from './built'
@@ -333,6 +333,18 @@ export function writeTranscript(job: Pick<Job, 'transcript'>, dir: string): stri
   return file
 }
 
+/** The request's pictures (#2182), laid in the card's asset folder and shown on it. */
+export function pictures(job: Pick<Job, 'attachments'>, ws: TaskFolder, id: number): string {
+  const dir = cardAssetsDir(ws, id)
+  if (!job.attachments.length || !dir) return ''
+  fs.mkdirSync(dir, { recursive: true })
+  return job.attachments.map((a, i) => {
+    const file = `${i + 1}-${path.basename(a.name).replace(/[^\w.-]+/g, '-')}`
+    fs.writeFileSync(path.join(dir, file), Buffer.from(a.content, 'base64'))
+    return `\n<Asset src=".assets/${id}/${file}" label="${a.name.replace(/["<>]/g, '') || file}" />\n`
+  }).join('')
+}
+
 /** `raw create`'s flags for a task's card fields: `related` and `blocked_by` name only the cards
  *  still open on this board, as akb takes them. */
 export function cardFlags(ws: TaskFolder, fields: api.CardFields | undefined): string[] {
@@ -379,9 +391,9 @@ export async function runFlow(job: Job & { flow: Flow }, ws: TaskFolder, deps: F
     }
     const body = path.join(ws.board, '.sync', `${ws.task}.request.md`)
     fs.mkdirSync(path.dirname(body), { recursive: true })
-    fs.writeFileSync(body, `${said.request || title}\n${isBuilder(ws) ? `\n${draftLine(ws)}\n` : ''}`)
     // The card takes the task's number (#2063), and no other.
     if (!ws.number) return fail('This task has no number yet.')
+    fs.writeFileSync(body, `${said.request || title}\n${isBuilder(ws) ? `\n${draftLine(ws)}\n` : ''}${pictures(job, ws, ws.number)}`)
     const created = made(await akb(['raw', 'create', '--title', title, '--workflow', workflowName(flow.workflow), '--body-file', body,
       '--id', String(ws.number), ...cardFlags(ws, flow.metadata), '--json']))
     fs.rmSync(body, { force: true })

@@ -4823,6 +4823,48 @@ begin
 end
 $chat_actions$;
 
+-- #2182: a new idea's pictures go with a discussion's first message, or with a task's first step.
+do $request_images$
+declare
+  A constant uuid := 'a0a0a0a0-2182-4182-8182-000000000001';
+  HOME constant uuid := 'cccccccc-2182-4182-8182-000000000003';
+  BUDGET constant integer := 100000;
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  PIC constant jsonb := '[{"name": "shot.png", "type": "image/png", "content": "aGk="}]';
+  FILES constant jsonb := '[{"name": "shot.png", "content": "aGk="}]';
+  v_prj text;
+  v_task jsonb;
+  v_json jsonb;
+  v_job cloud.runner_jobs;
+begin
+  insert into cloud.accounts (id, handle) values (A, 'ri-a');
+  perform api.register_runner(A, HOME, 'home-mac', 8, '0.5.0', '[{"name": "claude-code", "installed": true}]', false, 900, BUDGET);
+  v_prj := api.v1_create_project(A, jsonb_build_object('name', 'Site',
+    'workspace', api.v1_create_workspace(A, '{"name": "Request images"}', BUDGET) ->> 'id'), BUDGET) ->> 'id';
+
+  v_json := api.v1_create_discussion(A, jsonb_build_object('project', v_prj, 'body', '', 'images', PIC), BUDGET);
+  assert v_json -> 'messages' -> 0 -> 'image_names' = '["shot.png"]', format('a discussion''s first picture misread: %s', v_json);
+  assert (select attachments = FILES from cloud.runner_jobs where discussion_id = v_json ->> 'id'),
+    'a discussion''s first job did not carry its picture';
+
+  v_task := api.v1_create_task(A, jsonb_build_object('title', 'Pricing', 'project', v_prj, 'run', true, 'images', PIC), CODING, BUDGET);
+  assert api.v1_task_chat(A, v_task ->> 'id') -> 'messages' -> 0 -> 'image_names' = '["shot.png"]',
+    'a task''s request did not show its picture';
+  assert not v_task ? 'images', 'a task answered its pictures';
+  v_job := (select j from cloud.runner_jobs j where j.task_id = v_task ->> 'id');
+  assert v_job.attachments = FILES and v_job.flow ->> 'verb' = 'create', format('the create step did not carry the picture: %s', v_job);
+  perform cloud.v1_dispatch_flow(v_task ->> 'id', 'implement');
+  assert (select attachments = '[]' from cloud.runner_jobs where task_id = v_task ->> 'id' and flow ->> 'verb' = 'implement'),
+    'a later step carried the request''s picture';
+
+  v_task := api.v1_create_task(A, jsonb_build_object('title', 'Plain', 'project', v_prj, 'run', true), CODING, BUDGET);
+  assert (select attachments = '[]' from cloud.runner_jobs where task_id = v_task ->> 'id'), 'a task with no picture carried one';
+
+  raise notice 'sql checks: #2182 request image checks passed';
+end
+$request_images$;
+
 begin;
 
 create function pg_temp.refuses(p_sql text, p_code text, p_what text) returns void

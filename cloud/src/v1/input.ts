@@ -152,8 +152,15 @@ export function taskInput(body: Fields): { fields: Fields; workflow: string } {
       triage: body.triage == null ? undefined : triageIdOf(body.triage),
       context: contextOf(body.context),
       metadata: body.metadata == null ? undefined : taskMetadataOf(body.metadata),
+      images: requestImages(body.images),
     }),
   }
+}
+
+/** The request's pictures (#2182), sent to the task's first step; none is no field. */
+function requestImages(value: unknown) {
+  const images = chatImages(value)
+  return images.length ? images : undefined
 }
 
 const TASK_METADATA = ['priority', 'roi', 'modules', 'related', 'blocked_by']
@@ -546,7 +553,7 @@ export const MAX_CHAT_IMAGES = 4
 const MAX_IMAGE_CHARS = 5_600_000
 
 /** `[{ name, type, content }]`, content in base64, each name made unique: the files the agent opens (#2133). */
-function chatImages(value: unknown): { name: string; type: string; content: string }[] {
+export function chatImages(value: unknown): { name: string; type: string; content: string }[] {
   if (value === undefined || value === null) return []
   if (!Array.isArray(value) || value.length > MAX_CHAT_IMAGES) throw badRequest(`Send at most ${MAX_CHAT_IMAGES} images.`)
   const names = new Set<string>()

@@ -2273,6 +2273,38 @@
                         }
                       }
                     }
+                  },
+                  "images": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "description": "Pictures for the request (#2182): its first step puts them on the card.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "image/png",
+                            "image/jpeg",
+                            "image/gif",
+                            "image/webp"
+                          ]
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Base64; about 4 MB across a message."
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "type",
+                        "content"
+                      ]
+                    }
                   }
                 },
                 "required": [
@@ -3147,11 +3179,40 @@
                   "runtime": {
                     "type": "string",
                     "description": "One of your runtimes; Global default when left out."
+                  },
+                  "images": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "description": "Pictures sent with the first message, as a chat message's (#2182).",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "image/png",
+                            "image/jpeg",
+                            "image/gif",
+                            "image/webp"
+                          ]
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Base64; about 4 MB across a message."
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "type",
+                        "content"
+                      ]
+                    }
                   }
-                },
-                "required": [
-                  "body"
-                ]
+                }
               }
             }
           }
