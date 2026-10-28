@@ -28,6 +28,8 @@ current project's code when it helps, but never change a file.
   outcome, in your reply.
 - **Sign in when asked to**: when a tool reports the user is signed out, call
   `wildcrane_sign_in`, then retry the call.
+- **Bind to an existing project**: when the user asks to add this folder to a project they
+  already have, pass its id from `wildcrane_status`'s `elsewhere` to `wildcrane_add_folder`.
 
 ## Always
 

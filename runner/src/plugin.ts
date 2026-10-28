@@ -381,11 +381,14 @@ export function server(): McpServer {
         next: 'Finish signing in in the browser, then try again.' })
     })
     mcp.registerTool('wildcrane_add_folder', {
-      description: 'Add a folder to WildCrane as a project on this computer. Only when the user asks to.',
-      inputSchema: { path: z.string().describe('The git root of the current working directory.') },
-    }, async ({ path: given }) => {
+      description: 'Add a folder to WildCrane as a project on this computer, new or an existing one. Only when the user asks to.',
+      inputSchema: {
+        path: z.string().describe('The git root of the current working directory.'),
+        project: z.string().optional().describe("An `elsewhere` project's id from `wildcrane_status`, to bind the folder to it; omit to make a new project."),
+      },
+    }, async ({ path: given, project }) => {
       if (!readSession()) return { ...text(SIGNED_OUT), isError: true }
-      const added = await addFolder(given)
+      const added = await addFolder(given, project)
       return 'error' in added ? { ...text(added), isError: true } : text(added)
     })
     return mcp

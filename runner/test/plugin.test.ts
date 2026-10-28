@@ -164,4 +164,36 @@ describe('the plugin component', () => {
       fs.rmSync(docs, { recursive: true, force: true })
     }
   })
+
+  it('lets Codex bind the folder to an existing project', async () => {
+    useRunnerHome()
+    fs.rmSync(runnerHome(), { recursive: true, force: true })
+    writeFakeSession(runnerHome())
+    const cloud = new FakeCloud()
+    await cloud.start()
+    cloud.others = [{ project: 'prj_docs', name: '帮助文档', workspace: 'ws_team', workspace_name: 'Northwind', personal: false }]
+    const docs = fs.mkdtempSync(path.join(os.homedir(), '.wildcrane-test-docs-'))
+    const { child, answers, send, ready } = component('codex', `http://127.0.0.1:${cloud.port}`)
+    let id = 10
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const n = id++
+      send(n, 'tools/call', { name, arguments: args })
+      await until(() => answers.has(n), 10_000)
+      return JSON.parse((answers.get(n)!.result as { content: { text: string }[] }).content[0]!.text) as Record<string, unknown>
+    }
+    try {
+      await ready
+      const before = await call('wildcrane_status', { path: docs })
+      assert.deepEqual(before.elsewhere, [{ project: 'prj_docs', name: '帮助文档', workspace_name: 'Northwind', personal: false }])
+      assert.equal((await call('wildcrane_add_folder', { path: docs, project: 'prj_docs' })).project, 'prj_docs')
+      const after = await call('wildcrane_status', { path: docs })
+      assert.equal((after.folder as { project: string }).project, 'prj_docs')
+    } finally {
+      const exited = new Promise((r) => child.on('exit', r))
+      child.stdin.end()
+      await exited
+      await cloud.stop()
+      fs.rmSync(docs, { recursive: true, force: true })
+    }
+  })
 })

@@ -9,7 +9,7 @@ open.
 - **Ideas**: tell Codex what you want to build; it asks in the conversation and saves the ideas,
   replying with one line and a link per idea. Review, change the workflow, discard and **Start** on
   the web: Codex never starts a task.
-- **Ask Codex**: to sign in, to add this folder as a project, or for your projects, recent
+- **Ask Codex**: to sign in, to add this folder as a new or existing project, or for your projects, recent
   discussions and agent connections.
 - **Approvals**: Codex asks before each WildCrane tool call unless you approve it for the session.
 
