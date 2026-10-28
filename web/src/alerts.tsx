@@ -83,12 +83,14 @@ export function placeOf(t: api.Task, alerts: Alerts, now: number): Place | null 
   return t.status === "running" ? "running" : "queued";
 }
 
-/** How many tasks in each project sit in 等你处理. */
+/** How many tasks in each project sit in 等你处理, plus its chats waiting on you (no project is general's). */
 export function useNeedsByProject(): Map<string, number> {
   const store = useStore();
   const alerts = useAlerts();
   const now = Date.now();
   const out = new Map<string, number>();
-  for (const t of store.tasks ?? []) if (t.project && placeOf(t, alerts, now) === "needs") out.set(t.project, (out.get(t.project) ?? 0) + 1);
+  const add = (p: string | undefined | null) => p && out.set(p, (out.get(p) ?? 0) + 1);
+  for (const t of store.tasks ?? []) if (placeOf(t, alerts, now) === "needs") add(t.project);
+  for (const c of store.chats) if (c.state === "waiting_you") add(c.project || store.general?.id);
   return out;
 }

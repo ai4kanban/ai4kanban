@@ -1,6 +1,6 @@
 // Copied from legacy kanban-ui/components/Rail.tsx: the find box (`/` focuses it, ↑↓ pick,
-// Enter opens), then 工作流, 统计 and the conversations newest first, each in a project tagged with
-// its name (a task's chat or an idea conversation), the archive at the foot. The rail has no surface: it sits on the window's cream.
+// Enter opens), then 工作流, 统计 and the current project's conversations newest first (a task's
+// chat or an idea conversation; one in no project counts as general's), the archive at the foot. The rail has no surface: it sits on the window's cream.
 // 收起左栏 sits beside the archive; collapsed, a narrow bar of icons keeps 展开左栏 in that spot.
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -115,16 +115,21 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
   );
 }
 
+/** The chats in the current project; one in no project is general's. */
+export function chatsHere(store: ReturnType<typeof useStore>, chats = store.chats): ChatRow[] {
+  return chats.filter((c) => (c.project || store.general?.id) === store.current?.id);
+}
+
 export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: string; big?: boolean }) {
   const store = useStore();
-  if (!chats.length) return big ? <p className="px-4 py-3 text-[13px] text-nb-ink-soft">{T.noChats}</p> : null;
+  const mine = chatsHere(store, chats);
+  if (!mine.length) return big ? <p className="px-4 py-3 text-[13px] text-nb-ink-soft">{T.noChats}</p> : null;
   return (
     <>
       <span className={cn("px-2.5 pb-1 text-[11px] font-[700] text-nb-ink-soft", big && "px-4 pt-2")}>{T.chats}</span>
-      {chats.map((c) => {
+      {mine.map((c) => {
         const id = c.discussion ?? c.task;
         const on = active === id;
-        const tag = store.projects.find((p) => p.id === c.project)?.name;
         return (
           <Link key={id} href={"key" in c ? `/tasks/${encodeURIComponent(c.key)}?chat=1` : `/discussions/${encodeURIComponent(c.discussion)}`} className={cn(ROW, on && ACTIVE, big && "h-11 rounded-none px-4 text-[14px]")}>
             <span className={cn("min-w-0 flex-1 truncate", c.state === "waiting_you" && !on && "font-[700]")}>{c.title}</span>
@@ -133,7 +138,6 @@ export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: st
                 <FiTerminal size={12} aria-hidden />
               </span>
             )}
-            {tag && <span className="max-w-[84px] shrink-0 truncate rounded-[5px] bg-nb-wash px-1.5 text-[11px] font-[500] leading-[18px] text-nb-ink-soft">{tag}</span>}
             {c.state === "replying" && (
               <span className="nb-tip shrink-0 animate-pulse text-[13px] font-[800] leading-none tracking-[1px] text-nb-ink-soft" data-tip={T.chatReplying} aria-label={T.chatReplying}>
                 ···

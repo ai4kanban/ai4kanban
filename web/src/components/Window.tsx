@@ -20,7 +20,7 @@ import { useNarrow } from "../lib/narrow";
 import { Link, navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { Me, meName, NeedsCount, OfflineBadge, openTriage, ProjectChip, Slash, TopRight, triageHref, TriageButton, WorkspaceSwitch, wsName } from "./Header";
-import { ChatList, FindBox, matchTasks, Rail } from "./Rail";
+import { ChatList, chatsHere, FindBox, matchTasks, Rail } from "./Rail";
 import { openSettings, SettingsButton, SettingsHost } from "./Settings";
 
 const RAIL_KEY = "wildcrane.web.rail";
@@ -129,7 +129,7 @@ export function Window({
                 className={cn("relative flex min-w-[64px] cursor-pointer flex-col items-center gap-1", tab !== k && "text-nb-ink-soft")}
               >
                 {icon}
-                {k === "chats" && store.chats.some((c) => c.state === "waiting_you") && <span aria-hidden className="absolute -top-0.5 right-4 size-1.5 rounded-full bg-nb-accent" />}
+                {k === "chats" && chatsHere(store).some((c) => c.state === "waiting_you") && <span aria-hidden className="absolute -top-0.5 right-4 size-1.5 rounded-full bg-nb-accent" />}
                 {k === "board" && tab !== "board" && needs.size > 0 && <span aria-hidden className="absolute -top-0.5 right-4 size-1.5 rounded-full bg-nb-accent" />}
                 {k === "more" && openTriage(store) > 0 && <span aria-hidden className="absolute -top-0.5 right-4 size-1.5 rounded-full bg-nb-crimson" />}
                 {label}
