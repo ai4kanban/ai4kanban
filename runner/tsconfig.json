@@ -1,0 +1,16 @@
+{
+  // Typechecking only — esbuild builds (scripts/build.mjs). Reaches into ../cli/src for the
+  // code the Runner shares with the CLI.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src", "test", "../cli/src/agents/agents.d.ts", "../cli/src/guide/guides.d.ts"]
+}

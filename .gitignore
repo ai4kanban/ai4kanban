@@ -1,0 +1,46 @@
+# Dogfooding symlink -> skill/ (avoids syncing edits across two paths)
+.claude/
+.agents/
+!plugins/.agents/
+
+# The board's rules: cli/src/ built into one file by cli/scripts/build.mjs. `npm install`
+# in cli/ makes it (the `prepare` script) and a publish rebuilds it, so it never belongs in
+# git — it used to be committed at skill/kanban.mjs, back when installing a skill copied it
+# into the user's project beside the note (#213).
+cli/dist/
+
+# Archived proposals
+docs/kanban/.archive/
+docs/kanban/deliveries/
+docs/kanban/todo/
+docs/kanban/triage/
+docs/kanban/rules/
+docs/kanban/memory/agents/scriptwriter
+docs/kanban/memory/agents/video-cloner
+/marketing/
+/templates/
+output/
+
+researches/
+.env
+social-posts/
+screenshots/
+.DS_Store
+.wrangler/
+video/
+.omo/
+# Delivery state — worktrees and the like. Never committed.
+.akb/
+*.tmp.mjs
+# Demo video assets: files live on the CDN, only the index is tracked
+!/assets/video/
+/assets/video/*
+!/assets/video/README.md
+.playwright-mcp
+
+test-ai4kanban/
+
+# Clone of the private ai4kanban/ai4kanban-evals repo
+/evals/
+# Exported browser login cookies
+*_cookies.txt

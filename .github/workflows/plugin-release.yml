@@ -1,0 +1,49 @@
+# Builds the plugins' local component (runner/ writes plugins/<host>/server/dist/) and attaches the
+# Claude Code plugin as wildcrane-plugin.zip, and the Codex marketplace with its plugin as
+# wildcrane-codex.zip (#2160), to the release of the tag
+# `plugin-v<version>` (plugins/claude-code/.claude-plugin/plugin.json's version). Then put the
+# printed sha256 and the versioned URL in .claude-plugin/marketplace.json.
+#
+# Never the latest release: the desktop updater reads releases/latest/download/latest.json.
+name: plugin-release
+
+on:
+  push:
+    tags: ['plugin-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the tag matches plugin.json
+        run: |
+          version=$(node -p "require('./plugins/claude-code/.claude-plugin/plugin.json').version")
+          [ "plugin-v$version" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME, plugin.json $version"; exit 1; }
+      - run: npm ci
+        working-directory: cli
+      - run: npm install --include=dev
+        working-directory: runner
+      - run: npm run build
+        working-directory: runner
+      - name: Pack the plugin
+        working-directory: plugins/claude-code
+        run: |
+          zip -qr "$GITHUB_WORKSPACE/wildcrane-plugin.zip" . -x 'tests/*' 'node_modules/*'
+          echo "sha256: $(sha256sum "$GITHUB_WORKSPACE/wildcrane-plugin.zip" | cut -d' ' -f1)" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Pack the Codex marketplace
+        working-directory: plugins
+        run: |
+          zip -qr "$GITHUB_WORKSPACE/wildcrane-codex.zip" .agents codex -x 'codex/node_modules/*'
+          echo "codex sha256: $(sha256sum "$GITHUB_WORKSPACE/wildcrane-codex.zip" | cut -d' ' -f1)" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" wildcrane-plugin.zip wildcrane-codex.zip --title "WildCrane plugins ${GITHUB_REF_NAME#plugin-v}" --notes "Claude Code: \`claude plugin marketplace add ai4kanban/ai4kanban\`, then \`claude plugin install wildcrane@wildcrane\`. Codex: unzip wildcrane-codex.zip, then \`codex plugin marketplace add <folder>\` and \`codex plugin add wildcrane@wildcrane\`." --latest=false

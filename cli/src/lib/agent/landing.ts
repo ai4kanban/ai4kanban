@@ -1,0 +1,957 @@
+// Landing: putting a delivery's built code on the target branch (#304).
+//
+// The build is done and the work is still on the delivery's own branch. Landing is the last
+// step, and it is the BOARD's own work — no run does it. The branch is squashed to one
+// commit, rebased onto the target branch's tip when that has moved, and the target branch
+// is moved to it. A rebase onto a moved target is always followed by one agent run that
+// fits the delivery onto it (#2043) — conflicts and all — and the next pass lands the result.
+//
+// A target branch that moves again under the landing is not handed back: the landing gives
+// its slot up, waits, and replays onto the new tip, for as long as it takes (#665).
+//
+// The record holds the delivery's slot across runs. A separate lock serializes Git work
+// across watcher and scheduler processes without holding the board's record lock.
+//
+// Nothing here is ever pushed, and nothing is ever staged in the user's checkout: the
+// squash is made in the delivery's own worktree, and the target branch is fast-forwarded
+// under them so their index and working tree follow it the way a `git pull` would.
+
+import fs from 'node:fs'
+import path from 'node:path'
+import { setCardStatusOn } from '../board'
+import { say } from '../io'
+import { tryLock } from '../lock'
+import { rel, REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { answerOutcome, takeUnchanged } from './answers'
+import { deliveryMessage, deliveryName } from './commit-mode'
+import { completeCard } from './complete'
+import {
+  approvedRequirements,
+  cardStatus,
+  endDelivery,
+  listDeliveries,
+  openQuestions,
+  syncAudit,
+  wantsLanding,
+} from './deliveries'
+import { HELD_ON_QUESTIONS, IN_LINE } from './pause'
+import { backoffMs, RETRY_ATTEMPTS } from './retry'
+import { reviewOf } from './review'
+import { readStore, withStore } from './store'
+import type { AgentRequest, DeliveryLanding, DeliveryRecord, LandingReason, LandingWait } from './types'
+import {
+  abortRebase,
+  amendStaged,
+  branchPatch,
+  branchTip,
+  branchWorktree,
+  changedPaths,
+  continueRebase,
+  conflictedPaths,
+  fastForward,
+  isAncestor,
+  lastCommitTouching,
+  moveBranchRef,
+  pendingPaths,
+  rebaseInProgress,
+  rebaseOnto,
+  reverseApplies,
+  squashOnto,
+  worktreeDir,
+  worktreeExists,
+} from './worktree'
+
+// How many files a warning or a question names before it stops counting.
+const MAX_NAMED = 5
+
+const names = (files: string[]): string =>
+  `${files.slice(0, MAX_NAMED).join(', ')}${files.length > MAX_NAMED ? `, and ${files.length - MAX_NAMED} more` : ''}`
+
+// The same files where a reader has to act on them. One is named, because naming it saves a
+// look; more are counted, because the reader's next move is the same for two as for ninety
+// and a list of ninety is not a sentence.
+const some = (files: string[]): string => (files.length === 1 ? `\`${files[0]}\`` : `${files.length} files`)
+
+const are = (n: number): string => (n === 1 ? 'is' : 'are')
+const them = (n: number): string => (n === 1 ? 'it' : 'them')
+
+// ---- the slot ---------------------------------------------------------------
+
+/** True while a delivery is waiting between two landing attempts — a `conflict` run that
+ *  failed (#595), or a target branch that moved under it (#665). Whatever the rebase left in
+ *  the worktree is untouched; it simply holds no landing slot until the wait is over, so
+ *  every other delivery lands while it waits. */
+function waitingOut(delivery: DeliveryRecord, now: number = Date.now()): boolean {
+  const landing = delivery.landing
+  if (!landing) return false
+  return (landing.conflictAt ?? 0) > now || (landing.retryAt ?? 0) > now
+}
+
+// The delivery to work on this pass: the one already holding the slot when nothing of its
+// own is running, or — when the slot is free — the oldest waiter. A waiter that has
+// stopped is passed over: it is waiting on a person, not on the queue. So is one held on
+// its card's open questions (#307), for the same reason.
+function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefined {
+  const now = Date.now()
+  return withStore((store) => {
+    const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
+    if (holder) {
+      if (skip.has(holder.deliveryId) || held.has(holder.deliveryId) || holder.review?.stopped) return undefined
+      // Its own run is working — the agent resolving a conflict. The landing carries on
+      // when that run ends.
+      if (store.runs.some((r) => r.status === 'running' && r.deliveryId === holder.deliveryId)) return undefined
+      return { ...holder }
+    }
+    const waiter = store.deliveries.find(
+      (d) =>
+        d.status === 'active' &&
+        d.landing?.status === 'waiting' &&
+        !d.review?.stopped &&
+        !skip.has(d.deliveryId) &&
+        !held.has(d.deliveryId) &&
+        !waitingOut(d, now) &&
+        wantsLanding(d),
+    )
+    if (!waiter) return undefined
+    const was = waiter.landing as DeliveryLanding
+    // An attempt picked back up after a wait keeps the last failure's `why`: it is why this
+    // attempt exists, and the flow hands it to the agent that opens on a conflict (#595).
+    // The retry time goes, though — the wait is over the moment the slot is its own (#665).
+    waiter.landing = {
+      ...was,
+      status: 'landing',
+      why: was.conflictAt || was.retryAt ? was.why : undefined,
+      reason: undefined,
+      retryAt: undefined,
+      at: Date.now(),
+    }
+    return { ...waiter }
+  })
+}
+
+// Change one delivery's landing record. Every write here goes through this, so the audit
+// file follows in the same breath.
+function patchLanding(deliveryId: string, change: (landing: DeliveryLanding) => void): void {
+  withStore((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
+    if (!delivery) return
+    delivery.landing = delivery.landing ?? { status: 'waiting', attempts: 0, at: Date.now() }
+    change(delivery.landing)
+    delivery.landing.at = Date.now()
+  })
+  syncAudit(deliveryId)
+}
+
+// The sentence a landing waits on, and the files it names where it names any (#958).
+// Written together everywhere: `wait` and `reason` are the same fact in a shape a screen can
+// word itself, so a `why` that replaces it replaces all three — and neither can outlive its
+// sentence.
+const sayWhy = (deliveryId: string, why: string, wait?: LandingWait, reason?: LandingReason): void =>
+  patchLanding(deliveryId, (landing) => {
+    landing.why = why
+    landing.wait = wait
+    landing.reason = reason
+  })
+
+// Put the slot back, saying why. The delivery stays ACTIVE and queued: whatever stopped it
+// — a dirty checkout, a target that would not take the commit — is a thing the user fixes,
+// and the next pass tries again.
+//
+// Whatever a conflict was in the middle of goes with it (#595). Every caller here is a
+// reason OUTSIDE the conflict, so the card must stop saying an attempt is coming — the wait
+// between two attempts gives the slot back on its own, and never through this.
+function giveUpSlot(delivery: DeliveryRecord, why: string, wait?: LandingWait, reason?: LandingReason): void {
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.status = 'waiting'
+    landing.why = why
+    landing.wait = wait
+    landing.reason = reason
+    landing.conflictFiles = undefined
+    landing.conflictFails = undefined
+    landing.conflictAt = undefined
+    landing.retryAt = undefined
+  })
+}
+
+// ---- held on the card's open questions (#307) -------------------------------
+
+// Why a delivery is waiting outside the queue. The opening words are fixed (`pause.ts`), so
+// a landing held on a question can be told from one waiting for any other reason — that is
+// what says the pause has been answered, without a field of its own.
+const questionWhy = (cardId: number, asked: number): string =>
+  `${HELD_ON_QUESTIONS}: #${cardId} has ${asked} of them, and landing waits until ${asked === 1 ? 'it is' : 'they are'} answered`
+
+// Landing was waiting on this card's answers: the delivery stands outside the queue until
+// they are in.
+const wasHeldOnQuestions = (delivery: DeliveryRecord): boolean => !!delivery.landing?.why?.startsWith(HELD_ON_QUESTIONS)
+
+/** The deliveries whose card still has an open question. They are built, and
+ *  landing is the step that waits for the answer — so one holding the slot gives it back
+ *  and every other card can land while it waits.
+ *
+ *  Read from the card files, once per pass, and never inside the record's lock. */
+function holdForQuestions(): Set<string> {
+  const held = new Set<string>()
+  for (const delivery of readStore().deliveries) {
+    if (delivery.status !== 'active' || !delivery.landing || delivery.landing.status === 'landed') continue
+    // A build with no card has no questions to be held on (#428).
+    if (delivery.cardId === null) continue
+    const asked = openQuestions(delivery.cardId)
+    if (!asked) continue
+    held.add(delivery.deliveryId)
+    // A fresh round of questions opens here, so a round before it that moved nothing is
+    // spent (#637). Taking it now is what stops the old conclusion from answering for the
+    // new round when nothing judges that one — and a `changed` stays, because the supersede
+    // it asks for has not happened yet.
+    takeUnchanged(delivery)
+    const why = questionWhy(delivery.cardId, asked)
+    if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
+    else if (delivery.landing.why !== why) sayWhy(delivery.deliveryId, why)
+  }
+  return held
+}
+
+/** This delivery's round of answers is in: it was held at landing on the card's questions,
+ *  and the card has none left. */
+function answersAreIn(delivery: DeliveryRecord): boolean {
+  if (delivery.cardId === null || openQuestions(delivery.cardId) > 0) return false
+  return wasHeldOnQuestions(delivery)
+}
+
+// ---- an answer that changed the plan (#307) ---------------------------------
+
+const hasStep = (delivery: DeliveryRecord, step: string): boolean =>
+  delivery.steps.some((s) => s.step === step)
+
+/** A delivery whose answers are in and CHANGED what it was approved to build. It ends here
+ *  and a fresh delivery starts on the card as it now reads; the request is handed back for
+ *  the caller to start.
+ *
+ *  Only ever asked of a delivery that was waiting on the card's answers and is not any more:
+ *  answering is the one thing that rewrites a card under a delivery, so it is the one moment
+ *  its requirements can have moved. A card edited in the user's own editor while its code is
+ *  being written still changes nothing — the delivery builds from its copy.
+ *
+ *  WHAT THE ANSWERS DID IS READ, NOT WORKED OUT (#637). The run that wrote them onto the card
+ *  said so with `delivery answered`, and nothing here compares the card's text: a tidied
+ *  sentence is not a changed requirement, and a card written from a plan never matched the
+ *  plan it was written from. A round nothing judged changed nothing (#831), and the
+ *  conclusion is TAKEN as it is acted on, so one supersede is one supersede however many
+ *  passes look at it.
+ *
+ *  The wait is a landing held on the card's questions.
+ *
+ *  The card is handed back as it goes. The delivery put `implementing` there and nothing
+ *  else takes it off, so a card whose replacement does not start would otherwise rest at a
+ *  stage no run is working on. */
+async function supersededDelivery(held: Set<string>): Promise<AgentRequest | null> {
+  for (const delivery of readStore().deliveries) {
+    if (delivery.status !== 'active' || !wantsLanding(delivery) || delivery.cardId === null) continue
+    if (delivery.landing?.status === 'landed') continue
+    if (held.has(delivery.deliveryId)) continue
+    if (!answersAreIn(delivery) || answerOutcome(delivery) !== 'changed') continue
+    const why = withStore((store) => {
+      const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+      // Read again under the lock: another pass may have taken this very conclusion between
+      // the read above and here, and two supersedes of one delivery is two builds.
+      if (!live || live.status !== 'active' || answerOutcome(live) !== 'changed') return null
+      const said = pendingWhy(live)
+      const now = Date.now()
+      live.steps.push({ step: 'superseded', at: now })
+      for (const answer of live.answers ?? []) if (!answer.actedAt) answer.actedAt = now
+      return said
+    })
+    if (why === null) continue
+    endDelivery(delivery.deliveryId, 'cancelled')
+    await handBackCard(delivery)
+    say(
+      `delivery ${delivery.deliveryId} was approved to build a #${delivery.cardId} your answer has since changed ` +
+        `— ${why}. It ends here, and a fresh delivery starts on the card as it now reads.`,
+    )
+    return { action: 'implement', id: delivery.cardId as number, title: delivery.title }
+  }
+  return null
+}
+
+// What the round that changed the requirements said, for the line the supersede prints.
+const pendingWhy = (delivery: DeliveryRecord): string =>
+  (delivery.answers ?? []).find((a) => !a.actedAt && a.outcome === 'changed')?.why ?? 'the answers changed it'
+
+// The stage the card had before this delivery took it, put back now that nothing is
+// building it. Best-effort, like every other card write a delivery's ending makes: the
+// delivery has ended either way, and a stage that would not take the write is one board
+// command away.
+async function handBackCard(delivery: DeliveryRecord): Promise<void> {
+  if (delivery.cardId === null) return
+  try {
+    await setCardStatusOn(delivery.cardId, delivery.priorStatus ?? 'todo')
+  } catch {
+    // the board would not take the write — leave the stage as it is
+  }
+}
+
+/** The card a superseded delivery still owes a fresh one to.
+ *
+ *  Superseding is two moves — end the old delivery, start a new one — and only the first is
+ *  the board's own. The second is a request handed to a caller, and every way that start can
+ *  be refused is a way the card is left at `ready` with nothing coming for it. So the debt
+ *  is DERIVED here rather than handed over once: every pass asks again until a delivery
+ *  actually opens, which makes a refused start cost a minute instead of the card.
+ *
+ *  It is paid by the next delivery on the card, whenever one starts, and written off when
+ *  the user discards the superseded delivery instead — that is them asking for the card
+ *  back, and the board must not quietly build it anyway.
+ *
+ *  The debt is the ended row, so it lives as long as that row does (KEEP_DELIVERIES). Every
+ *  pass retries, so it is normally paid in a minute; thirty deliveries ending inside that
+ *  minute would lose it. */
+async function owedRestart(): Promise<AgentRequest | null> {
+  const store = readStore()
+  for (const delivery of store.deliveries) {
+    // Only a card can be superseded: a build with no card holds the typed sentence itself,
+    // and nothing can rewrite it underneath (#428).
+    if (delivery.cardId === null) continue
+    if (!hasStep(delivery, 'superseded') || hasStep(delivery, 'dropped')) continue
+    // Paid: some delivery opened on this card after this one ended.
+    const paid = store.deliveries.some(
+      (d) => d.cardId === delivery.cardId && d.startedAt >= (delivery.endedAt ?? 0) && d.deliveryId !== delivery.deliveryId,
+    )
+    if (paid) continue
+    // A run is already working the card; a second one would be refused anyway.
+    if (store.runs.some((r) => r.status === 'running' && r.cardId === delivery.cardId)) continue
+    // And the card is still here to build — archived or rejected, the debt goes with it.
+    if (!approvedRequirements(delivery.cardId)) continue
+    // A card left at `implementing` by a supersede written down before the hand-back
+    // existed. Nothing else takes that stage off, so it is put back here.
+    if (cardStatus(delivery.cardId) === 'implementing') await handBackCard(delivery)
+    return { action: 'implement', id: delivery.cardId as number, title: delivery.title }
+  }
+  return null
+}
+
+// ---- queued behind the slot -------------------------------------------------
+
+const inLineWhy = (holder: DeliveryRecord): string =>
+  `${IN_LINE} ${deliveryName(holder)} — one build lands at a time, and this one carries on by itself`
+
+/** Tell every waiter that the slot is taken, and by which card.
+ *
+ *  `takeSlot` returns on the holder before it ever reaches the queue, so without this a
+ *  waiter keeps the `why` of the last pass that actually looked at it — a dirty checkout the
+ *  user cleaned up an hour ago, still on the card page as the thing in its way. The queue is
+ *  the honest answer, and it is the one nothing else was writing down.
+ *
+ *  The two holds and a stopped delivery are left out: those wait on a person whether or not
+ *  the slot is free, which is the same reason `takeSlot` passes them over. */
+function noteQueue(held: Set<string>): void {
+  const store = readStore()
+  const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
+  if (!holder) return
+  const why = inLineWhy(holder)
+  for (const delivery of store.deliveries) {
+    if (delivery.deliveryId === holder.deliveryId) continue
+    if (delivery.status !== 'active' || delivery.landing?.status !== 'waiting') continue
+    if (held.has(delivery.deliveryId) || delivery.review?.stopped || !wantsLanding(delivery)) continue
+    // One between two landing attempts is not in line: it gave the slot up on purpose and
+    // says so itself, and overwriting that would hide the retry behind "in line behind" and
+    // hand the next agent the queue as the reason it was opened (#595, #665). Whether or not
+    // its wait is over — the tick that picks it back up is exactly the one this would spoil.
+    if (delivery.landing.conflictAt || delivery.landing.retryAt) continue
+    if (delivery.landing.why === why) continue
+    sayWhy(delivery.deliveryId, why, undefined, { kind: 'queued', behind: holder.cardId === null ? `\`${holder.deliveryId}\`` : `#${holder.cardId}` })
+  }
+}
+
+// ---- one pass ---------------------------------------------------------------
+
+/** Move the landing queue on by one step, and hand back the run it wants started — the
+ *  agent that resolves a conflict.
+ *
+ *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
+ *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
+ *  throws: a caller on a timer must survive an unreadable repository and try again. */
+export async function advanceLanding(): Promise<AgentRequest | null> {
+  let release: (() => void) | undefined
+  try {
+    release = tryLock(path.join(SESSIONS_DIR, '.landing.lock'))
+    if (!release) return null
+    // A supersede an earlier pass made and nothing ever started, before anything else: it
+    // is a card with no delivery and nobody coming for it, which is the worst state the
+    // queue can leave one in.
+    const owed = await owedRestart()
+    if (owed) return owed
+    // Then the cards whose questions are still open, and the ones whose answers changed
+    // the plan (#307). Both are read from the card files, so both are settled once, before
+    // the queue is touched.
+    const held = holdForQuestions()
+    const fresh = await supersededDelivery(held)
+    if (fresh) return fresh
+    // A delivery this pass has already tried is not tried again: one that gave the slot
+    // back is still queued, and picking it straight up again is a loop, not a queue.
+    const tried = new Set<string>()
+    for (;;) {
+      const picked = takeSlot(tried, held)
+      if (!picked) {
+        noteQueue(held)
+        return null
+      }
+      tried.add(picked.deliveryId)
+      const step = await landStep(picked)
+      if (step.start) return step.start
+      if (!step.done) return null
+      // It landed, or it gave the slot back — either way the next waiter's turn is now.
+    }
+  } catch {
+    // A repository that would not answer. The delivery keeps the slot it holds and the
+    // next pass tries again; nothing here may fail the run that called it.
+    return null
+  } finally {
+    release?.()
+  }
+}
+
+// What one pass concluded: a run to start (the slot stays held while it runs), the
+// landing being over (the slot is free, so try the next waiter), or neither.
+type Step = { start?: AgentRequest; done?: boolean }
+
+// `rebased` says this pass has already replayed onto the target once. A target moving
+// faster than a rebase takes is waited out rather than chased inside one call (#665): the
+// retries are unbounded now, so a second rebase in the same pass is a loop with no exit.
+async function landStep(delivery: DeliveryRecord, rebased = false): Promise<Step> {
+  const dir = worktreeDir(delivery.worktree!)
+  if (!worktreeExists(delivery.worktree)) {
+    giveUpSlot(delivery, `its worktree ${delivery.worktree} is gone, so there is nothing to land`, undefined, {
+      kind: 'worktree-gone',
+    })
+    return { done: true }
+  }
+  // Whether there is anything left to land at all (#569). Asked before the rebase and
+  // before any conflict: a change already on the target branch has nothing to replay, and
+  // resolving a conflict against work that is already in is an hour spent on nothing.
+  if (await settleAlreadyLanded(delivery)) return { done: true }
+  // A rebase stopped part-way through is a conflict somebody has been resolving — or a
+  // crash. Either way it is finished before anything else is decided, unless the slot was
+  // just taken back after a wait: nothing has touched the worktree since the last failure,
+  // so what that needs is another agent, not another `--continue` (#595).
+  if (rebaseInProgress(dir)) {
+    return delivery.landing?.conflictAt ? reopenConflict(delivery, dir) : await finishConflict(delivery, dir)
+  }
+  // A clean rebase whose fit run has been asked for: what it staged is folded in first, or
+  // the staged files would read as a dirty worktree below.
+  if (delivery.landing?.fitAt) {
+    return delivery.landing.conflictAt ? reopenConflict(delivery, dir) : await finishFit(delivery, dir)
+  }
+
+  const refusal = landingRefusal(delivery)
+  if (refusal) {
+    giveUpSlot(delivery, refusal.why, undefined, refusal.reason)
+    return { done: true }
+  }
+  const target = branchTip(delivery.targetBranch!)!
+  warnOverlap(delivery)
+
+  // One commit, made before the rebase rather than after it: a single commit conflicts at
+  // most once, so a conflict is one run and `--continue` finishes the replay.
+  const squashed = squashOnto(dir, delivery.base!, deliveryMessage(delivery))
+  if (!squashed.ok) {
+    giveUpSlot(delivery, squashed.error)
+    return { done: true }
+  }
+  const tip = squashed.commit
+  if (!tip) {
+    // A delivery whose tree is identical to its base built nothing to land: the change the
+    // card asked for was already in the tree. A workflow whose output is files never lands
+    // at all (#874), so this is always a coding one.
+    await finish(delivery, { onto: target })
+    return { done: true }
+  }
+
+  if (!isAncestor(target, tip, dir)) {
+    // The target branch moved while this card was being built. Replay onto it — once per
+    // pass; a target that moved again since this pass's own rebase is waited out (#665).
+    if (rebased) return waitForTarget(delivery)
+    return await replayOntoTarget(delivery, dir, target)
+  }
+  return await move(delivery, tip, target)
+}
+
+// ---- before it lands --------------------------------------------------------
+
+// Why this delivery can't land right this moment, or nothing when it may. Everything here
+// is about the USER's checkout: the delivery's own branch was settled by its build.
+//
+// These are read on the card page as much as in the terminal, so each is ONE line: the thing
+// in the way, and the move that clears it. Nothing explains why landing cares — the reader
+// wants the move, and the sentence that argues for it is the one they skip. Files, branches
+// and commands are wrapped in backticks; the page draws those as marks, and the terminal has
+// always spelled a command that way.
+function landingRefusal(delivery: DeliveryRecord): { why: string; reason: LandingReason } | undefined {
+  if (!delivery.base) return { why: 'it has no base commit to land against', reason: { kind: 'no-base' } }
+  const target = branchTip(delivery.targetBranch!)
+  if (!target) {
+    return {
+      why: `\`${delivery.targetBranch}\` is gone — put the branch back, or discard the delivery`,
+      reason: { kind: 'target-gone' },
+    }
+  }
+  // Nothing is asked here about the user's own staged, changed or untracked files (#958).
+  // A fast-forward moves straight past work the landed commit does not touch, and names the
+  // paths it truly cannot move over — so the move itself is the judge, and `move` below
+  // words whatever it names.
+  const pending = pendingPaths(worktreeDir(delivery.worktree!))
+  if (pending.length) {
+    return {
+      why: `its worktree still holds ${some(pending)} — clear ${them(pending.length)}`,
+      reason: { kind: 'worktree-dirty', files: pending },
+    }
+  }
+  return undefined
+}
+
+// Cards being built that touch the same files. A warning and never a refusal: landing goes
+// ahead, and a real conflict is resolved as new work when the rebase meets one.
+function warnOverlap(delivery: DeliveryRecord): void {
+  const dir = worktreeDir(delivery.worktree!)
+  const mine = new Set(changedPaths(delivery.base!, delivery.branch!, dir) ?? [])
+  if (!mine.size) return
+  // The cards being built over the same files, and — since a build with no card has no id
+  // to record — the names those clashes read under. `overlap` stays a list of cards: it is
+  // what the conflict flow points a run at, and there is no card to point at (#428).
+  const clashes: number[] = []
+  const named: string[] = []
+  const shared: string[] = []
+  for (const other of listDeliveries()) {
+    if (other.deliveryId === delivery.deliveryId || other.status !== 'active') continue
+    if (!other.worktree || !other.branch || !other.base) continue
+    if (!worktreeExists(other.worktree)) continue
+    const hits = (changedPaths(other.base, other.branch, worktreeDir(other.worktree)) ?? []).filter((f) => mine.has(f))
+    if (!hits.length) continue
+    if (other.cardId !== null) clashes.push(other.cardId)
+    named.push(deliveryName(other))
+    shared.push(...hits)
+  }
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.overlap = clashes.length ? clashes : undefined
+  })
+  if (!named.length) return
+  say(
+    `delivery ${delivery.deliveryId} is landing over work in flight on ${named.join(', ')} — ` +
+      `both change ${names([...new Set(shared)])}. Landing goes ahead; a real conflict is resolved as new work.`,
+  )
+}
+
+// ---- the target branch moved ------------------------------------------------
+
+// What the rebase turns out to be — read BEFORE it runs, so a conflict never has to be
+// untangled first. The comparison is by file: what the target brought in since this
+// delivery's base, against what the delivery itself changes.
+//
+// It is a note on the landing record and nothing more (#665). Git failing to answer reads as `overlap`, the honest
+// answer when the comparison could not be made.
+function rebaseKind(delivery: DeliveryRecord, dir: string, target: string): 'disjoint' | 'overlap' {
+  const mine = changedPaths(delivery.base!, delivery.branch!, dir)
+  const theirs = changedPaths(delivery.base!, target, dir)
+  if (!mine || !theirs) return 'overlap'
+  const ours = new Set(mine)
+  return theirs.some((file) => ours.has(file)) ? 'overlap' : 'disjoint'
+}
+
+// Rebase the one squash commit onto the target's new tip, then hand it to one agent run
+// that fits it there — with or without a conflict, however many files the two sides share:
+// two changes git composes cleanly can still break each other (#2043).
+async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string): Promise<Step> {
+  const kind = rebaseKind(delivery, dir, target)
+  const rebased = rebaseOnto(dir, target, delivery.base!)
+  if ('conflict' in rebased) return startConflict(delivery, target, rebased.conflict)
+  if (!rebased.ok) {
+    giveUpSlot(delivery, rebased.error)
+    return { done: true }
+  }
+  const after = await afterRebase(delivery, target, kind)
+  if (after.done) return after
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.onto = target
+    landing.fitAt = Date.now()
+    landing.why = `checking the combined result against ${delivery.targetBranch}`
+  })
+  return { start: conflictRun(delivery) }
+}
+
+// The rebase completed. Its target becomes the delivery's base, and the record keeps the
+// base it came from, the one it was first built on, and which kind of rebase it was. The
+// delivery keeps the slot.
+async function afterRebase(
+  delivery: DeliveryRecord,
+  target: string,
+  kind: NonNullable<DeliveryLanding['rebaseKind']>,
+): Promise<Step> {
+  const at = Date.now()
+  withStore((store) => {
+    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+    if (!live || live.status !== 'active') return
+    const from = live.base
+    live.base = target
+    const landing = (live.landing = live.landing ?? { status: 'landing', attempts: 0, at })
+    landing.status = 'landing'
+    landing.attempts += 1
+    landing.rebasedAt = at
+    landing.rebasedFrom = from
+    landing.originalBase = landing.originalBase ?? from
+    landing.rebaseKind = kind
+    landing.why = undefined
+    landing.reason = undefined
+    landing.conflictFiles = undefined
+    landing.conflictFails = undefined
+    landing.conflictAt = undefined
+    landing.retryAt = undefined
+    landing.fitAt = undefined
+    landing.at = at
+  })
+  syncAudit(delivery.deliveryId)
+  const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+  if (!live || live.status !== 'active') return { done: true }
+  return {}
+}
+
+// The target branch moved under this landing. The slot goes back and the next attempt opens
+// after a wait, without limit (#665): a target that keeps moving is a race between two of
+// the board's own deliveries. Nothing is asked of the user, so `waitingOut` keeps it out of
+// the queue and `noteQueue` leaves its reason alone.
+function waitForTarget(delivery: DeliveryRecord): Step {
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.status = 'waiting'
+    landing.retryAt = Date.now() + backoffMs(landing.attempts + 1)
+    landing.why = `${delivery.targetBranch} moved again while this landing was going through, so it replays onto the new tip`
+    landing.reason = undefined
+  })
+  return { done: true }
+}
+
+// ---- fitting onto the moved target is new work ------------------------------
+
+// The rebase stopped on a conflict. An agent resolves it and fits the rest in the worktree,
+// and the board finishes the rebase afterwards — so the run has no rebase state to get wrong.
+function startConflict(delivery: DeliveryRecord, target: string, files: string[]): Step {
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.onto = target
+    landing.conflictFiles = files
+    landing.why = `resolving a conflict with ${delivery.targetBranch} in ${names(files)}`
+    landing.reason = undefined
+  })
+  return { start: conflictRun(delivery) }
+}
+
+const conflictRun = (delivery: DeliveryRecord): AgentRequest => ({
+  action: 'conflict',
+  id: delivery.cardId ?? undefined,
+  deliveryId: delivery.deliveryId,
+  title: delivery.title,
+})
+
+// The wait is over and the slot is back. The agent opens again on the conflict its last
+// attempt left staged in the worktree; clearing the time is what says this delivery is being
+// worked on rather than waited on, and what sends the run's close back to `finishConflict`.
+//
+// The last failure's `why` stays exactly as it was: it is what went wrong, it is what the
+// flow hands the agent, and this attempt exists because of it.
+function reopenConflict(delivery: DeliveryRecord, dir: string): Step {
+  const files = conflictedPaths(dir)
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.conflictAt = undefined
+    if (files.length) landing.conflictFiles = files
+    if (landing.fitAt) landing.fitAt = Date.now()
+  })
+  return { start: conflictRun(delivery) }
+}
+
+// Continue the staged result — the resolutions and whatever else the agent fixed.
+async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<Step> {
+  const left = conflictedPaths(dir)
+  const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
+  if (done.ok && !rebaseInProgress(dir)) {
+    // Always `conflict`, and never a comparison of its own: a conflicted file is one both
+    // sides changed, so a resolved conflict is an overlap by definition.
+    return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!, 'conflict')
+  }
+  return failAttempt(
+    delivery,
+    `the conflict between ${deliveryName(delivery)} and ${delivery.targetBranch} is not resolved yet — ` +
+      `${done.why ?? 'the rebase would not go through'}`,
+    left,
+  )
+}
+
+// The fit run on a clean rebase has closed: what it staged goes into the delivery's one
+// commit, and the next pass lands it. A run that never finished is an attempt that failed.
+async function finishFit(delivery: DeliveryRecord, dir: string): Promise<Step> {
+  const asked = delivery.landing!.fitAt!
+  const ran = readStore()
+    .runs.filter((r) => r.deliveryId === delivery.deliveryId && r.action === 'conflict' && r.startedAt >= asked)
+    .sort((a, b) => a.startedAt - b.startedAt)
+    .pop()
+  const done = ran?.status === 'done' ? amendStaged(dir) : { ok: false, why: 'the check did not finish' }
+  if (!done.ok) {
+    return failAttempt(
+      delivery,
+      `the combined result of ${deliveryName(delivery)} and ${delivery.targetBranch} is not checked yet — ` +
+        `${done.why ?? 'git would not take what was staged'}`,
+    )
+  }
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.fitAt = undefined
+    landing.conflictFails = undefined
+    landing.why = undefined
+  })
+  return {}
+}
+
+// An attempt that did not go through. The delivery keeps its worktree as it is, gives the
+// slot back, and the next attempt opens after a doubling wait — until `RETRY_ATTEMPTS` in a
+// row have failed, when it stops for the user rather than paying for the same run again.
+function failAttempt(delivery: DeliveryRecord, why: string, left: string[] = []): Step {
+  const fails = (delivery.landing?.conflictFails ?? 0) + 1
+  if (fails >= RETRY_ATTEMPTS) {
+    stopLanding(delivery, `${RETRY_ATTEMPTS} attempts in a row did not go through — ${why}`)
+    return { done: true }
+  }
+  const at = Date.now() + backoffMs(fails + 1)
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.status = 'waiting'
+    landing.conflictFails = fails
+    landing.conflictAt = at
+    if (left.length) landing.conflictFiles = left
+    landing.reason = undefined
+    landing.why = why
+  })
+  return { done: true }
+}
+
+/** Stop a landing that could not be fitted onto the moved target, for the user to take on.
+ *  A half-done rebase is put back, so the branch holds the delivery's own commit again and
+ *  `Build again` starts from a clean worktree. */
+function stopLanding(delivery: DeliveryRecord, why: string): void {
+  const dir = worktreeDir(delivery.worktree!)
+  if (worktreeExists(delivery.worktree) && rebaseInProgress(dir)) abortRebase(dir)
+  const sentence = `this could not be fitted onto the latest \`${delivery.targetBranch}\`: ${why}`
+  withStore((store) => {
+    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+    if (!live?.landing) return
+    reviewOf(live).stopped = { reason: 'landing', why: sentence, at: Date.now() }
+    Object.assign(live.landing, {
+      status: 'waiting',
+      why: undefined,
+      reason: undefined,
+      conflictFiles: undefined,
+      conflictFails: undefined,
+      conflictAt: undefined,
+      retryAt: undefined,
+      fitAt: undefined,
+      at: Date.now(),
+    })
+  })
+  syncAudit(delivery.deliveryId)
+}
+
+/** `akb delivery blocked`: the fit run says it cannot make the combined result work. */
+export function blockLanding(deliveryId: string, why: string): { ok: true } | { ok: false; error: string } {
+  const delivery = readStore().deliveries.find((d) => d.deliveryId === deliveryId)
+  if (!delivery || delivery.status !== 'active' || !delivery.worktree) {
+    return { ok: false, error: `delivery ${deliveryId} is not in flight` }
+  }
+  if (!delivery.landing || delivery.landing.status === 'landed') {
+    return { ok: false, error: `delivery ${deliveryId} is not landing` }
+  }
+  stopLanding(delivery, why.trim())
+  return { ok: true }
+}
+
+// ---- moving the target branch -----------------------------------------------
+
+// The last step, and the only one that touches a checkout of the user's. Wherever the
+// target branch is checked out — their project folder, or a worktree of their own — it is
+// fast-forwarded there, so that index and working tree move with it; with the branch out
+// nowhere, the ref is moved, and only from where the landing found it.
+//
+// Whatever else is uncommitted there rides through untouched (#958). The fast-forward
+// refuses only over the user's own work on a path the landed commit changes, and `landWait`
+// below turns that refusal into the two things they can do about it.
+async function move(delivery: DeliveryRecord, tip: string, target: string): Promise<Step> {
+  const branch = delivery.targetBranch!
+  const checkout = branchWorktree(branch)
+  const moved = checkout ? asMove(fastForward(tip, checkout)) : moveBranchRef(branch, tip, target)
+  if ('blocked' in moved) {
+    const wait = moved.blocked
+    giveUpSlot(delivery, landWait(wait, checkout!), wait)
+    return { done: true }
+  }
+  if ('moved' in moved) {
+    // It moved again between the ancestor check and this write — a race of milliseconds.
+    // Waited out rather than retried inside this call (#665): nothing bounds the retries
+    // any more, so that recursion would have no exit.
+    return waitForTarget(delivery)
+  }
+  if (!moved.ok) {
+    giveUpSlot(delivery, moved.error)
+    return { done: true }
+  }
+  // The checkout goes with the ending, in `endDelivery` under the one rule every delivery
+  // is cleared up by (#720) — a landed delivery has nothing left to carry on.
+  await finish(delivery, { commit: tip, onto: target })
+  return { done: true }
+}
+
+// A fast-forward that git refused because the branch had already moved on reads the same
+// as a guarded ref move that lost its race. A refusal over the user's own files is its own
+// answer: it names them, and it is waited out rather than reported as a broken landing.
+const asMove = (
+  res: { ok: boolean; why?: string; blocked?: LandingWait },
+): { ok: true } | { moved: true } | { blocked: LandingWait } | { ok: false; error: string } => {
+  if (res.ok) return { ok: true }
+  if (res.blocked) return { blocked: res.blocked }
+  if (/not possible to fast-forward|non-fast-forward|diverge/i.test(res.why ?? '')) return { moved: true }
+  return { ok: false, error: `couldn't move your checkout onto the landed commit: ${res.why ?? 'git refused'}` }
+}
+
+// One folder, whatever each side spelled it: `git worktree list` answers in real paths and
+// the board's root may be reached through a symlink, so `/var` and `/private/var` are the
+// same checkout said twice.
+const sameDir = (a: string, b: string): boolean => {
+  const real = (dir: string): string => {
+    try {
+      return fs.realpathSync(dir)
+    } catch {
+      return path.resolve(dir)
+    }
+  }
+  return real(a) === real(b)
+}
+
+// What the landing is waiting for, in one line: the files in the way and the move that
+// clears them. The two refusals have different ways out — a change of the user's is
+// committed or stashed, a file of theirs the commit would create is moved or deleted — so
+// they are worded apart rather than sharing a vaguer sentence. `where` names the checkout
+// only when it is not the project folder, since a second one is the surprising case.
+function landWait(wait: LandingWait, where: string): string {
+  const files = wait.files
+  const at = sameDir(where, REPO_ROOT) ? 'your checkout' : `\`${rel(where)}\``
+  return wait.kind === 'untracked'
+    ? `${some(files)} in ${at} ${are(files.length)} not in git, and landing would write over ${them(files.length)} — move or delete ${them(files.length)}`
+    : `your changes to ${some(files)} in ${at} would be overwritten by landing — commit or stash ${them(files.length)}`
+}
+
+// ---- afterwards -------------------------------------------------------------
+
+// Write the landing down, end the delivery, and complete the card. The commit, the base it
+// landed against and the checks that ran are what the permanent record keeps of it.
+//
+// The order is the point (#307): the delivery ends first, so nothing is still holding the
+// card when the board archives it.
+async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto: string; why?: string }): Promise<void> {
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.status = 'landed'
+    landing.why = landed.why
+    landing.wait = undefined
+    landing.reason = undefined
+    landing.commit = landed.commit
+    landing.onto = landed.onto
+  })
+  endDelivery(delivery.deliveryId, 'finished')
+  // `why` is written by one path only — the check below — so it is also what tells the two
+  // endings apart: a landing that moved the branch says nothing, and one that found the
+  // work already there says so.
+  say(
+    landed.why
+      ? `delivery ${delivery.deliveryId} was already on ${delivery.targetBranch}` +
+          `${landed.commit ? ` — ${landed.commit.slice(0, 12)} carries it` : ''}, so nothing was rebuilt.`
+      : landed.commit
+        ? `delivery ${delivery.deliveryId} landed on ${delivery.targetBranch} as ${landed.commit.slice(0, 12)}.`
+        : `delivery ${delivery.deliveryId} changed nothing, so nothing landed on ${delivery.targetBranch}.`,
+  )
+  // With no card there is nothing to archive (#428) — the delivery just ends.
+  if (delivery.cardId === null) return
+  await completeCard(delivery.cardId, delivery.deliveryId)
+}
+
+// ---- the work is already on the target branch (#569) ------------------------
+
+/** This delivery's own changes, already on the target branch — put there by some other
+ *  commit while the delivery was queued, stopped or ended. Null when they are not.
+ *
+ *  The test is the delivery's own diff read back against the target's tree: if every hunk
+ *  reverse-applies, everything this delivery changes is already in, whatever else has moved
+ *  around it. It is read-only — a temporary index, never anybody's checkout — and it is a
+ *  fact about the two trees rather than a guess from ticked todos.
+ *
+ *  The commit it hands back is the last one on the target that touched these files, which is
+ *  where a reader goes looking for the change. */
+function alreadyOnTarget(delivery: DeliveryRecord): { commit?: string; onto: string } | null {
+  if (!wantsLanding(delivery) || !delivery.base || !worktreeExists(delivery.worktree)) return null
+  const onto = branchTip(delivery.targetBranch!)
+  if (!onto) return null
+  const dir = worktreeDir(delivery.worktree!)
+  const files = changedPaths(delivery.base, delivery.branch!, dir)
+  // Nothing changed, or git would not say — neither is this check's to conclude on.
+  if (!files?.length) return null
+  const patch = branchPatch(delivery.base, delivery.branch!, dir)
+  if (!patch || !reverseApplies(patch, onto, dir)) return null
+  return { commit: lastCommitTouching(onto, files, dir) ?? undefined, onto }
+}
+
+/** End a delivery whose work is already on the target branch, and archive its card.
+ *
+ *  Nothing is squashed, rebased or moved: the commit that carries the change is recorded as
+ *  the landing, and the delivery finishes on it. Its checkout goes the way every finished
+ *  delivery's does (#720) — the work is on the branch, so there is nothing left in the
+ *  worktree that only the worktree has.
+ *
+ *  False when the check does not hold, and the ordinary landing carries on from there. */
+export async function settleAlreadyLanded(delivery: DeliveryRecord): Promise<boolean> {
+  const found = alreadyOnTarget(delivery)
+  if (!found) return false
+  await finish(delivery, {
+    commit: found.commit,
+    onto: found.onto,
+    why: `every change it makes is already on ${delivery.targetBranch}, checked against the branch itself`,
+  })
+  return true
+}
+
+// ---- picking up after a crash -----------------------------------------------
+
+/** What a landing a crash left half-done needs said about it, and what this pass put right.
+ *
+ *  A rebase stopped part-way through with nothing working on it is put back — the branch keeps every commit it had, and the
+ *  landing is simply tried again — and a slot whose holder is no longer active is freed by
+ *  the record itself, since only an ACTIVE delivery can hold one. */
+export function repairLanding(): string[] {
+  const release = tryLock(path.join(SESSIONS_DIR, '.landing.lock'))
+  if (!release) return []
+  try {
+    return repairIdleLanding()
+  } finally {
+    release()
+  }
+}
+
+function repairIdleLanding(): string[] {
+  const store = readStore()
+  const complaints: string[] = []
+  for (const d of store.deliveries) {
+    if (d.status !== 'active' || !d.worktree || !worktreeExists(d.worktree)) continue
+    if (!rebaseInProgress(worktreeDir(d.worktree))) continue
+    if (store.runs.some((r) => r.status === 'running' && r.deliveryId === d.deliveryId)) continue
+    // A conflict between attempts is not half-done work: the wait is the board's own, and
+    // aborting the rebase would throw away what the last agent staged. The time is cleared
+    // the moment an agent opens on it, so a crashed attempt still reaches the abort (#595).
+    if (d.landing?.conflictAt) continue
+    abortRebase(worktreeDir(d.worktree))
+    giveUpSlot(d, 'a rebase was interrupted and has been put back — the landing will be tried again', undefined, {
+      kind: 'interrupted',
+    })
+    complaints.push(
+      `delivery ${d.deliveryId}${d.cardId === null ? '' : ` on #${d.cardId}`}: a landing rebase was left half-done and has been put back. ` +
+        `Its work is whole on ${d.branch}, and the landing is tried again on its own.`,
+    )
+  }
+  return complaints
+}

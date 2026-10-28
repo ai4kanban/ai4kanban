@@ -1,0 +1,44 @@
+/* review/'s tokens and classes, plus what the board adds. */
+@import "../../review/src/globals.css";
+@source "../../review/src";
+
+/* A task that appeared since you last looked, until it is opened (legacy .nb-new). */
+.nb-new {
+  border-color: var(--color-nb-accent);
+  box-shadow: 3px 3px 0 0 var(--color-nb-accent);
+}
+.nb-new.nb-press:hover {
+  box-shadow: 4px 4px 0 0 var(--color-nb-accent);
+}
+.nb-new.nb-press:active {
+  box-shadow: 1px 1px 0 0 var(--color-nb-accent);
+}
+
+/* The subtask map's live chip: an ember ring that swells out of the frame and fades (legacy
+   kanban-ui). On ::after so the chip keeps its press shadow. */
+@keyframes nbChipRing {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+}
+.a4k-chip-live::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 1.5px solid var(--color-nb-accent);
+  border-radius: 11px;
+  pointer-events: none;
+  animation: nbChipRing 2s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-chip-live::after {
+    animation: none;
+    content: none;
+  }
+}

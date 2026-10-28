@@ -1,0 +1,488 @@
+// Refinement is one planning session (#1203). Applying user answers and a revise settle the
+// card in their own session, and nothing follows any of them on a coding card.
+
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { after, beforeEach, describe, it } from 'node:test'
+
+import { refineRunsAfter } from '../src/lib/agent/follow.ts'
+import {
+  claimChanges,
+  markBoard,
+  refinementRequest,
+  refinementRunsAfter,
+  type BoardMarks,
+} from '../src/lib/agent/refine.ts'
+import {
+  askForRefine,
+  clearAsks,
+  closeRun,
+  openRun,
+  readRefineAsks,
+} from '../src/lib/agent/sessions.ts'
+import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
+import { setBoardProvider } from '../src/lib/board/index.ts'
+import { withStore } from '../src/lib/agent/store.ts'
+import { setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState } from './helpers/board.ts'
+
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-refine-'))
+const track = path.join(root, 'docs', 'kanban', 'todo', 'skill')
+const cardFile = path.join(track, '7-a-card-to-refine.md')
+
+beforeEach(() => {
+  fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
+  fs.mkdirSync(track, { recursive: true })
+  fs.writeFileSync(path.join(root, 'docs', 'kanban', 'todo', 'README.md'), '# Open tasks\n')
+  fs.writeFileSync(path.join(root, 'docs', 'kanban', 'next-id'), '8\n')
+  setBoardRoot(root)
+  setBoardProvider(null)
+})
+
+after(() => fs.rmSync(root, { recursive: true, force: true }))
+
+function writeCard(opts: { status?: string; body?: string; questions?: string[] } = {}): void {
+  const questions = opts.questions?.length
+    ? ['questions:', ...opts.questions.map((q) => `  - ${q}`)]
+    : ['questions: []']
+  fs.writeFileSync(
+    cardFile,
+    [
+      '---',
+      'title: A card to refine',
+      'priority: med',
+      'roi: med',
+      `status: ${opts.status ?? 'todo'}`,
+      'blocked_by: []',
+      'related: []',
+      'modules: []',
+      ...questions,
+      '---',
+      '',
+      opts.body ?? 'The plan as it stands.',
+      '',
+      '## Todo',
+      '',
+      '- [ ] build it',
+      '',
+    ].join('\n'),
+  )
+}
+
+const run = (action: AgentAction, round: number, extra: Partial<RunRecord> = {}): RunRecord => ({
+  sessionId: 's',
+  cardId: 7,
+  action,
+  status: 'done',
+  startedAt: 0,
+  harness: 'test',
+  logPath: '/dev/null',
+  refineRound: round,
+  ...extra,
+})
+
+// A close, as the watcher does it: take what this run is answerable for, then work out the
+// sessions that follow from it.
+const closing = (
+  record: RunRecord,
+  before: BoardMarks,
+  waitingForSpec = false,
+): ReturnType<typeof refinementRunsAfter> =>
+  refinementRunsAfter(record, claimChanges(before, record.sessionId), before, waitingForSpec)
+
+function afterSession(
+  action: AgentAction,
+  round: number,
+  wrote: () => void,
+): ReturnType<typeof refinementRunsAfter> {
+  const before: BoardMarks = markBoard()
+  wrote()
+  return closing(run(action, round), before)
+}
+
+// A second card in the same track — the piece a run splits off, or one it only edits.
+function writePiece(id: number, opts: { body?: string; blockedBy?: number[] } = {}): void {
+  fs.writeFileSync(
+    path.join(track, `${id}-a-piece.md`),
+    [
+      '---',
+      `title: Piece ${id}`,
+      'priority: med',
+      'roi: med',
+      'status: todo',
+      `blocked_by: [${(opts.blockedBy ?? []).join(', ')}]`,
+      'related: []',
+      'modules: []',
+      'questions: []',
+      '---',
+      '',
+      opts.body ?? 'Enough to name the piece.',
+      '',
+      '## Todo',
+      '',
+      '- [ ] build it',
+      '',
+    ].join('\n'),
+  )
+}
+
+describe('entering refinement', () => {
+  it('starts with a question audit when the card has no questions', () => {
+    writeCard()
+    assert.deepEqual(refinementRequest({ action: 'refine', id: 7 }), {
+      action: 'clarify',
+      id: 7,
+      title: 'A card to refine',
+      notes: undefined,
+      refineRound: 1,
+    })
+  })
+
+  it('starts the same QA session when untagged questions already exist', () => {
+    writeCard({ questions: ['Which boundary applies?'] })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.ok(!('error' in request))
+    assert.equal(request.action, 'clarify')
+  })
+
+  it('starts the same QA session with mixed tagged and untagged questions', () => {
+    writeCard({ questions: ['[user] Which layout?', 'Which boundary applies?'] })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.ok(!('error' in request))
+    assert.equal(request.action, 'clarify')
+  })
+})
+
+describe('a refine the board refuses', () => {
+  it('says a card with only [user] questions is waiting for the answer (#1366)', () => {
+    writeCard({ questions: ['[user] Which layout?'] })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.match('error' in request ? request.error : '', /#7 is waiting for the user to answer .* refines it on its own/)
+  })
+
+  it('keeps its plain words for a card no answer would make refinable', () => {
+    writeCard({ status: 'ready' })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.deepEqual(request, { error: 'a refine would not move #7' })
+  })
+})
+
+describe('the planning session', () => {
+  it('ends the loop when it marks the card ready', () => {
+    writeCard({ questions: ['Which boundary applies?'] })
+    const { runs, stalled } = afterSession('clarify', 1, () => {
+      writeCard({ status: 'ready', body: 'The boundary is settled.' })
+    })
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('starts no second pass on a card it left at todo, and says so', () => {
+    writeCard()
+    const { runs, stalled, stalledWhy } = afterSession('clarify', 1, () => {})
+    assert.deepEqual(runs, [])
+    assert.match(stalled ?? '', /#7 is still in To do after planning/)
+    assert.deepEqual(stalledWhy, [{ kind: 'refineStalled', args: { card: '7' } }])
+  })
+
+  it('waits when QA leaves only revalidated user questions', () => {
+    writeCard({ questions: ['Which boundary applies?'] })
+    const { runs, stalled } = afterSession('clarify', 1, () => {
+      writeCard({ questions: ['[user] Which boundary applies?'] })
+    })
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('reports an untagged question as incomplete instead of starting another session', () => {
+    writeCard()
+    const { runs, stalled } = afterSession('clarify', 1, () => {
+      writeCard({ questions: ['Which boundary applies?'] })
+    })
+    assert.deepEqual(runs, [])
+    assert.match(stalled ?? '', /QA left untagged questions/)
+  })
+
+  it('waits for requested spec agents', () => {
+    writeCard()
+    const before = markBoard()
+    const { runs, stalled } = closing(run('clarify', 1), before, true)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+})
+
+describe('applying user answers', () => {
+  const resolveRun = (flowId = 'answer-flow'): RunRecord => ({
+    ...run('resolve', 1, { flowId }),
+    refineRound: undefined,
+  })
+
+  it('records a standalone resolve outside the refinement pass chain', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const opened = openRun({ action: 'resolve', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    assert.equal(opened.run.refineRound, undefined)
+  })
+
+  it('ends with the resolve: nothing follows a card it settled', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const before = markBoard()
+    writeCard({ body: 'The selected boundary is applied.' })
+    const { runs, stalled } = closing(resolveRun(), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('waits when user decisions remain', () => {
+    writeCard({ questions: ['[user] Which boundary?', '[user] Which layout?'] })
+    const before = markBoard()
+    writeCard({ body: 'The boundary is applied.', questions: ['[user] Which layout?'] })
+    const { runs, stalled } = closing(resolveRun(), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  // Only a planning session is held to leaving no untagged question.
+  it('starts nothing after a resolve that leaves an untagged question', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const before = markBoard()
+    writeCard({ questions: ['Which dependent boundary applies?'] })
+    const { runs, stalled } = closing(resolveRun(), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+})
+
+// A job is several sessions long, and the record has to say so: the runs panel groups by
+// this id, so a broken chain reads as unrelated runs on the same card.
+describe('one job, several sessions', () => {
+  const openPass = (round: number, flowId?: string) => {
+    const opened = openRun(
+      { action: 'clarify', id: 7, title: 'A card to refine', refineRound: round, flowId },
+      'prompt',
+      [],
+    )
+    if ('error' in opened) throw new Error(opened.error)
+    return opened.run
+  }
+
+  it('gives an ordinary run a flow of its own, so the panel can hang its sessions off it', () => {
+    writeCard()
+    const opened = openRun({ action: 'edit', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    assert.ok(opened.run.flowId)
+  })
+
+  it('gives a second refinement on the same card an id of its own', async () => {
+    writeCard()
+    const first = openPass(1)
+    fs.writeFileSync(first.logPath, 'log\n')
+    await closeRun(first.sessionId, { status: 'done', ok: true, code: 0 })
+    const second = openPass(1)
+    assert.ok(second.flowId)
+    assert.notEqual(second.flowId, first.flowId)
+  })
+})
+
+// A revise applies the requested change in its own session, and nothing follows it.
+describe('a revise', () => {
+  const reviseRun = (flowId = 'revise-flow'): RunRecord => ({
+    ...run('edit', 1, { flowId }),
+    refineRound: undefined,
+  })
+
+  it('ends with the revise', () => {
+    writeCard()
+    const before = markBoard()
+    writeCard({ body: 'The plan, revised.' })
+    const { runs, stalled } = closing(reviseRun(), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('waits when user decisions remain', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const before = markBoard()
+    writeCard({ body: 'The plan, revised.', questions: ['[user] Which boundary applies?'] })
+    const { runs, stalled } = closing(reviseRun(), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+})
+
+describe('an explicit refine handoff', () => {
+  it('writes one ask down however many times the run asks', () => {
+    writeCard()
+    const opened = openRun({ action: 'edit', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    const { sessionId } = opened.run
+    assert.equal(askForRefine(sessionId, { cardId: 7 }), 'queued')
+    assert.equal(askForRefine(sessionId, { cardId: 7 }), 'already')
+    assert.deepEqual(readRefineAsks(sessionId), [{ cardId: 7, notes: undefined }])
+    clearAsks(sessionId)
+    assert.deepEqual(readRefineAsks(sessionId), [])
+  })
+
+  it('queues a fresh clarify session for the asked card', () => {
+    writeCard()
+    const opened = openRun({ action: 'create', description: 'A card' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    assert.equal(askForRefine(opened.run.sessionId, { cardId: 7 }), 'queued')
+    assert.equal(refineRunsAfter(readRefineAsks(opened.run.sessionId))[0]!.action, 'clarify')
+  })
+})
+
+// Several runs are up at once and their windows overlap, so "the board changed while I was
+// running" is not the same question as "I changed the board". A run that answered the first
+// one adopted its neighbours' cards and started their loops over.
+describe('two runs at once', () => {
+  // A long run elsewhere on the board — a recurring run on another card, say. It is up
+  // before the pass on #7 starts and still up when that pass has finished.
+  const other = (): RunRecord => ({
+    ...run('run', 1, { sessionId: 'run-9', cardId: 9 }),
+    refineRound: undefined,
+  })
+
+  it('leaves a card the run that changed it has already accounted for', () => {
+    writeCard()
+    const wide = markBoard()
+    const narrow = markBoard()
+    writeCard({ body: 'The plan, rewritten by the pass on #7.' })
+    // The pass on #7 closes first and takes its own change with it.
+    assert.deepEqual(closing(run('clarify', 1), narrow).runs, [])
+    // The long run closes later. #7 changed inside its window too, and it is none of its
+    // business.
+    assert.deepEqual(closing(other(), wide).runs, [])
+  })
+
+  it('still refines a card it changed itself', () => {
+    writeCard()
+    const wide = markBoard()
+    writeCard({ body: 'A follow-up the long run wrote itself.' })
+    assert.deepEqual(
+      closing(other(), wide).runs.map((r) => [r.action, r.id]),
+      [['clarify', 7]],
+    )
+  })
+
+  it('leaves a card another run is still working on to that run', () => {
+    writeCard()
+    const opened = openRun({ action: 'clarify', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    const wide = markBoard()
+    writeCard({ body: 'What the live pass on #7 is writing.' })
+    assert.deepEqual(closing(other(), wide).runs, [])
+  })
+
+  it('leaves a new card with the cardless run that created it', () => {
+    const wide = markBoard()
+    const creator: RunRecord = {
+      ...run('create', 1, { sessionId: 'create', cardId: null }),
+      status: 'running',
+      refineRound: undefined,
+      createdCardIds: [7],
+    }
+    withStore((store) => store.runs.push(creator))
+    writeCard()
+
+    assert.deepEqual(closing(other(), wide).runs, [])
+  })
+})
+
+// A split exits at the group boundary. Each new subtask carries its own scheduled refine;
+// ordinary created cards still get the usual inferred follow-up.
+describe('the refine a created card gets', () => {
+  it('leaves a completed split to its scheduled subtasks', () => {
+    writeCard()
+    const before = markBoard()
+    const group = path.join(root, 'docs', 'kanban', 'todo', '7-a-card-to-refine')
+    const nestedTrack = path.join(group, 'skill')
+    fs.mkdirSync(nestedTrack, { recursive: true })
+    fs.renameSync(cardFile, path.join(group, 'root.md'))
+    fs.appendFileSync(path.join(group, 'root.md'), '\n## Subtasks\n\n- [ ] Refine the piece #8\n')
+    writePiece(8)
+    const piece = path.join(track, '8-a-piece.md')
+    fs.writeFileSync(
+      piece,
+      fs.readFileSync(piece, 'utf8').replace(
+        'questions: []',
+        'schedule:\n  action: refine\nquestions: []',
+      ),
+    )
+    fs.renameSync(piece, path.join(nestedTrack, '8-a-piece.md'))
+
+    const { runs, stalled } = closing(run('clarify', 1), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('leaves a blocked subtask to the one-shot schedule its creation gave it', () => {
+    writeCard()
+    const before = markBoard()
+    writePiece(10)
+    writePiece(11, { blockedBy: [10] })
+    const { runs } = closing(run('clarify', 1), before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.id]),
+      [['clarify', 10]],
+    )
+  })
+
+  it('hands every initial card to an independent refinement after setup finishes', () => {
+    writeCard()
+    writePiece(10)
+    const before = markBoard()
+    writePiece(11)
+    const setup: RunRecord = {
+      ...run('setup', 1, { sessionId: 'setup', cardId: null }),
+      refineRound: undefined,
+    }
+    const { runs } = closing(setup, before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.id]),
+      [
+        ['clarify', 7],
+        ['clarify', 10],
+        ['clarify', 11],
+      ],
+    )
+  })
+
+  it('still follows every card an action outside that list changed', () => {
+    writeCard()
+    writePiece(10)
+    const before = markBoard()
+    writePiece(10, { body: 'Edited by the recurring run.' })
+    writePiece(11)
+    const recurring: RunRecord = {
+      ...run('run', 1, { sessionId: 'run-9', cardId: 9 }),
+      refineRound: undefined,
+    }
+    const { runs } = closing(recurring, before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.id]),
+      [
+        ['clarify', 10],
+        ['clarify', 11],
+      ],
+    )
+  })
+})
+
+// A spec agent runs inside the planning session that asked for it, which carries on by
+// itself — so no pass follows the spec run (#1203).
+describe('specialized input', () => {
+  it('starts nothing after a spec agent writes its section', () => {
+    writeCard()
+    const before = markBoard()
+    writeCard({ body: 'A plan with its specialized section.' })
+    const { runs, stalled } = closing({ ...run('spec', 1), refineRound: undefined }, before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+})

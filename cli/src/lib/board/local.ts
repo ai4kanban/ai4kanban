@@ -1,0 +1,293 @@
+// ---- the Local board -------------------------------------------------------
+//
+// The markdown board in `docs/kanban/`, behind the contract. Nothing about what a command
+// writes or prints changed here: every operation below runs the code the board has always
+// run, with three things done once on the way through.
+//
+//   • The board's writing lock is held around the file work, and only here. The promise
+//     boundary sits ABOVE the lock, which is what makes a Local write literally synchronous
+//     — the file is on disk before the call resolves.
+//   • The caller's expected revision is checked against the file as it is at that moment,
+//     inside the lock. A revision that has moved is a CONFLICT, never a half-applied write.
+//   • Prose a move would have printed is swallowed for the typed operations, whose callers
+//     read the value. The named `akb raw` moves keep their prose: it is their answer, and
+//     the dispatcher above owns where it lands.
+//
+// Local grants every lease, and no card is written without one. The lock is what serializes
+// a single machine's board, so there is nothing here for a lease to fence off; the lease is
+// what hands a caller who never read the card a revision to write against, and it is read
+// under the same lock the write takes so that waiting for another writer hands out the
+// revision that writer left behind rather than the one it was about to move.
+
+import { cancelDelivery, discardDelivery, resumeDelivery } from '../agent/sessions'
+import {
+  cmdCreate,
+  cmdSchedule,
+  cmdTag,
+  cmdUpdate,
+  cmdUpdateQuestions,
+  type CreateOptions,
+  type QuestionOpsInput,
+  type ScheduleOptions,
+  type UpdateOptions,
+} from '../../commands/card'
+import { cmdInit } from '../../commands/init'
+import { cmdList, type ListOptions } from '../../commands/list'
+import { cmdMigrate, type MigrateOptions } from '../../commands/misc'
+import { cmdRemove, type RemoveOptions } from '../../commands/remove'
+import { cmdAgentFile } from '../../commands/agent-file'
+import { cmdMemoryFile } from '../../commands/memory-file'
+import { cmdRule, type RuleOptions } from '../../commands/rule'
+import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
+import { cmdValidate } from '../../commands/validate'
+import { cmdSpecWrite, type SpecWriteOptions } from '../../commands/spec-write'
+import { quietly } from '../io'
+import { withBoardLock } from '../lock'
+import { tickSetupStep } from '../setup'
+import { allCards, findCard } from '../view/read'
+import type { Typed } from '../cli/shared'
+import type {
+  BoardProvider,
+  Lease,
+  LeaseId,
+  LeaseResult,
+  LeaseTarget,
+  MoveInput,
+  MoveOutput,
+  OpConflict,
+  OpEnvelope,
+  OpRefused,
+  OpResult,
+  Revision,
+} from './contract'
+import { moveTarget, opConflict, opOk, opRefused, sameTarget, targetName } from './ops'
+import { boardRevision, cardRevision } from './revision'
+
+// ---- the named moves -------------------------------------------------------
+//
+// Lifted here from the dispatcher: `akb raw <move>` is one operation of this contract,
+// so the table of what each move does belongs to the board, not to the command line that
+// happens to be in front of it today.
+
+type RunMove = (input: MoveInput) => MoveOutput | void | Promise<MoveOutput>
+
+// The command line has already been read by the time a move runs (lib/cli/board.ts): the
+// positional words are in `args`, and every option is in `opts`, validated against the
+// declaration that also wrote the help. A move reads its own fields off those — none of
+// them parses argv, and none re-checks a value its command already refused.
+//
+// `as` is the one place the shape crosses over. Every field it names is declared, with its
+// reader, in lib/cli/board.ts.
+const as = <T,>(opts: Record<string, unknown>): T => opts as T
+
+const MOVES: Record<string, RunMove> = {
+  validate: ({ args }) => cmdValidate(args[0] === undefined ? undefined : Number(args[0])),
+  init: () => cmdInit(),
+  'setup-done': ({ args }) => cmdSetupDone(args[0]),
+  'setup-status': () => cmdSetupStatus(),
+  create: ({ opts }) => cmdCreate(as<CreateOptions>(opts)),
+  update: ({ args, opts }) => cmdUpdate(Number(args[0]), as<UpdateOptions>(opts)),
+  'update-questions': ({ args, opts }) => cmdUpdateQuestions(Number(args[0]), as<QuestionOpsInput>(opts)),
+  schedule: ({ args, opts }) => cmdSchedule(Number(args[0]), as<ScheduleOptions>(opts)),
+  tag: ({ args }) => cmdTag(Number(args[0]), args[1] ?? '', args[2] ?? ''),
+  list: ({ opts }) => cmdList(as<ListOptions>(opts)),
+  migrate: ({ opts }) => cmdMigrate(as<MigrateOptions>(opts)),
+  archive: ({ args }) => cmdRemove(Number(args[0]), 'completed'),
+  reject: ({ args, opts }) => cmdRemove(Number(args[0]), 'rejected', as<RemoveOptions>(opts)),
+  'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
+  rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
+  'agent-file': ({ args }) => cmdAgentFile(args[0] ?? '', args[1] ?? ''),
+  'memory-file': ({ args }) => cmdMemoryFile(args[0] ?? ''),
+}
+
+/** Every move this board answers to, by its canonical name. */
+export const BOARD_MOVES: ReadonlySet<string> = new Set(Object.keys(MOVES))
+
+/** The moves that only read. They take no lock and no envelope — nothing they do can be
+ *  half-written, and a board someone is mid-write on is still readable. */
+export const READ_ONLY_MOVES: ReadonlySet<string> = new Set(['list', 'setup-status', 'validate', 'agent-file', 'memory-file'])
+
+// ---- the provider ----------------------------------------------------------
+
+/** What the board reads at right now for the thing this operation writes. */
+function revisionAt(target: LeaseTarget): Revision {
+  return 'card' in target ? cardRevision(target.card) : boardRevision()
+}
+
+/** Every lease this process has out. Local grants them all; the record is what lets a
+ *  mutation say the lease it was handed is one this board knows about. */
+const leases = new Map<LeaseId, Lease>()
+let leaseCounter = 0
+
+/** The lease this envelope holds over `target`, or undefined for an envelope carrying none,
+ *  one this board never granted, or one taken over something else. */
+function leaseFor(env: OpEnvelope, target: LeaseTarget): Lease | undefined {
+  const held = env.lease ? leases.get(env.lease) : undefined
+  return held && sameTarget(held.target, target) ? held : undefined
+}
+
+/**
+ * Whether this envelope may write `target`, given what the board reads at now.
+ *
+ * Two rules, and nothing may be written past either:
+ *
+ *   • A CARD needs a writer lease this board granted over it. That is what makes "no card is
+ *     written without one" a check rather than a comment.
+ *   • A revision that has moved is a CONFLICT — unless the caller's expectation is the one
+ *     its own lease handed it. The lease's revision was read under this same lock, so a
+ *     caller that waited out another writer is not stale, it is next in line; refusing it
+ *     would turn every contended write into a refusal. A caller that read the resource
+ *     ITSELF is still checked against it, which is what stops a stale screen overwriting.
+ */
+function checkWrite(target: LeaseTarget, env: OpEnvelope, current: Revision): OpRefused | OpConflict | null {
+  const held = leaseFor(env, target)
+  if ('card' in target && !held) {
+    return opRefused(new Error(`${targetName(target)} cannot be written without a writer lease over it.`))
+  }
+  if (held && env.expect === held.revision) return null
+  return env.expect === current ? null : opConflict(current, targetName(target))
+}
+
+export function localBoard(): BoardProvider {
+  /**
+   * One write, with the lock held and the caller's revision checked inside it.
+   *
+   * The check and the write are one critical section on purpose: a revision read outside
+   * the lock could move before the write landed, which is the very race this exists to
+   * catch. `fn` runs quietly — these callers read the value, and a board's stdout is not
+   * theirs.
+   */
+  function mutate<T extends object>(target: LeaseTarget, env: OpEnvelope, fn: () => T): Promise<OpResult<T>> {
+    try {
+      return Promise.resolve(withBoardLock(() => {
+        const no = checkWrite(target, env, revisionAt(target))
+        if (no) return no
+        const extra = quietly(fn)
+        return opOk(revisionAt(target), extra)
+      }))
+    } catch (e) {
+      return Promise.resolve(opRefused(e))
+    }
+  }
+
+  const provider: BoardProvider = {
+    kind: 'local',
+
+    readCards: () => Promise.resolve(allCards()),
+
+    // ---- the writer lease ---------------------------------------------------
+
+    // Local grants every lease, an unknown card included: a single machine's board is
+    // already serialized by the writing lock, so there is nothing here to fence off — and
+    // the operation itself refuses a card that isn't there in far better words than a lease
+    // could. Fencing is Cloud's to enforce.
+    //
+    // The revision comes from inside the writing lock, so a lease taken while another writer
+    // holds it waits and is granted at what that writer left behind. Read outside, it would
+    // be the revision that writer was in the middle of moving, and the write it hands the
+    // caller would refuse for a race the lock had already settled.
+    lease(target: LeaseTarget): Promise<LeaseResult> {
+      leaseCounter += 1
+      const revision = withBoardLock(() => revisionAt(target))
+      const lease: Lease = { id: `local-${leaseCounter.toString(36)}`, target, revision }
+      leases.set(lease.id, lease)
+      return Promise.resolve({ ok: true, lease })
+    },
+
+    releaseLease(id: LeaseId): Promise<void> {
+      leases.delete(id)
+      return Promise.resolve()
+    },
+
+    // ---- a card's lifecycle and frontmatter --------------------------------
+
+    setStatus: (id, status, env) =>
+      mutate({ card: id }, env, () => {
+        cmdUpdate(id, { status })
+        return { card: findCard(id) ?? undefined }
+      }),
+
+    appendQuestion: (id, question, options, env) =>
+      mutate({ card: id }, env, () => {
+        cmdUpdateQuestions(id, {
+          ops: [['append', question], ...options.map((o): Typed => ['option', o])],
+        })
+        return { card: findCard(id) ?? undefined }
+      }),
+
+    archiveCard: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'completed') || {} })),
+    rejectCard: (id, env, how) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'rejected', how) || {} })),
+
+    finishSetupStep: (name, env) =>
+      mutate({ board: true }, env, () => {
+        tickSetupStep(name)
+        return {}
+      }),
+
+    // ---- the delivery lifecycle ---------------------------------------------
+
+    // Ending a delivery is mostly the delivery record's own work; the one board write in it
+    // is handing the card back, and that goes through `setStatus` like every other. So the
+    // revision is checked here and the board's lock is left to the operation that needs it,
+    // rather than held across the git and record work in between.
+    async cancelDelivery(deliveryId: string, env: OpEnvelope) {
+      const no = checkWrite({ board: true }, env, boardRevision())
+      if (no) return no
+      const res = await cancelDelivery(deliveryId)
+      if (!res.ok) return opRefused(new Error(res.error || 'the delivery could not be cancelled'))
+      return opOk(boardRevision(), { deliveryId: res.deliveryId })
+    },
+
+    // Carrying one on is the same shape as ending one: the delivery record does the work,
+    // and the single board write in it — the card's stage — goes through `setStatus`.
+    async resumeDelivery(deliveryId: string, env: OpEnvelope) {
+      const no = checkWrite({ board: true }, env, boardRevision())
+      if (no) return no
+      const res = await resumeDelivery(deliveryId)
+      if (!res.ok) return opRefused(new Error(res.error || 'the delivery could not be carried on'))
+      return opOk(boardRevision(), { deliveryId: res.deliveryId, landed: res.landed, carryOn: res.carryOn })
+    },
+
+    async discardDelivery(deliveryId: string, env: OpEnvelope) {
+      const no = checkWrite({ board: true }, env, boardRevision())
+      if (no) return no
+      const res = await discardDelivery(deliveryId)
+      if (!res.ok) return opRefused(new Error(res.error || 'the delivery could not be discarded'))
+      return opOk(boardRevision(), { deliveryId: res.deliveryId })
+    },
+
+    // ---- the named `akb raw` moves ----------------------------------------
+
+    async runMove(move: string, input: MoveInput, env: OpEnvelope) {
+      const run = MOVES[move]
+      if (!run) return Promise.resolve(opRefused(new Error(`unknown command "${move}".`)))
+      // A move keeps its prose: it IS the move's answer, and the dispatcher above owns
+      // where it lands — a terminal, or the `output` field of a --json answer.
+      const target = moveTarget(move, input.args)
+      try {
+        return await withBoardLock(() => {
+          const no = checkWrite(target, env, revisionAt(target))
+          if (no) return no
+          const data = run(input)
+          // The plan id is reserved under the lock; its host acknowledgement waits outside it.
+          if (data instanceof Promise) return data.then(data => opOk(revisionAt(target), { data }))
+          return opOk(revisionAt(target), { data: data || {} })
+        })
+      } catch (e) {
+        return Promise.reject(e)
+      }
+    },
+
+    readMove(move: string, input: MoveInput): Promise<MoveOutput> {
+      const run = MOVES[move]
+      if (!run) return Promise.reject(new Error(`unknown command "${move}".`))
+      try {
+        return Promise.resolve(run(input) || {})
+      } catch (e) {
+        return Promise.reject(e)
+      }
+    },
+  }
+
+  return provider
+}

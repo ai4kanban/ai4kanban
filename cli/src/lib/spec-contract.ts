@@ -1,0 +1,348 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { enclosingGroupRoot, idPrefix, isLegacyRecurring, walkMd } from './cards'
+import { parseFrontmatter } from './frontmatter'
+import { ASSETS, rel, TODO } from './paths'
+import { COMPARE_IMAGES, COMPARE_VIDEOS, compareAttrs, compareKind, shotsProblem, storyboardProblem, type Shot } from './compare'
+import { assetName, storyboardMarkers, storyboardTag } from './storyboard'
+import { dependencyCycle, LEVELS, STATUSES } from './validate'
+
+export interface ContractError {
+  file: string
+  line: number
+  rule: string
+  message: string
+}
+
+export interface CardSource {
+  id: number
+  text: string
+}
+export type SpecSnapshot = Map<string, CardSource>
+
+/** Read raw files so malformed frontmatter cannot make a changed card disappear. */
+export function snapshotSpecs(): SpecSnapshot {
+  const out: SpecSnapshot = new Map()
+  if (!fs.existsSync(TODO)) return out
+  for (const file of walkMd(TODO)) {
+    if (isLegacyRecurring(path.relative(TODO, file))) continue
+    const id = idPrefix(path.basename(file) === 'root.md' ? path.basename(path.dirname(file)) : path.basename(file))
+    if (id !== null) out.set(file, { id, text: fs.readFileSync(file, 'utf8') })
+  }
+  return out
+}
+
+// The ids of every group `file` sits inside, nearest first.
+function enclosingGroups(file: string): number[] {
+  const ids: number[] = []
+  for (let root = enclosingGroupRoot(file); root; root = enclosingGroupRoot(root)) {
+    const id = idPrefix(path.basename(path.dirname(root)))
+    if (id !== null) ids.push(id)
+  }
+  return ids
+}
+
+/** Format, plus a dependency cycle through the card's own group; other semantic planning decisions remain
+ *  the agent's responsibility. With `id`, a storyboard the card points at must be a file in
+ *  its asset folder. */
+export function validateSpec(file: string, text: string, id?: number): ContractError[] {
+  const errors: ContractError[] = []
+  const add = (line: number, rule: string, message: string) => errors.push({ file: rel(file), line, rule, message })
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---')
+  if (lines[0]?.trim() !== '---' || end < 0) {
+    add(1, 'frontmatter', 'Expected a leading --- frontmatter block and its closing ---. Restore both delimiters.')
+    return errors
+  }
+  const fields = new Map<string, { line: number; value: string }>()
+  for (let i = 1; i < end; i++) {
+    const line = lines[i]!
+    if (!line.trim() || /^\s|^#/.test(line)) continue
+    const match = line.match(/^([a-z_]+):\s*(.*)$/)
+    if (!match) { add(i + 1, 'frontmatter', `Invalid field ${JSON.stringify(line)}. Use key: value; indent list entries.`); continue }
+    const key = match[1]!
+    if (fields.has(key)) add(i + 1, 'duplicate-field', `Field ${key} is repeated. Keep one ${key}: entry.`)
+    fields.set(key, { line: i + 1, value: match[2]! })
+  }
+  for (const key of ['title', 'priority', 'roi', 'status', 'blocked_by', 'related', 'modules', 'questions']) {
+    if (!fields.has(key)) add(1, 'missing-field', `Missing ${key}: in frontmatter. Restore it with the board's metadata commands.`)
+  }
+  const { meta } = parseFrontmatter(text)
+  if (typeof meta?.title !== 'string' || !meta.title.trim()) add(fields.get('title')?.line ?? 1, 'title', 'The title is empty. Set a non-empty title with akb raw update.')
+  for (const key of ['priority', 'roi', 'status'] as const) {
+    const allowed = key === 'status' ? STATUSES : LEVELS
+    const value = fields.get(key)
+    if (value && !allowed.includes(value.value.replace(/^['"]|['"]$/g, ''))) {
+      add(value.line, key, `Invalid ${key} ${JSON.stringify(value.value)}. Expected ${allowed.join(', ')}; use akb raw update.`)
+    }
+  }
+  const approved = fields.get('preview_approved')
+  if (approved && approved.value !== 'true') {
+    add(approved.line, 'preview_approved', `Invalid preview_approved ${JSON.stringify(approved.value)}. Only the board writes it, as true; remove the line.`)
+  }
+  const rejected = fields.get('rejected')
+  if (rejected && rejected.value !== 'true') {
+    add(rejected.line, 'rejected', `Invalid rejected ${JSON.stringify(rejected.value)}. Only akb raw reject writes it, as true; remove the line.`)
+  }
+  for (const key of ['rejected_reason', 'rejected_at', 'rejected_by']) {
+    const field = fields.get(key)
+    if (field && !rejected) add(field.line, key, `${key} is only kept on a rejected card. Only akb raw reject writes it; remove the line.`)
+  }
+  for (const key of ['blocked_by', 'related', 'modules', 'questions']) {
+    const field = fields.get(key)
+    if (!field) continue
+    if (field.value !== '' && !/^\[.*\]$/.test(field.value)) {
+      add(field.line, 'list', `${key} must be a list: use [] when empty, [values], or indented list entries.`)
+    }
+    if (key === 'blocked_by' || key === 'related') {
+      const values = field.value.replace(/^\[|\]$/g, '').split(',').map((s) => s.trim()).filter(Boolean)
+      if (values.some((s) => !/^[1-9]\d*$/.test(s))) add(field.line, 'task-ids', `${key} must contain positive numeric task IDs, such as [12, 34].`)
+      if (key === 'blocked_by') {
+        const groups = enclosingGroups(file)
+        for (const g of groups.filter((g) => values.includes(String(g)))) {
+          add(field.line, 'dependency-cycle', `blocked_by names #${g}, a group this card is in; the group waits for this card, so neither can finish. Remove it with akb raw update.`)
+        }
+        // Moving a card into a group can close a cycle through other cards that no update checked.
+        if (id !== undefined && groups.length) {
+          for (const dep of values.filter((v) => /^\d+$/.test(v) && !groups.includes(Number(v))).map(Number)) {
+            const cycle = dependencyCycle(id, dep)
+            if (cycle) add(field.line, 'dependency-cycle', `blocked_by #${dep} makes a cycle: ${cycle.map((n) => `#${n}`).join(' → ')}. Drop one link with akb raw update <id> --blocked-by.`)
+          }
+        }
+      }
+    }
+  }
+
+  const headings: { title: string; line: number }[] = []
+  const markers: number[] = []
+  let fence: { char: string; length: number; line: number } | null = null
+  let comment = false
+  const visible: string[] = []
+  for (let i = end + 1; i < lines.length; i++) {
+    const line = lines[i]!
+    visible[i] = ''
+    const delimiter = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+    if (fence) {
+      if (delimiter && delimiter[1]![0] === fence.char && delimiter[1]!.length >= fence.length && !delimiter[2]!.trim()) fence = null
+      continue
+    }
+    if (comment) { if (line.includes('-->')) comment = false; continue }
+    if (delimiter) { fence = { char: delimiter[1]![0]!, length: delimiter[1]!.length, line: i + 1 }; continue }
+    if (/^\s*<!--\s*agent\s*-->\s*$/.test(line)) { markers.push(i + 1); continue }
+    if (line.trim().startsWith('<!--')) { comment = !line.includes('-->'); continue }
+    visible[i] = line
+    const heading = line.match(/^ {0,3}(#{1,2})\s+(.+?)\s*#*\s*$/)
+    if (heading?.[1] === '#') add(i + 1, 'heading', 'Do not repeat the card title as an H1. Remove this heading or use ### inside your section.')
+    if (heading?.[1] === '##') headings.push({ title: heading[2]!, line: i + 1 })
+    if (/^\s*<(?:Asset|Mockup)\b/.test(line)) {
+      if (!/^\s*<(?:Asset|Mockup)\b[^<>]*\/>\s*$/.test(line) || (lines[i - 1]?.trim() && !/^\s*<(?:Asset|Mockup)\b/.test(lines[i - 1]!)) || (lines[i + 1]?.trim() && !/^\s*<(?:Asset|Mockup)\b/.test(lines[i + 1]!))) {
+        add(i + 1, 'mockup-block', 'Put the self-closing <Asset ... /> tag on its own line, with blank lines separating it from prose.')
+      }
+      if (!/\bsrc="[^"]+"/.test(line) || !/\blabel="[^"]+"/.test(line)) add(i + 1, 'mockup-attributes', 'Add non-empty src="..." and label="..." attributes to the Asset tag.')
+      const device = line.match(/\bdevice="([^"]*)"/)?.[1]
+      if (device !== undefined && device !== 'mobile' && device !== 'desktop') add(i + 1, 'mockup-device', `device="${device}" is not a device. Use device="mobile" or device="desktop".`)
+      const src = line.match(/\bsrc="([^"]*)"/)?.[1] ?? ''
+      const variants = line.match(/\bvariants='([^']*)'/)?.[1]
+      const why = variants === undefined ? null : variantsProblem(variants, src, id)
+      if (why) add(i + 1, 'mockup-variants', why)
+      else if (id !== undefined && src.startsWith('.assets/') && !inside(ASSETS, src.slice('.assets/'.length))) {
+        add(i + 1, 'asset-src', `src="${src}" names no file. Write it as ${rel(ASSETS)}/${src.slice('.assets/'.length)}, or fix the path.`)
+      }
+    }
+    if (/^\s*<Storyboard\b/.test(line) && (storyboardTag(line) === null || lines[i - 1]?.trim() || lines[i + 1]?.trim())) {
+      add(i + 1, 'storyboard-block', 'Put one self-closing <Storyboard src=".assets/<card id>/storyboard.json" /> tag on its own line, with blank lines around it.')
+    }
+    if (/^\s*<Compare\b/.test(line)) {
+      const attrs = compareAttrs(line)
+      if (!attrs || lines[i - 1]?.trim() || lines[i + 1]?.trim()) add(i + 1, 'compare-block', 'Put one self-closing <Compare a="..." b="..." label="..." /> tag on its own line, with blank lines around it.')
+      else if (!attrs.a || !attrs.b || !attrs.label) add(i + 1, 'compare-attributes', 'Add non-empty a="...", b="..." and label="..." attributes to the Compare tag.')
+      else if (id !== undefined) {
+        const why = compareProblem(attrs, id)
+        if (why) add(i + 1, why.rule, why.message)
+      }
+    }
+  }
+  if (fence) add(fence.line, 'code-fence', `Unclosed code block. Close it with ${fence.char.repeat(fence.length)} on its own line.`)
+  if (comment) add(lines.length, 'comment', 'Unclosed HTML comment. Add --> so the rest of the card remains visible.')
+  const required = ['Worth noting', 'Scope', 'Todo', 'Decided by the agent']
+  const human = ['Worth noting', 'Worth noting after implementation']
+  const agent = ['Today', 'Scope', 'Scope out', 'Todo', 'Decided by the agent']
+  const allowed = [...human, ...agent, 'Source']
+  const seen = new Set<string>()
+  let lastOrder = -1
+  for (const heading of headings) {
+    const specialist = /^By `[a-z0-9]+(?:-[a-z0-9]+)*` (agent|skill)$/.test(heading.title)
+    if (seen.has(heading.title)) add(heading.line, 'duplicate-section', `Duplicate ## ${heading.title}. Merge the content into one section.`)
+    seen.add(heading.title)
+    if (!allowed.includes(heading.title) && !specialist) add(heading.line, 'section-name', `Unknown ## ${heading.title}. Use ${allowed.map((s) => `## ${s}`).join(', ')}, or ## By \`<agent-name>\` agent. Use ### for a subheading.`)
+    if (markers.length === 1) {
+      const before = heading.line < markers[0]!
+      if ((human.includes(heading.title) && !before) || (agent.includes(heading.title) && before)) add(heading.line, 'section-half', `Move ## ${heading.title} ${human.includes(heading.title) ? 'above' : 'below'} <!-- agent -->.`)
+      const order = human.includes(heading.title) ? human.indexOf(heading.title) : specialist ? (before ? 2 : 8) : agent.includes(heading.title) ? 3 + agent.indexOf(heading.title) : -1
+      // Specialist sections belong between Todo and Decided by the agent. Source sits after the
+      // Worth noting sections; cards written before #1286 keep it last, below the boundary.
+      const rank = heading.title === 'Decided by the agent' ? 9 : heading.title === 'Source' ? (before ? 1.5 : 10) : order
+      if (rank >= 0 && rank < lastOrder) add(heading.line, 'section-order', `## ${heading.title} is out of order. Follow the section order in akb guide writing.`)
+      lastOrder = Math.max(lastOrder, rank)
+    }
+  }
+  for (const title of required) if (!seen.has(title)) add(end + 2, 'missing-section', `Missing ## ${title}. Restore that section; keep its title in English.`)
+  if (markers.length !== 1) add(markers[1] ?? end + 2, 'boundary', `Found ${markers.length} <!-- agent --> boundaries; expected exactly one, between the human and agent sections.`)
+  const todo = headings.find((h) => h.title === 'Todo')
+  if (todo) {
+    const next = headings.find((h) => h.line > todo.line)?.line ?? lines.length + 1
+    if (!visible.slice(todo.line, next - 1).some((line) => /^\s*[-*+]\s*\[[ xX]?\]/.test(line))) add(todo.line, 'todos', '## Todo needs at least one checkbox step, for example - [ ] Implement the requested behavior.')
+  }
+  if (id !== undefined) errors.push(...validateStoryboards(file, id, text))
+  return errors
+}
+
+/** A file inside `dir`, symlinks resolved — `null` when absent or when it leads out. */
+function inside(dir: string, name: string): string | null {
+  try {
+    const root = fs.realpathSync(dir)
+    const real = fs.realpathSync(path.join(dir, name))
+    return real.startsWith(root + path.sep) && fs.statSync(real).isFile() ? real : null
+  } catch {
+    return null
+  }
+}
+
+/** What is wrong with an Asset tag's `variants` (#1663), or null. With `id`, every file must be
+ *  in that card's asset folder. */
+function variantsProblem(raw: string, src: string, id?: number): string | null {
+  const shape = `Write variants='{"<label>": ".assets/<card id>/<file>", ...}' with at least two versions.`
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return `variants is not valid JSON. ${shape}`
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return `variants is not a JSON object. ${shape}`
+  const files = Object.values(parsed)
+  if (files.length < 2 || !files.every((f) => typeof f === 'string' && f)) return `variants needs at least two labels, each naming a file. ${shape}`
+  if (!files.includes(src)) return `src="${src}" is not one of the variants. Set src to the version shown first.`
+  if (id === undefined) return null
+  const dir = path.join(ASSETS, String(id))
+  for (const f of files as string[]) {
+    const parts = f.split('/')
+    if (parts.length !== 3 || parts[0] !== '.assets' || parts[1] !== String(id) || !inside(dir, parts[2]!)) {
+      return `Variant ${f} names no file in this card's asset folder .assets/${id}/. Write the file there or fix the path.`
+    }
+  }
+  return null
+}
+
+/** What is wrong with a Compare tag's files (#1740), or null: `a` and `b` are both images or both
+ *  videos in this card's asset folder, and `shots`, on videos only, is a valid shots list there.
+ *  `b` may be a storyboard of video `a` (#1803); `shots` is then required and covers every shot
+ *  it has. `shots` may itself be a storyboard. */
+function compareProblem(attrs: Record<string, string>, id: number): { rule: string; message: string } | null {
+  const dir = path.join(ASSETS, String(id))
+  const src = (message: string) => ({ rule: 'compare-src', message })
+  const shots = (message: string) => ({ rule: 'compare-shots', message })
+  for (const side of ['a', 'b'] as const) {
+    const named = assetName(attrs[side]!, id, [...COMPARE_IMAGES, ...COMPARE_VIDEOS, ...(side === 'b' ? ['json'] : [])])
+    if (!('name' in named)) return src(`Compare ${side} is ${named.actual}; expected ${named.expected}.`)
+    if (!inside(dir, named.name)) return src(`Compare ${side} ${attrs[side]} names no file in this card's asset folder. Write the file there or fix the path.`)
+  }
+  const kind = compareKind(attrs.a!)
+  const script = compareKind(attrs.b!) === 'storyboard'
+  if (script && kind !== 'video') return src('Compare b may be a storyboard only when a is a video.')
+  if (!script && kind !== compareKind(attrs.b!)) return src('Compare a and b must both be images or both be videos.')
+  if (attrs.shots === undefined) return script ? shots('shots is required when b is a storyboard. Add shots="..." naming a storyboard or shots list of video a.') : null
+  if (kind !== 'video') return shots('shots is for videos only. Remove it from this Compare tag.')
+  const read = (at: string): { data: unknown } | { message: string } => {
+    const named = assetName(at, id, ['json'])
+    if (!('name' in named)) return { message: `Compare shots is ${named.actual}; expected ${named.expected}.` }
+    const file = inside(dir, named.name)
+    if (!file) return { message: `Compare shots ${at} names no file in this card's asset folder. Write the JSON there or fix the path.` }
+    try {
+      return { data: JSON.parse(fs.readFileSync(file, 'utf8')) }
+    } catch {
+      return { message: `${at} is not valid JSON.` }
+    }
+  }
+  const list = read(attrs.shots)
+  if ('message' in list) return shots(list.message)
+  const why = Array.isArray(list.data) ? shotsProblem(list.data) : storyboardProblem(list.data)
+  if (why) return shots(`${attrs.shots}: ${why}`)
+  if (!script) return null
+  const b = read(attrs.b!)
+  if ('message' in b) return src(b.message)
+  const bad = storyboardProblem(b.data)
+  if (bad) return src(`${attrs.b}: ${bad}`)
+  const known = new Set((Array.isArray(list.data) ? list.data : (list.data as { shots: Shot[] }).shots).map((s: Shot) => s.id))
+  const extra = (b.data as { shots: Shot[] }).shots.find((s) => !known.has(s.id))
+  return extra ? shots(`${attrs.b} has shot ${extra.id}, which ${attrs.shots} lacks. Add ${extra.id} to ${attrs.shots}, or drop it from ${attrs.b}.`) : null
+}
+
+/** Every storyboard the card points at is a JSON file in its asset folder. Its contents are the
+ *  owner agent's to check, with that agent's `scripts/validate-storyboard.mjs` (#992). */
+export function validateStoryboards(file: string, id: number, text: string): ContractError[] {
+  const errors: ContractError[] = []
+  const dir = path.join(ASSETS, String(id))
+  for (const marker of storyboardMarkers(text)) {
+    const named = assetName(marker.src, id, ['json'])
+    const add = (message: string) => errors.push({ file: rel(file), line: marker.line, rule: 'storyboard-src', message })
+    if (!('name' in named)) add(`Storyboard src is ${named.actual}; expected ${named.expected}.`)
+    else if (!inside(dir, named.name)) add(`Storyboard src ${marker.src} names no file in this card's asset folder. Write the JSON there or fix the path.`)
+  }
+  return errors
+}
+
+export function formatContractErrors(errors: readonly ContractError[]): string {
+  return ['Spec format validation failed. Fix these errors without changing the planned behavior:', ...errors.map((e) => `${e.file}:${e.line} [${e.rule}] ${e.message}`)].join('\n')
+}
+
+/** An agent whose output is the user's to review (#868): on the cards its own run owns, its
+ *  section, when it writes one, sits above the boundary. */
+export interface HumanSection {
+  agent: string
+  cards: ReadonlySet<number>
+}
+
+/** Ignore unrelated cards held by another run; validate this run's target and changed files. */
+export function validateRunSpecs(
+  before: SpecSnapshot,
+  now: SpecSnapshot,
+  target: number | null,
+  heldElsewhere: ReadonlySet<number> = new Set(),
+  required: ReadonlySet<number> = new Set(),
+  human?: HumanSection,
+): ContractError[] {
+  return [...now].flatMap(([file, card]) => {
+    const own = human?.cards.has(card.id) ? validateHumanSection(file, card.text, human) : []
+    if (card.id !== target && !required.has(card.id) && (heldElsewhere.has(card.id) || before.get(file)?.text === card.text)) return own
+    return [...validateSpec(file, card.text, card.id), ...own]
+  })
+}
+
+function validateHumanSection(file: string, text: string, { agent }: HumanSection): ContractError[] {
+  const title = `By \`${agent}\` agent`
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---')
+  if (lines[0]?.trim() !== '---' || end < 0) return []
+  const markers: number[] = []
+  let heading = 0
+  let fence: { char: string; length: number } | null = null
+  let comment = false
+  for (let i = end + 1; i < lines.length; i++) {
+    const line = lines[i]!
+    const delimiter = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+    if (fence) {
+      if (delimiter && delimiter[1]![0] === fence.char && delimiter[1]!.length >= fence.length && !delimiter[2]!.trim()) fence = null
+      continue
+    }
+    if (comment) { if (line.includes('-->')) comment = false; continue }
+    if (delimiter) { fence = { char: delimiter[1]![0]!, length: delimiter[1]!.length }; continue }
+    if (/^\s*<!--\s*agent\s*-->\s*$/.test(line)) { markers.push(i + 1); continue }
+    if (line.trim().startsWith('<!--')) { comment = !line.includes('-->'); continue }
+    if (!heading && line.match(/^ {0,3}##\s+(.+?)\s*#*\s*$/)?.[1] === title) heading = i + 1
+  }
+  if (markers.length !== 1 || !heading) return []
+  const where = { file: rel(file), rule: 'human-section' }
+  if (heading > markers[0]!) return [{ ...where, line: heading, message: `Move ## ${title} above <!-- agent -->: the \`${agent}\` agent's output is for the user to review.` }]
+  return []
+}

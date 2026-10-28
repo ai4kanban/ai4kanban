@@ -1,0 +1,53 @@
+{
+  "name": "wildcrane-runner",
+  "version": "0.6.0",
+  "description": "WildCrane's Local Runner \u2014 connects this computer to WildCrane and runs its jobs on your local Claude Code, Codex, OpenCode or Cursor.",
+  "license": "FSL-1.1-ALv2",
+  "homepage": "https://wildcrane.ai/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai4kanban/ai4kanban.git",
+    "directory": "runner"
+  },
+  "type": "module",
+  "bin": {
+    "wildcrane-runner": "bin/wildcrane-runner.mjs"
+  },
+  "files": [
+    "bin/",
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepare": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck",
+    "test": "node scripts/test.mjs",
+    "release": "node scripts/publish.mjs"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "esbuild": "^0.28.2",
+    "node-diff3": "^3.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.7.0",
+    "sucrase": "^3.35.0",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.9.3",
+    "zod": "^4.6.7"
+  }
+}

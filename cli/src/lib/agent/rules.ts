@@ -1,0 +1,248 @@
+// One rule per agent, in the user's own words (#306, #420).
+//
+// Every board wants something slightly different from a flow — run these tests before
+// landing, install dependencies this way, ask a second model. The flows themselves ship
+// inside the command, so a convention a project depends on had nowhere to live. A rule is
+// plain words appended to the END of a run's built-in prompt, after everything else the
+// board writes into it, so nothing of the board's follows the user's words. It is not a
+// command the board runs: what it actually causes is up to the agent reading it.
+//
+// The rule is the AGENT's, not the flow's. Every flow the board starts is run by a role
+// (./roles.ts) and every specialist is asked for by name, so `docs/kanban/rules/builder.md`
+// reaches `implement`, `conflict` and `run` alike — one sentence, written once, and the
+// product can say who is being trained. Boards written before this keyed their rules by
+// flow; `migrateFlowRules` below folds those files into their role's, once.
+//
+// The files are versioned in git so a team shares them, and they are inside docs/kanban/,
+// which every delivery worktree leaves out — which is why a run is given the WORDS and
+// never the path.
+//
+// Nothing is created up front: a missing or empty file means the run goes unchanged.
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { rel, RULES } from '../paths'
+import { canonicalSpecAgent, FOLDED_SPEC_AGENTS, specAgentNames } from '../spec-agent-names'
+import type { WriteResult } from '../view/types'
+import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
+import { agentNames, hiddenRole, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
+import { workflowForRun } from './runner'
+import { DEFAULT_WORKFLOW } from './workflows'
+import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
+import type { AgentRequest } from './types'
+
+const rulePath = (agent: string): string => path.join(RULES, `${agent}.md`)
+
+// One file, as it stands. No migration behind it: the migration itself reads this way.
+function ruleFile(agent: string): string {
+  if (!agent || hiddenRole(agent)) return ''
+  try {
+    return fs.readFileSync(rulePath(agent), 'utf8').trim()
+  } catch {
+    return ''
+  }
+}
+
+/** One agent's rule as it stands on disk — empty when there is no file, it can't be read,
+ *  or it holds nothing but whitespace. `agent` is a role or a specialist's name. */
+export function readRule(agent: string): string {
+  migrateFlowRules()
+  return ruleFile(agent)
+}
+
+/** Save one agent's rule. An empty rule deletes the file rather than leaving a blank one
+ *  behind: an agent with no rule and an agent with an empty rule are the same agent. */
+export function setAgentRule(agent: string, text: string): WriteResult {
+  migrateFlowRules()
+  if (!agentNames().includes(agent)) return { ok: false, error: notOnTheRoster(agent) }
+  const rule = String(text ?? '').trim()
+  try {
+    if (!rule) {
+      fs.rmSync(rulePath(agent), { force: true })
+      return { ok: true }
+    }
+    fs.mkdirSync(RULES, { recursive: true })
+    fs.writeFileSync(rulePath(agent), `${rule}\n`)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+/** Why a name is not one this board can be given a rule for, and what it does answer to.
+ *  Not `lib/agents`' `notAnAgent`, which answers for the spec hook alone. */
+export const notOnTheRoster = (name: string): string =>
+  `"${name}" is not an agent on this board. It has: ${agentNames().join(', ')}.`
+
+/** The rules a delivery freezes when it starts, keyed by the AGENT that carries each: the
+ *  agents a delivery's flows are run by, read once, the way it reads the card it was
+ *  approved to build. Editing a rule afterwards changes the next delivery, never one in
+ *  flight. */
+export function deliveryRules(workflow?: string): Record<string, string> {
+  migrateFlowRules()
+  const rules: Record<string, string> = {}
+  for (const flow of FLOWS) {
+    if (flow.action === 'refine' || !DELIVERY_FLOWS.has(flow.action)) continue
+    const role = roleForFlow(flow.command, workflow)
+    if (!role || rules[role.name] !== undefined) continue
+    const rule = ruleFile(role.name)
+    if (rule) rules[role.name] = rule
+  }
+  return rules
+}
+
+// Which flow a run belongs to. A refinement pass is part of the composite `refine` flow, so
+// every pass in it reads the same rule.
+const flowForRequest = (req: AgentRequest): Flow | undefined =>
+  req.refineRound !== undefined && REFINE_ACTIONS.has(req.action)
+    ? flowByCommand('refine')
+    : flowByAction(req.action)
+
+// Whose rule a run reads: the specialist it IS on a `spec` or `write` run, and the role that
+// runs its flow otherwise. `flow` is what a delivery frozen before rules were keyed by agent
+// holds.
+interface RuleOwner {
+  name: string
+  role?: AgentRole
+  flow?: string
+}
+
+function ownerOf(req: AgentRequest): RuleOwner | null {
+  if (SPECIALIST_ACTIONS.has(req.action) || req.action === 'sub') {
+    const name = canonicalSpecAgent(req.specAgent ?? '')
+    return name ? { name } : null
+  }
+  // A reflection is the proposer's (#534) and is no flow a person types under `akb card`,
+  // so it names itself here.
+  const flow = req.action === 'reflect' ? req.action : flowForRequest(req)?.command
+  const role = roleForFlow(flow ?? '', workflowForRun(req))
+  return role ? { name: role.name, role, flow } : null
+}
+
+/** The rule one run is given: the delivery's frozen copy when the run is part of one, and
+ *  the file otherwise.
+ *
+ *  `frozen` is the caller's read of the delivery in flight — the caller's, because a
+ *  delivery reads its rules from here and would otherwise read them through itself. A
+ *  build that OPENS a delivery has none: the delivery does not exist yet, and the copy it
+ *  is about to freeze is this same read. A run whose action has no agent has no rule. */
+export function ruleFor(req: AgentRequest, frozen?: Record<string, string>): string {
+  const owner = ownerOf(req)
+  if (!owner) return ''
+  // A delivery started before rules were keyed by agent froze them by flow (#420) — read
+  // under both, so a build in flight keeps the rules it was approved with.
+  if (frozen && DELIVERY_FLOWS.has(req.action)) return frozen[owner.name] ?? frozen[owner.flow ?? ''] ?? ''
+  // A reviewer printed inside a delivery reads what the delivery froze, under any name it had.
+  if (frozen && SPECIALIST_ACTIONS.has(req.action)) {
+    return specAgentNames(owner.name).map((name) => frozen[name]).find((rule) => rule !== undefined) ?? ''
+  }
+  return readRule(owner.name)
+}
+
+/** Whose rule a run reads, as a caption says it out loud: the agent's name, and whether the
+ *  rule carries across every flow that agent runs — it does for a role, and a specialist has
+ *  no flows. The ask and a printed flow both name it, so they name it the same way. */
+export function ruleOwner(req: AgentRequest): { name: string; role: boolean } | null {
+  const owner = ownerOf(req)
+  return owner ? { name: owner.name, role: Boolean(owner.role) } : null
+}
+
+/** How a caption names the agent whose rule follows — the clause both say, without the
+ *  "this board's" each one leads with in its own case. */
+export const ruleOwnerSays = (owner: { name: string; role: boolean }): string =>
+  `\`${owner.name}\` agent carries one rule of its own${owner.role ? ', on every flow it runs' : ''}`
+
+/** The rule as a run is given it: the user's words, and one line of the board's before them
+ *  saying whose they are. Empty when the agent has no rule. */
+export function ruleBlock(req: AgentRequest, frozen?: Record<string, string>): string {
+  return said(ruleOwner(req), ruleFor(req, frozen))
+}
+
+const said = (owner: { name: string; role: boolean } | null, rule: string): string =>
+  owner && rule
+    ? [
+        `This board's ${ruleOwnerSays(owner)}. It is the user's, it applies here, and nothing of the board's follows it:`,
+        rule,
+      ].join('\n\n')
+    : ''
+
+// ---- the one-time move onto the agents (#420) -------------------------------
+//
+// A board written before this keyed its rules by flow: `implement.md`, `conflict.md`,
+// `run.md`. They fold into their role's file in flow order and are deleted, once, on the
+// first read after the upgrade — reported in the run log rather than done in silence, since
+// what the user typed is now appended to two flows more than it was.
+//
+// Only files named after a flow the role runs are folded, so nothing else in the folder is
+// touched.
+
+/** Fold any per-flow rule files into their role's. One line per role it rewrote, empty when
+ *  there was nothing to move — which is every call after the first. Every read and write of
+ *  a rule comes through here, so a specialist renamed between releases takes its file with
+ *  it on the same pass. */
+export function migrateFlowRules(): string[] {
+  adoptRenamedRules()
+  let here: Set<string>
+  try {
+    here = new Set(fs.readdirSync(RULES))
+  } catch {
+    return []
+  }
+  const notes: string[] = []
+  // The DEFAULT workflow's flows alone (#715). This is a one-time fold of rules a board
+  // wrote before #420, when it had one path through a card and the coding agents ran it —
+  // so `implement.md` belongs to the builder, and never also to whoever leads `execute` in
+  // a workflow that did not exist when the file was written.
+  const owners = roles().map((role) => ({ name: role.name, flows: roleFlowsInOrder(role.name, DEFAULT_WORKFLOW) }))
+  for (const owner of owners) {
+    const from = owner.flows.filter((flow) => flow !== owner.name && here.has(`${flow}.md`))
+    if (!from.length) continue
+    const parts = [ruleFile(owner.name), ...from.map(ruleFile)].filter(Boolean)
+    try {
+      if (parts.length) fs.writeFileSync(rulePath(owner.name), `${parts.join('\n\n')}\n`)
+      for (const flow of from) fs.rmSync(rulePath(flow), { force: true })
+    } catch (err) {
+      notes.push(`could not move the ${from.join(', ')} rule(s) onto \`${owner.name}\`: ${String(err)}`)
+      continue
+    }
+    notes.push(
+      `a rule is one per agent now: ${from.map((f) => `${f}.md`).join(', ')} ` +
+        `${from.length === 1 ? 'is' : 'are'} ${rel(rulePath(owner.name))}, which every run of the ` +
+        `\`${owner.name}\` agent reads.`,
+    )
+  }
+  return notes
+}
+
+// A rule is saved under the agent's name, so an agent renamed between releases would leave
+// its file behind. Move it onto the new name, once, and only when nothing is saved there
+// yet — the file under the current name is the one the user last wrote. A folded agent's rule
+// is appended to the one already there instead.
+const RENAMED_ROLES: Record<string, string> = { 'product-writer': 'project-writer' }
+
+function adoptRenamedRules(): void {
+  let here: string[]
+  try {
+    here = fs.readdirSync(RULES)
+  } catch {
+    return
+  }
+  for (const file of here) {
+    if (!file.endsWith('.md')) continue
+    const was = file.slice(0, -'.md'.length)
+    const now = RENAMED_ROLES[was] ?? canonicalSpecAgent(was)
+    if (now === was) continue
+    try {
+      if (!fs.existsSync(rulePath(now))) fs.renameSync(rulePath(was), rulePath(now))
+      else if (FOLDED_SPEC_AGENTS.has(was)) {
+        const kept = ruleFile(now)
+        const carried = ruleFile(was)
+        if (carried && !kept.includes(carried)) fs.writeFileSync(rulePath(now), `${[kept, carried].filter(Boolean).join('\n\n')}\n`)
+        fs.rmSync(rulePath(was), { force: true })
+      }
+    } catch {
+      // Never fatal: the read goes on with whatever is under the current name.
+    }
+  }
+}

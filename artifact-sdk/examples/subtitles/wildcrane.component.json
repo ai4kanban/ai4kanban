@@ -1,0 +1,20 @@
+{
+  "name": "subtitles",
+  "version": "1.0.0",
+  "title": { "en": "Subtitle editor", "zh": "字幕编辑器" },
+  "types": ["@your-handle/subtitles"],
+  "schema": {
+    "type": "array",
+    "maxItems": 2000,
+    "items": {
+      "type": "object",
+      "required": ["start", "end", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "start": { "type": "number", "minimum": 0 },
+        "end": { "type": "number", "minimum": 0 },
+        "text": { "type": "string", "maxLength": 200 }
+      }
+    }
+  }
+}

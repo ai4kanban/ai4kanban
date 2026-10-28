@@ -1,0 +1,4 @@
+# The board's API keys — never commit them.
+.env
+# The model each agent runs — this computer's answer, not the repo's.
+.local.json

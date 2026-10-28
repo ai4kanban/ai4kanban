@@ -1,0 +1,67 @@
+// ---- a direct edit to one card ---------------------------------------------
+//
+// The fields a person changes from a screen rather than by asking an agent: the title, the
+// body, priority, roi, and the action a blocked card is waiting to run. Everything else about
+// a card — its track, its links, its questions — stays with the agents and the commands.
+//
+// It is one write, in the frontmatter serializer every other writer uses, so a card edited
+// from a board and a card edited by `update` come out byte-identical.
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { die, rel } from '../paths'
+import { locate } from '../cards'
+import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
+import { cardCreation } from '../agent/store'
+import { normalizeSchedule, SCHEDULED_ACTIONS } from '../schedule'
+import { findCard } from './read'
+import { canRefine, creationRefusal, scheduleRefusal } from './rules'
+import type { CardSchedule } from './types'
+
+/**
+ * Put a scheduled action on card `id`, or take one off with `null`. Answers with the
+ * schedule that was there before, so a caller can say which one it replaced.
+ *
+ * A card holds one at a time: writing a second is what replaces the first, which is why
+ * there is no separate "replace" move. Putting one ON is refused only when the action
+ * wouldn't move the card (`scheduleRefusal`); taking one OFF is always allowed — a mark the
+ * user wants gone must never be stuck on the card.
+ *
+ * Only the frontmatter is rewritten; the body is put back exactly as it was read.
+ */
+export function setCardSchedule(id: number, schedule: CardSchedule | null): CardSchedule | null {
+  if (!Number.isInteger(id)) die('a card is scheduled by its number', 'bad-id')
+  const wanted = normalizeSchedule(schedule)
+  if (schedule && !wanted) die(`a schedule names the action to run: ${SCHEDULED_ACTIONS.join(', ')}`, 'bad-schedule')
+  if (wanted?.action === 'revise' && !wanted.notes) die('a revise needs notes saying what to revise', 'bad-schedule')
+  const found = locate(id)
+  if (!found) die(`no open card #${id}`, { kind: 'card-not-found', id })
+  // A run queued onto a card still being created would fire on half a plan (#564). Both
+  // ways round: taking a mark OFF one is refused too, so a schedule survives its creator.
+  const creating = creationRefusal(id, cardCreation(id), 'schedule')
+  if (creating) die(creating, { kind: 'card-being-created', id })
+  // The board's own rule, read off the whole board — whether the action would still move
+  // this card depends on what else is open, not on this file alone.
+  if (wanted) {
+    const card = findCard(id)
+    if (!card) die(`no open card #${id}`, { kind: 'card-not-found', id })
+    const refusal = scheduleRefusal(card, wanted.action)
+    if (refusal) die(refusal, { kind: 'cannot-schedule', id })
+  }
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`, { kind: 'no-frontmatter', id })
+  const was = meta.schedule
+  meta.schedule = wanted
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  return was
+}
+
+/** Ensure a blocked card has a refinement follow-up without replacing an explicit schedule. */
+export function scheduleRefineOnBlock(id: number): boolean {
+  const card = findCard(id)
+  if (!card || card.openBlockers.length === 0 || card.schedule || !canRefine(card)) return false
+  setCardSchedule(id, { action: 'refine', notes: '' })
+  return true
+}

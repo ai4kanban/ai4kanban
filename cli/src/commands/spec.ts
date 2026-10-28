@@ -1,0 +1,131 @@
+// Print specialist instructions here, or request a separate run.
+
+import { insideRun, printFlow } from '../lib/agent/flow'
+import { agentHarness } from '../lib/agent/resolve'
+import { askForSpec, readRuns } from '../lib/agent/sessions'
+import { startRun } from '../lib/agent/start'
+import { titleOf } from '../lib/agent/sessions'
+import type { AgentRequest } from '../lib/agent/types'
+import { locate } from '../lib/cards'
+import { say } from '../lib/io'
+import { die, rel, BOARD_FLAG, TODO } from '../lib/paths'
+import {
+  findSpecAgent,
+  notAnAgent,
+  specAgentAssigned,
+  specAgentList,
+  specAgentNamesOnBoard,
+  specAgentProblems,
+  SPEC_ASSIGN_HOME,
+} from '../lib/agents'
+import { cardWorkflowId } from '../lib/agent/workflows'
+import type { MoveResult } from '../lib/types'
+import { followStarted, short } from './run'
+
+/** `akb spec`, as its command declares it (lib/cli/agent.ts). */
+export interface SpecOptions {
+  agent?: string
+  id?: number
+  note?: string[]
+  notes?: string
+  follow?: boolean
+  print?: boolean
+}
+
+export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveResult> {
+  // No agent named: say which ones there are. Every agent on the board, because this is
+  // typed with no card in hand — which of them a card may actually ask for is its own
+  // workflow's answer, and the ask below is where that is checked.
+  if (!opts.agent) {
+    say(specAgentList(program, !insideRun()))
+    return { agents: specAgentNamesOnBoard(), problems: specAgentProblems() }
+  }
+
+  const askedName = opts.agent.trim()
+  const agent = findSpecAgent(askedName)
+  if (!agent) die(notAnAgent(askedName), { kind: 'no-such-spec-agent', specAgent: askedName })
+  const name = agent.name
+
+  const id = opts.id
+  if (id === undefined) {
+    die(`say which card: ${program} spec ${name} <id> [note]`, { kind: 'needs-input' })
+  }
+  if (!locate(id)) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
+
+  // Off, or in another workflow (#749): refused, with what to do instead.
+  if (!specAgentAssigned(name, cardWorkflowId(id))) {
+    die(
+      `the \`${name}\` agent is off or no preview of the workflow of #${id}, so it isn't running. Plan that part of the card yourself and carry on. It joins when ${SPEC_ASSIGN_HOME}.`,
+      { kind: 'spec-agent-off', specAgent: name },
+    )
+  }
+
+  const notes = noteOf(opts.note ?? [], opts.notes)
+  const req: AgentRequest = { action: 'spec', id, title: titleOf(id), specAgent: name, notes }
+
+  const inside = insideRun()
+  if (inside && readRuns().find((r) => r.sessionId === inside)?.action === 'spec') {
+    die(
+      'a spec agent does not ask for another spec agent — answer the part you own and leave the rest of the card to the session planning it.',
+      { kind: 'spec-agent-recursion', specAgent: name },
+    )
+  }
+
+  // One agent on one card at a time. A flow that asks while that agent is still working the
+  // card would get its section written twice from the same plan, and the second run would
+  // land on whatever the first one left — so the ask is dropped, not queued behind it.
+  const live = readRuns().find(
+    (r) => r.status === 'running' && r.action === 'spec' && r.cardId === id && r.specAgent === name,
+  )
+  if (live) {
+    say(`${name} is already working on #${id} — run ${short(live.sessionId)}. One ask is enough; don't wait for it.`)
+    return { specAgent: name, cardId: id, queued: false, pending: true }
+  }
+
+  // An agent set to another runtime than the caller's runs on its own (#1598), and so does one
+  // that asks for a session of its own (#2152).
+  const caller = inside ? readRuns().find((r) => r.sessionId === inside)?.runtime : undefined
+  const ownRuntime = opts.print === true && !!caller && caller !== agentHarness(name).runtime
+  const ownSession = opts.print === true && agent.session === 'new'
+  const print = opts.print === true && !ownRuntime && !ownSession
+
+  if (print) return printFlow(req, program)
+
+  // Separate requests from a board run start after its parent finishes.
+  if (inside) {
+    const queued = askForSpec(inside, { specAgent: name, cardId: id, notes })
+    if (queued === 'no-run') {
+      die(`run ${short(inside)} is not on this board's list, so the ask has nowhere to be written down`, {
+        kind: 'no-such-run',
+        run: inside,
+      })
+    }
+    say(
+      queued === 'already'
+        ? `${name} was already asked for on #${id} — one ask is enough; it starts when this run ends.`
+        : `asked for the ${name} spec agent on #${id}. The board starts it when this run ends — don't wait for it, and don't write its section yourself.`,
+    )
+    return { specAgent: name, cardId: id, queued: queued === 'queued', pending: true }
+  }
+
+  const started = await startRun(req)
+  if ('error' in started) die(started.error, { kind: 'run-refused', action: 'spec' })
+  const { run, spawned } = started
+  if (!spawned) die(`couldn't start a process to run ${run.sessionId}`, { kind: 'spawn-failed' })
+  if (ownRuntime || ownSession) {
+    say(`${name} runs in ${ownRuntime ? 'its own runtime' : 'a session of its own'}, so it started as a separate run — don't write its section yourself.`)
+  }
+  say(`spec ${name} #${id} — run ${run.sessionId}`)
+  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${BOARD_FLAG}`)
+  say(`  stop it:   ${program} run stop ${short(run.sessionId)}${BOARD_FLAG}`)
+  if (opts.follow === true) return await followStarted(run.sessionId, program)
+  return { sessionId: run.sessionId, action: 'spec', specAgent: name, cardId: id }
+}
+
+// What the flow wants looked at. Everything after the id is the note, so it can be typed
+// without quoting; `--notes` is the same thing spelled for a caller building a command.
+function noteOf(words: string[], flag: string | undefined): string | undefined {
+  const typed = words.join(' ').trim()
+  if (typed) return typed
+  return flag?.trim() || undefined
+}

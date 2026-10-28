@@ -1,0 +1,225 @@
+// ---- init ------------------------------------------------------------------
+//
+// Scaffolding a fresh board, and re-running as the repair step for a board made by an
+// older version.
+
+import fs from 'node:fs'
+
+import { rel, writeRootIgnoreIfMissing, KANBAN, TODO, README, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, ARCHIVE, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
+import { CONFIG_TEMPLATE } from '../lib/config-template'
+import { say } from '../lib/io'
+import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
+import { walkMd } from '../lib/cards'
+import { PLANNER, agentMemoryDir, migrateMemory, renameProductFile, retireGoal, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
+import { TASKS_HEADING } from '../lib/readme'
+import { migratePruneMemoryCard, migrateRecurringCards, recurringMigrationLines } from '../lib/recurring'
+import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
+import type { MoveResult } from '../lib/types'
+
+// The blank module map. `init` seeds it, the module-map flow fills it in from the repo.
+// It ships empty on purpose: only someone who has read the repo can name its parts, and
+// a made-up line here would validate a card's --modules tag against a lie. An empty map
+// still parses — moduleNames() reads it as "no modules yet", so --modules is a hard error
+// naming what's known, which is the prompt to add the line.
+const MODULES_TEMPLATE = `# Modules
+
+What this project is made of — one line per module, each led by its **bolded name**, then
+what it is and the paths it covers. A module is a part of the product that grows on its
+own, judged by meaning, not by folder.
+
+If a line here disagrees with the repo you just read, fix the line.
+
+_(not filled in yet — build the map from the repo before tagging a card.)_
+`
+
+function boardReadme(): string {
+  return `# Board
+
+Open tasks for the kanban board. One card per file. Ids are global and never reused —
+the number at the front of a filename is the task id.
+
+## ${TASKS_HEADING}
+
+_(none)_
+`
+}
+
+// Seed the per-project config at docs/kanban/config.md from the blank template this
+// command carries. The config lives WITH the board (not in the skill folder) so a
+// read-only plugin cache still yields an editable, per-project file. Idempotent: it never
+// overwrites a config that's already there, so a filled-in config survives a re-run.
+function writeConfigIfMissing() {
+  if (fs.existsSync(CONFIG)) return false
+  fs.mkdirSync(KANBAN, { recursive: true })
+  fs.writeFileSync(CONFIG, CONFIG_TEMPLATE)
+  return true
+}
+
+// Seed the blank module map. Same contract as the config: idempotent, and it never
+// touches a map that's already there, so a filled-in map survives a re-run — that's what
+// makes it safe for `init` to double as the repair step for a board made before the map
+// existed.
+function writeModulesIfMissing() {
+  if (fs.existsSync(MODULES_MD)) return false
+  fs.mkdirSync(KANBAN, { recursive: true })
+  fs.writeFileSync(MODULES_MD, MODULES_TEMPLATE)
+  return true
+}
+
+// docs/kanban/.env holds the board's API keys, so it must never reach git — and the only
+// thing that can promise that on a board nobody has opened the UI on is `init`. A key
+// written into the file by hand is covered from the first day, before anything else runs.
+//
+// Runtime state is covered by the root .akb/ ignore rule.
+//
+// The rules go in the board's own ignore file, never the repo's root one. An existing file
+// gets the missing line added, not replaced: comments, order and every other rule in it are
+// the user's. The `.env` line is written exactly as the UI writes it, so neither one adds
+// it twice.
+const IGNORE_RULES = [
+  { line: '.env', comment: "# The board's API keys — never commit them." },
+  { line: LOCAL_IGNORE_LINE, comment: "# The model each agent runs — this computer's answer, not the repo's." },
+]
+
+function writeGitignoreIfMissing(): boolean {
+  fs.mkdirSync(KANBAN, { recursive: true })
+  const text = fs.existsSync(KANBAN_GITIGNORE) ? fs.readFileSync(KANBAN_GITIGNORE, 'utf8') : ''
+  const has = (rule: { line: string }): boolean => text.split('\n').some((line) => line.trim() === rule.line)
+  const missing = IGNORE_RULES.filter((rule) => !has(rule))
+  if (!missing.length) return false
+  const block = missing.map((rule) => `${rule.comment}\n${rule.line}\n`).join('')
+  const separator = !text || text.endsWith('\n') ? '' : '\n'
+  fs.writeFileSync(KANBAN_GITIGNORE, `${text}${separator}${block}`)
+  return true
+}
+
+// The parts of a board every move needs: the folder the cards live in and its index. A board
+// can be missing them — a half-finished install, a folder someone deleted from — and then
+// every move but this one turns it away.
+function writeSkeletonIfMissing(): string[] {
+  const added: string[] = []
+  if (!fs.existsSync(TODO)) {
+    fs.mkdirSync(TODO, { recursive: true })
+    added.push(`${rel(TODO)}/`)
+  }
+  if (!fs.existsSync(README)) {
+    fs.writeFileSync(README, boardReadme())
+    added.push(rel(README))
+  }
+  return added
+}
+
+// Releases are retired (#1671): drop `releases.md` and every card's `release:` line, open or
+// archived. `.release-summaries/` stays as the record of what each closed release held.
+function retireReleases(): string {
+  const done: string[] = []
+  if (fs.existsSync(RELEASES)) {
+    fs.rmSync(RELEASES)
+    done.push(`deleted ${rel(RELEASES)}`)
+  }
+  let cards = 0
+  for (const dir of [TODO, ARCHIVE]) {
+    if (!fs.existsSync(dir)) continue
+    for (const file of walkMd(dir)) {
+      const text = fs.readFileSync(file, 'utf8')
+      const end = text.startsWith('---\n') ? text.indexOf('\n---', 3) : -1
+      if (end < 0) continue
+      const head = text.slice(0, end).replace(/\nrelease:[^\n]*/, '')
+      if (head.length === end) continue
+      fs.writeFileSync(file, head + text.slice(end))
+      cards++
+    }
+  }
+  if (cards) done.push(`cleared the release on ${cards} card${cards === 1 ? '' : 's'}`)
+  return done.join(', ')
+}
+
+/** Scaffold this board, or repair one an older version made. */
+export function cmdInit(): MoveResult {
+  if (fs.existsSync(KANBAN)) {
+    // Re-running `init` is the repair step for a board made by an older version: it adds
+    // whatever that version never wrote — docs/kanban/config.md if the board predates the
+    // move out of the skill folder, modules.md if it predates the module map, the
+    // .gitignore that keeps the keys file out of git if it predates that — and never
+    // touches any of them once they're filled in.
+    //
+    // The setup checklist is deliberately NOT among them. It is written once, by the
+    // scaffold below; a board that was set up long ago has no file and must stay quiet,
+    // and planting one here would tell that user to finish a setup that finished months ago.
+    //
+    // The "Prune the memory" card is not among them either — it goes the other way (#514).
+    // Pruning is the Memory pruner agent now, so a board still carrying the card carries two
+    // prune schedules; the repair takes the card off and keeps its cadence beside the agent,
+    // switched off. Once, because after it there is no such card to find.
+    //
+    // Every other recurring card becomes a scheduled agent of its workflow (#1414).
+    const added: string[] = [
+      ...writeSkeletonIfMissing(),
+      writeConfigIfMissing() && rel(CONFIG),
+      writeModulesIfMissing() && rel(MODULES_MD),
+      writeGitignoreIfMissing() && rel(KANBAN_GITIGNORE),
+      writeRootIgnoreIfMissing() && rel(ROOT_GITIGNORE),
+    ].filter(Boolean) as string[]
+    // A board still mid-setup gets the questions card if it was made before the card
+    // existed — same test as everything else about setup: the checklist file says so.
+    if (setupUnfinished() && !findSetupQuestionsCard()) {
+      fs.mkdirSync(TODO, { recursive: true })
+      const card = writeSetupQuestionsCard()
+      if (card) added.push(rel(card.file))
+    }
+    // The board's own record and the planner's folder beside it (#805). A module is a topic
+    // inside a memory file now, not a folder, so there is nothing per-module to scaffold —
+    // and an older board's module folders are merged away by the migration this call runs.
+    const scaffolded: Scaffolded[] = []
+    // It scaffolds what it needs on the way, so the scaffold below finds the planner's
+    // folder already there and reports only what an older board never had.
+    // Before anything scaffolds an empty `project.md` beside it (#1391).
+    const projectRenamed = renameProductFile()
+    const movedMemory = migrateMemory()
+    const project = scaffoldProjectMemory()
+    if (project) scaffolded.push(project)
+    // `goal.md` is retired (#1268): what the user wrote moves into the planner's decisions.
+    const goalRetired = retireGoal()
+    const prunedCard = migratePruneMemoryCard()
+    const recurring = migrateRecurringCards()
+    const releasesRetired = retireReleases()
+    say(
+      added.length
+        ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
+        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRetired || projectRenamed || releasesRetired || recurring.agents.length || recurring.removed.length ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
+    )
+    for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
+    if (movedMemory.length) {
+      say(`  memory now belongs to whoever writes it — moved ${movedMemory.length} file${movedMemory.length === 1 ? '' : 's'} or topic${movedMemory.length === 1 ? '' : 's'}: ${movedMemory.join(', ')}`)
+      say(`  a module's planning notes are in ${rel(agentMemoryDir(PLANNER))}/<module>/`)
+    }
+    if (projectRenamed) say(`  ${projectRenamed}`)
+    if (goalRetired) say(`  docs/kanban/memory/goal.md is retired: ${goalRetired}`)
+    if (releasesRetired) say(`  releases are retired: ${releasesRetired}`)
+    if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Board); its cadence is kept there, switched off`)
+    for (const line of recurringMigrationLines(recurring)) say(`  ${line}`)
+    if (added.includes(rel(MODULES_MD))) {
+      say(`  next: fill in ${rel(MODULES_MD)} (see "The module map")`)
+    }
+    return { board: rel(KANBAN), created: false, added, memory_paths: scaffolded.map((s) => rel(s.dir)) }
+  }
+  fs.mkdirSync(TODO, { recursive: true })
+  fs.writeFileSync(README, boardReadme())
+  writeConfigIfMissing()
+  scaffoldProjectMemory()
+  writeModulesIfMissing()
+  writeGitignoreIfMissing()
+  writeRootIgnoreIfMissing()
+  // Setup's remaining steps, written now so a user who installs and stops there still
+  // opens the board onto a list of what is left instead of one that looks finished.
+  // The questions card is the board's first, so it takes id 1 and sorts on top. Setup's
+  // steps append every call they can't settle to it as they run.
+  writeSetupChecklist()
+  const questionsCard = writeSetupQuestionsCard()
+  say(`initialised board at ${rel(KANBAN)}/`)
+  say(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
+  if (questionsCard) say(`  questions card: #${questionsCard.id} — setup appends the calls it can't settle here`)
+  const next = nextSetupStep()
+  if (next) say(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
+  return { board: rel(KANBAN), created: true, next: next?.name ?? null }
+}

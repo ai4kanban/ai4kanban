@@ -1,0 +1,220 @@
+// The flows this board can start — the one list, read by everything that needs it.
+//
+// A flow is a command a person types (`akb card implement 12`) and the program it starts.
+// The list used to be written down three times: the dispatcher's table of commands, the
+// runs table `akb help` prints, and — once flow rules shipped (#306) — the pane that
+// writes them. Three copies fall behind each other, and a flow shipped later would take a
+// rule only when someone remembered to add it in a second place. So it is written here,
+// once, and the three read it.
+//
+// What a flow takes is written here too, in the notation the command tree declares it in
+// (lib/cli/agent.ts): `argument` and `options` ARE the flow's command line, and so are its
+// help. A flow shipped later is a command, a help entry and a rule at once.
+//
+// `command` is the flow's NAME, not the line a person types: it names the flow's rule file,
+// keys the rules a delivery freezes, and keys which runtime the flow runs on. It stays put
+// when the command line is rearranged, so no board loses a rule to a rename and no delivery
+// in flight loses the rules it froze.
+//
+// `group` and `verb` are the line a person types. A flow with a group is typed under that
+// noun (`akb card refine`); one without is typed bare, because it acts on nothing that
+// exists yet — `create`, `setup`.
+
+import type { AgentAction, CommandAction } from './types'
+
+/** The nouns the commands are grouped under. A flow acts on one of these, or on nothing
+ *  yet — see `Flow.group`. */
+export type FlowGroup = 'card' | 'delivery' | 'triage'
+
+/** One option a flow takes, as its command declares it. `flags` is Commander's own
+ *  notation, so `--workflow <id>` takes a value and `--discard` does not. */
+export interface FlowOption {
+  flags: string
+  description: string
+  /** The only values accepted, when there is a fixed set of them. */
+  choices?: readonly string[]
+  /** A whole number in this range, when the value is a count. */
+  range?: readonly [min: number, max: number]
+}
+
+export interface Flow {
+  /** This flow's name: its rule file, its frozen key, its runtime. Never the line typed —
+   *  see `group` and `verb`. */
+  command: string
+  /** The noun it is typed under. None means it is typed bare. */
+  group?: FlowGroup
+  /** The word typed under that noun, when it is not `command` itself. */
+  verb?: string
+  /** The public action the command dispatcher receives. */
+  action: CommandAction
+  /** What follows the command word, in Commander's notation. Empty when it takes nothing. */
+  argument: string
+  /** What the argument is, for the help. Empty when there is no argument. */
+  argumentNote?: string
+  /** One clause of plain words: what the flow is. Some flow names say
+   *  nothing a user can guess at, so every flow carries one. */
+  gloss: string
+  /** The rest of what the flow's own help says about it. */
+  more?: string[]
+  /** The options this flow takes, on top of the `--print` and `--follow` every one takes. */
+  options?: FlowOption[]
+}
+
+const NOTE = 'anything the run should know, in your own words'
+
+// The runtime one run spawns on (#518) — the same pick the create sheet makes, for the two
+// flows it starts. It is this run's alone: nothing in Configuration → Board moves, and the
+// next run of the same flow is back on its agent's own runtime.
+const RUNTIME_OPTION: FlowOption = {
+  flags: '--runtime <id>',
+  description: "the runtime to run on, for this run only (default: the flow's own agent's)",
+}
+
+// A Cloud task's session (#2146), over the card's own planning session.
+const CARRY_OPTIONS: FlowOption[] = [
+  { flags: '--session <id>', description: "the agent session to carry on, over the card's own" },
+  { flags: '--fork', description: 'with --session: start from a copy of it' },
+  { flags: '--transcript <file>', description: 'the discussion the card came from, read when no session is carried on' },
+]
+
+export const FLOWS: Flow[] = [
+  {
+    command: 'implement',
+    group: 'card',
+    action: 'implement',
+    argument: '<id> [note...]',
+    argumentNote: NOTE,
+    gloss: 'build the card',
+    options: [RUNTIME_OPTION],
+  },
+  {
+    command: 'conflict',
+    group: 'delivery',
+    action: 'conflict',
+    argument: '<id>',
+    gloss: 'fit it onto the target branch that moved while it was built',
+    more: ['The board runs this itself after every rebase; the result lands on the next landing pass.'],
+  },
+  {
+    command: 'refine',
+    group: 'card',
+    action: 'refine',
+    argument: '<id>',
+    gloss: 'plan the card in one session',
+    options: CARRY_OPTIONS,
+  },
+  {
+    command: 'resolve',
+    group: 'card',
+    action: 'resolve',
+    argument: '<id> [note...]',
+    argumentNote: NOTE,
+    gloss: "apply the user's answers to its open questions",
+    options: CARRY_OPTIONS,
+  },
+  {
+    command: 'approve',
+    group: 'card',
+    action: 'approve',
+    argument: '<id>',
+    gloss: "approve the card's previews: start the previews waiting on them, or build and land it, or archive it",
+  },
+  {
+    command: 'revise',
+    group: 'card',
+    action: 'edit',
+    argument: '<id> <what...>',
+    argumentNote: 'what to change about the card',
+    gloss: 'change the card to say something else',
+    options: CARRY_OPTIONS,
+  },
+  {
+    command: 'create',
+    action: 'create',
+    argument: '<what...>',
+    argumentNote: 'what you want, in your own words',
+    gloss: 'write the card(s) for it',
+    options: [
+      { flags: '--workflow <id>', description: 'the workflow the new cards run on' },
+      { flags: '--from-card <id>', description: 'the card this came up on, to link the new cards to' },
+      RUNTIME_OPTION,
+    ],
+  },
+  {
+    command: 'setup',
+    action: 'setup',
+    argument: '',
+    gloss: 'finish setting the board up',
+    more: ['Every step still unticked on docs/kanban/setup-checklist.md, in one run.'],
+  },
+  // The memory pruner's one flow (#514). Typed bare, like `setup`: it acts on the memory
+  // set rather than on a card, so there is nothing to name.
+  {
+    command: 'prune-memory',
+    action: 'prune-memory',
+    argument: '',
+    gloss: 'squeeze the memory back down to what helps planning',
+    more: ['The project, the modules and the agents, in one run.'],
+  },
+  // The chat reviewer's one flow (#748, #2065): a Runner's Cloud task chats, never a card.
+  {
+    command: 'review-memory',
+    action: 'review-memory',
+    argument: '',
+    gloss: "read archived tasks' chats, and write down what they settled",
+    options: [{ flags: '--task <id...>', description: "the Cloud tasks whose chats the Runner keeps — required" }],
+    more: ['Chats write no memory themselves — this is what does. The Runner starts it after a task is archived.'],
+  },
+  // The dismissal reviewer's one flow (#929, #1497). Typed bare: it acts on the reasons.
+  {
+    command: 'review-dismissals',
+    action: 'review-dismissals',
+    argument: '',
+    gloss: 'learn what the user does not want from their rejection and dismissal reasons',
+    options: [{ flags: '--all', description: "every reason on the board, not only those since the last review — a Runner's board" }],
+    more: [
+      'Reads the reasons written since the last review that passed, and withdraws what rested on ' +
+        'an item since restored.',
+    ],
+  },
+  // The project writer's one flow (#1268). Typed bare: it acts on the project.
+  {
+    command: 'describe-project',
+    action: 'describe-project',
+    argument: '',
+    gloss: 'rewrite the project description the planning flows read',
+    more: [
+      'Rewrites docs/kanban/memory/project.md from the README, the docs and the code.',
+    ],
+  },
+  // The proposer's one flow (#534). Typed bare: the board starts it itself as cards are
+  // finished, and a Runner names the cards it was handed (#2068).
+  {
+    command: 'reflect',
+    action: 'reflect',
+    argument: '',
+    gloss: 'propose the work that should follow some finished cards',
+    options: [{ flags: '--cards <id...>', description: 'the archived cards to reflect on' }],
+  },
+  { command: 'archive', group: 'card', action: 'archive', argument: '<id>', gloss: 'finish the card' },
+]
+
+/** The word typed under the flow's noun. */
+export const flowVerb = (flow: Flow): string => flow.verb ?? flow.command
+
+/** The line a person types, without the command's own name — `card refine`, `delivery conflict`,
+ *  `create`. What every message and every doc spells. */
+export const flowPath = (flow: Flow): string => (flow.group ? `${flow.group} ${flowVerb(flow)}` : flowVerb(flow))
+
+export const flowByCommand = (command: string): Flow | undefined =>
+  FLOWS.find((flow) => flow.command === command)
+
+export const flowByAction = (action: AgentAction): Flow | undefined => {
+  if (action === 'clarify') return flowByCommand('refine')
+  return FLOWS.find((flow) => flow.action === action)
+}
+
+/** The delivery flows. Their rules are frozen with the card the delivery
+ *  was approved to build, and their runs are the ones that may not be working in the
+ *  project folder. */
+export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'conflict', 'scheduled'])

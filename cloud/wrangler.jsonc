@@ -1,0 +1,72 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai4kanban-cloud",
+  "main": "src/index.ts",
+  // The built-in workflows, packed from cli/src (#2040).
+  "build": { "command": "node scripts/builtin-workflows.mjs" },
+  "compatibility_date": "2026-08-26",
+
+  // Cloud answers on its own name only. `cloud.ai4kanban.dev` stays free for the hosted
+  // browser surface (#322).
+  "workers_dev": false,
+  "preview_urls": false,
+  // Component bundles (#2006) answer on their own site, one subdomain per version.
+  "routes": [
+    { "pattern": "api.ai4kanban.dev", "custom_domain": true },
+    { "pattern": "*.wildcraneusercontent.com/*", "zone_name": "wildcraneusercontent.com" }
+  ],
+
+  // One schedule for the whole service: it keeps the free Supabase project awake, and
+  // later cards add their steps to the same run rather than a schedule of their own.
+  "triggers": { "crons": ["0 * * * *"] },
+
+  // Pro's two Creem products (#1037) and the 100 GB storage pack (#2033). Not secrets; the
+  // API key and webhook secret are.
+  "vars": {
+    "CREEM_PRODUCT_MONTHLY": "prod_2rdebOfw9mpmDHjblBV2MM",
+    "CREEM_PRODUCT_YEARLY": "prod_ucjlzfwJe6sIRlbPH6JDT",
+    "CREEM_PRODUCT_STORAGE": "prod_45rfVsAyO5e4wG11wOB7cT"
+  },
+
+  // Shared templates' files, previews and evidence (#1708). Private: only the Worker reads it.
+  "r2_buckets": [
+    {
+      "binding": "TEMPLATES",
+      "bucket_name": "ai4kanban-templates",
+      "preview_bucket_name": "ai4kanban-templates-dev"
+    },
+    // Public API artifact files (#2000). Private: read through `/v1/artifacts/…/file`.
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "ai4kanban-artifacts",
+      "preview_bucket_name": "ai4kanban-artifacts-dev"
+    }
+  ],
+
+  // Hosted music's model refuses some users' countries, which a subrequest made while serving
+  // them carries; one made from this object's alarm carries none (#1828).
+  // One EventHub per account holds its open `/v1/events/stream` connections (#2000).
+  // One Board per project holds its board files (#2081).
+  // One RunLog per Runner job holds its log while it runs (#2085).
+  // One RunnerPresence per account ends a gone Runner's lease early (#2163).
+  "durable_objects": {
+    "bindings": [
+      { "name": "MUSIC_CALLS", "class_name": "MusicCall" },
+      { "name": "EVENT_HUBS", "class_name": "EventHub" },
+      { "name": "BOARDS", "class_name": "Board" },
+      { "name": "RUN_LOGS", "class_name": "RunLog" },
+      { "name": "DIFF_CALLS", "class_name": "DiffCall" },
+      { "name": "RUNNER_PRESENCE", "class_name": "RunnerPresence" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["MusicCall"] },
+    { "tag": "v2", "new_sqlite_classes": ["EventHub"] },
+    { "tag": "v3", "new_sqlite_classes": ["Board"] },
+    { "tag": "v4", "new_sqlite_classes": ["RunLog"] },
+    { "tag": "v5", "new_sqlite_classes": ["DiffCall"] },
+    { "tag": "v6", "new_sqlite_classes": ["RunnerPresence"] }
+  ],
+
+  "observability": { "enabled": true }
+}

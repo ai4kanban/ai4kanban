@@ -1,0 +1,261 @@
+// ---- list ------------------------------------------------------------------
+//
+// The open board at a glance, one block per card — id, title, meta, summary line,
+// and the file to read for the rest. `--module <m>` narrows it to the cards tagged
+// with one module.
+//
+// `--stale` asks a different question: which cards have sat untouched past the board's
+// threshold, stalest first, and what is holding each one. Age comes from git (lib/card-age),
+// so only this flag pays for the walk.
+//
+// `--archived` asks a third: which cards landed and left the board, oldest first, each with
+// the commit it landed as. It reads the delivery records, not `.archive/`.
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { die, rel, ARCHIVE, TODO, MODULES_MD } from '../lib/paths'
+import { say } from '../lib/io'
+import { moduleNames } from '../lib/validate'
+import { parseFrontmatter } from '../lib/frontmatter'
+import { walkMd, walkDirs, idPrefix, boardCardIds, isLegacyRecurring } from '../lib/cards'
+import { formatStamp, parseStamp } from '../lib/cadence'
+import { landedDeliveries } from '../lib/agent/deliveries'
+import { knownWorkflow, scheduledAgent } from '../lib/agent/workflows'
+import { insideScheduledPass } from '../lib/agent/scheduled'
+import { cardAges, staleAfter, type Age } from '../lib/card-age'
+import { heldBy, type Hold } from '../lib/card-holds'
+import { openOf } from '../lib/view/rules'
+import type { MoveResult, Question } from '../lib/types'
+
+// One open card as the list shows it — the frontmatter fields it prints, plus where the
+// card lives and the summary read off its body.
+interface Row {
+  id: number
+  file: string
+  isRoot: boolean
+  title: string
+  status: string
+  priority: string
+  roi: string
+  blocked_by: number[]
+  modules: string[]
+  questions: Question[]
+  summary: string
+  // `--stale` only: when git last saw the card, and how long ago that was.
+  lastTouched?: string
+  days?: number
+}
+
+const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
+
+// How a card ranks. `med` stands in for a card whose line was damaged by hand.
+const level = (value: string | undefined): string => value || 'med'
+
+// The card's opening paragraph — the body's first non-heading text, unwrapped
+// (bodies hard-wrap, so one paragraph spans several file lines). The body template
+// puts the one-line summary there, so this is the card's own pitch.
+function summaryLine(body: string): string {
+  const lines = body.split('\n')
+  let i = 0
+  while (i < lines.length && (!lines[i]!.trim() || lines[i]!.trim().startsWith('#'))) i++
+  const para: string[] = []
+  while (i < lines.length && lines[i]!.trim() && !lines[i]!.trim().startsWith('#')) {
+    para.push(lines[i]!.trim())
+    i++
+  }
+  const text = para.join(' ')
+  return text.length > 240 ? text.slice(0, 240).replace(/\s+\S*$/, '') + ' …' : text
+}
+
+function openRows(): Row[] {
+  const rows: Row[] = []
+  for (const file of walkMd(TODO)) {
+    const base = path.basename(file)
+    if (base === 'README.md') continue
+    const isRoot = base === 'root.md'
+    const id = isRoot ? idPrefix(path.basename(path.dirname(file))) : idPrefix(base)
+    if (id == null) continue
+    if (isLegacyRecurring(path.relative(TODO, file))) continue
+    const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+    rows.push({
+      id,
+      file,
+      isRoot,
+      title: (meta && meta.title) || base.replace(/^\d+-/, '').replace(/\.md$/, ''),
+      status: (meta && meta.status) || 'todo',
+      priority: level(meta?.priority),
+      roi: level(meta?.roi),
+      blocked_by: (meta && meta.blocked_by) || [],
+      modules: (meta && meta.modules) || [],
+      questions: (meta && meta.questions) || [],
+      summary: summaryLine(body),
+    })
+  }
+  return rows.sort((a, b) => a.id - b.id)
+}
+
+// What is keeping a card where it is, in the order the card reads them (lib/card-holds.ts).
+// Nothing here is a filter: a card waiting on the user is still listed, with its reason.
+const holdsOn = (row: Row, open: Set<number>): Hold[] =>
+  heldBy({ blockers: row.blocked_by.filter((id) => open.has(id)), questions: row.questions, status: row.status })
+
+// The cards `--stale` reports on. A group root closes itself once its subtasks do, so it
+// never sits stuck the way a subtask can.
+const canGoStale = (row: Row): boolean => !row.isRoot
+
+function cmdStale(rows: Row[], all: Row[], scope: string, mod: string | null): MoveResult {
+  const days = staleAfter()
+  const ages = cardAges()
+  if (ages === null) {
+    say(`not a git repository — a card's age is the date git last saw its file, so there is nothing to list.`)
+    return { cards: [], module: mod, staleAfter: days }
+  }
+
+  const open = new Set(all.map((r) => r.id))
+  const stale = rows
+    .filter(canGoStale)
+    .map((r) => ({ row: r, age: ages.get(r.file) }))
+    .filter((r): r is { row: Row; age: Age } => r.age !== undefined && r.age.days >= days)
+    .sort((a, b) => b.age.days - a.age.days || a.row.id - b.row.id)
+
+  const cards = stale.map(({ row, age }) => ({ ...row, file: rel(row.file), ...age }))
+  if (!stale.length) {
+    say(`nothing ${scope} has sat ${days}+ days.`)
+    return { cards, module: mod, staleAfter: days }
+  }
+
+  say(`${plural(stale.length, 'stale card')} ${scope} — untouched ${days}+ days, stalest first:`)
+  for (const { row, age } of stale) {
+    const holds = holdsOn(row, open)
+    say('')
+    say(`#${row.id} ${row.title}  (${rel(row.file)})`)
+    say(`    sat ${plural(age.days, 'day')} · last touched ${age.lastTouched} · ${holds.map((h) => h.text).join(' · ') || 'nothing holding it'}`)
+    if (row.summary) say(`    ${row.summary}`)
+  }
+  return { cards, module: mod, staleAfter: days }
+}
+
+// Where each archived card's file is, by id — one walk. A group root is its `root.md`.
+function archivedFiles(): Map<number, string> {
+  const files = new Map<number, string>()
+  if (!fs.existsSync(ARCHIVE)) return files
+  for (const file of walkMd(ARCHIVE)) {
+    const id = idPrefix(path.basename(file))
+    if (id !== null) files.set(id, file)
+  }
+  for (const dir of walkDirs(ARCHIVE)) {
+    const id = idPrefix(path.basename(dir))
+    const root = path.join(dir, 'root.md')
+    if (id !== null && fs.existsSync(root)) files.set(id, root)
+  }
+  return files
+}
+
+// What `--since` takes in place of a time inside a scheduled agent's pass (#1401).
+const LAST_RUN = 'last-run'
+
+function cmdArchived(opts: ListOptions): MoveResult {
+  let since: Date | null = null
+  // Inside a scheduled agent's pass (#1401), `last-run` is when its last pass that passed began.
+  if (opts.since?.trim() === LAST_RUN) {
+    const pass = insideScheduledPass()
+    if (!pass) die(`--since ${LAST_RUN} only works inside a scheduled agent's run. Elsewhere, write the time as "YYYY-MM-DD HH:MM".`)
+    const last = scheduledAgent(pass!.workflow, pass!.agent)?.lastRun ?? ''
+    if (!parseStamp(last)) {
+      say('this is the first run, so no cards are listed.')
+      return { cards: [], since: null, workflow: opts.workflow ?? null, firstRun: true }
+    }
+    opts = { ...opts, since: last }
+  }
+  if (opts.since !== undefined) {
+    since = parseStamp(opts.since)
+    if (!since) die(`cannot read --since "${opts.since}". Write it as "YYYY-MM-DD HH:MM", e.g. --since "2026-08-02 14:31".`)
+  }
+  const workflow = opts.workflow === undefined ? null : knownWorkflow(opts.workflow)
+
+  const open = boardCardIds()
+  const files = archivedFiles()
+  const cards = landedDeliveries({ since: since?.getTime(), workflow: workflow ?? undefined })
+    .filter((d) => !open.has(d.cardId))
+    .map((d) => ({
+      id: d.cardId,
+      title: d.title,
+      workflow: d.workflow,
+      landedAt: formatStamp(new Date(d.at)),
+      commit: d.commit,
+      file: files.has(d.cardId) ? rel(files.get(d.cardId)!) : '',
+    }))
+  const result = { cards, since: since ? formatStamp(since) : null, workflow }
+
+  const scope = [workflow ? `on workflow \`${workflow}\`` : '', since ? `since ${formatStamp(since)}` : ''].filter(Boolean).join(' ')
+  if (!cards.length) {
+    say(`no cards landed${scope ? ` ${scope}` : ''}.`)
+    return result
+  }
+
+  say(`${plural(cards.length, 'card')} landed${scope ? ` ${scope}` : ''}, oldest first:`)
+  for (const c of cards) {
+    say('')
+    say(`#${c.id} ${c.title}${c.file ? `  (${c.file})` : ''}`)
+    say(`    ${c.workflow} · landed ${c.landedAt} · commit ${c.commit}`)
+  }
+  return result
+}
+
+/** `akb raw list`, as its command declares it (lib/cli/board.ts). */
+export interface ListOptions {
+  module?: string
+  stale?: boolean
+  archived?: boolean
+  since?: string
+  workflow?: string
+}
+
+export function cmdList(opts: ListOptions): MoveResult {
+  if (opts.archived) {
+    if (opts.stale) die('--archived and --stale answer different questions — pass one of them.')
+    if (opts.module !== undefined) die('--module does not apply to --archived; narrow it with --workflow.')
+    return cmdArchived(opts)
+  }
+  if (opts.since !== undefined) die('--since only applies to --archived.')
+  if (opts.workflow !== undefined) die('--workflow only applies to --archived.')
+
+  const all = openRows()
+  let rows = all
+  let scope = 'on the board'
+  const mod = opts.module
+  if (mod !== undefined) {
+    const known = moduleNames()
+    if (known === null) die(`no ${rel(MODULES_MD)} yet — the board has no module map to filter by`)
+    if (!known.includes(mod)) {
+      die(`unknown module "${mod}". known modules: ${known.join(', ') || '(none)'}`)
+    }
+    rows = rows.filter((r) => r.modules.includes(mod))
+    scope = `tagged \`${mod}\``
+  }
+  if (opts.stale) return cmdStale(rows, all, scope, mod === undefined ? null : mod)
+
+  // The same rows the prose is printed from, with the file as a board-relative path — this
+  // is what the local UI and any other caller read through `--json`.
+  const cards = rows.map((r) => ({ ...r, file: rel(r.file) }))
+
+  if (!rows.length) {
+    say(`no open cards ${scope}.`)
+    return { cards, module: mod === undefined ? null : mod }
+  }
+
+  say(`${plural(rows.length, 'open card')} ${scope}:`)
+  for (const r of rows) {
+    const meta = [r.status, `priority ${r.priority}`, `roi ${r.roi}`]
+    if (r.isRoot) meta.push('group root')
+    if (r.blocked_by.length) meta.push(`blocked by ${r.blocked_by.map((n) => `#${n}`).join(', ')}`)
+    const open = openOf(r.questions).length
+    if (open) meta.push(plural(open, 'open question'))
+    say('')
+    say(`#${r.id} ${r.title}  (${rel(r.file)})`)
+    say(`    ${meta.join(' · ')}`)
+    if (r.summary) say(`    ${r.summary}`)
+  }
+  return { cards, module: mod === undefined ? null : mod }
+}

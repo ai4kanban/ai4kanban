@@ -1,0 +1,72 @@
+# Builds WildCrane for Mac (Apple silicon and Intel) and Windows from runner/desktop/, unsigned,
+# and publishes them with the updater's latest.json on one GitHub release. Push the tag
+# `desktop-v<version>` (runner/desktop/package.json's version) to start it.
+#
+# Secrets: TAURI_SIGNING_PRIVATE_KEY (+ _PASSWORD) sign the update bundles the app checks on
+# restart; the matching public key is in src-tauri/tauri.conf.json. This is not code signing.
+name: desktop-release
+
+on:
+  push:
+    tags: ['desktop-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: runner/desktop/src-tauri
+      - run: npm ci
+        working-directory: cli
+      - run: npm install --include=dev
+        working-directory: runner
+      - run: npm install --include=dev
+        working-directory: runner/desktop
+      - run: node scripts/prepare.mjs --target ${{ matrix.target }}
+        working-directory: runner/desktop
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: runner/desktop
+          args: --target ${{ matrix.target }}
+          tagName: ${{ github.ref_name }}
+          releaseName: WildCrane ${{ github.ref_name }}
+          releaseBody: |
+            ## 首次打开 · Opening it the first time
+
+            这个版本还没有签名，系统会拦一次，放行后就不再询问。
+            This build is not signed yet. Your system stops it once; after you allow it, it opens normally.
+
+            **Mac**：把 WildCrane 拖进「应用程序」，右键点它 →「打开」→ 再点「打开」。如果提示「已损坏」或无法打开，到「系统设置 → 隐私与安全性」，在底部点「仍要打开」。
+            **Mac**: drag WildCrane into Applications, right-click it → **Open** → **Open**. If macOS says it can't be opened or is damaged, go to **System Settings → Privacy & Security** and click **Open Anyway** at the bottom.
+
+            **Windows**：运行安装程序时若出现「Windows 已保护你的电脑」，点「更多信息」→「仍要运行」。
+            **Windows**: if "Windows protected your PC" appears, click **More info** → **Run anyway**.
+
+            **Linux**：`npm install -g wildcrane-runner`（只运行任务，没有菜单栏和通知 · runs tasks only, no menu bar or notifications）。
+          releaseDraft: false
+          updaterJsonPreferNativeAssets: true

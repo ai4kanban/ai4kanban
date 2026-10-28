@@ -1,0 +1,370 @@
+/* Copied from legacy kanban-ui/app/globals.css: the tokens and classes the review page uses. */
+@import "tailwindcss";
+
+/* ============================================================================
+   Soft Neo-Brutalism — tokens + utilities ported from dist0/web/design.md.
+   Warm cream canvas, near-black ink outlines, hard offset shadows, one ember
+   accent, press-down interactions. Kept 1:1 with the source so the board reads
+   as the same design language as the public site.
+   ========================================================================== */
+@theme {
+  --color-nb-ink: #24231f; /* charcoal — borders + body text */
+  --color-nb-ink-soft: #565550; /* muted ink for captions/meta */
+  --color-nb-cream: #f7f7f4; /* page canvas */
+  --color-nb-canvas: #efeeeb; /* the ground under a board of cards */
+  --color-nb-paper: #ffffff; /* card surface */
+  --color-nb-sheet: #fbfaf7; /* a card page's sections — the cream family, a rung lighter */
+  --color-nb-wash: #f4f3ef; /* faint neutral fill (headers, media, insets) */
+
+  --color-nb-accent: #dd4f1e; /* ember — primary accent */
+  --color-nb-accent-deep: #b83a12; /* deeper ember — hover / press */
+  --color-nb-accent-soft: #f7ddce; /* ember wash — underline band, tints */
+  --color-nb-crimson: #c41e3a; /* triage waiting — cool enough to tell from ember */
+
+  --color-nb-mint: #7fca9c; /* positive / done */
+  --color-nb-mint-soft: #e4f3ea;
+  --color-nb-sky: #7fb4e0; /* neutral signal */
+  --color-nb-sky-soft: #e6f1fb;
+  --color-nb-lilac: #b199e0;
+  --color-nb-lilac-soft: #efe9fb;
+  --color-nb-peach: #ec9a72; /* attention / blocker */
+  --color-nb-peach-soft: #fbe9dd;
+
+  /* Section grounds — a signal thinned until a whole block of one can carry body
+     text, a rung below `-soft` so a tall band never shouts over the control that
+     answers it. A card page spends colour on two sections and no more: mint where
+     the work is already done, ember where an answer is wanted. Everything else on
+     it, the body included, is `--color-nb-sheet` — prose is read THROUGH its
+     ground, and a tint under it colours every line. */
+  --color-nb-accent-wash: #fbf0e9;
+
+  --color-nb-mint-ink: #2f6b46;
+  --color-nb-sky-ink: #2c5c86;
+  --color-nb-lilac-ink: #5a3f92;
+  --color-nb-peach-ink: #8a4a28;
+
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background: var(--color-nb-cream);
+  color: var(--color-nb-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Card / panel — bordered block with a gentle hard shadow */
+.nb-panel {
+  border: 1.5px solid var(--color-nb-ink);
+  border-radius: 16px;
+  background: var(--color-nb-paper);
+  box-shadow: 3px 3px 0 0 var(--color-nb-ink);
+}
+.nb-panel-sm {
+  border: 1.5px solid var(--color-nb-ink);
+  border-radius: 13px;
+  background: var(--color-nb-paper);
+  box-shadow: 3px 3px 0 0 var(--color-nb-ink);
+}
+.nb-outline {
+  border: 1.5px solid var(--color-nb-ink);
+  border-radius: 14px;
+}
+/* Quiet inset — the same frame at hairline weight, for a supporting band that
+   annotates the work rather than being it. */
+.nb-inset {
+  border: 1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent);
+  border-radius: 14px;
+}
+
+/* Section — a block on a reading page: no frame, no shadow. What tells one from the
+   page is its ground, and that ground is `nb-sheet` unless the section MEANS something:
+   mint for checks already done, ember for a decision. Radius only here, so the fill
+   stays in the markup beside the section it means. */
+.nb-section {
+  border-radius: 14px;
+}
+
+/* A section you decide IN, not just read — the card page's open questions. At rest it is
+   a plain section; hovered, focused or open it lifts onto a double offset shadow (ember
+   sheet, then ink) and takes the ink outline, which is this language's way of saying a
+   block is a control. The transparent border is always there so nothing shifts when it
+   colours in. */
+.nb-decide {
+  border: 1.5px solid transparent;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+.nb-decide:hover,
+.nb-decide:focus-within,
+.nb-decide[data-open] {
+  border-color: var(--color-nb-ink);
+  box-shadow:
+    3px 3px 0 0 var(--color-nb-accent-soft),
+    6px 6px 0 0 var(--color-nb-ink);
+}
+
+/* Focus, defined once. `nb-focus`: keyboard focus on a control takes `.nb-decide`'s lift —
+   an ink frame laid over its own edge, then the double offset shadow. `nb-field`: a text
+   field, or the box wrapping one, firms its edge to solid ink while you type in it. Anything
+   wearing neither gets a plain ink frame instead of the browser's ring. */
+@layer base {
+  :focus-visible {
+    outline: 1.5px solid var(--color-nb-ink);
+    outline-offset: 0;
+  }
+}
+@utility nb-focus {
+  &:focus-visible {
+    outline: 1.5px solid var(--color-nb-ink);
+    outline-offset: -1.5px;
+    box-shadow:
+      3px 3px 0 0 var(--color-nb-accent-soft),
+      6px 6px 0 0 var(--color-nb-ink);
+  }
+}
+@utility nb-field {
+  &:focus-within {
+    outline: 1.5px solid var(--color-nb-ink);
+    outline-offset: -1.5px;
+  }
+}
+
+/* Section kicker — clean borderless label */
+.nb-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-nb-ink);
+}
+
+/* Press interaction — lift on hover, settle on active */
+.nb-press {
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease,
+    border-color 120ms ease;
+}
+.nb-press:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--color-nb-ink);
+}
+.nb-press:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--color-nb-ink);
+}
+
+/* Buttons (the press-down CTA family — accent/ghost × md/sm) now live in
+   components/button.tsx as a `cva` variant matrix built from Tailwind
+   utilities, so there's one source of truth for the frame + press behavior. */
+
+/* Emphasis mark — soft ember highlighter swipe */
+.nb-mark {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--color-nb-accent) 42%, transparent),
+    color-mix(in srgb, var(--color-nb-accent) 42%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 0.26em;
+  background-position: 0 90%;
+  padding: 0 1px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* --- Board-specific bits built from the same language --------------------- */
+
+/* The header's agent indicator and Runs button are a matched pair of quiet
+   outlined controls built from Tailwind utilities inline in their components
+   (AgentBadge / sessions.tsx) — no shared class here. */
+
+/* Borderless meaning chip (track / priority / roi). Sized to sit under the
+   card title rather than beside it: a board card wears three or four of these
+   in one row, so every extra pixel of type and padding is a pixel the row
+   spends competing with the title it is meant to annotate. */
+.nb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 2.5px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  /* A chip is an opaque fill in a tight row, so it must never squash the thing
+     beside it or paint over it. `flex: 0 0 auto` keeps it at its own size and
+     lets the row's elastic item give way instead; `nowrap` keeps a two-word
+     label on one line. A chip whose label IS the elastic one (the status /
+     pending / running mark) overrides the flex and truncates — see chips.tsx. */
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Hover tooltip — attach `nb-tip` + a `data-tip` string to any element; a small
+   dark bubble fades in above it on hover or keyboard focus. Text is un-cased so
+   the tip reads as a sentence even on an uppercase chip. */
+.nb-tip {
+  position: relative;
+}
+.nb-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--color-nb-ink);
+  color: var(--color-nb-cream);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 4px 7px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 30;
+}
+/* Nothing to say, nothing drawn — an absent or empty `data-tip` would otherwise
+   paint a blank bubble. */
+.nb-tip:not([data-tip])::after,
+.nb-tip[data-tip=""]::after {
+  content: none;
+}
+.nb-tip:hover::after,
+.nb-tip:focus-visible::after,
+/* A wrapper's tip speaks for the control inside it. */
+.nb-tip:has(> :focus-visible)::after,
+/* A tap holds it open until the next press lands elsewhere (components/tip-hold.tsx). */
+.nb-tip[data-tip-held]::after {
+  opacity: 1;
+}
+/* Below the element instead of above — what a control in the window's top row
+   needs, since there is nothing above it but the window's edge, which would cut
+   the bubble in half. */
+.nb-tip-below::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+/* From the element's left edge rather than centred on it — for a tip long enough
+   that centring would push it off the left of a narrow window. What sits to the
+   right of the top row's controls is fixed, so opening rightwards always fits. */
+.nb-tip-start::after {
+  left: 0;
+  transform: none;
+}
+/* The mirror: held to the right edge, for a control at the window's right. */
+.nb-tip-end::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+/* For a control that drops its label below `sm`: the tip only speaks once the label is gone. */
+@media (min-width: 40rem) {
+  .nb-tip-narrow::after {
+    content: none;
+  }
+}
+/* Modal scrim */
+.nb-scrim {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-nb-ink) 42%, transparent);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+@keyframes nbPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nbFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nbFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+/* A screen on its way (#906): skeleton lines with a slow sheen, a breathing mark, and a
+   short fade for what replaces them. All static for less motion. */
+.a4k-skel {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-nb-ink) 8%, transparent);
+}
+.a4k-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-nb-paper) 70%, transparent), transparent);
+  animation: a4kSheen 1.6s ease-in-out infinite;
+}
+@keyframes a4kSheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+.a4k-reveal {
+  animation: nbFadeIn 220ms ease-out both;
+}
+.a4k-breathe {
+  opacity: 0.35;
+  animation: a4kBreathe 1.8s ease-in-out infinite;
+}
+@keyframes a4kBreathe {
+  50% {
+    opacity: 0.12;
+  }
+}
+/* A touch screen has no hover, so a tip that only answers one says nothing at
+   all — and a mark whose whole message is its tip is then a mark that means
+   nothing. `:focus` rather than `:focus-visible`: a tap focuses without the
+   browser deciding the focus is worth drawing a ring around. Only where the
+   pointer is coarse, so a mouse keeps the rule it has. */
+@media (hover: none) {
+  .nb-tip:focus::after {
+    opacity: 1;
+  }
+}
+
+/* The control the agent half of a card folds behind (#262). A native <details>, so the
+   window's own Find can reach into a shut one; the marker the browser draws is dropped for
+   the arrow the rail already uses. */
+.nb-fold > summary {
+  list-style: none;
+}
+.nb-fold > summary::-webkit-details-marker {
+  display: none;
+}
+

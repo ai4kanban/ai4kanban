@@ -1,0 +1,24 @@
+#!/bin/sh
+# Starts the plugin's component on Node 22 or later. A host opened from the Dock often has no
+# Node on its PATH, so the usual install places are tried too.
+set -u
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+entry="$here/../dist/index.mjs"
+
+ok() {
+  [ -x "$1" ] || return 1
+  major=$("$1" -p 'process.versions.node.split(".")[0]' 2>/dev/null) || return 1
+  [ "${major:-0}" -ge 22 ] 2>/dev/null
+}
+
+for node in "$(command -v node 2>/dev/null)" \
+  "${VOLTA_HOME:-$HOME/.volta}/bin/node" \
+  /opt/homebrew/bin/node /usr/local/bin/node \
+  $(ls -d "${NVM_DIR:-$HOME/.nvm}"/versions/node/v*/bin/node 2>/dev/null | sort -r) \
+  $(ls -d "$HOME"/.local/share/fnm/node-versions/v*/installation/bin/node 2>/dev/null) \
+  "$HOME"/.asdf/shims/node "$HOME"/.local/share/mise/shims/node; do
+  if [ -n "$node" ] && ok "$node"; then exec "$node" "$entry" "$@"; fi
+done
+
+echo 'WildCrane needs Node.js 22 or later. Install it from https://nodejs.org (or `brew install node`), then restart Codex.' >&2
+exit 1

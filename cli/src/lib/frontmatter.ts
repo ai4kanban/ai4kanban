@@ -1,0 +1,209 @@
+// ---- frontmatter read/write ------------------------------------------------
+//
+// The card's `--- ... ---` meta block. Only needs to read what this script (and
+// `migrate`) write. The questions' shape is documented in ./questions.ts.
+
+// No filesystem and `.ts` imports: Cloud's Worker reads cards with it too (#2064).
+
+import { yamlScalar, unquote } from './yaml.ts'
+import { normalizeQuestion, parseQuestionsBlock } from './question-block.ts'
+import { hasOptions } from './view/rules.ts'
+import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule.ts'
+import type { Meta, Question } from './types.ts'
+
+export const STATUSES = ['todo', 'ready', 'implementing']
+
+// Takes a partial meta on purpose: a card being written names only the fields it has,
+// the way the old JS did, and the missing ones fall to their empty forms below.
+export function serializeFrontmatter(m: Partial<Meta>): string {
+  const out = ['---']
+  out.push(`title: ${yamlScalar(m.title)}`)
+  out.push(`priority: ${m.priority}`)
+  out.push(`roi: ${m.roi}`)
+  out.push(`status: ${STATUSES.includes(String(m.status)) ? m.status : 'todo'}`)
+  out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
+  out.push(`related: [${(m.related || []).join(', ')}]`)
+  out.push(`modules: [${(m.modules || []).join(', ')}]`)
+  // The workflow this card runs on (#715) — its stable id. Written only when the card names
+  // one, so a board that never picked a workflow keeps the frontmatter it always had, and
+  // re-emitted whenever it is there, so no rewrite of a card can drop it.
+  if (m.workflow) out.push(`workflow: ${yamlScalar(m.workflow)}`)
+  if (m.triage) out.push(`triage: ${yamlScalar(m.triage)}`)
+  // One per line, never `[a, b]`: an address may hold a comma.
+  if (m.source?.length) {
+    out.push('source:')
+    for (const ref of m.source) out.push(`  - ${yamlScalar(ref)}`)
+  }
+  // The previews the card chose and the approvals they make (#2154); the one it is on, past its first.
+  if (m.previews) out.push(`previews: [${m.previews.join(', ')}]`)
+  if ((m.stages ?? 0) > 0) out.push(`stages: ${m.stages}`)
+  if ((m.phase ?? 0) > 1) out.push(`phase: ${m.phase}`)
+  if (m.preview_approved) out.push('preview_approved: true')
+  // The day the card was archived (`archive` stamps it on the way out). Written only when
+  // the card carries one, so nothing on the board grows a field — and re-emitted whenever it
+  // is there.
+  if (m.archived) out.push(`archived: ${yamlScalar(m.archived)}`)
+  if (m.rejected) out.push('rejected: true')
+  if (m.rejected_reason) out.push(`rejected_reason: ${yamlScalar(m.rejected_reason)}`)
+  if (m.rejected_at) out.push(`rejected_at: ${yamlScalar(m.rejected_at)}`)
+  if (m.rejected_by) out.push(`rejected_by: ${m.rejected_by}`)
+  // What this card is waiting to run once the last card in its way leaves the board (see
+  // ./schedule.ts). Written only while the card carries one — and re-emitted whenever it is
+  // there, so nothing that rewrites a card can quietly take a schedule off it.
+  out.push(...serializeSchedule(m.schedule))
+  if (!m.questions || m.questions.length === 0) out.push('questions: []')
+  else {
+    out.push('questions:')
+    for (const raw of m.questions) {
+      const q = normalizeQuestion(raw)
+      if (!hasOptions(q) && !q.agent && !q.skipped) {
+        out.push(`  - ${yamlScalar(q.text)}`)
+        continue
+      }
+      out.push(`  - question: ${yamlScalar(q.text)}`)
+      if (hasOptions(q)) {
+        out.push(`    mode: ${q.mode}`)
+        out.push('    options:')
+        for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
+        out.push(`    recommend: [${q.recommend.join(', ')}]`)
+      }
+      if (q.agent) out.push(`    agent: ${yamlScalar(q.agent)}`)
+      if (q.skipped) out.push('    skipped: true')
+    }
+  }
+  out.push('---')
+  return out.join('\n')
+}
+
+// Parse the leading `--- ... ---` block into a meta object; returns the rest as body.
+export function parseFrontmatter(text: string): { meta: Meta | null; body: string } {
+  const lines = text.split('\n')
+  if (lines[0]!.trim() !== '---') return { meta: null, body: text }
+  let i = 1
+  const fm: string[] = []
+  while (i < lines.length && lines[i]!.trim() !== '---') {
+    fm.push(lines[i]!)
+    i++
+  }
+  if (i >= lines.length) return { meta: null, body: text }
+  const meta: Record<string, unknown> = {}
+  for (let j = 0; j < fm.length; j++) {
+    const m = fm[j]!.match(/^([A-Za-z_]+):\s*(.*)$/)
+    if (!m) continue
+    const key = m[1]!
+    const val = m[2]!
+    // `questions:` holds two shapes at once — a plain line and an options block —
+    // so it gets its own reader instead of the generic list branch below.
+    if (key === 'questions') {
+      if (val === '') {
+        const block: string[] = []
+        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]!) && fm[j + 1]!.trim() !== '') {
+          block.push(fm[j + 1]!)
+          j++
+        }
+        meta.questions = parseQuestionsBlock(block)
+      } else {
+        meta.questions = val.trim() === '[]' ? [] : [normalizeQuestion(unquote(val))]
+      }
+      continue
+    }
+    // `schedule:` is the other block field — an action and its notes, indented under it.
+    if (key === 'schedule') {
+      if (val === '') {
+        const block: string[] = []
+        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]!) && fm[j + 1]!.trim() !== '') {
+          block.push(fm[j + 1]!)
+          j++
+        }
+        meta.schedule = parseScheduleBlock(block)
+      } else {
+        // `schedule: implement` — nothing writes it, but it is what a person types by hand,
+        // and reading it beats leaving them with a line the board ignores.
+        meta.schedule = normalizeSchedule({ action: unquote(val) })
+      }
+      continue
+    }
+    if (val === '') {
+      const items: string[] = []
+      while (j + 1 < fm.length && /^\s*-\s+/.test(fm[j + 1]!)) {
+        items.push(unquote(fm[j + 1]!.replace(/^\s*-\s+/, '')))
+        j++
+      }
+      meta[key] = items
+    } else if (val.startsWith('[')) {
+      const inner = val.slice(1, val.lastIndexOf(']'))
+      meta[key] = inner.split(',').map((s) => s.trim()).filter(Boolean).map(unquote)
+    } else {
+      meta[key] = unquote(val)
+    }
+  }
+  for (const k of ['blocked_by', 'related']) {
+    const value = meta[k]
+    if (Array.isArray(value)) {
+      meta[k] = value.map((x) => Number(String(x).replace(/^#/, ''))).filter((n) => Number.isInteger(n))
+    } else {
+      meta[k] = []
+    }
+  }
+  if (!Array.isArray(meta.questions)) {
+    meta.questions = meta.questions ? [normalizeQuestion(meta.questions)] : ([] as Question[])
+  }
+  // How this card ranks. A missing one reads as empty rather than as a level nobody chose.
+  for (const key of ['priority', 'roi']) {
+    meta[key] = typeof meta[key] === 'string' && (meta[key] as string).trim() ? (meta[key] as string).trim() : ''
+  }
+  // modules is an optional string list; a card written before this field parses as [].
+  if (!Array.isArray(meta.modules)) meta.modules = []
+  // Retired fields: `channels:` (#718), `decided:` (#1255), `verify:` (#1329) and `release:`
+  // (#1671). A card still carrying one reads as the ordinary card it now is, and the field
+  // drops out on the next rewrite.
+  // `cadence:` and `last_run:` (#1414) are left as read: ../recurring.ts carries them over.
+  delete meta.channels
+  delete meta.decided
+  delete meta.verify
+  delete meta.release
+  // The workflow this card runs on. Missing, empty or damaged reads as no workflow named,
+  // which whoever asks resolves to the default (agent/workflows.ts).
+  meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''
+  meta.triage = typeof meta.triage === 'string' ? meta.triage.trim() : ''
+  meta.source = (Array.isArray(meta.source) ? meta.source : typeof meta.source === 'string' ? [meta.source] : [])
+    .map((ref) => String(ref).trim())
+    .filter(Boolean)
+  // A card written before #2152 named its stages; its previews' `after` replace them (#2154).
+  delete meta.phases
+  if (Array.isArray(meta.previews)) meta.previews = meta.previews.map((name: unknown) => String(name).trim()).filter(Boolean)
+  else delete meta.previews
+  meta.stages = /^\d+$/.test(String(meta.stages ?? '').trim()) ? Number(meta.stages) : 0
+  meta.phase = /^\d+$/.test(String(meta.phase ?? '').trim()) ? Number(meta.phase) : 0
+  meta.preview_approved = meta.preview_approved === 'true'
+  // The day it was archived. Every card archived before this field existed carries none,
+  // and nothing backfills them, so empty is the ordinary answer and reads as "no date".
+  meta.archived = typeof meta.archived === 'string' && meta.archived.trim() ? meta.archived.trim() : ''
+  meta.rejected = meta.rejected === 'true'
+  meta.rejected_reason = typeof meta.rejected_reason === 'string' ? meta.rejected_reason : ''
+  meta.rejected_at = typeof meta.rejected_at === 'string' ? meta.rejected_at.trim() : ''
+  meta.rejected_by = meta.rejected_by === 'user' || meta.rejected_by === 'agent' ? meta.rejected_by : ''
+  // The action the card is waiting to run. A card written before this field, and one whose
+  // block names something the board can't start, both read as not scheduled.
+  meta.schedule = normalizeSchedule(meta.schedule)
+  return { meta: meta as unknown as Meta, body: lines.slice(i + 1).join('\n') }
+}
+
+// Index of the closing `---`, or 0 when the file opens with no frontmatter.
+export function frontmatterEnd(lines: string[]): number {
+  if (lines[0]?.trim() !== '---') return 0
+  let i = 1
+  while (i < lines.length && lines[i]!.trim() !== '---') i++
+  return i >= lines.length ? 0 : i
+}
+
+// Which frontmatter field line `i` belongs to — the nearest `key:` at or above it, so a
+// mention buried in a wrapped `questions:` entry is reported as `questions`, not as a
+// line number the reader has to go identify.
+export function frontmatterField(lines: string[], i: number): string {
+  for (let j = i; j > 0; j--) {
+    const m = lines[j]!.match(/^([A-Za-z_]+):/)
+    if (m) return m[1]!
+  }
+  return 'frontmatter'
+}

@@ -1,0 +1,295 @@
+import { createStreamRenderer } from '../wire'
+import { arr, home, modelsIn, obj, str } from './models'
+import { providerBlip } from './transient'
+import type { Harness } from './types'
+
+// Claude Code's own voice rather than the agent's: the CLI writes its provider failures
+// under this one prefix, and nothing else a run ends on carries it (#525).
+const cliSaid = (said: string | undefined): string | undefined =>
+  /^\s*API Error\b/i.test(said ?? '') ? said : undefined
+
+// The families `--model` names, each meaning the latest model in it. Claude Code's own
+// `--model` help is where these come from, and they are the only model names here that
+// can't go out of date.
+const MODEL_ALIASES = ['opus', 'sonnet', 'haiku', 'fable']
+
+// `claude -p` in its default text mode prints nothing until the session ends, so a live
+// tail would stay empty the whole time. Ask claude to stream NDJSON events instead
+// (stream.ts renders them into log lines). Every claude run wants these — a fresh one and
+// a resumed one alike.
+//
+// And its turns come in on stdin (#1540): with stdin held open, work it put in the background
+// outlives the reply, and its result comes back as another turn. One-shot, Claude Code kills
+// a background command seconds after answering.
+function claudeStreamArgs(argv: string[]): string[] {
+  if (argv.includes('--output-format')) return []
+  return ['--output-format', 'stream-json', '--verbose', ...(argv.includes('--input-format') ? [] : ['--input-format', 'stream-json'])]
+}
+
+const readsStdin = (argv: string[]): boolean =>
+  argv.includes('--input-format=stream-json') || argv[argv.indexOf('--input-format') + 1] === 'stream-json'
+
+const userMessage = (prompt: string): string =>
+  `${JSON.stringify({ type: 'user', message: { role: 'user', content: prompt } })}\n`
+
+export const CLAUDE_CODE: Harness = {
+  name: 'claude-code',
+  label: 'Claude Code',
+  icon: '/agents/claude.svg',
+  // `claude -p` has nobody at the keyboard, so every tool call it can't pre-approve is
+  // refused. Skip the prompts, the way every other harness's default command already does.
+  command: 'claude -p --dangerously-skip-permissions',
+
+  // Stream the events (see claudeStreamArgs), and pin the session id: `--session-id <id>`
+  // makes Claude Code adopt the id we generated up front, so the record's key IS Claude
+  // Code's own session id — the exact id a resume hands back to the CLI.
+  extraArgs(argv, sessionId) {
+    const extra = claudeStreamArgs(argv)
+    if (sessionId && !argv.includes('--session-id')) extra.push('--session-id', sessionId)
+    return extra
+  },
+
+  resumes: true,
+
+  // `claude -p --resume <id> "<prompt>"` sends one more turn into an existing
+  // conversation. No `--session-id` here — Claude Code refuses both at once, and without
+  // `--fork-session` the resumed turn keeps running under the very id we resumed, so the
+  // new run's resume id is that same id.
+  resumeArgs(argv, resumeId) {
+    const extra = claudeStreamArgs(argv)
+    if (!argv.includes('--resume') && !argv.includes('-r')) extra.push('--resume', resumeId)
+    return extra
+  },
+
+  forkArgs(argv, resumeId, sessionId) {
+    return [...claudeStreamArgs(argv), '--resume', resumeId, '--fork-session', '--session-id', sessionId]
+  },
+
+  // What Claude Code takes: who pays for the run, where that run goes, a model id, and how
+  // hard that model thinks. The provider comes first because it decides the rest — which
+  // of the boxes below apply at all, and the whole environment a run starts under.
+  settings: [
+    // Who pays for a run, and where it goes. Three entries, because these are the three
+    // ways a person reaches Claude Code today: the subscription they already log into,
+    // Anthropic's own API, and any gateway that answers in the Anthropic format. Bedrock,
+    // Vertex and Foundry are more entries on this same list — add them when someone asks.
+    //
+    // "OpenAI" is deliberately not here. Claude Code speaks the Anthropic API only; an
+    // OpenAI model reaches it through a gateway that answers in that format, which IS the
+    // endpoint entry. A connector that speaks the OpenAI format brings its own list.
+    {
+      key: 'provider',
+      label: 'Provider',
+      kind: 'provider',
+      defaultProvider: 'subscription',
+      providers: [
+        {
+          id: 'subscription',
+          label: 'Claude subscription',
+          blurb: 'Runs on the login your claude CLI already has. Nothing else to fill in.',
+          needs: [],
+        },
+        {
+          id: 'anthropic-api',
+          label: 'Anthropic API',
+          blurb: 'Pay per token, with an Anthropic API key.',
+          needs: ['apiKey'],
+          // No `preferWhenSet`: a saved key is a filled box, not a pick. Reading it as one
+          // made the dialog open on the API for anyone who had ever pasted a key, and the
+          // subscription — the way most people reach Claude Code — had to be chosen by hand
+          // every time. A key that is meant to pay for the runs is one pick away and stays
+          // picked (#938).
+        },
+        {
+          id: 'endpoint',
+          label: 'Anthropic-compatible endpoint',
+          blurb:
+            'A gateway that answers in the Anthropic format — OpenRouter, LiteLLM, a company proxy.',
+          needs: ['baseUrl', 'apiKey'],
+          // The base URL is what makes this pick mean anything, so it is the one box that
+          // has to be filled. The key isn't: a proxy on your own laptop often takes none.
+          requires: ['baseUrl'],
+          // A gateway key goes out as ANTHROPIC_AUTH_TOKEN, never as ANTHROPIC_API_KEY.
+          // Claude Code treats a set ANTHROPIC_API_KEY as its own auth source and turns
+          // the user's claude.ai connectors off when it sees one — so sending the key both
+          // ways to suit whichever header a gateway prefers costs the user their
+          // connectors on every run. This is the variable OpenRouter, LiteLLM and the rest
+          // document, and the gateway reads it as `Authorization: Bearer`.
+          envAs: { apiKey: 'ANTHROPIC_AUTH_TOKEN' },
+          // And the other one has to be there and EMPTY, not merely unset. That is what
+          // Claude Code's own gateway instructions say, and an empty value says "this run
+          // has no API key of its own" in a way a missing variable doesn't.
+          env: { ANTHROPIC_API_KEY: '' },
+        },
+      ],
+    },
+    // Where an endpoint run goes. Not a secret — a gateway address is not a credential —
+    // so it saves beside the model in ui.config.json, and it reaches the run as the
+    // variable Claude Code reads for it rather than as a flag, because its CLI has none.
+    {
+      key: 'baseUrl',
+      label: 'Endpoint base URL',
+      kind: 'text',
+      env: 'ANTHROPIC_BASE_URL',
+      placeholder: 'https://my-gateway.example.com',
+      help: 'The address the gateway answers on.',
+    },
+    // The key the picked provider uses. It belongs to the box it is typed in, not to
+    // whoever was picked at the time, so switching providers — or agents — never asks for
+    // it again. Only a provider that needs it sees it: the subscription never does, so the
+    // key never reaches that run. The variable it goes out under follows the pick.
+    {
+      key: 'apiKey',
+      label: 'API key',
+      kind: 'secret',
+      env: 'ANTHROPIC_API_KEY',
+      placeholder: 'sk-ant-…',
+      help: 'Stored on this computer, kept out of git, never shown back.',
+    },
+    // A box, with `models()` below offering what this machine knows under it. Free text is
+    // what it stays: ids change between agent releases, and a list that hasn't heard of one
+    // must not be able to block it. `--model` is the one flag its CLI takes for it; an
+    // override that already names that flag wins.
+    {
+      key: 'model',
+      agentOwned: true,
+      label: 'Model',
+      kind: 'text',
+      placeholder: 'claude-opus-5',
+      flags: ['--model'],
+      help: "Empty runs the agent's default. A wrong id fails the run; the log says why.",
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a model, and that wins.`,
+    },
+    // How hard the model thinks. A list, not a box: unlike a model id, the levels are the
+    // agent's own vocabulary — these five are exactly what Claude Code's `--effort` takes
+    // — and they don't change between releases, so a list can't go stale the way a list of
+    // model ids would. Another agent names its own levels, or has none.
+    //
+    // The first choice is empty, which drops the flag and lets the agent think however it
+    // thinks by default. The board never invents a level, and never judges one either:
+    // what a level means, and whether the picked model can do it, is the agent's. A level
+    // Claude Code doesn't know makes it warn on stderr and run at its own default — that
+    // warning lands in the run's log, where the user reads it.
+    {
+      key: 'reasoning',
+      agentOwned: true,
+      label: 'Reasoning effort',
+      kind: 'select',
+      choices: [
+        { value: '', label: "Agent's default" },
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' },
+        { value: 'xhigh', label: 'Extra high (xhigh)' },
+        { value: 'max', label: 'Max' },
+      ],
+      flags: ['--effort'],
+      help: 'Lower is quicker and cheaper, higher is slower and more careful.',
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names an effort level, and that wins.`,
+    },
+  ],
+
+  // The aliases lead, because they are the answer to this whole question: `claude --model`
+  // takes `opus`, `sonnet`, `haiku` or `fable` for the latest model of that family, so a
+  // board set to one is on the new model the day it ships and nobody edits anything.
+  //
+  // After them, whatever else this login may use. Claude Code asks its own server which
+  // models the account has beyond the built-in ones and keeps the answer in ~/.claude.json,
+  // so the extra a subscription unlocks is offered here without the board knowing its name.
+  models() {
+    return [
+      ...MODEL_ALIASES,
+      ...modelsIn(home('.claude.json'), (data) =>
+        arr(obj(data).additionalModelOptionsCache).map((option) => str(obj(option).value)),
+      ),
+    ]
+  },
+
+  // Everything that could send Claude Code somewhere the pick didn't ask for. Each of
+  // these is dropped from every run, and then the picked provider sets what it needs — so
+  // a base URL exported months ago can't send a "Claude subscription" run through a
+  // gateway while the settings say otherwise.
+  //
+  // It goes past the three providers on the list to the ones the board doesn't offer yet:
+  // a leftover Bedrock, Vertex or Foundry switch moves a run just as surely as a base URL.
+  // What is NOT here is the cloud credentials themselves — AWS_PROFILE,
+  // GOOGLE_APPLICATION_CREDENTIALS and the like. They move nothing once the switch above
+  // them is gone, and the agent may well need them for the work it is doing in the repo.
+  providerEnv: [
+    'ANTHROPIC_AUTH_TOKEN',
+    // Custom headers can carry an authorization of their own, so they are a way to move a
+    // run as much as a base URL is.
+    'ANTHROPIC_CUSTOM_HEADERS',
+    'CLAUDE_CODE_USE_BEDROCK',
+    'ANTHROPIC_BEDROCK_BASE_URL',
+    'CLAUDE_CODE_SKIP_BEDROCK_AUTH',
+    'AWS_BEARER_TOKEN_BEDROCK',
+    'CLAUDE_CODE_USE_VERTEX',
+    'ANTHROPIC_VERTEX_BASE_URL',
+    'CLAUDE_CODE_SKIP_VERTEX_AUTH',
+    'CLAUDE_CODE_USE_FOUNDRY',
+    'ANTHROPIC_FOUNDRY_BASE_URL',
+    'ANTHROPIC_FOUNDRY_API_KEY',
+  ],
+
+  // The one variable that makes a rate limit fail instead of wait.
+  //
+  // By default Claude Code retries a 429 (session/weekly limit, overload) with exponential
+  // backoff — up to 10 attempts, each request allowed 10 minutes. In a terminal that's
+  // right; here it's wrong. A rate-limited run would sit holding the card for the better
+  // part of an hour before it ever reported anything. `CLAUDE_CODE_MAX_RETRIES=0` turns
+  // the first 429 into an immediate non-zero exit, so the board learns at once and the
+  // card is free again.
+  //
+  // It is NOT a spend control. Whether hitting your plan's limit spills over into paid
+  // extra usage is an account setting on claude.ai (the CLI has no flag for it).
+  env: () => ({ ...process.env, CLAUDE_CODE_MAX_RETRIES: '0' }),
+
+  // Its closing event carries all three, so a run under it shows a price, its tokens and
+  // the model that did the work.
+  reports: ['cost', 'tokens', 'model', 'context'],
+
+  // The variable above is the switch: the first 429 exits non-zero and the card is free.
+  stopsOnRateLimit: true,
+
+  // A provider that stumbled, in the three ways `claude -p` reports one (#525).
+  //
+  // `failure` is a `result` event marked `is_error`, which the renderer already reads for
+  // its own reason. `offStream` is a line the CLI printed outside its events, and it is how
+  // BOTH failures this board captured arrived — "API Error: Connection dropped
+  // (ECONNRESET)" and "API Error: Connection lost mid-response.": the connection goes and
+  // no `result` event is ever written. `result` is the agent's own last message, read for
+  // the same words in case a future CLI puts them there.
+  //
+  // The last two only behind the `API Error:` prefix the CLI writes them under: everything
+  // else on those two is the agent's prose, and prose quoting an error is not a failure.
+  transient: ({ failure, result, offStream }) => providerBlip(failure, cliSaid(offStream), cliSaid(result)),
+
+  renderer: createStreamRenderer,
+
+  stdinPrompt: (argv) => (readsStdin(argv) ? userMessage : undefined),
+
+  // `--session-id` above makes Claude Code run under the id we generated, so our key IS
+  // its resume id — no waiting for the stream to report one.
+  adoptsSessionId: true,
+
+  savesSessionAtOpen: false,
+
+  // Its own Read tool opens an image file, so a path in the message is the whole of it.
+  images: { as: 'message' },
+
+  // Claude Code loads a skill from its slash name.
+  skillCall: '/kanban',
+
+  // `claude auth status` prints one JSON object saying whether it is signed in and how. Its
+  // `loggedIn` flag is read, not its exit code: this one does set the code, and two of the
+  // other three leave it at 0 in both states, so the output is the rule everywhere.
+  login: {
+    args: ['auth', 'status'],
+    ready: (out) => /"loggedIn"\s*:\s*true/.test(out),
+    loggedOut: (out) => /"loggedIn"\s*:\s*false/.test(out),
+    login: 'claude auth login',
+  },
+
+  install: 'npm install -g @anthropic-ai/claude-code',
+}

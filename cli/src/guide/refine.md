@@ -1,0 +1,34 @@
+# Refine a card
+
+Plan one card in this session until it can be built. Change no project code.
+
+- **Unchecked card**: a card with `triage:` set and an empty `## Scope` was never checked
+  against the project. Search the relevant code and docs first; when the project already does
+  the work, or what it concerns no longer exists, run
+  `akb raw reject <id> --discard --reason "<what shows it>"` and stop.
+- **Split**: only when the card holds independently plannable areas and one is still vague,
+  follow the group procedure in `akb guide add-task`, create each subtask with
+  `--schedule refine`, and stop.
+- **Workflow rules**: write the card as its workflow's rules, attached to this prompt, say.
+- **Choose preview agents**: when the card's frontmatter has no `previews`, record every listed
+  agent with no `When` and every one whose `When` the card meets with
+  `akb raw update <id> --previews <agents>`; later, add or drop only an agent that has not run.
+- **Preview agents**: run each chosen agent whose `After` agents' previews are all approved and
+  whose section is missing or outdated with `akb spec <agent> <id> --print`, one at a time.
+  Once those sections are done, stop for the user's Approve.
+- **File name**: when the card's file name does not say in English what the card is, rename
+  it with `akb raw update <id> --slug <short-english-slug>`; leave a group's root as it is.
+- **Stale mentions**: rewrite any sentence that relies on a card no longer on the board.
+- **Think like the one who ships it**: settle facts from the code and authoritative sources,
+  then cover what shipping the change takes beyond the happy path — for example existing data
+  and settings, release and rollback, failure, access, and ongoing cost.
+- **Questions**: settle every question you can answer with high confidence, even one worth the
+  user's attention, and record them as `akb guide writing` says. Ask only what is left and
+  passes the `[user]` test in `akb guide update-questions`.
+- **Write**: shape the card as `akb guide writing` says, then run `akb raw validate <id>` and
+  fix every reported line.
+- **Decide readiness**: once the card validates, judge whether it can be built as written, or
+  before its last Approve; if so, run `akb raw update <id> --status ready`, otherwise
+  leave what blocks it as a `[user]` question.
+
+Follow the flow's closing steps, then stop: the user starts the build.

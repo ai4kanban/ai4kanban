@@ -1,0 +1,1707 @@
+// What is running, and the rules that decide what may start.
+//
+// The record itself is a file — sessions.json in this board's own folder on the machine
+// (#590) — and agent/store.ts owns it. This is everything around it: which run may start on
+// which card, the bookkeeping either side of one, and the delivery a run belongs to.
+//
+// Alongside the record sits `sessions/`: one log per run, and, while one is starting, the
+// plan it was started with. Both are the run's own; the record points at them.
+
+import { randomUUID } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { boardCardIds, locate, locateArchived } from '../cards'
+import { parseFrontmatter } from '../frontmatter'
+import { setCardStatusOn } from '../board'
+import { cardFile } from '../board/revision'
+// pidAlive lives with the lock, which needs the same question answered about whoever holds it.
+import { pidAlive } from '../lock'
+import { say, warn } from '../io'
+import { planFromText, planTitle, readPlan } from '../plans'
+import { tickedSetupSteps } from '../setup'
+import { reportBoardNumbers, reportRun } from '../machine/usage'
+import { customAgentsOn, isCustomAgent } from '../agents/roster'
+import { SKILL_VERSION } from '../../version'
+import { INDEX_LOCK, REPO_ROOT, SESSIONS_DIR } from '../paths'
+import {
+  activeDelivery,
+  carryOnFrom,
+  endDelivery,
+  findDelivery,
+  joinActive,
+  joinDelivery,
+  namedDelivery,
+  resumeRecord,
+  resumeRefusal,
+  settleDelivery,
+  unknownDelivery,
+  settleOrphanedDeliveries,
+  sweepCheckouts,
+  syncAudit,
+  tidyCheckout,
+} from './deliveries'
+import { DELIVERY_FLOWS } from './flows'
+import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
+import { repairLanding, settleAlreadyLanded } from './landing'
+import { pruneWorktreeMetadata, removeWorktree } from './worktree'
+import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
+import { adoptsSessionId, harnessLabel, onOwnEndpoint, planFork, planResume, planRun, resumesUnder, shipsHarness, type RunPlan } from './resolve'
+import { moveRunPictures } from './pictures'
+import { buildRun, restartPrompt, restartable } from './prompts'
+import { agentForRun } from './runner'
+import { killMarked, killTreeOnWindows, killUnderOnWindows, runMark } from './stop'
+import { readRuntimes, runtimeById } from './runtimes'
+import { dropReflected, stampDismissalReview, stampMemoryPrune, stampMemoryReview, stampProjectDescription } from './settings'
+import { scheduledAgent, stampScheduledRun, workflowById } from './workflows'
+import { creationOf, eventsPathOf, logPathOf, noteRefineTried, readRuns, runIsLive, withRuns, withStore } from './store'
+import { insideRun } from './env'
+import { withCreationLock } from './creation-lock'
+import { creationRefusal, openOf } from '../view/rules'
+import { holdsCard, isRetired, refusal, SPECIALIST_ACTIONS } from './types'
+import type {
+  AgentAction,
+  AgentRequest,
+  AgentSession,
+  DeliveryCarryOn,
+  DeliveryRecord,
+  DirectBuild,
+  RefineAsk,
+  RunReason,
+  RunRecord,
+  RunRefusal,
+  RunRefusalKind,
+  RefusalArgs,
+  RunStatus,
+  RunView,
+  SpecAsk,
+} from './types'
+
+export { logPathOf, readAction, readRuns, withRuns } from './store'
+
+// Runs that write the board's shared file (the README index) as a batch, and so wait for
+// one another. A single card write does NOT belong here: `raw create` writes the card and
+// the index under the board lease, so two of them interleave safely. What needs the whole run serialized is a run that writes several
+// cards off one read of the board — setup — plus archive/reject, which reconcile the index
+// against the board they read.
+const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'setup'])
+
+// Actions that may run only one at a time across the whole board. The per-card rule can't
+// catch a duplicate of any of them — none names a card — and each reads the whole board to
+// decide what to write: two setups work down the same checklist side by side. A create is not one of them — it
+// writes the one card it was handed, and its id and index entry are the board lease's
+// problem, not this lock's.
+const SINGLETON_ACTIONS = new Set<AgentAction>([
+  'setup',
+  'prune-memory',
+  'review-memory',
+  'review-dismissals',
+  'describe-project',
+  'reflect',
+])
+
+// Past-tense verb for the "already running" refusal, e.g. "#5 is already being
+// implemented".
+const VERB: Record<AgentAction, string> = {
+  implement: 'implemented',
+  run: 'run',
+  reject: 'rejected',
+  archive: 'archived',
+  edit: 'edited',
+  create: 'created',
+  propose: 'proposed',
+  clarify: 'clarified',
+  resolve: 'resolved',
+  approve: 'approved',
+  writing: 'rewritten',
+  gate: 'judged',
+  decide: 'decided',
+  'plan-release': 'planned',
+  setup: 'set up',
+  'prune-memory': 'pruned',
+  'review-memory': 'reviewed for memory',
+  'review-dismissals': 'reviewed for rejections and dismissals',
+  'describe-project': 'described',
+  triage: 'sorted',
+  reflect: 'reflected on',
+  spec: 'specified',
+  changelog: 'written up',
+  review: 'reviewed',
+  conflict: 'unblocked',
+  hook: 'worked on by a hook',
+  scheduled: 'run on its schedule',
+  sub: 'worked on by a sub-run',
+  unstick: 'settled',
+}
+
+// The refusal a one-at-a-time action gets when one of its own is already going, where the
+// "a task is already being …" sentence doesn't fit.
+const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
+  setup: 'this board is already being set up',
+  'prune-memory': 'the memory is already being pruned',
+  'review-memory': 'the conversations are already being reviewed',
+  'review-dismissals': 'the rejections and dismissals are already being reviewed',
+  'describe-project': 'the project is already being described',
+  reflect: 'finished tasks are already being reviewed',
+}
+
+// A run's action maps to the saved stage it puts the card in while it goes. Only a
+// delivery's own runs set one — the rest either refine the card or touch no resting
+// card.
+const RUN_STATUS: Partial<Record<AgentAction, string>> = {
+  implement: 'implementing',
+  conflict: 'implementing',
+  hook: 'implementing',
+}
+
+/** Everything a watcher needs to start the run it was handed. Written beside the log so
+ *  the command that starts a run and the process that runs it are not the same process. */
+export interface RunSpec {
+  sessionId: string
+  plan: RunPlan
+  prompt: string
+  /** What the board owes this run's log before the agent's own output — a spec agent's
+   *  setting that had to fall back, and nothing else today. The watcher writes them out as
+   *  it opens the log, so the reason is above the work it changed. */
+  notes?: string[]
+  /** On a planning run that carried a session on (#1304): the ask to start again in a new
+   *  session, should that one turn out to be gone. */
+  again?: AgentRequest
+}
+
+export interface StartResult {
+  ok: boolean
+  sessionId?: string
+  error?: string
+  reason?: RunRefusalKind
+  args?: RefusalArgs
+}
+
+// ---- the run's own files ---------------------------------------------------
+
+const specPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.plan.json`)
+// The spec agents a run asked for while it went, waiting for its watcher to start them.
+const asksPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.asks.json`)
+
+// ---- what is still alive ---------------------------------------------------
+
+// A run whose watcher is gone was INTERRUPTED, never finished. Nobody witnessed its end, so
+// there is no exit code, no final message, and no reason to believe the work is complete.
+// It reads as unfinished and offers Resume.
+//
+// Unless a stop had already been asked for: then the process ending is the stop landing,
+// and the run is `stopped`.
+function reap(runs: RunRecord[], reaped: RunRecord[] = [], restore: RunRecord[] = []): boolean {
+  let changed = false
+  const now = Date.now()
+  for (const r of runs) {
+    // `runIsLive` gives a run with no pid yet its PENDING_MS — the command that started it
+    // hasn't spawned the watcher. Past that, nothing is ever going to report on it.
+    if (r.status !== 'running' || runIsLive(r)) continue
+    r.status = r.stopping ? 'stopped' : 'interrupted'
+    r.code = null // we saw no exit
+    // Its watcher is gone, so nothing else will end what its agent started (#1302).
+    if (r.pid) killMarked(runMark(r.sessionId), r.agentPid && r.agentStartedAt ? { pid: r.agentPid, since: r.agentStartedAt } : undefined)
+    // We only know it ended by the time we noticed, so this duration is an upper bound.
+    r.endedAt = now
+    stampDuration(r, r.endedAt)
+    // The card's stage is put back OUTSIDE this lock, like the delivery below it: writing
+    // the board is one of the board's own operations now, and holding the record's lock
+    // across it would be holding one lock while waiting on another (#312).
+    restore.push({ ...r })
+    // A run cut off mid-delivery is settled outside this lock: a build that was cut
+    // off leaves the delivery ACTIVE and unfinished, and a review cut off stops and asks
+    // (#302).
+    if (r.deliveryId && r.action !== 'sub') reaped.push({ ...r })
+    dropSpec(r.sessionId)
+    changed = true
+  }
+  return changed
+}
+
+// The duration line, for the paths that don't own the log's write stream. Best-effort: a
+// missing log just means the duration rests in the record alone.
+function stampDuration(run: RunRecord, endedAt: number): void {
+  try {
+    fs.appendFileSync(run.logPath, durationLine(endedAt - run.startedAt))
+  } catch {
+    // no log file (never spawned, or pruned) — nothing to stamp
+  }
+}
+
+// ---- the board's own bookkeeping around a run ------------------------------
+
+// The board owns every frontmatter field, so a run never hand-writes one — it calls the
+// board's own operation (lib/board). Best-effort and silent: if the card is gone (archived
+// by the very run that just ended) or the board refuses, the run is over either way and its
+// answer is elsewhere.
+export async function setCardStatus(cardId: number, status: string): Promise<void> {
+  try {
+    await setCardStatusOn(cardId, status)
+  } catch {
+    // the board would not take the write — leave the stage as it is
+  }
+}
+
+/** The card's stage and whether it has open questions, or null when there is no such card.
+ *  Read straight off the file: this is the same board every move writes. A group root is its
+ *  folder's `root.md`, which is what `cardFile` resolves. */
+function cardNow(cardId: number): { status: string; questions: number; title: string } | null {
+  try {
+    const file = cardFile(cardId)
+    if (!file) return null
+    const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+    if (!meta) return null
+    return { status: meta.status || 'todo', questions: openOf(meta.questions).length, title: meta.title }
+  } catch {
+    return null
+  }
+}
+
+/** The card write a claim still owes, once the run record has remembered what was there. */
+export interface CardClaim {
+  cardId: number
+  status: string
+}
+
+/** Remember the stage the card had — so the end of the run puts back what was there rather
+ *  than always dropping it to `todo` — and say how to mark it as being worked on.
+ *
+ *  Only the record is changed here: this runs under the run record's lock (`patch`), and
+ *  the caller awaits `setCardStatus` with that lock released. */
+export function claimCard(run: RunRecord): CardClaim | undefined {
+  const wanted = run.cardId !== null ? RUN_STATUS[run.action] : undefined
+  if (run.cardId === null || !wanted) return undefined
+  // Inside a delivery the stage to put back is the delivery's, taken before its first
+  // run touched the card. Reading it here would give every run after the build
+  // `implementing` — the stage the delivery itself put there — and the card would rest on
+  // it forever.
+  const delivery = run.deliveryId ? activeDelivery(run.cardId) : undefined
+  run.priorStatus =
+    (delivery && delivery.deliveryId === run.deliveryId ? delivery.priorStatus : undefined) ??
+    cardNow(run.cardId)?.status ??
+    'todo'
+  return { cardId: run.cardId, status: wanted }
+}
+
+// When a run ends and its card still exists, restore the stage it had before — so a `ready`
+// card is `ready` again, not knocked back to `todo`. Questions always win: if the run left
+// the card with open questions, drop it to `todo` whatever the prior stage. If the run
+// finished the task (archive/reject removed the card) this is a harmless no-op.
+async function restoreCardStatus(run: RunRecord): Promise<void> {
+  if (run.cardId === null || !RUN_STATUS[run.action]) return
+  // A delivery still in flight is still building this card — its run ended, not the
+  // job — so the stage stays where the delivery put it until the delivery itself ends.
+  if (run.deliveryId && activeDelivery(run.cardId)?.deliveryId === run.deliveryId) return
+  const card = cardNow(run.cardId)
+  if (!card) return // archived or rejected — nothing to restore
+  await setCardStatus(run.cardId, card.questions > 0 ? 'todo' : run.priorStatus ?? 'todo')
+}
+
+// The card's stage when nothing is working on it any more, for the one path that has no
+// run to read a prior stage from: a delivery cancelled or discarded between its runs. It
+// goes back to the stage the delivery took it from — `ready`, normally — because throwing
+// the work away is not the same as unsettling the plan. Questions still win: a card with
+// something to answer rests at `todo`.
+async function releaseCard(delivery: DeliveryRecord): Promise<void> {
+  // A build with no card held no stage, so there is none to put back (#428).
+  if (delivery.cardId === null) return
+  const card = cardNow(delivery.cardId)
+  if (card?.status !== 'implementing') return
+  await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : delivery.priorStatus ?? 'ready')
+}
+
+// The pruner's own stamp (#514), written at the close rather than by the agent mid-flow:
+// only a pass that PASSED moves it, so a prune that failed leaves the schedule due
+// and the board does not fire it again on the next tick.
+function recordPrune(run: RunRecord): void {
+  if (run.action !== 'prune-memory' || run.status !== 'done') return
+  try {
+    stampMemoryPrune()
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// And the memory review's last pass (#748), stamped with when that review STARTED: the day
+// until the next round counts from there. Which conversations it read is theirs to carry (#1322).
+function recordMemoryReview(run: RunRecord): void {
+  if (run.action !== 'review-memory' || run.status !== 'done') return
+  try {
+    stampMemoryReview(new Date(run.startedAt))
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// And the cards a reflection that passed covered (#1467): off the queue, never before.
+function recordReflection(run: RunRecord): void {
+  if (run.action !== 'reflect' || run.status !== 'done' || !run.cards?.length) return
+  try {
+    dropReflected(run.cards)
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// And the rejection review's window (#929, #1497), on the same terms: a pass, stamped with its start.
+function recordDismissalReview(run: RunRecord): void {
+  if (run.action !== 'review-dismissals' || run.status !== 'done') return
+  try {
+    stampDismissalReview(new Date(run.startedAt))
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// And a workflow's scheduled agent (#1401): a pass that PASSED, by when its delivery began —
+// a resumed pass still covers everything since the first attempt started.
+function recordScheduledRun(run: RunRecord): void {
+  if (run.action !== 'scheduled' || run.status !== 'done' || !run.workflow || !run.specAgent) return
+  try {
+    const began = (run.deliveryId ? findDelivery(run.deliveryId)?.startedAt : undefined) ?? run.startedAt
+    stampScheduledRun(run.workflow, run.specAgent, new Date(began))
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// And the project description's (#1268): the commits since this pass began are the next one's.
+function recordProjectDescription(run: RunRecord): void {
+  if (run.action !== 'describe-project' || run.status !== 'done') return
+  try {
+    stampProjectDescription(new Date(run.startedAt))
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// ---- reading ---------------------------------------------------------------
+
+// The id a run's conversation is resumed by — the AGENT's id for it, which is a different
+// thing from `sessionId`, our key for the run. They coincide in one case, and that case is
+// the common one: a run started fresh under an agent that takes the id we generate IS its
+// conversation, so the id needs no recording.
+//
+// The two cases where the id came from somewhere else, and only the field can answer:
+//   • the agent minted its own mid-run and reported it (Codex's thread id) — until that
+//     arrives there is genuinely no id to continue by;
+//   • THIS run is a later turn of an earlier conversation. It carries that conversation's
+//     id, not our new key.
+function resumeIdOf(r: RunRecord): string | undefined {
+  if (adoptsSessionId(r.harness) && !carriesSession(r)) return r.sessionId
+  return r.resumeId
+}
+
+/** Whether this run is one more turn of a session opened before it: a resume, or planning
+ *  carried on (#1304). A fork is a session of its own. */
+export const carriesSession = (r: RunRecord): boolean =>
+  !!(r.resumedFrom || (r.continues && !r.continues.fork))
+
+/** The id this run's own CLI would pick its conversation up by, or nothing when there is
+ *  none. Asked BEFORE a run's status is settled, by the retry that has to know whether
+ *  there is anything to come back to before it holds a card through a wait (#525). */
+export function resumeSessionId(run: RunRecord): string | undefined {
+  return resumesUnder(run.harness) && !neverStarted(run) ? resumeIdOf(run) : undefined
+}
+
+// A run that ended before finishing, so there is something left to continue: it failed, it
+// was cut off, or the user stopped it. A stop ends the run, not the conversation — changing
+// their mind is one click, and the alternative is redoing the work from the top. The one
+// test behind both the offer and the refusal.
+const canPickUp = (r: RunRecord): boolean =>
+  r.status === 'error' || r.status === 'interrupted' || r.status === 'stopped'
+
+/** Why this run's delivery rules a resume out: it has ended, and the delivery itself can no
+ *  longer be carried on — cancelled, finished, or its checkout gone (#930). A failed one that
+ *  worked in the project itself has no checkout to lose, so its run still resumes there. */
+function endedDeliveryRefusal(r: RunRecord, refusals?: Map<string, RunRefusal | undefined>): RunRefusal | undefined {
+  if (!r.deliveryId || !canPickUp(r)) return undefined
+  if (refusals?.has(r.deliveryId)) return refusals.get(r.deliveryId)
+  const delivery = findDelivery(r.deliveryId)
+  const ended = delivery && delivery.status !== 'active' && (delivery.status !== 'failed' || delivery.worktree)
+  const why = ended ? resumeRefusal(delivery) : undefined
+  refusals?.set(r.deliveryId, why)
+  return why
+}
+
+// The agent's process never came up. `notInstalled` answers for a run recorded before the mark.
+const neverStarted = (r: RunRecord): boolean => r.unspawned === true || !!r.errorWhy?.some((why) => why.kind === 'notInstalled')
+
+/** Nothing stands behind this run to continue (#1321): an agent that never started, or one
+ *  that never named its session. */
+const lacksSession = (r: RunRecord): boolean => neverStarted(r) || !resumeIdOf(r)
+
+/** A run whose connector this build cannot resume still carries on (#1321) — in a new
+ *  session, so only where its ask can be said again. */
+const carriesOn = (r: RunRecord): boolean => resumesUnder(r.harness) || restartable(r)
+
+// The actions that name no card.
+const CARDLESS = new Set<AgentAction>(['setup', 'prune-memory', 'review-memory', 'review-dismissals', 'describe-project'])
+
+/** The ask a run was started with, rebuilt from its record (#1321) — `runInput` read the other
+ *  way. Nothing where the record does not hold it: a run that is itself a resume, and a
+ *  create off a plan. Nor for a run whose work is done and only
+ *  its format is owed. */
+function retryAsk(r: RunRecord): AgentRequest | undefined {
+  if (r.resumedFrom || isRetired(r.action)) return undefined
+  if (r.formatRepair && !neverStarted(r)) return undefined
+  const id = r.cardId ?? undefined
+  const base: AgentRequest = {
+    action: r.action,
+    id,
+    discard: r.discard,
+    specAgent: r.specAgent,
+    fromCard: r.fromCard,
+    origin: r.origin,
+    refineRound: r.refineRound,
+    flowId: r.flowId,
+    workflow: r.workflow,
+    cards: r.cards,
+  }
+  switch (r.action) {
+    case 'create':
+      return r.input ? { ...base, description: r.input } : undefined
+    case 'implement':
+    case 'conflict':
+    case 'scheduled': {
+      if (id !== undefined) return { ...base, notes: r.input }
+      // A build with no card is named by its delivery (#428), and by what that was handed.
+      if (!r.deliveryId) return undefined
+      if (r.action !== 'implement') return { ...base, deliveryId: r.deliveryId }
+      const plan = findDelivery(r.deliveryId)?.plan
+      return r.input || plan ? { ...base, deliveryId: r.deliveryId, description: r.input, plan } : undefined
+    }
+    case 'reflect':
+      return id !== undefined || r.cards?.length ? base : undefined
+    default:
+      return id === undefined && !CARDLESS.has(r.action) ? undefined : { ...base, notes: r.input }
+  }
+}
+
+function toView(r: RunRecord, gone?: ReadonlySet<number>, refusals?: Map<string, RunRefusal | undefined>): RunView {
+  const cardOffBoard = r.cardId !== null && !!gone?.has(r.cardId)
+  // A sub-run is started again by its parent, never on its own (#1421).
+  const open = r.action !== 'sub' && canPickUp(r) && !endedDeliveryRefusal(r, refusals)
+  const session = !lacksSession(r)
+  return {
+    ...r,
+    durationMs: r.status !== 'running' && r.endedAt ? r.endedAt - r.startedAt : undefined,
+    // The Resume offer, and everything it needs to be honest: the run stopped short, there is
+    // a session to continue, and its delivery, if it ended, can still be carried on.
+    canResume: open && session && carriesOn(r),
+    // And Retry where there is none (#1321): a failure, never a stop, on a card still here.
+    canRetry: (open && !session && r.status !== 'stopped' && !cardOffBoard && !!retryAsk(r)) || undefined,
+    cardOffBoard: cardOffBoard || undefined,
+  }
+}
+
+/** Whether card `id` left the board the way a finished card does (#682) — its own landing
+ *  archived it, which can happen while another run is still working on it. Two answers,
+ *  either of which is proof: the card is in `.archive/`, or a delivery for it in this
+ *  machine's record landed a commit. The second is what a Cloud board has, since hydrate
+ *  leaves `.archive/` out of the local copy while `.sessions.json` stays.
+ *
+ *  A rejected card is filed there too, marked `rejected`, and answers false here. */
+export function leftBoardOnLanding(id: number): boolean {
+  const filed = locateArchived(id)
+  if (filed) {
+    const file = filed.kind === 'group' ? path.join(filed.target, 'root.md') : filed.target
+    try {
+      return !parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.rejected
+    } catch {
+      return true
+    }
+  }
+  return withStore((store) => store.deliveries.some((d) => d.cardId === id && !!d.landing?.commit))
+}
+
+// The cards, among those a run stopped short on, that have since left the board (#673,
+// #809). Landing files a card under `.archive/`, and so do Archive and Reject
+// — all three settle whatever the run was left owing, and none of them leaves the card
+// in `todo/`. So the board's own card ids answer for every ending at once.
+//
+// Asked only about the cards something stopped short on, which is almost always none, and
+// the board is walked once for all of them rather than once each.
+function goneCards(runs: RunRecord[]): ReadonlySet<number> {
+  const asking = new Set<number>()
+  for (const run of runs) if (run.cardId !== null && canPickUp(run)) asking.add(run.cardId)
+  if (asking.size === 0) return asking
+  const onBoard = boardCardIds()
+  const gone = new Set<number>()
+  for (const id of asking) if (!onBoard.has(id)) gone.add(id)
+  return gone
+}
+
+/** Every run the board knows about, oldest first. Reaping happens here, which is why this
+ *  writes: a run whose watcher died has to stop reading as live for everyone, not just for
+ *  whoever noticed. */
+export async function listRuns(): Promise<RunView[]> {
+  const reaped: RunRecord[] = []
+  const restore: RunRecord[] = []
+  const runs = withRuns((all) => {
+    reap(all, reaped, restore)
+    return all.map((r) => ({ ...r }))
+  })
+  // Both outside the record's lock. The card's stage first, then the delivery: a run reaped
+  // here ended out of everyone's sight, so this is where its delivery is told — and its
+  // permanent record is the only place that ending is written down.
+  for (const run of restore) await restoreCardStatus(run)
+  for (const run of reaped) await settleDelivery(run)
+  // A sub-run whose parent is gone has nobody to report to (#1421).
+  for (const sub of runs) {
+    if (sub.action !== 'sub' || sub.status !== 'running' || !sub.parentId) continue
+    if (!runs.some((r) => r.sessionId === sub.parentId && r.status === 'running')) await stopRun(sub.sessionId)
+  }
+  // And the deliveries no row is left of at all, which reaping cannot reach: it reads the
+  // record, and these are the ones the record lost.
+  if (Date.now() - scannedOrphansAt >= ORPHAN_SCAN_MS) {
+    scannedOrphansAt = Date.now()
+    await recoverOrphanedDeliveries()
+  }
+  const gone = goneCards(runs)
+  const refusals = new Map<string, RunRefusal | undefined>()
+  return runs.map((r) => toView(r, gone, refusals))
+}
+
+// How often one process rescans the permanent records for deliveries it lost track of. A
+// scan reads every file under docs/kanban/deliveries/, which only ever grows, and the board's
+// screens poll `listRuns` twice a second — a minute is soon enough for a card that has been
+// stuck since the index went missing.
+const ORPHAN_SCAN_MS = 60_000
+let scannedOrphansAt = 0
+
+/** Settle the deliveries this board lost the live record for, and hand back the cards of
+ *  the ones that ended. Returns those endings — a recovered delivery still holds its card,
+ *  so there is nothing about it for a caller to put right.
+ *
+ *  `listRuns` calls this, at most once a minute per process — nothing else reaches these
+ *  deliveries, because everything else reads the record and the record is what they fell
+ *  out of.
+ *
+ *  A card another delivery has taken over since is left where it is: the stage it reads is
+ *  that delivery's, not this one's to put back.
+ *
+ *  It also picks up after a crash: a landing rebase left half-done is put back, and the
+ *  checkouts ended deliveries still hold go under the one rule (#720). */
+export async function recoverOrphanedDeliveries(): Promise<DeliveryRecord[]> {
+  try {
+    pruneWorktreeMetadata()
+    for (const complaint of [...repairLanding(), ...sweepCheckouts()]) warn(complaint)
+  } catch (e) {
+    warn(`crash repair failed: ${e instanceof Error ? e.message : String(e)}`)
+  }
+  const { failed } = settleOrphanedDeliveries()
+  for (const delivery of failed) {
+    if (delivery.cardId !== null && activeDelivery(delivery.cardId)) continue
+    await releaseCard(delivery)
+  }
+  return failed
+}
+
+/** One run by id, or by any prefix of one that names exactly one run. `last` is the newest
+ *  run of all — the one you almost always mean right after starting something. */
+export function findRun(runs: RunRecord[], id: string): RunRecord | undefined | null {
+  const key = id.trim()
+  if (!key) return undefined
+  if (key === 'last') return runs[runs.length - 1]
+  const exact = runs.find((r) => r.sessionId === key)
+  if (exact) return exact
+  const hits = runs.filter((r) => r.sessionId.startsWith(key))
+  if (hits.length === 1) return hits[0]
+  // More than one — null says "ambiguous", which is a different answer from "no such run".
+  return hits.length > 1 ? null : undefined
+}
+
+/** One run with its log read from the file, or null when no run answers to that id. */
+export async function getRun(id: string, bytes?: number): Promise<RunView | null> {
+  const restore: RunRecord[] = []
+  const runs = withRuns((all) => {
+    reap(all, [], restore)
+    return all.map((r) => ({ ...r }))
+  })
+  for (const run of restore) await restoreCardStatus(run)
+  const found = findRun(runs, id)
+  if (!found) return null
+  const view = toView(found, goneCards([found]))
+  const raw = readLogTail(found.logPath, bytes) ?? ''
+  const { tail, result, durationMs, costUsd, model, usage } = splitLog(raw)
+  view.tail = tail
+  // The record wins where it has an answer; the stamps in the log are what is left for a
+  // run whose record has been trimmed down to nothing but its file.
+  if (result && found.status !== 'running' && !view.result) view.result = result
+  if (view.durationMs === undefined && durationMs !== undefined && found.status !== 'running') {
+    view.durationMs = durationMs
+  }
+  if (view.costUsd === undefined && costUsd !== undefined && found.status !== 'running') {
+    view.costUsd = costUsd
+  }
+  if (view.usage === undefined && usage !== undefined && found.status !== 'running') view.usage = usage
+  if (view.model === undefined && model !== undefined) view.model = model
+  return view
+}
+
+// ---- starting --------------------------------------------------------------
+
+// The locks every new run passes, whether it's a fresh action or a resumed one: one live
+// run per card, and one live singleton across the whole board. Checked
+// with the record's lock held, so two processes can't both slip past.
+function lockedBy(
+  runs: RunRecord[],
+  action: AgentAction,
+  cardId: number | null,
+  discard = false,
+): RunRefusal | undefined {
+  // A specialist is out of that rule at both ends (`holdsCard`): it fills one section, never
+  // the plan, so it neither takes the card nor waits for one. Two agents may work a card —
+  // they write different things — and a card
+  // being refined can still have its screen drawn. Two runs writing one card file at the
+  // same moment is the problem #156 owns, and it is that problem whether or not this rule
+  // pretends otherwise.
+  if (cardId !== null && holdsCard(action)) {
+    const live = runs.find((r) => r.status === 'running' && r.cardId === cardId && holdsCard(r.action))
+    if (live) {
+      return refusal('cardBusy', `#${cardId} is already being ${VERB[live.action]}`, {
+        card: String(cardId),
+        action: live.action,
+      })
+    }
+  }
+  // A card its creator has not finished writing takes no run at all (#564) — not the
+  // specialists either, since a section written onto half a plan answers the wrong plan.
+  if (cardId !== null) {
+    if (!(action === 'reject' && discard) && runs.some((r) => r.discardedCards?.some((c) => c.id === cardId))) {
+      return refusal('cardDiscarded', `#${cardId} was discarded. Do not restore or recreate it.`, { card: String(cardId) })
+    }
+    const creation = creationOf(runs, cardId)
+    const creating = creationRefusal(cardId, creation, action, action === 'reject' && discard)
+    if (creating && creation) {
+      return refusal(creation.state === 'creating' ? 'cardCreating' : 'cardUnfinished', creating, {
+        card: String(cardId),
+        run: creation.runId.slice(0, 8),
+        action,
+      })
+    }
+  }
+  if (SINGLETON_ACTIONS.has(action)) {
+    const live = runs.find((r) => r.status === 'running' && r.action === action)
+    if (live) return { error: SINGLETON_BUSY[action] ?? `a task is already being ${VERB[action]}` }
+  }
+  return undefined
+}
+
+/** Why a card can't be rejected right now (#1497): the holds a reject run used to pass on its
+ *  way in. The run asking, if any, is not in its own way. */
+export function rejectRefusal(cardId: number, discard: boolean): RunRefusal | undefined {
+  const self = insideRun()
+  return lockedBy(readRuns().filter((r) => r.sessionId !== self), 'reject', cardId, discard)
+}
+
+// The text the user typed for a run, pulled from whichever field carries it.
+function runInput(req: AgentRequest): string | undefined {
+  const text = req.description ?? req.reason ?? req.notes ?? ''
+  return text.trim() || undefined
+}
+
+/** The title of the card a run names, so its prompt can say what the task is called. */
+export function titleOf(cardId: number | undefined): string | undefined {
+  if (!Number.isInteger(cardId)) return undefined
+  return cardNow(cardId as number)?.title
+}
+
+/** What a build with no card was handed: the sentence **Start now** typed (#428), or the
+ *  plan the handoff was answered on (#481). It is the delivery's title and the whole of its
+ *  frozen `approved` requirements at once, so an empty one is nothing to build and the run is
+ *  refused rather than opened. Undefined when this is not a card-less build. */
+function approvedDirect(req: AgentRequest): DirectBuild | RunRefusal | undefined {
+  const named = req.plan?.trim()
+  if (named) {
+    const rel = planFromText(named)
+    const text = (rel ? readPlan(rel)?.text : '')?.trim() ?? ''
+    const title = planTitle(text)
+    if (!title) return refusal('planEmpty', `there is nothing written in ${named} yet, so there is nothing to build.`, { path: named })
+    return { title, approved: text, plan: named }
+  }
+  const typed = req.description?.trim()
+  return typed ? { title: typed, approved: typed } : undefined
+}
+
+/** What a scheduled agent's pass opens its delivery from (#1401): no requirement, only whose
+ *  pass it is. Refused when the workflow has no such agent. A switched-off one still runs
+ *  when asked (#1435): only the scheduler passes over it. */
+function scheduledDirect(req: AgentRequest): DirectBuild | RunRefusal {
+  const flow = workflowById(req.workflow ?? '')
+  const agent = req.specAgent ?? ''
+  const one = flow ? scheduledAgent(flow.id, agent) : undefined
+  if (!flow || !one) {
+    return refusal('agentNotScheduled', `\`${agent}\` is not a scheduled agent of the \`${req.workflow ?? ''}\` workflow`, {
+      agent,
+      workflow: req.workflow ?? '',
+    })
+  }
+  return { title: `${agent}: scheduled run (${flow.name})`, approved: '', scheduled: { workflow: flow.id, agent } }
+}
+
+/** Write a run down and hand back everything the watcher needs to start it. The run is
+ *  `running` from this moment: it holds its card, and a second one on the same card is
+ *  refused from here on, whichever process asks.
+ *
+ *  Nothing is spawned here — that is `spawnWatcher`, which the command does right after,
+ *  and `markSpawned` is how the pid gets back into the record. */
+export function openRun(
+  req: AgentRequest,
+  prompt: string,
+  notes: string[] = [],
+  sessionId: string = randomUUID(),
+  /** The session this planning run carries on or forks (#1304), in place of a fresh one. */
+  said?: CarriedSession,
+): { run: RunRecord; spec: RunSpec } | RunRefusal {
+  const cardId = Number.isInteger(req.id) ? (req.id as number) : null
+  // The runtime this one run was asked for (#518). Refused here rather than resolved away:
+  // a pin nothing answers to would quietly run **Global default**, and a run on another
+  // model than the one picked is the worst way to answer a pick.
+  if (req.runtime && !runtimeById(req.runtime)) {
+    const runtimes = readRuntimes()
+      .map((r) => r.id)
+      .join(', ')
+    return refusal('runtimeNotFound', `this board has no runtime called "${req.runtime}". It has: ${runtimes}.`, {
+      id: req.runtime,
+      runtimes,
+    })
+  }
+  // A build with no delivery on its card opens one, and a delivery is got ready before
+  // anything is written down (#303): the commit mode is decided, the checkout is checked,
+  // and the worktree is made. A refusal here costs nothing, and whatever it made is undone
+  // below if the run is refused after it. `req.commitMode` is the Implement dialog's tick,
+  // this one build's answer (#346); without it the repository setting decides.
+  //
+  // A build with no card yet is the third way in (#428): **Start now** sends the typed
+  // sentence straight here, so there is no card to look a delivery up by and one is always
+  // opened. It is refused where a carded manual build would be, and nowhere else. The card
+  // the run writes reaches this delivery afterwards (`adoptDirectCard`, #470).
+  //
+  // Under the plan handoff it is a plan rather than a sentence (#481). The file is read once,
+  // here, and its title and its words are what the delivery is titled and bounded by — so a
+  // plan with nothing written in it yet is refused, the way a missing one is, rather than
+  // opening an untitled delivery with nothing to build.
+  //
+  // A scheduled agent's pass is the fourth (#1401): a card-less delivery that writes no card. One
+  // carried on names its delivery and opens nothing.
+  const pass = req.action === 'scheduled' && !req.deliveryId ? scheduledDirect(req) : undefined
+  const direct = pass ?? (req.action === 'implement' && cardId === null ? approvedDirect(req) : undefined)
+  if (direct && 'error' in direct) return direct
+  const cardless = !!direct
+  let start: DeliveryStart | undefined
+  if (pass || (req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId))))) {
+    const files = direct?.scheduled ? !!workflowById(direct.scheduled.workflow)?.needsArtifact : false
+    const prepared = prepareDelivery(cardId, req.commitMode, files)
+    // Whole, kind and paths included (#706): a screen that says this in its own language
+    // reads the kind, and losing it here would leave every refusal generic.
+    if ('error' in prepared) return prepared
+    start = prepared.start
+  }
+  // Where this run works: its delivery's own worktree, or the project itself. A run of a
+  // delivery names it outright when it has no card to be found by.
+  const joining = DELIVERY_FLOWS.has(req.action)
+    ? req.deliveryId
+      ? findDelivery(req.deliveryId)
+      : cardId !== null
+        ? activeDelivery(cardId)
+        : undefined
+    : undefined
+  // A sub-run works in its parent's folder, inside its parent's delivery and flow (#1421).
+  const parent = req.action === 'sub' && req.parentId ? peekRun(req.parentId) : undefined
+  const cwd = parent?.cwd ?? deliveryCwd(start ?? joining ?? {})
+  // The one settings read for this whole run. Everything it needs is worked out here, at
+  // the start — not later, when the agent finally spawns (an index action waits its turn
+  // first, and the picker may well have been flipped by then). A run therefore always uses
+  // one agent end to end: its command, its flags, and the name recorded against it.
+  // Which agent does this run — its flow's role, or the specialist itself on a spec run
+  // (#443). Read here, with everything else, so a change made mid-run reaches the next run
+  // and not this one.
+  // …and on the runtime this run was started with, when it named one (#518) — over the one
+  // its agent is set to, and for this run alone.
+  const plan = said
+    ? { ...said.plan(cwd, sessionId), note: null }
+    : planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
+  // What that agent resolved to, when the board names a connector this version can't run. It
+  // goes in the log rather than being swallowed: a run on another tool than the one asked
+  // for is the first thing to check when its output looks wrong.
+  if (plan.note) notes = [...notes, plan.note]
+  const record: RunRecord = {
+    sessionId,
+    cardId,
+    action: req.action,
+    origin: req.action === 'create' ? req.origin : undefined,
+    discard: req.discard,
+    status: 'running',
+    startedAt: Date.now(),
+    input: runInput(req),
+    // What was pasted into the sheet that started it (#517), now in this run's own folder.
+    pictures: req.pictures?.length ? req.pictures : undefined,
+    harness: plan.harness,
+    // What it ran as, recorded beside the harness (#518): the agent's own runtime, or the
+    // one this run was started with.
+    runtime: plan.runtime,
+    agent: plan.agent,
+    // And what this build was, where it worked and what it spawned (#628).
+    version: SKILL_VERSION,
+    cwd,
+    argv: plan.argv,
+    // No `resumeId` on a fresh run: one under an agent that takes our id needs none, and one
+    // that mints its own has nothing to record yet. Planning carried on keeps its session's;
+    // a fork is a fresh session of its own.
+    ...(said && !said.fork ? { resumeId: plan.resumeId ?? undefined } : {}),
+    ...(said?.continues ? { continues: { resumeId: said.continues, ...(said.fork ? { fork: true } : {}) } } : {}),
+    logPath: logPathOf(sessionId),
+    // Which agent this is, on the action that is one — so the run list can name it, and so
+    // a resume starts the same agent rather than a different one.
+    specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
+    ...(req.action === 'create' || (req.action === 'implement' && cardId === null)
+      ? { workflow: req.workflow?.trim() || undefined }
+      : {}),
+    ...(req.action === 'scheduled' ? { workflow: req.workflow?.trim() || undefined } : {}),
+    fromCard: req.action === 'create' ? req.fromCard : undefined,
+    cards: req.action === 'reflect' ? req.cards : undefined,
+    setupTicked: req.action === 'setup' ? tickedSetupSteps() : undefined,
+    // Internal refinement sessions name their position in the request. A standalone
+    // resolve carries no round.
+    refineRound: req.refineRound,
+    // And the flow it belongs to. A run started by a person opens one here; the watcher
+    // copies the id onto every session that run goes on to start — a refinement's passes,
+    // the spec agents it asked for. So one job is one thing in
+    // the record however many sessions it takes, and a second run on the same card is
+    // never mistaken for a continuation of the first. A run that joins a delivery below
+    // takes the delivery's id over this one (#417).
+    flowId: parent?.flowId ?? req.flowId ?? randomUUID(),
+    ...(parent ? { parentId: parent.sessionId, deliveryId: parent.deliveryId, specAgent: req.specAgent } : {}),
+  }
+  const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
+    const locked = lockedBy(store.runs, req.action, cardId, req.discard)
+    if (locked) return locked
+    store.runs.push(record)
+    if (req.action === 'clarify' && cardId !== null) noteRefineTried(store, cardId)
+    // A delivery's own runs belong to a delivery — the one already in flight on this
+    // card, or, for a build, a new one opened here. Same transaction as the run it
+    // belongs to, so a delivery can never be left holding a card with nothing working on
+    // it. Review joins an existing delivery and never opens one: there is nothing to
+    // review until something has been built.
+    if (DELIVERY_FLOWS.has(req.action) && (cardId !== null || cardless || req.deliveryId)) {
+      if (req.action === 'implement' || pass) {
+        // A card-less delivery is titled and bounded by what it was handed (#428, #481): the
+        // typed sentence, or the plan the ask was answered on.
+        const title = cardId === null ? direct?.title ?? '' : req.title ?? cardNow(cardId)?.title ?? ''
+        joinDelivery(store, record, title, req.action, start, direct)
+      } else if (!joinActive(store, record, req.action, req.deliveryId)) {
+        store.runs.pop()
+        const on = req.deliveryId ? `delivery ${req.deliveryId}` : `#${cardId}`
+        return refusal('deliveryNone', `no delivery is in flight on ${on}, so there is nothing to ${req.action}`, {
+          on: req.deliveryId ?? `#${cardId}`,
+        })
+      }
+    }
+    return { run: record }
+  }))
+  if ('error' in out) {
+    // Refused after the delivery was got ready — take its worktree back rather than leave
+    // a checkout behind for a delivery that never started.
+    if (start) undoPrepared(start)
+    return out
+  }
+  const spec: RunSpec = {
+    sessionId,
+    plan,
+    prompt,
+    ...(notes.length ? { notes } : {}),
+    ...(said?.continues ? { again: { ...req, session: 'new', flowId: record.flowId } } : {}),
+  }
+  writeSpec(spec)
+  // A run started (#295), on the surface that asked for it: the agent's name, and nothing
+  // about the card.
+  reportRun('started', record.harness, isCustomAgent(record.agent))
+  reportBoardNumbers(() => customAgentsOn().length)
+  return { run: record, spec }
+}
+
+/** A session a planning run carries on (#1304), resumed or — with `fork` — copied. */
+interface CarriedSession {
+  plan(cwd: string, sessionId: string): RunPlan
+  fork: boolean
+  continues: string
+}
+
+/** The planning runs: each carries the card's planning session on (#1304). */
+const PLANNING = new Set<AgentAction>(['clarify', 'resolve', 'approve', 'edit'])
+
+/** The session a card's planning carries on (#1304): its last finished planning run's, resumed,
+ *  or — before any — the one it was created in (a setup's seed cards: setup's), forked. Only one its CLI would find from `cwd`;
+ *  otherwise `none` says why there is nothing to carry. */
+export function planningSession(cardId: number, cwd = REPO_ROOT): { session: AgentSession; fork: boolean } | { none: 'unrecorded' | 'elsewhere' } {
+  const here = (dir: string | undefined): boolean => !dir || path.resolve(dir) === cwd
+  const ended = readRuns()
+    .filter((r) => r.status === 'done')
+    .sort((a, b) => b.startedAt - a.startedAt)
+  const of = (run: RunRecord, fork: boolean) => {
+    if (!here(run.cwd)) return { none: 'elsewhere' as const }
+    const resumeId = resumeSessionId(run)
+    return resumeId ? { session: { harness: run.harness, resumeId }, fork } : { none: 'unrecorded' as const }
+  }
+  const planned = ended.find((r) => r.cardId === cardId && PLANNING.has(r.action))
+  if (planned) return of(planned, false)
+  const run = ended.find((r) => (r.action === 'create' || r.action === 'setup') && r.createdCardIds?.includes(cardId))
+  const created = run ? of(run, true) : undefined
+  return created ?? { none: 'unrecorded' }
+}
+
+/** How a planning run carries its card's session on (#1304), and the line its log opens with
+ *  (#1309). No `carried` — so the run opens a new session — when there is none to carry, its CLI
+ *  cannot resume or fork it, or this step resolves to another CLI than the one holding it.
+ *  Undefined for a run that is not one card's planning. Never reads how full the session is. */
+export function carriedSession(
+  req: AgentRequest,
+): { note: string; carried?: CarriedSession } | undefined {
+  if (!Number.isInteger(req.id) || !PLANNING.has(req.action)) return undefined
+  const fresh = (why: string) => ({ note: `new session — ${why}` })
+  if (req.session === 'new') return fresh('the earlier one is gone, so this step was started again')
+  const agent = agentForRun(req)
+  const own = planRun(randomUUID(), REPO_ROOT, agent, req.runtime ? { pin: req.runtime } : {})
+  // Cloud's task session (#2146) is on this step's connector and model already.
+  const resumeId = req.carry?.resumeId
+  const found = resumeId ? { session: { harness: own.harness, resumeId }, fork: req.carry?.fork === true } : planningSession(req.id as number)
+  if ('none' in found) {
+    return fresh(found.none === 'elsewhere' ? 'the earlier session was opened in another folder' : 'no earlier session of this card is on record')
+  }
+  if (own.harness !== found.session.harness) {
+    return fresh(`the earlier session was held by ${harnessLabel(found.session.harness)}, and this step runs on ${harnessLabel(own.harness)}`)
+  }
+  const plan = (cwd: string, sessionId: string): RunPlan | null => {
+    const session = { ...found.session, cwd }
+    const pin = { pin: own.runtime }
+    return found.fork ? planFork(session, agent, pin, sessionId) : planResume(session, agent, pin)
+  }
+  if (!plan(REPO_ROOT, randomUUID())) {
+    return fresh(`${harnessLabel(own.harness)} cannot ${found.fork ? 'copy a session' : 'continue an earlier session'}`)
+  }
+  return {
+    note: resumeId
+      ? found.fork ? "started from a copy of the discussion's session" : "continuing the task's session"
+      : found.fork ? 'started from a copy of the session this card was created in' : 'continuing the session this card was last planned in',
+    carried: { plan: (cwd, sessionId) => plan(cwd, sessionId)!, fork: found.fork, continues: found.session.resumeId },
+  }
+}
+
+/** The planning run `sessionId` is, if it is one. Planning never builds (#1295): the build is
+ *  a session of its own, and the user starts it. */
+export function planningRun(sessionId: string): RunRecord | undefined {
+  const run = peekRun(sessionId)
+  return run?.status === 'running' && PLANNING.has(run.action) ? run : undefined
+}
+
+/** The run being resumed, back in the shape a prompt is built from. Only what the record
+ *  kept: a resume drops the note the user typed, which is why a restart is offered for some
+ *  actions and not others (`restartPrompt`). */
+export function requestOf(record: RunRecord): AgentRequest {
+  const id = record.cardId ?? undefined
+  return {
+    action: record.action,
+    discard: record.discard,
+    id,
+    // A run with no card is named by its delivery (#428), and the sentence it was given is
+    // what the record kept as its input — together they are its whole ask.
+    ...(id === undefined && record.deliveryId
+      ? { deliveryId: record.deliveryId, description: record.input }
+      : {}),
+    title: titleOf(id),
+    // The runtime it is running as (#518), so a prompt rebuilt here calls the skill the way
+    // the CLI actually spawned takes it.
+    runtime: record.runtime,
+    specAgent: record.specAgent,
+    ...(record.action === 'scheduled' ? { workflow: record.workflow } : {}),
+    fromCard: record.fromCard,
+    cards: record.cards,
+    refineRound: record.refineRound,
+    flowId: record.flowId,
+    pictures: record.pictures,
+  }
+}
+
+/** What a run that opens a new session is given (#1321): the words, and what its log opens
+ *  with. `retry` marks the ask started again rather than carried on. */
+interface FreshStart {
+  prompt: string
+  notes: string[]
+  retry?: boolean
+}
+
+/** Write a resumed run down: one more turn of a conversation that already happened, on the
+ *  same card and under the same action, so the card rule and the shared-file rule apply
+ *  exactly as they did the first time.
+ *
+ *  It REPLACES the run it continues: once it has started, the old record is dropped and
+ *  its log deleted. The two are one piece of work — the same conversation, carried on — so
+ *  the list keeps one row for it, the one that is still going. The cost is that the earlier
+ *  run's log goes with it; `resumedFrom` survives as the mark of where this run began.
+ *
+ *  A failed run with no session to pick up is started again instead (#1321): the same ask,
+ *  in a new session, replacing the run the same way. */
+export async function openResume(id: string): Promise<{ run: RunRecord; spec: RunSpec } | RunRefusal> {
+  const restore: RunRecord[] = []
+  const runs = withRuns((all) => {
+    reap(all, [], restore)
+    return all.map((r) => ({ ...r }))
+  })
+  for (const run of restore) await restoreCardStatus(run)
+  const prev = findRun(runs, id)
+  if (prev === null) return ambiguousRun(id)
+  if (!prev) return unknownRun(id)
+  if (prev.status === 'running') return refusal('runGoing', 'that run is still going')
+  if (prev.action === 'sub') {
+    return refusal('subRunResume', 'a sub-run cannot be continued on its own — the run that started it starts it again')
+  }
+  if (!canPickUp(prev)) return refusal('runNotResumable', 'only a failed, interrupted or stopped run can be continued')
+  const retrying = lacksSession(prev)
+  const ask = retrying && prev.status !== 'stopped' ? retryAsk(prev) : undefined
+  if (retrying && !ask) return refusal('runNoSession', 'that run never reported a session id to continue by')
+  const ended = endedDeliveryRefusal(prev)
+  if (ended) return ended
+  // Resumed where the run it continues worked: a delivery's own worktree, or the project
+  // itself.
+  const resuming = prev.deliveryId ? findDelivery(prev.deliveryId) : undefined
+  const cwd = deliveryCwd(resuming ?? {})
+  const sessionId = randomUUID()
+  let plan: RunPlan | null
+  let fresh: FreshStart | undefined
+  if (ask) {
+    if (prev.cardId !== null && goneCards([prev]).has(prev.cardId)) {
+      return { error: `#${prev.cardId} has left the board, so there is nothing to try again` }
+    }
+    const started = await planRetry(prev, ask, sessionId, cwd)
+    if ('error' in started) return started
+    ;({ plan, fresh } = started)
+  } else if (resumesUnder(prev.harness)) {
+    // The connector the run being continued went on, whatever its agent has been pointed at
+    // since: a conversation can only be picked up by the CLI that opened it (#443). And the
+    // runtime it went on inside that connector (#518), so a run started on a picked runtime
+    // carries on as what it was rather than falling back to its agent's own.
+    plan = planResume(
+      { harness: prev.harness, resumeId: resumeIdOf(prev)!, cwd },
+      prev.agent,
+      prev.runtime ? { pin: prev.runtime } : {},
+    )
+  } else {
+    // A connector this build cannot resume (#1321): a new session on the one its agent runs
+    // now, told the task from the top.
+    const prompt = restartPrompt({ ...requestOf(prev), runtime: undefined }, prev.deliveryId)
+    const started = prompt ? planRun(sessionId, cwd, prev.agent) : null
+    plan = started
+    if (started && prompt) fresh = { prompt, notes: started.note ? [started.note] : [] }
+  }
+  if (!plan) {
+    const agent = prev.harness || 'the agent that started it'
+    return refusal('runForeign', `this version can't continue a conversation ${agent} opened`, { agent })
+  }
+
+  return resumeHeld(prev, plan, sessionId, resuming, fresh)
+}
+
+/** How a retry starts (#1321): a sort under the terms the board starts one itself, and every
+ *  other ask on the connector and runtime it first went on, where the board still has them. */
+async function planRetry(
+  prev: RunRecord,
+  ask: AgentRequest,
+  sessionId: string,
+  cwd: string,
+): Promise<{ plan: RunPlan; fresh: FreshStart } | RunRefusal> {
+  const runtime = prev.runtime && runtimeById(prev.runtime) ? prev.runtime : undefined
+  const { note, ...plan } = planRun(sessionId, cwd, prev.agent ?? agentForRun(ask), {
+    ...(runtime ? { pin: runtime } : {}),
+    ...(shipsHarness(prev.harness) ? { harness: prev.harness } : {}),
+  })
+  const { prompt, notes } = buildRun({ ...ask, title: titleOf(ask.id), runtime: plan.runtime, pictures: prev.pictures })
+  return { plan, fresh: { prompt, notes: note ? [...notes, note] : notes, retry: true } }
+}
+
+async function resumeHeld(
+  prev: RunRecord,
+  plan: RunPlan,
+  sessionId: string,
+  resuming: DeliveryRecord | undefined,
+  fresh?: FreshStart,
+): Promise<{ run: RunRecord; spec: RunSpec } | RunRefusal> {
+  const retry = fresh?.retry === true
+  const record: RunRecord = {
+    sessionId,
+    cardId: prev.cardId,
+    createdCardIds: prev.createdCardIds,
+    origin: prev.origin,
+    discard: prev.discard,
+    discardedCards: prev.discardedCards,
+    action: prev.action,
+    status: 'running',
+    startedAt: Date.now(),
+    // No `input` on a resume: the note the user typed is already in the conversation being
+    // resumed — repeating it would read as a second instruction they never gave. A retry is
+    // the ask itself again, so it keeps everything the ask was written down with.
+    ...(retry ? { input: prev.input, workflow: prev.workflow } : {}),
+    harness: plan.harness,
+    runtime: plan.runtime,
+    agent: plan.agent,
+    // This build, not the one the run being continued went on: a resume is a fresh spawn,
+    // and the version that answers for its output is the one doing the spawning.
+    version: SKILL_VERSION,
+    cwd: deliveryCwd(resuming ?? {}),
+    argv: plan.argv,
+    ...(retry
+      ? {}
+      : {
+          resumeId: plan.resumeId ?? undefined,
+          resumedFrom: prev.sessionId,
+          // Taken now: the run being continued is dropped once this one starts (#1483).
+          sessionCostFrom: prev.sessionCostUsd ?? prev.sessionCostFrom,
+          formatRepair: prev.formatRepair ? { ...prev.formatRepair, attempt: prev.formatRepair.attempt + 1 } : undefined,
+          // The retry chain carries on rather than starting over (#525): this run IS the attempt
+          // the failed one scheduled, so its count and its window come with it.
+          retry: prev.retry,
+        }),
+    logPath: logPathOf(sessionId),
+    specAgent: prev.specAgent,
+    ...(prev.action === 'scheduled' ? { workflow: prev.workflow } : {}),
+    fromCard: prev.fromCard,
+    cards: prev.cards,
+    setupTicked: prev.setupTicked,
+    refineRound: prev.refineRound,
+    // The same refinement carried on, not a second one — the way a resume re-joins the
+    // delivery it continues rather than opening another.
+    flowId: prev.flowId,
+  }
+  const out = withCreationLock(() => withStore<{ run: RunRecord } | RunRefusal>((store) => {
+    const all = store.runs
+    const latest = all.find((r) => r.sessionId === prev.sessionId)
+    if (!latest) return refusal('runContinued', 'that run has already been continued')
+    if (latest.discardedCards?.some((c) => c.pending || locate(c.id))) {
+      return refusal('discardUnfinished', 'A card discard did not finish. Retry discarding it before resuming creation.')
+    }
+    record.discardedCards = latest.discardedCards
+    const discarded = new Set(record.discardedCards?.map((c) => c.id) ?? [])
+    if (record.formatRepair && discarded.size) {
+      const repair = record.formatRepair
+      repair.cardIds = repair.cardIds.filter((id) => !discarded.has(id))
+      repair.changedIds = repair.changedIds.filter((id) => !discarded.has(id))
+      repair.existingIds = repair.existingIds.filter((id) => !discarded.has(id))
+      repair.errors = repair.errors.split('\n').filter((line) => !record.discardedCards!.some((c) => line.includes(c.path) || new RegExp(`Task #${c.id}(?![0-9])`).test(line))).join('\n')
+      if (!repair.cardIds.length) record.formatRepair = undefined
+    }
+    const heldCreation = all.find((r) => runIsLive(r) && (r.cardId !== null && (latest.createdCardIds ?? []).includes(r.cardId) || (r.createdCardIds ?? []).some((id) => (latest.createdCardIds ?? []).includes(id))))
+    if (heldCreation) return refusal('creationHeld', 'A card from this creation is already being worked on. Wait for that run to finish.')
+    const locked = lockedBy(all, prev.action, prev.cardId, prev.discard)
+    if (locked) return locked
+    all.push(record)
+    // Resume carries the DELIVERY on, rather than starting a second one: one delivery id
+    // covers both runs, and the flow is re-entered so each step checks its own
+    // precondition — the finished work is not done again, because the step that would
+    // redo it finds its precondition already met.
+    const delivery = store.deliveries.find((d) => d.deliveryId === prev.deliveryId && d.status === 'active')
+    if (delivery) {
+      delivery.sessions.push(record.sessionId)
+      delivery.steps.push({ step: 'resume', at: record.startedAt })
+      record.deliveryId = delivery.deliveryId
+      // Under the delivery's own group, which is where the run it continues belongs —
+      // including one recorded before the group followed the delivery (#417).
+      record.flowId = delivery.deliveryId
+    }
+    // The new run has the conversation now, so the old record goes — after every refusal
+    // above, never before one. A resume that couldn't start leaves the run it would have
+    // continued exactly as it was.
+    const at = all.findIndex((r) => r.sessionId === prev.sessionId)
+    if (at >= 0) all.splice(at, 1)
+    return { run: record }
+  }))
+  if ('error' in out) return out
+  if (record.deliveryId) syncAudit(record.deliveryId)
+  // The asks the run being taken over collected come with it. It never got as far as
+  // starting them — that is why it is being resumed — and the flow asked once.
+  const inherited = readAsks(prev.sessionId)
+  if (inherited.asks.length || inherited.refines.length) writeAsks(sessionId, inherited)
+  clearAsks(prev.sessionId)
+  try {
+    fs.unlinkSync(prev.logPath)
+    fs.rmSync(eventsPathOf(prev.sessionId), { force: true })
+  } catch {
+    // already pruned, or never written — the record is gone either way
+  }
+  if (retry && prev.pictures?.length) {
+    record.pictures = moveRunPictures(prev.sessionId, sessionId, prev.pictures)
+    patch(sessionId, (r) => {
+      r.pictures = record.pictures
+    })
+  }
+  const spec: RunSpec = { sessionId, plan, prompt: fresh?.prompt ?? '', ...(fresh?.notes.length ? { notes: fresh.notes } : {}) }
+  writeSpec(spec)
+  // A resume spawns a process and works like any other run, so it counts as one — and
+  // started stays ahead of finished plus failed (#295).
+  reportRun('started', record.harness, isCustomAgent(record.agent))
+  reportBoardNumbers(() => customAgentsOn().length)
+  return { run: record, spec }
+}
+
+/** Take a run off the record with its log: one the board started again as another run
+ *  (#1304), so the list keeps a single row for the step. */
+export function forgetRun(sessionId: string): void {
+  const gone = withRuns((runs) => {
+    const at = runs.findIndex((r) => r.sessionId === sessionId && r.status !== 'running')
+    return at < 0 ? undefined : runs.splice(at, 1)[0]
+  })
+  if (!gone) return
+  clearAsks(sessionId)
+  try {
+    fs.unlinkSync(gone.logPath)
+    fs.rmSync(eventsPathOf(gone.sessionId), { force: true })
+  } catch {
+    // already pruned, or never written
+  }
+}
+
+/** Ask for a spec agent from inside a run.
+ *
+ *  A run never starts another, so nothing spawns here: the ask is written into the asking
+ *  run's own asks file, and that run's watcher starts it once the run has ended
+ *  (`readSpecAsks`). That is also what keeps a spec agent clean — by the time it starts,
+ *  the conversation that wanted it is over, so there is nothing of it to inherit.
+ *
+ *  `already` means this run has asked for that agent on that card before; a second ask
+ *  would be the same run twice. */
+export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already' | 'no-run' {
+  const run = peekRun(sessionId)
+  if (!run) return 'no-run'
+  const file = readAsks(sessionId)
+  if (file.asks.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
+  file.asks.push(ask)
+  writeAsks(sessionId, file)
+  return 'queued'
+}
+
+/** Hand a card to a refinement from inside a run (`akb card refine <id>`). Written down rather
+ *  than started, exactly as a spec ask is, and started by this run's watcher at the close —
+ *  in the same flow, so it reads as the next step of the job that handed the card over.
+ *
+ *  `already` means this run has handed the same card over before. */
+export function askForRefine(sessionId: string, ask: RefineAsk): 'queued' | 'already' | 'no-run' {
+  if (!peekRun(sessionId)) return 'no-run'
+  const file = readAsks(sessionId)
+  if (file.refines.some((a) => a.cardId === ask.cardId)) return 'already'
+  file.refines.push(ask)
+  writeAsks(sessionId, file)
+  return 'queued'
+}
+
+/** The spec agents this run has been asked for. */
+export const readSpecAsks = (sessionId: string): SpecAsk[] => readAsks(sessionId).asks
+
+/** Why helpers of this round would not start — carried to the planner when the round ends. */
+export const readSpecRefusals = (sessionId: string): RunRefusal[] => readAsks(sessionId).refused
+
+/** Hand the round's refusals to the helper that runs next. */
+export function noteSpecRefusals(sessionId: string, refused: RunRefusal[]): void {
+  if (!refused.length) return
+  const file = readAsks(sessionId)
+  file.refused.push(...refused.filter((r) => !file.refused.some((had) => had.error === r.error)))
+  writeAsks(sessionId, file)
+}
+
+/** The cards this run handed to a refinement. */
+export const readRefineAsks = (sessionId: string): RefineAsk[] => readAsks(sessionId).refines
+
+/** Forget a run's asks — once they have been started, and when the run they were written
+ *  for is taken over by a resume. */
+export function clearAsks(sessionId: string): void {
+  try {
+    fs.unlinkSync(asksPathOf(sessionId))
+  } catch {
+    // never written, or already gone
+  }
+}
+
+/** Every follow-up one run wrote down. The lists live in one file, so all of them are read
+ *  and written together — a spec ask must never drop a refine ask.
+ *
+ *  Empty rather than thrown when the file is damaged: a run's own ending must not fail on
+ *  the follow-up it was going to start. A malformed entry is dropped rather than started. */
+type AsksFile = { asks: SpecAsk[]; refines: RefineAsk[]; refused: RunRefusal[] }
+
+function readAsks(sessionId: string): AsksFile {
+  let data: unknown
+  try {
+    data = JSON.parse(fs.readFileSync(asksPathOf(sessionId), 'utf8'))
+  } catch {
+    return { asks: [], refines: [], refused: [] }
+  }
+  const raw = (data ?? {}) as { asks?: unknown; refines?: unknown; refused?: unknown }
+  const asks = (Array.isArray(raw.asks) ? raw.asks : []).flatMap((entry) => {
+    const a = entry as Partial<SpecAsk>
+    if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
+    return [{
+      specAgent: a.specAgent,
+      cardId: a.cardId as number,
+      notes: typeof a.notes === 'string' ? a.notes : undefined,
+    }]
+  })
+  const refines = (Array.isArray(raw.refines) ? raw.refines : []).flatMap((entry) => {
+    const a = entry as Partial<RefineAsk>
+    if (!a || !Number.isInteger(a.cardId)) return []
+    return [{
+      cardId: a.cardId as number,
+      notes: typeof a.notes === 'string' ? a.notes : undefined,
+    }]
+  })
+  // A plain string is a refusal written before its kind was kept (#1241).
+  const refused = (Array.isArray(raw.refused) ? raw.refused : []).flatMap((r): RunRefusal[] =>
+    typeof r === 'string' ? [{ error: r }]
+    : r && typeof r.error === 'string' ? [{ error: r.error, ...(typeof r.reason === 'string' ? { reason: r.reason } : {}), ...(r.args && typeof r.args === 'object' ? { args: r.args } : {}) }]
+    : [])
+  const discarded = new Set(peekRun(sessionId)?.discardedCards?.map((c) => c.id) ?? [])
+  return { asks: asks.filter((a) => !discarded.has(a.cardId)), refines: refines.filter((a) => !discarded.has(a.cardId)), refused }
+}
+
+function writeAsks(sessionId: string, file: AsksFile): void {
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  const tmp = `${asksPathOf(sessionId)}.tmp`
+  fs.writeFileSync(tmp, JSON.stringify(file, null, 2) + '\n')
+  fs.renameSync(tmp, asksPathOf(sessionId))
+}
+
+/** Record the process now watching a run, so a stop can reach it and a reader can tell a
+ *  live run from one that was cut off. */
+export function markSpawned(sessionId: string, pid: number | undefined): void {
+  patch(sessionId, (r) => {
+    if (r.status === 'running') r.pid = pid
+  })
+}
+
+/** Change one run in place, under the record's lock. */
+export function patch(sessionId: string, change: (run: RunRecord) => void): RunRecord | undefined {
+  return withRuns((runs) => {
+    const run = runs.find((r) => r.sessionId === sessionId)
+    if (run) change(run)
+    return run ? { ...run } : undefined
+  })
+}
+
+/** One run as it stands right now, without reaping or locking. */
+export function peekRun(sessionId: string): RunRecord | undefined {
+  return readRuns().find((r) => r.sessionId === sessionId)
+}
+
+/** Close a run out: its outcome, the card's stage put back, and
+ *  the old logs trimmed. Whichever path gets here first wins and the rest are no-ops. */
+export async function closeRun(
+  sessionId: string,
+  res: {
+    status: RunStatus
+    ok?: boolean
+    code?: number | null
+    error?: string
+    note?: string
+    errorWhy?: RunReason[]
+    noteWhy?: RunReason[]
+    endedAt?: number
+    tickedNothing?: boolean
+  },
+): Promise<void> {
+  const closed = withRuns((runs) => {
+    const run = runs.find((r) => r.sessionId === sessionId)
+    if (!run || run.status !== 'running') return undefined
+    run.status = res.status
+    if (res.ok !== undefined) run.ok = res.ok
+    run.code = res.code ?? null
+    if (res.error) run.error = res.error
+    if (res.note) run.note = res.note
+    if (res.errorWhy?.length) run.errorWhy = res.errorWhy
+    if (res.noteWhy?.length) run.noteWhy = res.noteWhy
+    if (res.tickedNothing) run.tickedNothing = true
+    run.endedAt = res.endedAt ?? Date.now()
+    run.pid = undefined
+    return { ...run }
+  })
+  if (!closed) return
+  // …and the count of it (#295). Only the two endings the board WITNESSED: a stop is the
+  // user's decision rather than an outcome, and a run nobody saw the end of never finished.
+  if (closed.status === 'done' || closed.status === 'error') {
+    reportRun(closed.status === 'done' ? 'finished' : 'failed', closed.harness, isCustomAgent(closed.agent), {
+      model: closed.model,
+      costUsd: closed.costUsd,
+      ownEndpoint: onOwnEndpoint(closed.runtime),
+    })
+  }
+  // The delivery first: a run ending is a decision for the delivery it belongs to, and
+  // whether the delivery is over is what decides whether the card is still being built.
+  // Restoring the stage before that would read a delivery that was about to end as one
+  // still in flight, and leave the card at `implementing` with nothing working on it.
+  // A sub-run's end is its parent's to act on, never the delivery's (#1421).
+  const sub = closed.action === 'sub'
+  if (!sub) await settleDelivery(closed)
+  await restoreCardStatus(closed)
+  recordPrune(closed)
+  recordMemoryReview(closed)
+  recordReflection(closed)
+  recordDismissalReview(closed)
+  recordProjectDescription(closed)
+  recordScheduledRun(closed)
+  dropSpec(sessionId)
+  pruneLogs()
+}
+
+const unknownRun = (id: string): RunRefusal => refusal('runNotFound', `no run here answers to "${id}"`, { id })
+const ambiguousRun = (id: string): RunRefusal =>
+  refusal('runAmbiguous', `"${id}" matches more than one run — give more of the id`, { id })
+
+/** Ask a run to end. The watcher is signalled; the record is marked so whichever path
+ *  witnesses the end — the watcher's own close, or a later reap — records `stopped` rather
+ *  than a failure.
+ *
+ *  Stopping a run that has already ended does nothing and reports no error: a run list can
+ *  be a moment old, so the run may well have finished between the read and the ask. */
+export async function stopRun(id: string): Promise<StartResult> {
+  const restore: RunRecord[] = []
+  const out = withRuns((runs) => {
+    reap(runs, [], restore)
+    const run = findRun(runs, id)
+    if (run === null) return { ok: false, ...ambiguousRun(id) }
+    if (!run) return { ok: false, ...unknownRun(id) }
+    if (run.status !== 'running') return { ok: true, sessionId: run.sessionId }
+    run.stopping = true
+    return { ok: true, sessionId: run.sessionId, pid: run.pid, live: true }
+  })
+  for (const run of restore) await restoreCardStatus(run)
+  const live = out as StartResult & { pid?: number; live?: boolean }
+  if (!live.ok || !live.live) {
+    return { ok: live.ok, sessionId: live.sessionId, error: live.error, reason: live.reason, args: live.args }
+  }
+  if (killTreeOnWindows(live.pid)) {
+    // The watcher went with its agent, so the next reap records the stop.
+  } else if (live.pid) {
+    killUnderOnWindows(live.pid)
+    try {
+      process.kill(live.pid, 'SIGTERM')
+    } catch {
+      // gone between the read and the signal — the run is over either way, which is what
+      // stopping wanted
+    }
+  } else {
+    // Nothing to signal: the run is queued behind the shared-file lock and has not spawned
+    // a watcher yet, or it died a moment ago. Nothing will ever tell us it ended.
+    await closeRun(live.sessionId!, { status: 'stopped', code: null })
+  }
+  return { ok: true, sessionId: live.sessionId }
+}
+
+/** Cancel a delivery: end it, stop whatever run it has going, and hand the card back.
+ *  Cancelling is the user giving the delivery up, so its worktree and branch go with it
+ *  (#720) — stopping the RUN is the pause that keeps them.
+ *
+ *  Named by delivery id, by any prefix of one, or by the card it is building. Cancelling
+ *  one that has already ended is not an error: the button is drawn from a poll that can be
+ *  a second and a half stale.
+ *
+ *  The delivery is ended BEFORE the run is stopped, so the card is free from the first
+ *  moment and nothing can slip a second delivery in behind the stop. */
+export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>> {
+  if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to cancel', { action: 'cancel' }) }
+  const delivery = namedDelivery(id)
+  if (!delivery) return { ok: false, ...unknownDelivery(id) }
+  if (delivery.status !== 'active') return { ok: true, deliveryId: delivery.deliveryId }
+  endDelivery(delivery.deliveryId, 'cancelled')
+  // A delivery that has ended must not still be writing files.
+  const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId && r.action !== 'sub')
+  if (live) await stopRun(live.sessionId)
+  // Whether or not there was one to stop: nothing is building this card now.
+  await releaseCard(delivery)
+  // `stopRun` signals and returns; the process takes a moment to go. Waited out here, so a
+  // cancel with a run going clears its checkout now rather than at the next sweep.
+  if (live) await runIsDown(live.sessionId)
+  // Then the checkout. `endDelivery` above tried already and found the run still going —
+  // a delivery that has ended must not have its files pulled out from under a process
+  // still writing them — so this is the try that lands (#720).
+  // A removal git refused is said and left: the cancel itself went through, the worktree is
+  // still there to look at, and Discard — and the next sweep — are both retries.
+  const tidied = tidyCheckout(delivery.deliveryId)
+  if (tidied.error) say(`delivery ${delivery.deliveryId} was cancelled, but ${tidied.error}.`)
+  // Last, so the permanent record carries how that run actually ended rather than the
+  // state it was in when the cancel arrived.
+  syncAudit(delivery.deliveryId)
+  return { ok: true, deliveryId: delivery.deliveryId }
+}
+
+// A stopped run, waited out until it is really gone. Bounded: a harness that will not go is
+// not worth holding the cancel open for, and the next sweep clears the checkout anyway.
+const STOP_WAIT_MS = 5_000
+const STOP_POLL_MS = 100
+
+/** The sub-runs `parentId` started that are still going (#1421). */
+export const liveSubRuns = (parentId: string): RunRecord[] =>
+  readRuns().filter((r) => r.parentId === parentId && runIsLive(r))
+
+/** Stop a run's sub-runs and wait them out, before the run's own close (#1421). */
+export async function stopSubRuns(parentId: string): Promise<void> {
+  const live = liveSubRuns(parentId)
+  for (const run of live) await stopRun(run.sessionId)
+  await Promise.all(live.map((run) => runIsDown(run.sessionId)))
+}
+
+async function runIsDown(sessionId: string): Promise<void> {
+  for (const until = Date.now() + STOP_WAIT_MS; Date.now() < until; ) {
+    const run = readRuns().find((r) => r.sessionId === sessionId)
+    if (!run || !runIsLive(run)) return
+    await sleep(STOP_POLL_MS)
+  }
+}
+
+/** Carry an ended delivery on (#639): one that stopped short with its work still
+ *  on disk goes back to `active`, holding its card, and finishes the job it stopped in the
+ *  middle of.
+ *
+ *  It is never automatic. The board leaves an ended delivery ended, and this is what a
+ *  person presses — on the card page, or as `akb delivery resume` — so nothing quietly
+ *  revives a build the user walked away from.
+ *
+ *  The first thing it does is look: the change may have reached the target branch under
+ *  someone else's commit while this delivery sat there (#569), and then the delivery is
+ *  over — the carrying commit is recorded and the card is archived, with nothing rebuilt.
+ *  Only when that does not hold does it pick the next step back up.
+ */
+export async function resumeDelivery(
+  id: string,
+): Promise<{ ok: boolean; deliveryId?: string; landed?: boolean; carryOn?: DeliveryCarryOn } & Partial<RunRefusal>> {
+  if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to carry on', { action: 'resume' }) }
+  const put = resumeRecord(id)
+  if (!put.ok) return put
+  const delivery = put.delivery
+  if (await settleAlreadyLanded(delivery)) {
+    return { ok: true, deliveryId: delivery.deliveryId, landed: true }
+  }
+  const carryOn = carryOnFrom(delivery.deliveryId)
+  // The card is this delivery's again, and a delivery in flight rests at `implementing`.
+  if (delivery.cardId !== null) await setCardStatus(delivery.cardId, 'implementing')
+  syncAudit(delivery.deliveryId)
+  return { ok: true, deliveryId: delivery.deliveryId, carryOn }
+}
+
+/** What discarding this delivery would take away — its worktree and its branch — or
+ *  nothing when it holds neither. The card page and the command both say this before they
+ *  ask, so nothing is removed by a command that only meant to look. */
+export function discardCost(id: string): { deliveryId: string; worktree?: string; branch?: string } | null {
+  const delivery = namedDelivery(id)
+  if (!delivery?.worktree) return null
+  return { deliveryId: delivery.deliveryId, worktree: delivery.worktree, branch: delivery.branch }
+}
+
+/** Discard a delivery: end it if it is still in flight, then remove its worktree and its
+ *  branch. The one thing on this board that throws work away, so nothing calls it on its
+ *  own — a person asks for it, having been told what will be lost.
+ *
+ *  It never reaches the user's main checkout: only a path inside `.akb/` is ever removed
+ *  (agent/worktree.ts). */
+export async function discardDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string } & Partial<RunRefusal>> {
+  if (!id.trim()) return { ok: false, ...refusal('deliveryUnnamed', 'name the delivery to discard', { action: 'discard' }) }
+  const delivery = namedDelivery(id)
+  if (!delivery) return { ok: false, ...unknownDelivery(id) }
+  if (delivery.status === 'active') {
+    const cancelled = await cancelDelivery(delivery.deliveryId)
+    if (!cancelled.ok) return cancelled
+  }
+  const removed = removeWorktree(delivery.worktree, delivery.branch, true)
+  if (!removed.ok) return { ok: false, deliveryId: delivery.deliveryId, error: removed.error }
+  withStore((store) => {
+    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+    if (!live) return
+    live.worktree = undefined
+    live.branch = undefined
+    // A superseded delivery is owed a fresh one until one actually starts (#307). Discarding
+    // is the user asking for the card back, so the debt goes with the work rather than
+    // rebuilding a card they just took off the board.
+    const steps = live.steps.map((s) => s.step)
+    if (steps.includes('superseded') && !steps.includes('dropped')) {
+      live.steps.push({ step: 'dropped', at: Date.now() })
+    }
+  })
+  syncAudit(delivery.deliveryId)
+  return { ok: true, deliveryId: delivery.deliveryId }
+}
+
+// ---- the plan a watcher picks up -------------------------------------------
+
+function writeSpec(spec: RunSpec): void {
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  fs.writeFileSync(specPathOf(spec.sessionId), JSON.stringify(spec, null, 2) + '\n')
+}
+
+export function readSpec(sessionId: string): RunSpec | null {
+  try {
+    const spec = JSON.parse(fs.readFileSync(specPathOf(sessionId), 'utf8')) as RunSpec
+    return spec && Array.isArray(spec.plan?.argv) ? spec : null
+  } catch {
+    return null
+  }
+}
+
+function dropSpec(sessionId: string): void {
+  try {
+    fs.unlinkSync(specPathOf(sessionId))
+  } catch {
+    // never written, or already gone
+  }
+}
+
+// ---- the shared-file lock, across processes --------------------------------
+
+/** True when this action rewrites the board's shared files, and so may only run one at a
+ *  time across every process on this board. */
+export const needsIndexLock = (action: AgentAction): boolean => INDEX_ACTIONS.has(action)
+
+// How long a queued run waits for its turn before giving up. A setup ahead of it is
+// a real agent run, so this is measured in the length of one of those, not in the
+// milliseconds a board write takes.
+const INDEX_WAIT_MS = 60 * 60_000
+const INDEX_POLL_MS = 500
+
+/** Wait for the shared-file lock and hand back the release. Polls instead of blocking, so
+ *  the waiting process can still answer a stop while it queues. `giveUp` is asked on every
+ *  turn — a run stopped while queued never spawns. */
+export async function acquireIndexLock(giveUp: () => boolean): Promise<(() => void) | null> {
+  const until = Date.now() + INDEX_WAIT_MS
+  const holder = path.join(INDEX_LOCK, 'holder')
+  for (;;) {
+    if (giveUp()) return null
+    try {
+      fs.mkdirSync(INDEX_LOCK, { recursive: false })
+      fs.writeFileSync(holder, String(process.pid))
+      return () => fs.rmSync(INDEX_LOCK, { recursive: true, force: true })
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') {
+        fs.mkdirSync(path.dirname(INDEX_LOCK), { recursive: true })
+        continue
+      }
+      if (code !== 'EEXIST') throw err
+      // Held. Whoever holds it writes their pid in; if that process is gone, so is their
+      // claim — a run killed mid-flight must not lock the board out for good.
+      if (!pidAlive(Number(readHolder(holder)))) {
+        fs.rmSync(INDEX_LOCK, { recursive: true, force: true })
+        continue
+      }
+      if (Date.now() > until) return null
+      await sleep(INDEX_POLL_MS)
+    }
+  }
+}
+
+function readHolder(file: string): string {
+  try {
+    return fs.readFileSync(file, 'utf8').trim()
+  } catch {
+    // The folder exists but the pid file hasn't landed yet — a race of milliseconds. Read
+    // it as alive so the waiter waits rather than breaking a lock that was just taken.
+    return String(process.pid)
+  }
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))

@@ -1,0 +1,16 @@
+{
+  "name": "wildcrane",
+  "owner": { "name": "WildCrane" },
+  "metadata": { "description": "WildCrane's plugins for Claude Code." },
+  "plugins": [
+    {
+      "name": "wildcrane",
+      "description": "Shape ideas with Claude and start them as WildCrane tasks.",
+      "source": {
+        "source": "archive",
+        "url": "https://github.com/ai4kanban/ai4kanban/releases/download/plugin-v0.1.0/wildcrane-plugin.zip",
+        "sha256": "b0b54544963e3d43ddeee9e5f265c113c8a3b696ce526ba1e690a1194653d409"
+      }
+    }
+  ]
+}

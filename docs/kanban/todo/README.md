@@ -1,0 +1,41 @@
+# Board
+
+Open tasks for ai4kanban. One card per file. Ids are global and never reused —
+the number at the front of a filename is the task id.
+
+## Tasks
+
+- [#182 Sign the Mac build so it opens with no warning](182-sign-the-mac-build-so-it-opens-with-no-warning.md)
+- [#250 Bring a task in from a file or your voice, not only typed text](250-friendly-task-import/root.md)
+- [#371 Pick the computer a run lands on](371-run-on-a-chosen-computer.md)
+- [#594 统一待筛选输入源](594-triage-input-sources/root.md)
+- [#313 Import GitHub Issues into Triage and mirror progress back](594-triage-input-sources/313-import-github-issues-and-mirror-progress-back.md)
+- [#56 Import Obsidian notes into Triage](594-triage-input-sources/56-read-and-edit-the-board-in-obsidian.md)
+- [#579 Manage source connectors and connect Reddit from the board UI](579-connect-a-triage-provider-from-the-board-ui.md)
+- [#987 Create and edit agents through a chat](987-agent-creation-chat.md)
+- [#1090 Fix Store in Cloud retry and run-wait failures](1090-stabilize-store-in-cloud-and-reopen-it-to-invitees.md)
+- [#1104 Reopen Store in Cloud to all invitees](1104-reopen-store-in-cloud-to-invitees.md)
+- [#1105 Carry the whole local board through Cloud and back](1105-cloud-board-round-trip/root.md)
+- [#1106 Keep every board file through a Cloud round trip](1105-cloud-board-round-trip/1106-keep-every-board-file-through-a-cloud-round-trip.md)
+- [#1107 Keep delivery records whole through a Cloud round trip](1105-cloud-board-round-trip/1107-keep-delivery-records-whole-through-a-cloud-round-trip.md)
+- [#1108 Store card attachments and mockups in Cloud](1105-cloud-board-round-trip/1108-store-card-attachments-and-mockups-in-cloud.md)
+- [#1384 Open a card's plan and triage sources on the Cloud card page](1384-cloud-card-page-plan-and-triage-sources.md)
+- [#1536 Bill runs from the usage ledger, then run the cost re-test](1536-run-the-cost-re-test.md)
+- [#1545 Stop the Cloud tab icon from signing the browser back in](1545-cloud-favicon-signs-back-in.md)
+- [#1597 Recover stalled runs and suspend repeatedly failing cards](1597-recover-stalled-runs.md)
+- [#1604 Archive handoff flags the board's own revise notes as stale mentions](1604-archive-flags-its-own-revise-notes.md)
+- [#1608 Rewrite the docs around draft-first review](1608-docs-rewrite/root.md)
+- [#1629 Add the mermaid dependency to Cloud card pages](1629-cloud-ui-mermaid-dep.md)
+- [#1644 Write a blog post on agent QA](1644-write-a-blog-post-on-agent-qa.md)
+- [#1646 Write a blog post on AI rework](1646-ai-rework-blog.md)
+- [#1713 Redo the social share card for the new narrative](1713-new-narrative-share-card.md)
+- [#1716 Collect everything from Seed partners by default](1716-collect-everything-from-seed-partners-by-default.md)
+- [#1726 Trim the "Daily loop" docs page](1608-docs-rewrite/1726-docs-daily-loop.md)
+- [#1730 Trim the "Triage" docs page](1608-docs-rewrite/1730-docs-triage.md)
+- [#1731 Trim the "Local and Cloud boards" docs page](1608-docs-rewrite/1731-docs-local-and-cloud-boards.md)
+- [#1756 Update the Cloud page to match what Cloud ships](1756-cloud-page-current-positioning.md)
+- [#1799 Add pricing, Cloud and blog to llms.txt Pages](1799-llms-txt-missing-pages.md)
+- [#1812 Cloud card page: point waiting stages to the app instead of a missing Approve](1812-hosted-stage-no-approve.md)
+- [#1819 复刻 Manus「My Computer」介绍视频](1819-clone-manus-my-computer-video.md)
+- [#1869 写一篇 intent-driven development 博客：谁替你把意图讲给 Agent](1869-intent-driven-development-blog.md)
+- [#1936 复刻手绘白板讲解视频模板](1936-whiteboard-explainer-template.md)

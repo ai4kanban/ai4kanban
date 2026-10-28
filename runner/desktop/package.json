@@ -1,0 +1,19 @@
+{
+  "name": "wildcrane-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "FSL-1.1-ALv2",
+  "description": "WildCrane for Mac and Windows: the Local Runner with a menu bar, a first-run setup and native notifications.",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "prepare-bundle": "node scripts/prepare.mjs",
+    "dev": "node scripts/prepare.mjs && tauri dev",
+    "build": "node scripts/prepare.mjs && tauri build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4"
+  }
+}

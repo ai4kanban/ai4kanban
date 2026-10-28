@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WildCrane",
+  "version": "../package.json",
+  "identifier": "ai.wildcrane.desktop",
+  "build": {
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "createUpdaterArtifacts": true,
+    "category": "DeveloperTool",
+    "copyright": "© WildCrane",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "externalBin": ["binaries/node"],
+    "resources": {
+      "../../dist/launcher.mjs": "runner/launcher.mjs",
+      "../../dist/runner.mjs": "runner/runner.mjs",
+      "../../dist/akb/": "runner/akb/",
+      "icons/tray-template.png": "icons/tray-template.png",
+      "icons/32x32.png": "icons/tray.png",
+      "icons/128x128.png": "icons/notification.png"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["SimpChinese", "English"],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1MkUyMzUyQ0MyMDZGRDYKUldUV2J5RE1VaU11bGVEbWxYNWhpeFB5OVRXdlFRZXFtL2FaR2JKdTk5NDlCZnl6U3R3bW9ZWkMK",
+      "endpoints": ["https://github.com/ai4kanban/ai4kanban/releases/latest/download/latest.json"],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

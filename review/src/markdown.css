@@ -1,0 +1,342 @@
+/* ============================================================================
+   Copied from legacy kanban-ui/app/markdown.css.
+   Rendered markdown card body — the `.nb-md` prose scope and friends.
+   Ported from dist0/web/app/blog-prose.css and scaled to the card's 14px
+   context: vertical rhythm lives on a single `> * + *` rule (not per-element
+   margins), headings are bold sans with tight tracking, code is a quiet wash
+   pill, and fenced blocks / tables are framed neo-brutalist panels. The body
+   sits on the card's paper surface (see CardPage), so wash fills read cleanly.
+   Split out of globals.css so all markdown-output selectors live in one place;
+   colors/keyframes it references stay as tokens in globals.css.
+   ========================================================================== */
+.nb-md {
+  color: var(--color-nb-ink);
+  font-size: 14px;
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga", "calt";
+  /* long urls, ids, and inline code never punch out of the panel */
+  overflow-wrap: break-word;
+}
+/* One rhythm rule: consecutive blocks get a gap; headings own their own space
+   below so they don't get a double margin. */
+.nb-md > * + *:not(h1):not(h2):not(h3):not(h4) {
+  margin-top: 14px;
+}
+.nb-md > :first-child { margin-top: 0; }
+.nb-md > :last-child { margin-bottom: 0; }
+.nb-md p { text-wrap: pretty; }
+
+.nb-md h1,
+.nb-md h2,
+.nb-md h3,
+.nb-md h4,
+.nb-md h5,
+.nb-md h6 {
+  margin-bottom: 0;
+  color: var(--color-nb-ink);
+  letter-spacing: -0.018em;
+  text-wrap: pretty;
+}
+.nb-md h1 { margin-top: 28px; font-size: 20px; font-weight: 800; line-height: 1.2; }
+.nb-md h2 { margin-top: 26px; font-size: 17px; font-weight: 800; line-height: 1.22; }
+.nb-md h3 { margin-top: 22px; font-size: 15px; font-weight: 700; line-height: 1.3; }
+.nb-md h4 { margin-top: 18px; font-size: 14px; font-weight: 700; line-height: 1.4; }
+.nb-md h5,
+.nb-md h6 {
+  margin-top: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-nb-ink-soft);
+}
+.nb-md h1 + *, .nb-md h2 + * { margin-top: 12px; }
+.nb-md h3 + *, .nb-md h4 + *, .nb-md h5 + *, .nb-md h6 + * { margin-top: 8px; }
+
+.nb-md ul,
+.nb-md ol { padding-left: 20px; }
+.nb-md ul { list-style: disc; }
+.nb-md ol { list-style: decimal; }
+.nb-md li { padding-left: 4px; }
+.nb-md li + li { margin-top: 6px; }
+.nb-md li::marker { color: var(--color-nb-ink-soft); }
+.nb-md li > p { margin: 0; }
+/* nested lists tuck in under their parent item */
+.nb-md li > ul,
+.nb-md li > ol { margin-top: 6px; }
+
+.nb-md a {
+  color: var(--color-nb-ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-nb-ink) 30%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color 150ms ease-out, text-decoration-color 150ms ease-out;
+}
+.nb-md a:hover {
+  color: var(--color-nb-accent-deep);
+  text-decoration-color: var(--color-nb-accent-deep);
+}
+.nb-md strong { font-weight: 700; color: var(--color-nb-ink); }
+.nb-md em { font-style: italic; }
+.nb-md del { color: var(--color-nb-ink-soft); }
+
+.nb-md hr {
+  border: none;
+  border-top: 1.5px solid color-mix(in srgb, var(--color-nb-ink) 22%, transparent);
+  width: 48px;
+  margin: 24px auto;
+}
+
+/* A step of ink rather than an opaque near-white: a name in the body has to read on
+   whatever ground the section it sits in sets, and a wash fill vanishes on all but paper. */
+.nb-md code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: color-mix(in srgb, var(--color-nb-ink) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-nb-ink) 16%, transparent);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+/* Paper, the ground of the GitHub light theme below: a code block reads the same on every
+   section tint. */
+.nb-md pre {
+  padding: 12px 14px;
+  background: var(--color-nb-paper);
+  border: 1.5px solid var(--color-nb-ink);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 0 var(--color-nb-ink);
+  font-size: 0.86em;
+  line-height: 1.6;
+}
+.nb-md pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  /* A long line wraps rather than scrolls (#1088); a URL or hash breaks anywhere. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ```diff — the Diff tab's bands; each line's band covers all of its wrapped rows. */
+.nb-md pre code.nb-diff {
+  display: block;
+}
+.nb-md .nb-diff > span {
+  display: block;
+  margin: 0 -14px;
+  padding: 0 14px;
+}
+.nb-md .nb-diff-add { background: var(--color-nb-mint-soft); color: var(--color-nb-mint-ink); }
+.nb-md .nb-diff-del { background: var(--color-nb-peach-soft); color: var(--color-nb-peach-ink); }
+.nb-md .nb-diff-head { color: var(--color-nb-ink-soft); }
+
+/* Token colours from highlight.js's GitHub light theme (styles/github.css, BSD-3-Clause). */
+.nb-md .hljs-doctag,
+.nb-md .hljs-keyword,
+.nb-md .hljs-meta .hljs-keyword,
+.nb-md .hljs-template-tag,
+.nb-md .hljs-template-variable,
+.nb-md .hljs-type,
+.nb-md .hljs-variable.language_ { color: #d73a49; }
+.nb-md .hljs-title,
+.nb-md .hljs-title.class_,
+.nb-md .hljs-title.class_.inherited__,
+.nb-md .hljs-title.function_ { color: #6f42c1; }
+.nb-md .hljs-attr,
+.nb-md .hljs-attribute,
+.nb-md .hljs-literal,
+.nb-md .hljs-meta,
+.nb-md .hljs-number,
+.nb-md .hljs-operator,
+.nb-md .hljs-variable,
+.nb-md .hljs-selector-attr,
+.nb-md .hljs-selector-class,
+.nb-md .hljs-selector-id { color: #005cc5; }
+.nb-md .hljs-regexp,
+.nb-md .hljs-string,
+.nb-md .hljs-meta .hljs-string { color: #032f62; }
+.nb-md .hljs-built_in,
+.nb-md .hljs-symbol { color: #e36209; }
+.nb-md .hljs-comment,
+.nb-md .hljs-code,
+.nb-md .hljs-formula { color: #6a737d; }
+.nb-md .hljs-name,
+.nb-md .hljs-quote,
+.nb-md .hljs-selector-tag,
+.nb-md .hljs-selector-pseudo { color: #22863a; }
+.nb-md .hljs-section { color: #005cc5; font-weight: bold; }
+.nb-md .hljs-bullet { color: #735c0f; }
+.nb-md .hljs-emphasis { font-style: italic; }
+.nb-md .hljs-strong { font-weight: bold; }
+.nb-md .hljs-addition { color: #22863a; background-color: #f0fff4; }
+.nb-md .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
+
+.nb-md blockquote {
+  border-left: 3px solid var(--color-nb-accent);
+  padding: 0.1em 0 0.1em 14px;
+  color: var(--color-nb-ink-soft);
+  font-style: italic;
+}
+.nb-md blockquote > :first-child { margin-top: 0; }
+.nb-md blockquote > :last-child { margin-bottom: 0; }
+
+/* GFM tables — framed neo-brutalist panel with a wash uppercase header row.
+   border-spacing + overflow:hidden lets the outer border round its corners
+   even though cells draw their own bottom rule. */
+.nb-md table {
+  width: 100%;
+  border: 1.5px solid var(--color-nb-ink);
+  border-radius: 12px;
+  border-spacing: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.nb-md th,
+.nb-md td {
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-nb-ink) 14%, transparent);
+}
+.nb-md tr:last-child td { border-bottom: none; }
+.nb-md th {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-nb-ink-soft);
+  background: var(--color-nb-wash);
+}
+
+.nb-md img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  border: 1.5px solid var(--color-nb-ink);
+  border-radius: 12px;
+}
+
+/* Task-list checkboxes rendered by remark-gfm — read-only by design. The
+   checkbox is pulled out of flow with absolute positioning and the item gets a
+   hanging indent, so wrapped text and inline `code` flow as normal prose
+   instead of being split into flex items. */
+.nb-md ul.contains-task-list { list-style: none; padding-left: 0; }
+.nb-md ul.contains-task-list ul.contains-task-list { padding-left: 26px; }
+.nb-md li.task-list-item {
+  position: relative;
+  padding-left: 26px;
+}
+.nb-md li.task-list-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  left: 0;
+  top: 0.24em;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--color-nb-ink);
+  border-radius: 4px;
+  background: var(--color-nb-paper);
+  cursor: default;
+}
+.nb-md li.task-list-item input[type="checkbox"]:checked {
+  background: var(--color-nb-mint);
+}
+.nb-md li.task-list-item input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--color-nb-ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* The agent half of a card, opened (#262). The same prose in the board's own muted ink, so
+   the human half above it keeps the page's voice. No new colours, and only the ink moves —
+   the rhythm, sizes and weights are `.nb-md`'s. */
+.nb-md.nb-md-soft,
+.nb-md.nb-md-soft h1,
+.nb-md.nb-md-soft h2,
+.nb-md.nb-md-soft h3,
+.nb-md.nb-md-soft h4,
+.nb-md.nb-md-soft strong,
+.nb-md.nb-md-soft blockquote {
+  color: var(--color-nb-ink-soft);
+}
+
+/* A storyboard's pictures (#963): a hairline frame rather than the body's ink border, and
+   thumbnails that fill their cell whatever the picture's shape. Two classes, so it holds
+   inside a card body and outside one alike. */
+.nb-draft.nb-storyboard img {
+  display: block;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-nb-ink) 25%, transparent);
+  border-radius: 6px;
+}
+.nb-draft.nb-storyboard img.nb-thumb {
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+  border-radius: 0;
+}
+
+/* A draft runs edge to edge on a phone (#1793): out over the page's and the section's 16px
+   each, and a `###` subsection's indent too. */
+@media (max-width: 767px) {
+  .nb-section .nb-draft {
+    margin-inline: -32px;
+  }
+  .nb-section .nb-sub .nb-draft {
+    margin-left: -53px;
+  }
+}
+
+/* An agent's reply in the review page's AI chat (#2027), legacy kanban-ui's session log. */
+.nb-sessionlog-md {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.nb-sessionlog-md > * + *:not(h1):not(h2):not(h3):not(h4) {
+  margin-top: 9px;
+}
+.nb-sessionlog-md :where(h1, h2, h3, h4) {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.nb-sessionlog-md :where(ul, ol) {
+  padding-left: 16px;
+}
+
+/* ```mermaid, drawn by MermaidDiagram. */
+.nb-mermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+.nb-mermaid text {
+  font-family: var(--font-sans);
+}
+.nb-mermaid .node rect {
+  rx: 8px;
+  ry: 8px;
+}
+.nb-mermaid .node[data-shape="diamond"] polygon {
+  stroke: var(--color-nb-accent);
+  stroke-width: 1.25;
+}
+.nb-mermaid .edge-label text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}

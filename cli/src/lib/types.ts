@@ -1,0 +1,85 @@
+// The shapes the board's own files parse into.
+//
+// They are deliberately loose in the same places the parsers are: a card written by an
+// older version, or hand-edited into a shape nothing writes, still has to open. What the
+// parsers guarantee — the lists are lists, the scalars are strings — is what these say.
+
+// One open question. A plain question is just its text; one with options carries the
+// choices, how many may be ticked, and which open ticked (1-based). See lib/questions.ts.
+// Declared with the shapes a reader is handed (./view/types.ts), because a question is one
+// of the few things both sides of the board see — the writers here, and every front end.
+export type { Question, QuestionMode } from './view/types'
+import type { CardSchedule, Question } from './view/types'
+
+// A question still being built out of the flags that describe it.
+export interface QuestionDraft {
+  question: string
+  options: string[]
+  recommended: string[]
+  mode?: string
+  recommend?: number[]
+  agent?: string
+}
+
+// A card's frontmatter, after parsing. Every field is normalized on the way in, so a
+// reader never has to guard for a missing list or a damaged scalar.
+export interface Meta {
+  title: string
+  priority: string
+  roi: string
+  status: string
+  blocked_by: number[]
+  related: number[]
+  modules: string[]
+  /** The workflow this card runs on (#715) — a workflow's stable id, never its name, so
+   *  renaming one leaves every card pointing at it. Empty on a card written before the field
+   *  and on a board that picks no workflows, and both read as the default workflow. */
+  workflow: string
+  /** The source id of the triage item this card was made of — only `raw create --triage`
+   *  writes it. */
+  triage: string
+  /** Where the card came from (#1306): `plan:<id>`, `#<id>` or an address each (./source.ts).
+   *  A triage card carries none — `triage:` already names its item. */
+  source: string[]
+  /** The preview agents this card chose (#2154), written by its first planning. Absent until
+   *  then. */
+  previews?: string[]
+  /** How many approvals those previews make (#2154), derived from their `after` and written
+   *  beside them for Cloud to read; 0 when the card has chosen none. */
+  stages: number
+  /** The approval the card is on (#1790, #2154), 1-based; 0 when it has never been approved
+   *  past its first. */
+  phase: number
+  /** A video card's shot previews were approved under the retired two-round flow (#991).
+   *  Still read, never acted on: it authorizes nothing since #1057. */
+  preview_approved: boolean
+  /** The day this card was archived — `YYYY-MM-DD`, written by `board archive` on its way
+   *  out. Empty on every open card, and on one archived before the board stamped a date. */
+  archived: string
+  /** The card was rejected or discarded rather than finished — `reject` writes it beside
+   *  `archived`. Such a card is in the archive but was never shipped. */
+  rejected: boolean
+  /** Why it was rejected, as typed — `reject` writes it when a reason was given. */
+  rejected_reason: string
+  /** When it was rejected (ISO) and who by — what the rejection review reads (#1497). Empty on
+   *  a discard and on a card rejected before these were written. */
+  rejected_at: string
+  rejected_by: '' | 'user' | 'agent'
+  /** The action waiting to run once nothing is in this card's way, or null on a card nobody
+   *  scheduled (./schedule.ts). */
+  schedule: CardSchedule | null
+  questions: Question[]
+}
+
+// Where a card sits on the board: one file, or a folder holding a group's root.md.
+export interface Found {
+  kind: 'group' | 'file'
+  target: string
+  rel: string
+}
+
+// What a move hands back to the dispatcher: its own fields, which `--json` puts in the
+// answer next to the prose it printed.
+export interface MoveResult {
+  [key: string]: unknown
+}

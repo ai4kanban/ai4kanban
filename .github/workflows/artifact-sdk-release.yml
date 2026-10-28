@@ -1,0 +1,38 @@
+# Publishes wildcrane-artifact-sdk to npm with provenance; push the tag artifact-sdk-v<version>.
+# Trusted publishing: npm takes this workflow's OIDC token, so no npm token is stored here.
+name: artifact-sdk-release
+
+on:
+  push:
+    tags: ['artifact-sdk-v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: artifact-sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - name: Check the version
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "artifact-sdk-v$version" ]; then
+            echo "::error::the tag $GITHUB_REF_NAME does not name $version, the version in package.json."; exit 1
+          fi
+          if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
+            echo "::error::$name@$version is already on npm. Raise the version."; exit 1
+          fi
+      - run: npm ci
+      - run: npm run lint
+      - run: npm publish --provenance --access public

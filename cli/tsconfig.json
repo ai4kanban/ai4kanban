@@ -1,0 +1,24 @@
+{
+  // Typechecking only — esbuild does the building (scripts/build.mjs). Imports are written
+  // without an extension, which "bundler" resolution allows and the bundler resolves.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    // The tests import their targets with a `.ts` extension, which only the bundler that
+    // builds them can resolve — see scripts/test.mjs.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src", "test", "scripts"],
+  // A recipe's demo code and an agent's scripts are text assets this package ships, not
+  // source it compiles — see src/agents/agents.d.ts.
+  "exclude": ["src/agents/*/recipes/**", "src/agents/*/scripts/**"]
+}

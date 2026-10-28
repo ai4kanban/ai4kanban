@@ -1,0 +1,37 @@
+{
+  "name": "ai4kanban-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "license": "FSL-1.1-ALv2",
+  "description": "The service every AI4Kanban Cloud workspace runs on \u2014 the Worker at api.ai4kanban.dev and its Postgres schema.",
+  "type": "module",
+  "scripts": {
+    "deploy": "node scripts/deploy.mjs",
+    "rollback": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler rollback",
+    "migrate": "node scripts/migrate.mjs",
+    "board-move": "node scripts/board-move.mjs",
+    "schedules-move": "node scripts/schedules-move.mjs",
+    "triage-move": "node scripts/triage-move.mjs",
+    "redirects": "node scripts/redirects.mjs",
+    "invite": "node scripts/invite.mjs",
+    "runner-release": "node scripts/runner-release.mjs",
+    "seed": "node scripts/seed.mjs",
+    "preview:slack": "node scripts/slack-preview.mjs",
+    "check:closed": "node scripts/check-closed.mjs",
+    "check:live": "node scripts/check-live.mjs",
+    "e2e:mainline": "node scripts/e2e/mainline.mjs",
+    "e2e:folder": "node scripts/e2e/folder.mjs",
+    "e2e:takeover": "node scripts/e2e/takeover.mjs",
+    "dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler dev",
+    "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",
+    "typecheck": "tsc --noEmit",
+    "builtins": "node scripts/builtin-workflows.mjs",
+    "lint": "npm run builtins && npm run typecheck",
+    "test": "npm run builtins && node --test && node scripts/check-sql.mjs",
+    "test:sql": "node scripts/check-sql.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.125.0"
+  }
+}

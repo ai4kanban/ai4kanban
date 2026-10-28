@@ -1,0 +1,22 @@
+# Redesign
+
+Design mistakes to avoid when writing a card: the mistake, then the design we want.
+
+## Product positioning
+
+- ❌ **Reducing AI4Kanban to task or context management** → ✅ ground it in `positioning.md`.
+- ❌ **Classifying tools by form, or stretching project management over execution tools** → ✅ define categories by the responsibility delegated, explained before the listings; a missing claim is not a missing capability.
+- ❌ **Treating Discuss as technical clarification or a UI upgrade** → ✅ Discuss helps users decide what they want; card questions settle details afterwards.
+
+## Copy
+
+- ❌ **介绍功能时讲它怎么演变而来** → ✅ 只写它现在的样子。
+- ❌ **Newsletter copy listing UI details, vague metaphors, or issue bookkeeping** → ✅ name each capability and its practical value.
+
+## Figures
+
+- ❌ **示意图把瓶颈画成消失、标 1×/10×/100× 这类倍数** → ✅ 结构忠实、比例示意：宽度代表速度，产出等于最窄一段；倍数只写在正文里。
+
+## The newsletter
+
+- ❌ **Highlights from the last release or two under one hero picture** → ✅ draw from every release no issue has covered, one picture per highlight, never the same feature twice.

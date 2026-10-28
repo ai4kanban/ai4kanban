@@ -1,0 +1,12 @@
+{
+  "name": "wildcrane",
+  "interface": { "displayName": "WildCrane" },
+  "plugins": [
+    {
+      "name": "wildcrane",
+      "source": { "source": "local", "path": "./codex" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

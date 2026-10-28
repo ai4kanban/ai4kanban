@@ -1,0 +1,465 @@
+import { routeBilling } from './billing.ts'
+import { isLarkCloud } from './config.ts'
+import { isContactPath, routeContact } from './contact.ts'
+import { mutate } from './db.ts'
+import { requireEnv } from './env.ts'
+import type { Env } from './env.ts'
+import { Refusal, badRequest, notAdmitted, notFound, unauthenticated } from './errors.ts'
+import {
+  listEvents,
+  publishEvent,
+  readOneEvent,
+  recordAction,
+  recordOutcome,
+  registerBoard,
+  retireEvent,
+} from './events.ts'
+import { bodyOf, json, refusalResponse, requireMethod } from './http.ts'
+import { requestInvite, sendPendingMail } from './invites.ts'
+import { larkCallback } from './lark-actions.ts'
+import {
+  beginLarkConnect,
+  disconnectLark,
+  finishLarkConnect,
+  listLarkChats,
+  readLarkConnection,
+  setLarkDestination,
+} from './lark.ts'
+import { readSession, requireOwner } from './owner.ts'
+import { redrawEverywhere } from './redraw.ts'
+import { runScheduled } from './scheduled.ts'
+import { slackCallback } from './slack-actions.ts'
+import {
+  beginSlackInstall,
+  disconnectSlack,
+  finishSlackInstall,
+  listSlackConversations,
+  readSlackConnection,
+  setSlackDestination,
+} from './slack.ts'
+import {
+  attachServer,
+  claimRequest,
+  detachServer,
+  listRequests,
+  listServers,
+  renewClaim,
+} from './servers.ts'
+import { generateImage } from './image.ts'
+import { generateMusic } from './music.ts'
+import { speak } from './speech.ts'
+import { judge } from './judge.ts'
+import { pricingPage } from './pricing.ts'
+import { routeRunner } from './runners.ts'
+import { routeTemplates } from './templates.ts'
+import { CATALOG_CORS, isCatalogPath, routeCatalog } from './catalog.ts'
+import { corsHeaders, isTrainingPath, routeTraining } from './training.ts'
+import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
+import { V1_CORS, isV1Path, isV1Request, routeV1 } from './v1/index.ts'
+import { isComponentHost, serveComponent } from './v1/components.ts'
+import { moveBoard } from './v1/board.ts'
+import { moveTriage } from './triage.ts'
+import { moveSchedules } from './v1/agents.ts'
+
+interface SelfCheck {
+  writes_today: number
+  daily_write_budget: number
+}
+
+export { MusicCall } from './music.ts'
+export { EventHub } from './v1/stream.ts'
+export { Board } from './board.ts'
+export { RunLog } from './run-log.ts'
+export { DiffCall } from './diff.ts'
+export { RunnerPresence } from './presence.ts'
+
+/** The routes outside the public API that WildCrane Web reads (#2020). */
+const WEB_PATH = /^\/v1\/(session|billing|runner(\/jobs\/[^/]+)?)$/
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // The training, contact and public catalog routes are the only things here a browser on
+    // another origin calls (#683, #784, #1711), so their answer carries the CORS headers — a
+    // refusal included, or the page reads a network error where the service gave it a sentence.
+    const { pathname, hostname } = new URL(request.url)
+    // Component bundles (#2006) answer on their own hosts and nothing else does.
+    if (isComponentHost(hostname)) return serveComponent(request, env).catch(() => new Response('Unavailable', { status: 503 }))
+    const cors = isTrainingPath(pathname) || isContactPath(pathname)
+      ? corsHeaders(request)
+      : isCatalogPath(pathname) ? CATALOG_CORS
+      : isV1Path(pathname) || WEB_PATH.test(pathname) ? V1_CORS : {}
+    try {
+      requireEnv(env)
+      if (request.method === 'OPTIONS' && Object.keys(cors).length > 0) {
+        return new Response(null, { status: 204, headers: cors })
+      }
+      return withHeaders(await route(request, env, ctx), cors)
+    } catch (error) {
+      if (!(error instanceof Refusal)) console.error('cloud: request failed', error)
+      return withHeaders(refusalResponse(error), cors)
+    }
+  },
+
+  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    requireEnv(env)
+    await runScheduled(env)
+  },
+}
+
+async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url)
+  const { pathname } = url
+
+  // Liveness. It reaches nothing, so it stays honest while the database is read-only.
+  if (pathname === '/health') {
+    requireMethod(request, 'GET')
+    return json({ service: 'ai4kanban-cloud', ok: true, ...(env.COMMIT ? { commit: env.COMMIT } : {}) })
+  }
+
+  // The public pricing page (#2017).
+  if (pathname === '/pricing') {
+    requireMethod(request, 'GET')
+    return pricingPage(request, env)
+  }
+
+  // The public API (#2000): `src/v1/`.
+  if (isV1Request(request, url)) return routeV1(request, env, ctx, url)
+
+  // The one-off move of each workspace's project boards and memory into its board (#2114), run
+  // by scripts/board-move.mjs with the service role key.
+  const boardMove = /^\/internal\/workspaces\/(ws_[\w-]+)\/board-move$/.exec(pathname)
+  if (boardMove) {
+    requireMethod(request, 'POST')
+    if (request.headers.get('authorization') !== `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`) throw unauthenticated()
+    return json(await moveBoard(env, boardMove[1]!))
+  }
+
+  // The one-off move of each workspace's triage items into its board (#2107), run by
+  // scripts/triage-move.mjs with the service role key.
+  const triageMove = /^\/internal\/workspaces\/(ws_[\w-]+)\/triage-move$/.exec(pathname)
+  if (triageMove) {
+    requireMethod(request, 'POST')
+    if (request.headers.get('authorization') !== `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`) throw unauthenticated()
+    return json(await moveTriage(env, triageMove[1]!))
+  }
+
+  // The one-off move of each project's `schedules.md` into Cloud (#2138), run by
+  // scripts/schedules-move.mjs with the service role key.
+  const schedulesMove = /^\/internal\/projects\/(prj_[\w-]+)\/schedules-move$/.exec(pathname)
+  if (schedulesMove) {
+    requireMethod(request, 'POST')
+    if (request.headers.get('authorization') !== `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`) throw unauthenticated()
+    return json(await moveSchedules(env, schedulesMove[1]!))
+  }
+
+  // The one route open to a verified sign-in we have not admitted (#326), so the app can
+  // name the account it refused rather than showing a refusal about nobody.
+  if (pathname === '/v1/session') {
+    requireMethod(request, 'GET')
+    const session = await readSession(request, env)
+    // The refusal every other route would give, carried here so the app shows the service's
+    // own words rather than writing its own copy of them.
+    const refusal = session.admitted ? undefined : notAdmitted()
+    return json({
+      session,
+      ...(refusal ? { refusal: { code: refusal.code, message: refusal.message } } : {}),
+    })
+  }
+
+  // The one route open before admission beside the session above. A refused person asks for
+  // an invite here, and it needs exactly what the session needed: a verified sign-in,
+  // admitted or not. Approving is the whole of the answer (#350), so there is nothing for
+  // them to send back.
+  if (pathname === '/v1/invite-request') {
+    requireMethod(request, 'POST')
+    const session = await readSession(request, env)
+    if (session.admitted) throw badRequest('This account is already in the preview.')
+    const requestedAt = await requestInvite(env, session.subject)
+    // The row is written, and a Worker is standing right here — so send it now rather than
+    // leaving a person waiting on the top of the hour. `waitUntil` keeps the response off
+    // Resend's latency, and a send that fails is what the hourly run retries.
+    ctx.waitUntil(sendPendingMail(env).catch((e) => console.error('cloud: mail failed', e)))
+    return json({ requestedAt })
+  }
+
+  // Pro (#1037). Open to any verified sign-in like the session, and the Creem notification
+  // to nobody signed in: it carries Creem's signature instead.
+  const billing = /^\/v1\/billing(?:\/(.*))?$/.exec(pathname)
+  if (billing) return routeBilling(request, env, (billing[1] ?? '').replace(/\/+$/, ''))
+
+  // The account's Local Runner and the jobs it runs (#2001): `src/runners.ts`.
+  const runner = /^\/v1\/runner(?:\/(.*))?$/.exec(pathname)
+  if (runner) return routeRunner(request, env, url, (runner[1] ?? '').replace(/\/+$/, ''), ctx)
+
+  // The events a board publishes, and the one action each may carry (#319). All behind the
+  // owner check: a board, an event and an action are an admitted account's rows.
+  if (pathname === '/v1/boards') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await registerBoard(env, owner, await bodyOf(request)))
+  }
+
+  // Which machine runs a board's work, and the requests it claims (#318). A board attaches
+  // exactly one server; a second is refused and told which machine holds it.
+  const boardServer = /^\/v1\/boards\/([^/]+)\/server(?:\/(detach))?$/.exec(pathname)
+  if (boardServer) {
+    requireMethod(request, 'POST')
+    const [, board = '', move] = boardServer
+    const owner = await requireOwner(request, env)
+    const body = await bodyOf(request)
+    return json(
+      move === 'detach'
+        ? await detachServer(env, owner, board, body)
+        : await attachServer(env, owner, board, body),
+    )
+  }
+
+  if (pathname === '/v1/servers') {
+    requireMethod(request, 'GET')
+    return json(await listServers(env, await requireOwner(request, env)))
+  }
+
+  const serverRequests = /^\/v1\/servers\/([^/]+)\/requests$/.exec(pathname)
+  if (serverRequests) {
+    requireMethod(request, 'GET')
+    return json(await listRequests(env, await requireOwner(request, env), serverRequests[1] ?? ''))
+  }
+
+  const requestMove = /^\/v1\/requests\/([^/]+)\/(claim|renew)$/.exec(pathname)
+  if (requestMove) {
+    requireMethod(request, 'POST')
+    const [, id = '', move] = requestMove
+    const owner = await requireOwner(request, env)
+    const body = await bodyOf(request)
+    return json(
+      move === 'claim'
+        ? await claimRequest(env, owner, id, body)
+        : await renewClaim(env, owner, id, body),
+    )
+  }
+
+  if (pathname === '/v1/events') {
+    if (request.method === 'GET') return json(await listEvents(env, await requireOwner(request, env), url.searchParams))
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    const published = await publishEvent(env, owner, await bodyOf(request))
+    redraw(env, ctx, published.event.id)
+    return json(published)
+  }
+
+  const event = /^\/v1\/events\/([^/]+)(?:\/(retire|action|outcome))?$/.exec(pathname)
+  if (event) {
+    const [, id = '', move] = event
+    const owner = await requireOwner(request, env)
+    if (!move) {
+      requireMethod(request, 'GET')
+      return json(await readOneEvent(env, owner, id))
+    }
+    requireMethod(request, 'POST')
+    // Every write to an event is a message a connector may owe a rewrite of, so each one
+    // hands the delivery to `waitUntil`: the caller waits for the durable write and nothing
+    // else, and the hourly run is the retry behind whatever this attempt does not get out.
+    if (move === 'retire') {
+      const retired = await retireEvent(env, owner, id)
+      redraw(env, ctx, id)
+      return json(retired)
+    }
+    const body = await bodyOf(request)
+    const moved =
+      move === 'action'
+        ? await recordAction(env, owner, id, body)
+        : await recordOutcome(env, owner, id, body)
+    redraw(env, ctx, id)
+    return json(moved)
+  }
+
+  // The one message a scope change sends (#451). Not an event: it belongs to no card, so it
+  // takes none of the delivery loop and is posted here, once, through `waitUntil`. Best
+  // effort — the bell already shows the user what it is telling them.
+  if (pathname === '/v1/watch-summary') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    const recorded = await recordWatchSummary(env, owner, await bodyOf(request))
+    // A retry of an attempt that already landed sends nothing. `op_id` is what tells them
+    // apart, so a machine that never heard the answer costs the chat no second message.
+    if (recorded.posted) {
+      ctx.waitUntil(
+        deliverWatchSummary(env, owner, recorded).catch((e) =>
+          console.error('cloud: watch summary failed', e),
+        ),
+      )
+    }
+    return json({ summary: recorded })
+  }
+
+  // Slack (#320). Five routes the signed-in app calls, one Slack itself redirects to, and
+  // one Slack posts a press to — the last two carry no sign-in, so each carries its own
+  // proof: a nonce this account minted, and Slack's signature over the body.
+  if (pathname === '/v1/slack/install') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await beginSlackInstall(env, owner, new URL(request.url).origin))
+  }
+
+  if (pathname === '/v1/slack/installed') {
+    requireMethod(request, 'GET')
+    return finishSlackInstall(env, request)
+  }
+
+  if (pathname === '/v1/slack/connection') {
+    requireMethod(request, 'GET')
+    return json(await readSlackConnection(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/slack/conversations') {
+    requireMethod(request, 'GET')
+    return json(await listSlackConversations(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/slack/destination') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await setSlackDestination(env, owner, await bodyOf(request)))
+  }
+
+  if (pathname === '/v1/slack/disconnect') {
+    requireMethod(request, 'POST')
+    return json(await disconnectSlack(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/slack/actions') {
+    requireMethod(request, 'POST')
+    return slackCallback(env, request, ctx)
+  }
+
+  // Lark (#351) — 飞书 and Lark international, which are two platforms rather than two
+  // addresses of one. Four routes the signed-in app calls for the account's one connection,
+  // and three that name a cloud in the path: the two that cloud's own authorization comes
+  // back on, and the one it posts a press to. That last one names the cloud BEFORE the body
+  // is read, because an encrypted callback carries nothing readable until the right Encrypt
+  // Key has been chosen.
+  if (pathname === '/v1/lark/connection') {
+    requireMethod(request, 'GET')
+    return json(await readLarkConnection(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/lark/chats') {
+    requireMethod(request, 'GET')
+    return json(await listLarkChats(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/lark/destination') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await setLarkDestination(env, owner, await bodyOf(request)))
+  }
+
+  if (pathname === '/v1/lark/disconnect') {
+    requireMethod(request, 'POST')
+    return json(await disconnectLark(env, await requireOwner(request, env)))
+  }
+
+  const lark = /^\/v1\/lark\/([^/]+)\/(connect|connected|callback)$/.exec(pathname)
+  if (lark) {
+    const [, named = '', move] = lark
+    if (!isLarkCloud(named)) throw notFound()
+    if (move === 'connected') {
+      requireMethod(request, 'GET')
+      return finishLarkConnect(env, named, request)
+    }
+    requireMethod(request, 'POST')
+    if (move === 'callback') return larkCallback(env, named, request, ctx)
+    const owner = await requireOwner(request, env)
+    return json(await beginLarkConnect(env, owner, named, new URL(request.url).origin))
+  }
+
+  // The card link a Local board's message carries. A chat takes an http address and nothing
+  // else, so this is the http half of `ai4kanban://card/…` — one redirect, no lookup, and
+  // nothing about the board is learnt by answering it.
+  const card = /^\/card\/([^/]+)\/(\d+)$/.exec(pathname)
+  if (card) {
+    requireMethod(request, 'GET')
+    const [, board = '', task = ''] = card
+    return new Response(null, {
+      status: 302,
+      headers: { location: `ai4kanban://card/${encodeURIComponent(board)}/${task}` },
+    })
+  }
+
+  // The training page's bookings (#683). The one group of routes a visitor with no account
+  // reaches: `src/training.ts` says what each of them proves instead of a sign-in. A booking
+  // sends its own mail here, through `waitUntil`, and the hourly run is the retry behind it.
+  const training = /^\/v1\/training(?:\/(.*))?$/.exec(pathname)
+  if (training) {
+    return routeTraining(request, env, ctx, (training[1] ?? '').replace(/\/+$/, ''))
+  }
+
+  // The site's contact form (#784). No account, like the bookings above.
+  if (isContactPath(pathname)) return routeContact(request, env, ctx)
+
+  // Hosted narration for demo videos (#1054), for any Pro sign-in (#1062).
+  if (pathname === '/v1/speech') {
+    requireMethod(request, 'POST')
+    const session = await readSession(request, env)
+    return speak(env, ctx, session.subject, await bodyOf(request))
+  }
+
+  // Generated video covers (#1114), on the same terms as narration.
+  if (pathname === '/v1/image') {
+    requireMethod(request, 'POST')
+    const session = await readSession(request, env)
+    return generateImage(env, session.subject, await bodyOf(request))
+  }
+
+  // Hosted music for video clones (#1822), on the same terms.
+  if (pathname === '/v1/music') {
+    requireMethod(request, 'POST')
+    const session = await readSession(request, env)
+    return generateMusic(env, ctx, session.subject, await bodyOf(request))
+  }
+
+  // Judging one triage item (#1221): Pro only, and free.
+  if (pathname === '/v1/judge') {
+    requireMethod(request, 'POST')
+    const session = await readSession(request, env)
+    return judge(env, session.subject, await bodyOf(request))
+  }
+
+  // The site's public view of the template catalog (#1711): no sign-in, `src/catalog.ts`.
+  const catalog = /^\/v1\/catalog(?:\/(.*))?$/.exec(pathname)
+  if (catalog) return routeCatalog(request, env, (catalog[1] ?? '').replace(/\/+$/, ''))
+
+  // The shared template catalog (#1708). Any verified sign-in reads it; `src/templates.ts`
+  // says which reads need Pro and who publishes.
+  const templates = /^\/v1\/templates(?:\/(.*))?$/.exec(pathname)
+  if (templates) return routeTemplates(request, env, (templates[1] ?? '').replace(/\/+$/, ''))
+
+  // The post-deploy check: one budgeted write through the same path every mutation uses,
+  // so a deploy shows the write budget and the read-only refusal working before a client
+  // meets them. Behind the owner check like every route that is not the session.
+  if (pathname === '/v1/self-check') {
+    requireMethod(request, 'POST')
+    await requireOwner(request, env)
+    return json(await mutate<SelfCheck>(env, 'service_self_check'))
+  }
+
+  throw notFound()
+}
+
+/** Put the CORS headers on an answer that already exists. `Response` headers are immutable
+ *  once it has been constructed, so this is a copy rather than a mutation. */
+function withHeaders(response: Response, headers: Record<string, string>): Response {
+  if (Object.keys(headers).length === 0 || response.webSocket) return response
+  const merged = new Headers(response.headers)
+  for (const [name, value] of Object.entries(headers)) merged.set(name, value)
+  return new Response(response.body, { status: response.status, headers: merged })
+}
+
+/** Bring every connector's message for this event up to date, off the response. The durable
+ *  write is what the caller waited for; the message is a second round trip, and the hourly
+ *  run is the retry behind it. */
+function redraw(env: Env, ctx: ExecutionContext, eventId: string): void {
+  ctx.waitUntil(
+    redrawEverywhere(env, eventId).catch((e) => console.error('cloud: delivery failed', e)),
+  )
+}

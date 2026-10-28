@@ -1,0 +1,1183 @@
+// A delivery: everything one Implement click starts.
+//
+// One click, one delivery, one card — implementation, review, and landing. What makes it more than a label is the
+// SNAPSHOT: a delivery copies the card's approved requirements the moment it starts and
+// builds from that copy, so a card edited underneath it never changes what it was approved
+// to build. While it is in flight the card is held — the board's own screens and commands
+// won't change it — and the way to take the card back is Discard on the card page, or
+// `cancel` here, which ends it the same way. Either one gives the delivery up, so both
+// take its worktree and branch with them (#720); what the board keeps is a delivery that
+// stopped on its own and still has a job to finish.
+//
+// A delivery may also open with NO card (#428) — **Start now** sends a typed sentence
+// straight to a build. Its snapshot is that sentence, which nothing can rewrite, and its own
+// id is what everything finds it by. The run's first act is to write the card, which
+// `adoptDirectCard` hands over (#470); until then, and for a run that ends before it, the
+// delivery holds nothing and archives nothing.
+//
+// It leaves two records. The live row sits in the machine's sessions.json (#590), where the
+// lock and the card page read it. The permanent one is a JSON file per delivery under
+// docs/kanban/deliveries/, tracked in git, kept after the card is archived, and never
+// pruned while the delivery is unfinished.
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { locate } from '../cards'
+import { parseFrontmatter } from '../frontmatter'
+import { DELIVERIES, rel } from '../paths'
+import { candidateBase } from './candidate'
+import { boardCommand } from './command'
+import {
+  commitDeliveryWork,
+  manualState,
+  newDeliveryId,
+  snapshotReviewed,
+  type DeliveryStart,
+} from './commit-mode'
+import { completeCard } from './complete'
+import { filesStop } from './outputs'
+import { insideRun } from './env'
+import { DELIVERY_FLOWS } from './flows'
+import { deliveryState, type DeliveryState } from './pause'
+import { deliveryRules, readRule } from './rules'
+import { openOf } from '../view/rules'
+import { cardWorkflowId, DEFAULT_WORKFLOW, frozenWorkflow } from './workflows'
+import { nextAfterSession, reviewOf } from './review'
+import { readDeliveryRow, readStore, runIsLive, withStore, type Store } from './store'
+import {
+  refusal,
+  type AgentRequest,
+  type DeliveryCarryOn,
+  type DeliveryRecord,
+  type DeliveryStatus,
+  type DirectBuild,
+  type RefusalArgs,
+  type RunRecord,
+  type RunRefusal,
+  type RunRefusalKind,
+} from './types'
+import { branchExists, dropEmptyWorktreeFolders, removeWorktree, worktreeExists } from './worktree'
+
+// ---- the permanent record ---------------------------------------------------
+
+const auditPath = (deliveryId: string): string => path.join(DELIVERIES, `${deliveryId}.json`)
+
+/** One run, as the permanent record keeps it: what ran, how it went, and where its log
+ *  was — the path, never the contents. A log is this machine's and ages out; the record is
+ *  the repository's and does not. */
+interface DeliverySessionEntry {
+  sessionId: string
+  action: string
+  status: string
+  startedAt: number
+  endedAt?: number
+  harness?: string
+  model?: string
+  costUsd?: number
+  resumedFrom?: string
+  /** On a review after the first: why it started (#417). Kept here so the reason outlives
+   *  the live record's window, which forgets a run long before the delivery is history. */
+  trigger?: string
+  log: string
+}
+
+/** Write the delivery's permanent record, or bring it up to date. Best-effort: a delivery
+ *  that couldn't write its file is still a delivery, and failing the run that owns it
+ *  would cost the user their work over an audit line. */
+export function writeAudit(delivery: DeliveryRecord, runs: RunRecord[]): void {
+  // What this file already said about each run. The live record keeps only the newest
+  // 30, so a long delivery's first run leaves it long before the delivery ends — and
+  // the permanent record is exactly the thing that must not forget it.
+  const known = new Map(readAudit(delivery.deliveryId)?.sessions.map((s) => [s.sessionId, s]) ?? [])
+  const sessions: DeliverySessionEntry[] = delivery.sessions.flatMap((id) => {
+    const run = runs.find((r) => r.sessionId === id)
+    if (!run) {
+      const before = known.get(id)
+      return before ? [before] : []
+    }
+    return [
+      {
+        sessionId: run.sessionId,
+        action: run.action,
+        status: run.status,
+        startedAt: run.startedAt,
+        endedAt: run.endedAt,
+        harness: run.harness || undefined,
+        model: run.model,
+        costUsd: run.costUsd,
+        resumedFrom: run.resumedFrom,
+        log: rel(run.logPath),
+      },
+    ]
+  })
+  // an unwritable folder is not worth failing over — the live row is still the truth for the lock
+  writeAuditFile({ ...delivery, sessions })
+}
+
+/** The permanent record as it sits on disk: the delivery, with each of its sessions spelled
+ *  out rather than named. */
+type DeliveryAudit = Omit<DeliveryRecord, 'sessions'> & { sessions: DeliverySessionEntry[] }
+
+// Write one whole and move it into place, so no reader ever sees half of it.
+function writeAuditFile(record: DeliveryAudit): boolean {
+  try {
+    fs.mkdirSync(DELIVERIES, { recursive: true })
+    const tmp = `${auditPath(record.deliveryId)}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(record, null, 2) + '\n')
+    fs.renameSync(tmp, auditPath(record.deliveryId))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** The permanent record as it stands, or null when there is none to read. */
+function readAudit(deliveryId: string): { sessions: DeliverySessionEntry[] } | null {
+  try {
+    const data = JSON.parse(fs.readFileSync(auditPath(deliveryId), 'utf8')) as { sessions?: unknown }
+    return { sessions: Array.isArray(data?.sessions) ? (data.sessions as DeliverySessionEntry[]) : [] }
+  } catch {
+    return null
+  }
+}
+
+/** Bring one delivery's permanent record up to date from the live record.
+ *
+ *  `just` is a run the caller holds that the live record may already have let go of: a
+ *  run closes and is pruned in the same write, so the caller's copy is the only one
+ *  carrying how it ended. */
+export function syncAudit(deliveryId: string, just?: RunRecord): void {
+  const store = readStore()
+  const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
+  if (!delivery) return
+  const runs = just ? [just, ...store.runs.filter((r) => r.sessionId !== just.sessionId)] : store.runs
+  writeAudit(delivery, runs)
+}
+
+// ---- the deliveries this board lost track of --------------------------------
+
+/** One delivery's permanent record, when the file holds a whole one. Null for anything
+ *  else — half-written, or not a record at all. */
+function wholeAudit(file: string): DeliveryAudit | null {
+  try {
+    const data = JSON.parse(fs.readFileSync(file, 'utf8')) as DeliveryAudit
+    return typeof data?.deliveryId === 'string' && Array.isArray(data.sessions) ? data : null
+  } catch {
+    return null
+  }
+}
+
+/** The same, only when it still says `active` — a delivery that has already ended is not
+ *  the orphan scan's to judge. */
+function activeAudit(file: string): DeliveryAudit | null {
+  const audit = wholeAudit(file)
+  return audit?.status === 'active' ? audit : null
+}
+
+/** Every permanent record on disk, read from the files themselves: the live record is
+ *  exactly the thing that may have lost them. */
+function allAudits(): DeliveryAudit[] {
+  let names: string[]
+  try {
+    names = fs.readdirSync(DELIVERIES)
+  } catch {
+    return []
+  }
+  const out: DeliveryAudit[] = []
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue
+    const audit = wholeAudit(path.join(DELIVERIES, name))
+    if (audit) out.push(audit)
+  }
+  return out
+}
+
+/** One landing that left a commit on the target branch. */
+export interface LandedDelivery {
+  cardId: number
+  title: string
+  /** The workflow the delivery ran on; a record that names none ran on the default. */
+  workflow: string
+  at: number
+  commit: string
+}
+
+/** Every landing with a commit, oldest first — optionally only those after `since` (ms) or on
+ *  one workflow. Read from the permanent records, which outlive the archived card file. */
+export function landedDeliveries(filter: { since?: number; workflow?: string } = {}): LandedDelivery[] {
+  const out: LandedDelivery[] = []
+  for (const audit of allAudits()) {
+    const landing = audit.landing
+    if (typeof audit.cardId !== 'number' || landing?.status !== 'landed' || !landing.commit) continue
+    const workflow = audit.workflow?.id || DEFAULT_WORKFLOW
+    if (filter.since !== undefined && !(landing.at > filter.since)) continue
+    if (filter.workflow !== undefined && workflow !== filter.workflow) continue
+    out.push({ cardId: audit.cardId, title: audit.title, workflow, at: landing.at, commit: landing.commit })
+  }
+  return out.sort((a, b) => a.at - b.at)
+}
+
+/** Every delivery the permanent record still calls `active`. */
+const activeAudits = (): DeliveryAudit[] => allAudits().filter((a) => a.status === 'active')
+
+/** A permanent record as a live row, read through the record's own reader so nothing can
+ *  tell it apart from a row the record wrote itself. */
+const auditRow = (audit: DeliveryAudit): DeliveryRecord | null =>
+  readDeliveryRow({ ...audit, sessions: audit.sessions.map((s) => s.sessionId) })
+
+/** Was the last thing this delivery did still running when the record lost it?
+ *
+ *  The one test that tells the two endings apart. A session already wrapped up means the
+ *  delivery was between steps, so the permanent record is the whole of it and nothing is
+ *  lost by putting it back. A session still reading `running` means the record never saw
+ *  it end — nobody knows what that process did, or whether it is still going. */
+const lastSessionRunning = (audit: DeliveryAudit): boolean =>
+  audit.sessions[audit.sessions.length - 1]?.status === 'running'
+
+/** What one scan of the permanent records did: the deliveries a lost row ended, and the
+ *  ones it put back. */
+export interface OrphanScan {
+  /** Failed, and their cards are the caller's to hand back. */
+  failed: DeliveryRecord[]
+  /** Back in the live record as ordinary `active` deliveries, still holding their cards. */
+  recovered: DeliveryRecord[]
+}
+
+/** Settle every delivery this board has lost the live record for.
+ *
+ *  ORPHANED means three things at once. Its permanent record says `active`; the live record
+ *  has no row for it, neither the delivery's nor a run's — and an `active` row is never
+ *  pruned, so only a lost index reads that way; and its own worktree is still on this
+ *  machine. The last is what keeps a colleague's delivery safe: `deliveries/` is in git, so
+ *  a delivery running on their machine arrives here as an `active` record too, and only the
+ *  worktree says the delivery was ours.
+ *
+ *  What happens next is the last session's to decide (#638). A delivery whose last session
+ *  had already wrapped up is RECOVERED: the permanent record is written back into the live
+ *  one and the existing flows carry it on from there. A delivery still holding a `running`
+ *  session is FAILED — the record is failed, the sessions nobody saw end are interrupted,
+ *  and its card goes back. Either way the branch and the worktree are left exactly where
+ *  they are: what an orphaned delivery built is often the only copy of it.
+ *
+ *  Losing the index WHILE a delivery runs still fails it. A `running` session is no proof
+ *  the process is alive, and a build that really did die mid-step cannot be handed to the
+ *  flows as if it were resting between them. */
+export function settleOrphanedDeliveries(): OrphanScan {
+  // The records first, the live index second, and the index under its own lock. A delivery
+  // starting right now writes its record and then its row, both inside that lock — read in
+  // the other order, or without the lock, and a scan can land between the two and fail a
+  // build that is a second old.
+  const audits = activeAudits()
+  if (!audits.length) return { failed: [], recovered: [] }
+  const losing: DeliveryAudit[] = []
+  const recovered: DeliveryRecord[] = []
+  withStore((store) => {
+    const known = new Set<string>(store.deliveries.map((d) => d.deliveryId))
+    for (const run of store.runs) if (run.deliveryId) known.add(run.deliveryId)
+    for (const audit of audits) {
+      if (known.has(audit.deliveryId) || !worktreeExists(audit.worktree)) continue
+      if (lastSessionRunning(audit)) {
+        losing.push(audit)
+        continue
+      }
+      // Everything the recovery turns on, read again now that nothing else can write:
+      // a `cancel` since the scan began has already ended this delivery, and putting it
+      // back would revive a card the user took off it. A second process scanning at the
+      // same time is held at the lock and finds the row this one wrote.
+      const fresh = activeAudit(auditPath(audit.deliveryId))
+      if (!fresh || lastSessionRunning(fresh) || !worktreeExists(fresh.worktree)) continue
+      const row = recoveredRow(fresh)
+      if (!row || !cardTakesItBack(store, row)) continue
+      store.deliveries.push(row)
+      recovered.push(row)
+    }
+  })
+  return { failed: losing.flatMap(failAudit), recovered }
+}
+
+/** The permanent record as a live row, read through the record's own reader so a recovered
+ *  delivery is a row nothing can tell apart from one the record wrote itself. Null when
+ *  there is no whole row in it. */
+function recoveredRow(audit: DeliveryAudit): DeliveryRecord | null {
+  const row = auditRow(audit)
+  if (!row || row.status !== 'active') return null
+  // The one field the ending rewrites. `landing` means a process was walking this delivery
+  // through the landing queue, and that process is the one that went missing — left as it
+  // is, the row holds the slot against every other card on the board and nothing ever
+  // takes its turn. `waiting` puts it back in the queue for the heartbeat to pick up.
+  if (row.landing?.status === 'landing') row.landing = { ...row.landing, status: 'waiting' }
+  return row
+}
+
+/** Can this delivery have its card back? A card it cannot find — archived, or gone — and a
+ *  card another `active` delivery is building are both cards this one no longer speaks for,
+ *  and a row claiming either would hold work nobody can finish.
+ *
+ *  A **Start now** delivery (#428) holds no card, so there is nothing here to check. */
+function cardTakesItBack(store: Store, row: DeliveryRecord): boolean {
+  if (row.cardId === null) return true
+  return !!locate(row.cardId) && !activeIn(store, row.cardId)
+}
+
+/** Fail one orphaned delivery's permanent record, and hand it back so its card can be
+ *  released. Empty when the file would not write — the ending nobody could record is one
+ *  the next scan tries again. */
+function failAudit(audit: DeliveryAudit): DeliveryRecord[] {
+  // We only know it ended by the time we noticed, so these stamps are an upper bound —
+  // the same bound `reap` puts on a run whose watcher died.
+  const endedAt = Date.now()
+  const record: DeliveryAudit = {
+    ...audit,
+    status: 'failed',
+    endedAt,
+    sessions: audit.sessions.map((s) =>
+      s.status === 'running' ? { ...s, status: 'interrupted', endedAt: s.endedAt ?? endedAt } : s,
+    ),
+  }
+  if (!writeAuditFile(record)) return []
+  return [{ ...record, sessions: record.sessions.map((s) => s.sessionId) }]
+}
+
+// ---- carrying an ended delivery on (#639) -----------------------------------
+
+/** A delivery by its own id, by any prefix of one, or by the card it was building — read
+ *  from the permanent records as well as the live one.
+ *
+ *  `resume` is the one move aimed at a delivery that has ENDED, and the live record keeps
+ *  only the newest thirty of those: the delivery worth carrying on is often one that
+ *  `deliveries/` alone still remembers. A card number names its last ended delivery, which
+ *  is what a person means by "the one that stopped on this card".
+ *
+ *  The permanent record wins over the live row when both exist: it is the one every ending
+ *  is written to. */
+export function endedDelivery(id: string): DeliveryRecord | undefined {
+  const key = id.trim()
+  if (!key) return undefined
+  const rows = new Map<string, DeliveryRecord>()
+  for (const row of readStore().deliveries) rows.set(row.deliveryId, row)
+  for (const audit of allAudits()) {
+    const row = auditRow(audit)
+    if (row) rows.set(row.deliveryId, row)
+  }
+  const all = [...rows.values()].sort((a, b) => a.startedAt - b.startedAt)
+  if (/^#?\d+$/.test(key)) {
+    const cardId = Number(key.replace('#', ''))
+    const mine = all.filter((d) => d.cardId === cardId)
+    // Its newest one either way, so a card whose every delivery is still in flight is
+    // refused by `resumeRefusal` — which names the delivery and what is wrong with it —
+    // rather than read as a card with no delivery at all.
+    return mine.filter((d) => d.status !== 'active').pop() ?? mine.pop()
+  }
+  return all.find((d) => d.deliveryId === key) ?? all.find((d) => d.deliveryId.startsWith(key))
+}
+
+/** Why this delivery cannot be carried on, or nothing when it can.
+ *
+ *  Resume picks an ended delivery back up where it stopped rather than building the card
+ *  again, so everything it stopped with has to still be here: an ending nobody chose, the
+ *  checkout it built in, and a card nothing else has taken over. Each refusal names the one
+ *  thing that failed and the way that is still open — discard it and start again — so a
+ *  refusal is something the reader can act on.
+ *
+ *  This is also the board's one test of whether a delivery's checkout is worth KEEPING
+ *  (#720): `tidyCheckout` removes the worktree and branch of every delivery this refuses,
+ *  so the button and the clean-up can never disagree about which work survives. */
+export function resumeRefusal(delivery: DeliveryRecord, store?: Store): RunRefusal | undefined {
+  const id = delivery.deliveryId
+  const what = delivery.cardId === null ? 'the build' : `#${delivery.cardId}`
+  const task = delivery.cardId === null ? '' : String(delivery.cardId)
+  const discard = `${boardCommand()} delivery discard ${id}`
+  const rebuild = `Discard it with \`${discard}\` and start ${what} again.`
+  if (delivery.status === 'active') {
+    return refusal('deliveryActive', `delivery ${id} has not ended — it is still in flight on ${what}.`, { id, task })
+  }
+  if (delivery.status === 'finished') {
+    return refusal('deliveryFinished', `delivery ${id} finished; resume carries on one that ended abnormally.`, { id })
+  }
+  // Cancelling is the user giving the delivery up (#720) — the board ends it, throws its
+  // checkout away and starts again from the card. Stopping a RUN is the pause that keeps
+  // the work; this is not that.
+  if (delivery.status === 'cancelled') {
+    return refusal('deliveryCancelled', `delivery ${id} was cancelled, so its work was given up. Start ${what} again.`, { id, task })
+  }
+  if (delivery.commitMode === 'files') {
+    return refusal(
+      'deliveryFiles',
+      `delivery ${id} made files in your project, so it has no branch to carry on. Start ${what} again.`,
+      { id, task },
+    )
+  }
+  // Manual commit mode has no checkout of its own (#303): the work is in the user's own
+  // tree and their commit is what ends it, so there is no branch here to carry on.
+  if (delivery.commitMode !== 'auto') {
+    return refusal(
+      'deliveryManual',
+      `delivery ${id} committed in your own checkout, so it has no branch to carry on. Start ${what} again.`,
+      { id, task },
+    )
+  }
+  if (!worktreeExists(delivery.worktree)) {
+    const path = delivery.worktree ?? ''
+    return refusal(
+      'deliveryWorktreeGone',
+      `delivery ${id}'s worktree ${path} is gone, so there is nothing to carry on. ${rebuild}`,
+      { id, task, path, command: discard },
+    )
+  }
+  if (!branchExists(delivery.branch)) {
+    const branch = delivery.branch ?? ''
+    return refusal(
+      'deliveryBranchGone',
+      `delivery ${id}'s branch ${branch} is gone, so there is nothing to carry on. ${rebuild}`,
+      { id, task, branch, command: discard },
+    )
+  }
+  // A **Start now** delivery holds no card (#428), so there is nothing here to check.
+  if (delivery.cardId === null) return undefined
+  const card = String(delivery.cardId)
+  if (cardOnBoard(delivery.cardId) === false) {
+    return refusal(
+      'deliveryCardGone',
+      `#${card} is no longer on the board, so delivery ${id} has nothing left to finish.`,
+      { id, card },
+    )
+  }
+  const live = store ?? readStore()
+  const holder = activeIn(live, delivery.cardId)
+  if (holder) {
+    const command = `${boardCommand()} delivery cancel ${holder.deliveryId}`
+    return refusal(
+      'deliveryHeld',
+      `delivery ${holder.deliveryId} is building #${card} now — end that one first with \`${command}\`.`,
+      { other: holder.deliveryId, card, command },
+    )
+  }
+  // And a delivery that opened on this card after this one ended has taken the job over,
+  // even though it has ended too: the newer one is what a reader means by "the delivery
+  // that stopped on this card", and two checkouts for one card is what #720 set out to end.
+  const after =
+    delivery.endedAt === undefined
+      ? undefined
+      : live.deliveries.find(
+          (d) => d.cardId === delivery.cardId && d.deliveryId !== id && d.startedAt >= delivery.endedAt!,
+        )
+  if (after) {
+    return refusal(
+      'deliveryTakenOver',
+      `delivery ${after.deliveryId} took #${card} over after this one ended, so there is nothing left to carry on.`,
+      { other: after.deliveryId, card },
+    )
+  }
+  return undefined
+}
+
+/** The refusal for a delivery id that names none. */
+export const unknownDelivery = (id: string): RunRefusal =>
+  refusal('deliveryNotFound', `no delivery here answers to "${id}"`, { id })
+
+/** Is this card still on the board? `undefined` when the board could not be read — a
+ *  folder that would not open is not a card somebody removed, and reading it as one would
+ *  delete the checkout of every delivery on the board (#720). */
+function cardOnBoard(cardId: number): boolean | undefined {
+  try {
+    return !!locate(cardId)
+  } catch {
+    return undefined
+  }
+}
+
+/** Whether the card page may offer this ended delivery a **Resume** (#639) — and whether
+ *  the board keeps its checkout at all (#720). */
+export const isResumable = (delivery: DeliveryRecord): boolean => !resumeRefusal(delivery)
+
+// ---- clearing up after an ended delivery (#720) -----------------------------
+
+/** What one clean-up did. `kept` is a delivery somebody can still carry on, which is the
+ *  whole reason its worktree is still there. */
+export interface TidyResult {
+  removed: boolean
+  kept: boolean
+  /** Why nothing was removed this time, when it was neither of the two above: a run of the
+   *  delivery is still going, or git refused. Retried by the next sweep. */
+  error?: string
+  reason?: RunRefusalKind
+  args?: RefusalArgs
+}
+
+const NOTHING: TidyResult = { removed: false, kept: false }
+
+/** Remove an ended delivery's worktree and branch, unless it is one that can still be
+ *  carried on.
+ *
+ *  One rule, read off `resumeRefusal`: a delivery Resume would take is left exactly where
+ *  it is, and every other ended delivery — finished, cancelled, superseded, failed with
+ *  nothing left to finish — gives its checkout back. Nothing here decides anything on its
+ *  own, so a checkout the card page still offers a button for is never the one deleted.
+ *
+ *  Forced: every run commits its work to the delivery's branch as it closes, so what is
+ *  left uncommitted is a half-step an interruption left behind, and it goes with the ending
+ *  that threw the rest away.
+ *
+ *  A delivery whose run is still going is left for the next sweep — a delivery that has
+ *  ended must not have its files pulled out from under a process still writing them. The
+ *  permanent record under `docs/kanban/deliveries/` is never touched: what the delivery did
+ *  outlives what it built in. */
+export function tidyCheckout(deliveryId: string): TidyResult {
+  const store = readStore()
+  const row = store.deliveries.find((d) => d.deliveryId === deliveryId) ?? auditOnly(deliveryId)
+  if (!row || row.status === 'active') return NOTHING
+  if (!row.worktree && !row.branch) return NOTHING
+  if (isResumable(row)) return { removed: false, kept: true }
+  // Really going, not merely recorded as such: a watcher that died leaves a `running` row
+  // behind, and reading that as a live process would hold the checkout forever.
+  if (store.runs.some((r) => r.deliveryId === deliveryId && runIsLive(r))) {
+    return { removed: false, kept: false, error: `a run of delivery ${deliveryId} is still going`, reason: 'deliveryRunGoing', args: { id: deliveryId } }
+  }
+  const removed = removeWorktree(row.worktree, row.branch, true)
+  if (!removed.ok) return { removed: false, kept: false, error: removed.error }
+  forgetCheckout(deliveryId)
+  return { removed: true, kept: false }
+}
+
+/** A delivery the live record has already let go of, read back from its permanent record —
+ *  which is how a worktree older than the newest thirty deliveries is still reachable. */
+function auditOnly(deliveryId: string): DeliveryRecord | undefined {
+  const audit = wholeAudit(auditPath(deliveryId))
+  return (audit && auditRow(audit)) ?? undefined
+}
+
+/** Take the worktree and the branch off both records, now that neither is on disk. */
+function forgetCheckout(deliveryId: string): void {
+  withStore((store) => {
+    const live = store.deliveries.find((d) => d.deliveryId === deliveryId)
+    if (!live) return
+    live.worktree = undefined
+    live.branch = undefined
+  })
+  const audit = wholeAudit(auditPath(deliveryId))
+  if (audit?.worktree || audit?.branch) writeAuditFile({ ...audit, worktree: undefined, branch: undefined })
+}
+
+/** Put every delivery this board still holds a checkout for through the same rule, and hand
+ *  back what would not go.
+ *
+ *  Read as the board comes up, so the worktrees left behind by releases that kept every
+ *  ended delivery are cleared once, under the rule that applies to a delivery ending now —
+ *  and so a clean-up that git refused the first time is tried again. */
+export function sweepCheckouts(): string[] {
+  const seen = new Set<string>()
+  const complaints: string[] = []
+  const rows = [...readStore().deliveries, ...allAudits().flatMap((a) => auditRow(a) ?? [])]
+  for (const row of rows) {
+    if (seen.has(row.deliveryId) || row.status === 'active' || !row.worktree) continue
+    seen.add(row.deliveryId)
+    const done = tidyCheckout(row.deliveryId)
+    if (done.error) complaints.push(`delivery ${row.deliveryId}: ${done.error} — ${row.worktree} was left alone.`)
+  }
+  dropEmptyWorktreeFolders()
+  return complaints
+}
+
+/** Put an ended delivery back into the live record as an `active` one, holding its card
+ *  again.
+ *
+ *  Everything it learned is kept — the approved copy, the base, the review rounds, the
+ *  landing, the rules and the session history — because a resume carries the
+ *  delivery ON. Only the ending is undone.
+ *
+ *  The judgement is made a second time here, under the record's lock: `resumeRefusal` ran
+ *  outside it, and a discard or a fresh delivery in between must not be overwritten.
+ *
+ *  The caller writes the card's stage, once the board lease is back. */
+export function resumeRecord(id: string): { ok: true; delivery: DeliveryRecord } | ({ ok: false } & RunRefusal) {
+  const found = endedDelivery(id)
+  if (!found) return { ok: false, ...unknownDelivery(id) }
+  const refused = resumeRefusal(found)
+  if (refused) return { ok: false, ...refused }
+  const out = withStore<{ ok: true; delivery: DeliveryRecord } | ({ ok: false } & RunRefusal)>((store) => {
+    const audit = wholeAudit(auditPath(found.deliveryId))
+    const row = (audit && auditRow(audit)) ?? store.deliveries.find((d) => d.deliveryId === found.deliveryId)
+    if (!row) return { ok: false, ...unknownDelivery(id) }
+    const again = resumeRefusal(row, store)
+    if (again) return { ok: false, ...again }
+    const at = Date.now()
+    const resumed: DeliveryRecord = {
+      ...row,
+      status: 'active',
+      endedAt: undefined,
+      steps: [...row.steps, { step: 'resume', at }],
+      // The process that was walking it through the queue died with the delivery, so the
+      // slot it claimed is nobody's — the same rule a recovered delivery follows (#638).
+      landing: row.landing?.status === 'landing' ? { ...row.landing, status: 'waiting', at } : row.landing,
+    }
+    const seat = store.deliveries.findIndex((d) => d.deliveryId === row.deliveryId)
+    if (seat >= 0) store.deliveries[seat] = resumed
+    else store.deliveries.push(resumed)
+    writeAudit(resumed, store.runs)
+    return { ok: true, delivery: resumed }
+  })
+  return out
+}
+
+/** Put the resumed delivery back on the step it stopped at, and say which one that is.
+ *
+ *  A landing conflict keeps its whole record: the rebase and the resolutions staged in the
+ *  worktree are untouched, and `akb delivery conflict` is what carries them through.
+ *  Anything the queue already holds goes back into it, and everything else still owes its
+ *  build. The landing record is what tells the two apart, because `queueLanding` is the only
+ *  thing that writes one and it writes it exactly when the build finished.
+ *
+ *  Asked only after the work has been checked against the target branch, because a delivery
+ *  whose change is already in has no step left to take. */
+export function carryOnFrom(deliveryId: string): DeliveryCarryOn {
+  return withStore<DeliveryCarryOn>((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
+    if (!delivery || delivery.status !== 'active') return 'landing'
+    if (delivery.landing?.status === 'conflict') return 'conflict'
+    if (!delivery.landing) return 'build'
+    delivery.landing = { ...delivery.landing, status: 'waiting', why: undefined, reason: undefined, at: Date.now() }
+    return 'landing'
+  })
+}
+
+// ---- the approved requirements ----------------------------------------------
+
+// What a delivery is approved to build. Everything else on the card — `## Todo` and its
+// ticks, status, questions, the notes a delivery leaves as it works — sits
+// outside, so a delivery writing to its own card is never a change to its requirements.
+const APPROVED = [
+  /^##\s+Worth noting\s*$/i,
+  /^##\s+Scope\s*$/i,
+  /^##\s+Scope out\s*$/i,
+  // `skill` is the word a spec section carries now; `agent` is the word it carried before
+  // #403, and a card written by an older release still has to travel whole.
+  /^##\s+By\s+`[^`]+`\s+(skill|agent)\s*$/i,
+]
+
+const isApproved = (heading: string): boolean => APPROVED.some((re) => re.test(heading))
+
+/** The card's approved requirements as one block of markdown: its title, its opening
+ *  paragraph, `## Worth noting`, `## Scope`, `## Scope out`, and every spec agent's
+ *  section, in the order the card writes them.
+ *
+ *  Empty when there is no such card — a delivery is refused before that can happen, and a
+ *  snapshot of nothing is a truthful answer either way. */
+export function approvedRequirements(cardId: number): string {
+  const found = locate(cardId)
+  if (!found) return ''
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  let text: string
+  try {
+    text = fs.readFileSync(file, 'utf8')
+  } catch {
+    return ''
+  }
+  const { meta, body } = parseFrontmatter(text)
+  const out: string[] = []
+  if (meta?.title) out.push(`# ${meta.title}`, '')
+  // The opening paragraph is everything before the first heading. The `<!-- agent -->`
+  // boundary is a marker, not content, so it never travels.
+  const opening: string[] = []
+  const sections: string[] = []
+  let keeping = false
+  let started = false
+  for (const line of body.split('\n')) {
+    if (/^##(?!#)\s/.test(line)) {
+      started = true
+      keeping = isApproved(line)
+      if (keeping) sections.push('', line)
+      continue
+    }
+    if (line.trim() === '<!-- agent -->') continue
+    if (!started) opening.push(line)
+    else if (keeping) sections.push(line)
+  }
+  out.push(opening.join('\n').trim())
+  out.push(sections.join('\n').trim())
+  // A dropped section leaves the blank lines that framed it, so the copy is squeezed back
+  // to one blank line between blocks — it is read by a person as well as by an agent.
+  return out.filter(Boolean).join('\n\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'
+}
+
+// The card's frontmatter as it stands, or nothing when there is no reading it.
+function cardMeta(cardId: number): ReturnType<typeof parseFrontmatter>['meta'] | null {
+  try {
+    const found = locate(cardId)
+    if (!found) return null
+    const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+    return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta
+  } catch {
+    return null
+  }
+}
+
+/** The card's stage as it stands, or `todo` when there is no reading it. */
+export const cardStatus = (cardId: number): string => cardMeta(cardId)?.status || 'todo'
+
+/** How many questions this card still has open — the count landing holds on (#307), and the
+ *  one the Implement dialog and `akb card implement` warn about. A card nobody can read has
+ *  none: a missing card holds nothing up. */
+export const openQuestions = (cardId: number): number => openOf(cardMeta(cardId)?.questions ?? []).length
+
+// ---- the live row -------------------------------------------------------------
+
+/** The delivery in flight on this card, or nothing when the card is free. */
+export const activeIn = (store: Store, cardId: number): DeliveryRecord | undefined =>
+  store.deliveries.find((d) => d.status === 'active' && d.cardId === cardId)
+
+/** The delivery in flight on this card right now. */
+export function activeDelivery(cardId: number): DeliveryRecord | undefined {
+  return activeIn(readStore(), cardId)
+}
+
+/** One delivery by id, or by any prefix of one that names exactly one. */
+export function findDelivery(id: string): DeliveryRecord | undefined {
+  const key = id.trim()
+  if (!key) return undefined
+  const all = readStore().deliveries
+  return all.find((d) => d.deliveryId === key) ?? all.find((d) => d.deliveryId.startsWith(key))
+}
+
+/** A delivery named by its own id, by any prefix of one, or by the card it is building —
+ *  the one way `cancel`, `discard` and `approve` read what the user typed, so they can never
+ *  disagree about which delivery was meant. */
+export function namedDelivery(id: string): DeliveryRecord | undefined {
+  const key = id.trim()
+  if (!key) return undefined
+  const byCard = /^#?\d+$/.test(key) ? activeDelivery(Number(key.replace('#', ''))) : undefined
+  return byCard ?? findDelivery(key)
+}
+
+/** Every delivery the live record holds, oldest first. */
+export const listDeliveries = (): DeliveryRecord[] => readStore().deliveries
+
+/** The delivery one run belongs to: the one it names outright — the only way a build with
+ *  no card can be found (#428) — or the one in flight on its card. Nothing on a run that is
+ *  not a delivery's own. */
+/** The same request, carrying the workflow its run works to (#715): the one its delivery
+ *  froze where it is part of one, and the one its card names otherwise. Stamped once, at the
+ *  top of the two places a run's words are built, so every read below them — which agent
+ *  leads the stage, which rule it carries, which flow text it is given — agrees.
+ *
+ *  A request that already names one is left alone: the caller knew better than the board. */
+export const withWorkflow = (req: AgentRequest): AgentRequest =>
+  req.workflow
+    ? req
+    : {
+        ...req,
+        workflow:
+          deliveryFor(req)?.workflow?.id ??
+          (typeof req.id === 'number' ? cardWorkflowId(req.id) || undefined : undefined),
+      }
+
+export function deliveryFor(req: Pick<AgentRequest, 'action' | 'id' | 'deliveryId'>): DeliveryRecord | undefined {
+  if (!DELIVERY_FLOWS.has(req.action)) return undefined
+  // In flight, either way: a delivery that has ended is not one to build, review or resolve
+  // a conflict against, however it was named.
+  if (req.deliveryId) {
+    const found = findDelivery(req.deliveryId)
+    return found?.status === 'active' ? found : undefined
+  }
+  return req.id === undefined ? undefined : activeDelivery(req.id)
+}
+
+/** Put a run into the delivery its card is being built under, opening one when the
+ *  card has none — and always opening one for a build that names no card at all (#428),
+ *  whose `approved` is the typed sentence the caller passes in. Called with the record's
+ *  lock already held, from inside the same transaction that writes the run down — so a
+ *  delivery can never exist with no run to it, and two clicks can never open two
+ *  deliveries on one card.
+ *
+ *  `step` is what the run is entering the delivery to do. It is kept as history and
+ *  never trusted on a resume: a stored position goes stale in exactly the crash it exists
+ *  for.
+ *
+ *  `start` is what `prepareDelivery` settled before anything was written down (#303): the
+ *  commit mode, the fork commit, the branch this delivery lands on, and the worktree it
+ *  works in. A run joining a delivery that already exists brings none — the mode a
+ *  delivery started in is the mode it keeps. */
+export function joinDelivery(
+  store: Store,
+  run: RunRecord,
+  title: string,
+  step: string,
+  start?: DeliveryStart,
+  direct?: DirectBuild,
+): DeliveryRecord {
+  const cardId = run.cardId
+  // A build with no card joins nothing (#428): there is no card to look one up by, and two
+  // Start now sends are two builds — each opens a delivery of its own.
+  let delivery = cardId === null ? undefined : activeIn(store, cardId)
+  if (!delivery) {
+    delivery = {
+      deliveryId: start?.deliveryId ?? newDeliveryId(store.deliveries),
+      cardId,
+      title,
+      status: 'active',
+      startedAt: run.startedAt,
+      sessions: [],
+      // The one read of the card this delivery will ever make for its requirements — or,
+      // with no card, the sentence or the plan's words it was handed, which can never move
+      // under it.
+      approved: cardId === null ? direct?.approved ?? '' : approvedRequirements(cardId),
+      // …and, where that was a plan, the file it was read from (#481) — the one way back to
+      // it once the panel has let the plan go.
+      plan: cardId === null ? direct?.plan : undefined,
+      initialQuestions: cardId === null ? 0 : openQuestions(cardId),
+      steps: [],
+      // And the one read of where the code stood before it started. Everything the
+      // delivery writes is the difference from here.
+      base: start ? start.base : (candidateBase() ?? undefined),
+      // The stage to put back when the whole delivery ends. Read here, from the first
+      // run, because every run after this one would read `implementing` — the
+      // stage this delivery itself put there. There is no stage to hold with no card.
+      priorStatus: cardId === null ? undefined : cardStatus(cardId),
+      // How it commits, and where. Written now and never again: flipping the setting
+      // changes the next delivery, not this one.
+      commitMode: start?.commitMode ?? 'manual',
+      manualWhy: start?.manualWhy,
+      touched: start?.touched,
+      planned: start?.planned,
+      // And the one read of the rules this delivery runs under (#306, #420) — the agents
+      // its flows are run by, frozen the way the card is. Every run in it is
+      // given these words rather than the files, a printed flow included, so editing a
+      // rule changes the next delivery and never one in flight.
+      rules: {
+        ...deliveryRules(cardId === null ? direct?.scheduled?.workflow : cardWorkflowId(cardId)),
+        ...(direct?.scheduled && readRule(direct.scheduled.agent) ? { [direct.scheduled.agent]: readRule(direct.scheduled.agent) } : {}),
+      },
+      // And the one read of the workflow it builds under (#715) — its name and all three
+      // stages' assignments, frozen the way the rules are. Reassigning a stage, renaming the
+      // workflow or deleting it changes the next delivery and never this one.
+      workflow: frozenWorkflow(cardId === null ? direct?.scheduled?.workflow ?? '' : cardWorkflowId(cardId)),
+      scheduled: direct?.scheduled,
+      targetBranch: start?.targetBranch,
+      worktree: start?.worktree,
+      branch: start?.branch,
+    }
+    store.deliveries.push(delivery)
+  } else if (step === 'implement' && delivery.review?.stopped) {
+    // Building again is how a stopped delivery carries on (#1203): the build looks at what
+    // stopped it, and its close decides again.
+    delivery.review.stopped = undefined
+  }
+  delivery.sessions.push(run.sessionId)
+  delivery.steps.push({ step, at: run.startedAt })
+  joinFlow(run, delivery)
+  // The permanent record exists from the delivery's first moment, not from its first
+  // ending: a delivery whose machine died in its first minute still left one behind.
+  writeAudit(delivery, store.runs)
+  return delivery
+}
+
+/** Give a **Start now** run the card it has just written (#470).
+ *
+ *  Its delivery is prepared before the run spawns, when there is no card to name, so the id
+ *  is written on afterwards — as `akb raw create` lands, from the same command that made it.
+ *  From here the run, the delivery and the card are the ordinary three: Runs names `#id`,
+ *  the card page shows the delivery in flight, and landing archives the card.
+ *
+ *  What was frozen while there was no card stays frozen: `approved` is still the typed
+ *  sentence — the card was written from it, not the other
+ *  way round.
+ *
+ *  Only a card-less build, which **Start now** is the one way into. An Add task run creates
+ *  cards too, and adopting one would put a card it merely planned into a delivery. A board
+ *  that does not deliver with git opened none (#407), and there the run alone takes the card.
+ *
+ *  The caller writes the card's stage, once the board lease is back. */
+export function adoptDirectCard(sessionId: string, cardId: number): boolean {
+  return withStore((store) => {
+    const run = store.runs.find((r) => r.sessionId === sessionId && r.status === 'running')
+    if (!run || run.action !== 'implement' || run.cardId !== null) return false
+    const delivery = run.deliveryId
+      ? store.deliveries.find((d) => d.deliveryId === run.deliveryId && d.status === 'active')
+      : undefined
+    if (run.deliveryId && (!delivery || delivery.cardId !== null)) return false
+    // Where the card rests when the job ends without archiving it. `raw create` writes every
+    // card at `todo` and the caller takes this one straight to `implementing`; nothing plans
+    // it, so a cancel or a discard hands back a settled card rather than one to refine.
+    const idle = 'ready'
+    run.cardId = cardId
+    run.priorStatus = idle
+    if (!delivery) return true
+    delivery.cardId = cardId
+    delivery.priorStatus = idle
+    writeAudit(delivery, store.runs)
+    return true
+  })
+}
+
+/** Put a conflict run into the delivery already in flight on its card. Unlike
+ *  `joinDelivery` it opens nothing: undefined when the card has no active delivery, and the
+ *  caller refuses. Starting one also clears the stop it may be waiting at. */
+export function joinActive(
+  store: Store,
+  run: RunRecord,
+  step: string,
+  deliveryId?: string,
+): DeliveryRecord | undefined {
+  // By the delivery the caller named, or by the card when it named none — the same delivery
+  // either way, and the only one a build with no card can be found by (#428).
+  const delivery = deliveryId
+    ? store.deliveries.find((d) => d.status === 'active' && d.deliveryId === deliveryId)
+    : run.cardId === null
+      ? undefined
+      : activeIn(store, run.cardId)
+  if (!delivery) return undefined
+  delivery.sessions.push(run.sessionId)
+  delivery.steps.push({ step, at: run.startedAt })
+  if (delivery.review?.stopped) delivery.review.stopped = undefined
+  // The run the answers asked for is this one, so what they concluded has had its effect
+  // (#637). Taken here rather than where it was read, so a conclusion that never started
+  // anything is still waiting on the next pass.
+  const now = Date.now()
+  for (const answer of delivery.answers ?? []) if (!answer.actedAt) answer.actedAt = now
+  joinFlow(run, delivery)
+  writeAudit(delivery, store.runs)
+  return delivery
+}
+
+/** Tie one run to the delivery it just joined — and to the delivery's own job (#417).
+ *
+ *  The flow id IS the delivery id, whatever the run was asked to join: a run of a delivery
+ *  is handed back by whichever watcher happened to be closing, and taking that run's flow
+ *  drew the job under someone else's card. The delivery is the job, so its id is the group,
+ *  and a fresh delivery — the one a supersede starts — is a fresh group by construction.
+ *  A refinement one of these runs goes on to start inherits the id and stays with the job
+ *  long after the run that opened it has aged out of the live record. */
+function joinFlow(run: RunRecord, delivery: DeliveryRecord): void {
+  run.deliveryId = delivery.deliveryId
+  run.flowId = delivery.deliveryId
+}
+
+/** End a delivery, and say how. Nothing happens to one that has already ended: a cancel
+ *  and a run closing can reach here in either order, and the first answer stands. */
+export function endDelivery(deliveryId: string, status: Exclude<DeliveryStatus, 'active'>): DeliveryRecord | undefined {
+  const ended = withStore((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
+    if (!delivery || delivery.status !== 'active') return undefined
+    delivery.status = status
+    delivery.endedAt = Date.now()
+    return { ...delivery }
+  })
+  if (ended) {
+    syncAudit(deliveryId)
+    // The checkout it built in, unless it is one somebody can still carry on (#720). A
+    // cancel reaches here before its run is stopped, so that one is left for the second
+    // call `cancelDelivery` makes once the run is down.
+    tidyCheckout(deliveryId)
+  }
+  return ended
+}
+
+/** What a run's ending means for the delivery it belonged to.
+ *
+ *  A finished build is committed and finishes the delivery's work: it lands, waits for the
+ *  user's commit, or stops on what it could not settle. A run that failed or was cut off mid-build leaves it
+ *  ACTIVE and unfinished, with the card still held, until Resume carries it on or Discard
+ *  ends it. A run somebody stopped is the same: stopping a run is not ending the job. */
+export async function settleDelivery(run: RunRecord): Promise<void> {
+  if (!run.deliveryId) return
+  const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
+  if (!before) return
+  type Settled = { end: 'finished'; complete?: boolean }
+
+  // Everything that has to run git happens here, before the record's lock — every process
+  // on this board waits on that lock, and a git command is not what it should be waiting
+  // for.
+  //
+  // First the run's work, committed onto the delivery's branch.
+  const built = run.status === 'done' && run.action === 'implement'
+  // A scheduled agent's pass (#1401) is the whole of its delivery.
+  const passed = run.status === 'done' && run.action === 'scheduled'
+  const commit = (built || passed) && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
+  const uncommitted = commit.ok ? undefined : commit.why
+  // And, in manual commit mode, the snapshot the finished build leaves for the user's own
+  // commit to be matched against.
+  //
+  // A build with no card takes no snapshot (#428): nothing is waiting for the user's commit,
+  // because the wait is read on a card page and there is none — the delivery finishes with
+  // its run and leaves the change where it is.
+  const reviewed =
+    !uncommitted && before.commitMode === 'manual' && before.cardId !== null && (built || passed)
+      ? snapshotReviewed(before)
+      : undefined
+  // A `files` delivery ends on what it made (#874): the files its card records, and nothing
+  // changed outside the board.
+  const files = (built || passed) && before.commitMode === 'files' && !before.scheduled ? filesStop(before) : undefined
+
+  const settled = withStore<Settled | null>((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === run.deliveryId)
+    if (!delivery) return null
+    // Work nobody could commit cannot land: the tree that would land is not the one built.
+    if (uncommitted && delivery.status === 'active') {
+      const review = reviewOf(delivery)
+      review.stopped = { reason: 'uncommitted', why: uncommitted, at: Date.now() }
+      releaseLanding(delivery)
+      return null
+    }
+    const next = nextAfterSession(delivery, run)
+    if ('hold' in next) return null
+    if ('finish' in next) {
+      // In manual commit mode a pass is not the end: the code is sitting in the user's own
+      // checkout and only they can commit it. The delivery stays ACTIVE, holding the card,
+      // with what the board built written down — and the card page is where the wait is
+      // read (`manualSettled` below).
+      if (reviewed) {
+        delivery.reviewed = reviewed
+        return null
+      }
+      // No commit to fork from (not a git repository): the build in the folder is the end.
+      if (delivery.commitMode === 'manual' && !delivery.base) return { end: 'finished', complete: delivery.cardId !== null }
+      if (delivery.commitMode === 'files') {
+        if (!files) return { end: 'finished', complete: delivery.cardId !== null }
+        reviewOf(delivery).stopped = { reason: files.reason, why: files.why, at: Date.now(), paths: files.paths }
+        return null
+      }
+      // Nor is it the end in auto commit mode: the work is on the delivery's own branch and
+      // still has to reach the target one (#304). The delivery queues for the repository's
+      // one landing slot and stays ACTIVE until it has landed.
+      if (wantsLanding(delivery)) {
+        queueLanding(delivery, run)
+        return null
+      }
+      return { end: 'finished' }
+    }
+    reviewOf(delivery).stopped = { reason: next.stop, why: next.why, at: Date.now() }
+    // A stop waits on a person, and a landing queue that waits with it stops every other
+    // card on the board — so the slot goes back (#304).
+    releaseLanding(delivery)
+    return null
+  })
+  if (settled && 'end' in settled) {
+    endDelivery(run.deliveryId, settled.end)
+    if (settled.complete) await completeCard(before.cardId as number, run.deliveryId)
+  }
+  // Whatever happened, the permanent record follows the run that just closed — from
+  // the caller's copy, since closing and pruning it are one write.
+  syncAudit(run.deliveryId, run)
+}
+
+/** True while the delivery on this card is stopped on questions only the user can answer.
+ *  What the hold lets `resolve` through on: it rewrites questions and never the approved
+ *  copy, so the delivery is building exactly what it was building before. */
+export function deliveryAcceptsAnswers(cardId: number): boolean {
+  return !!deliveryStateOf(cardId)?.paused
+}
+
+// ---- landing: the queue a passed delivery joins (#304) ----------------------
+
+/** This delivery's work has to reach a branch it is not already on: it built on its own
+ *  branch, in its own worktree, and the target branch is where the card is meant to land.
+ *  Manual commit mode never does — there the commit is the user's, which is the whole of
+ *  what the mode means. */
+export const wantsLanding = (delivery: DeliveryRecord): boolean =>
+  delivery.commitMode === 'auto' && !!delivery.worktree && !!delivery.branch && !!delivery.targetBranch
+
+// Queue it for the repository's one landing slot, and record the build that authorized the
+// landing as the check that ran.
+function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
+  const landing = delivery.landing ?? { status: 'waiting' as const, attempts: 0, at: Date.now() }
+  delivery.landing = {
+    ...landing,
+    status: landing.status === 'landing' ? 'landing' : 'waiting',
+    why: undefined,
+    reason: undefined,
+    checks: [
+      ...(landing.checks ?? []),
+      { name: `${run.action} ${run.sessionId.slice(0, 8)}`, ok: true, at: Date.now() },
+    ],
+    at: Date.now(),
+  }
+}
+
+// Give the slot back without losing what the landing has already spent on this delivery.
+function releaseLanding(delivery: DeliveryRecord): void {
+  if (delivery.landing?.status !== 'landing') return
+  delivery.landing = { ...delivery.landing, status: 'waiting', at: Date.now() }
+}
+
+// ---- manual commit mode: the user's own commit (#303) -----------------------
+
+// A manual delivery whose build is done, or nothing when this card has no such delivery
+// waiting on the user's commit.
+//
+// A build with no card never waits (#428): the wait is read on a card page, there is none,
+// and there is no card to archive at the end of it — so the delivery finishes when its run
+// does and leaves the change uncommitted in the checkout.
+function awaitingCommit(delivery: DeliveryRecord | undefined): DeliveryRecord | undefined {
+  if (!delivery || delivery.status !== 'active' || delivery.commitMode === 'auto' || !delivery.reviewed) return undefined
+  return delivery.cardId === null ? undefined : delivery
+}
+
+/** Where a manual delivery stands now that its work is finished and the code is the user's
+ *  to commit — and act on it if they have.
+ *
+ *  Nothing watches git for this: it is asked when the card page is read, which is the
+ *  moment somebody wants to know. They committed anything and the delivery is done — their
+ *  commit is the last word; or the code is still sitting there uncommitted and the delivery
+ *  waits.
+ *
+ *  Reports what it found. Ending a finished delivery is `settleManualCommit`, which the
+ *  Local board's `readCard` awaits before this is asked.
+ *
+ *  Returns the sentence the card page shows while it waits, and nothing once it has moved
+ *  on. */
+export function manualSettled(delivery: DeliveryRecord): string | undefined {
+  if (!awaitingCommit(delivery)) return undefined
+  const state = manualState(delivery)
+  return state === 'waiting'
+    ? `the build is done — commit the change in your own checkout and this delivery is done`
+    : undefined
+}
+
+// ---- the hold a delivery puts on its card -----------------------------------
+
+/** True when THIS process is a run of that card's delivery, so the hold does not apply
+ *  to it. The implement flow closes by ticking todos and archiving
+ *  the card — card writes like any other, so a hold that couldn't tell them from a user's
+ *  edit would refuse the delivery its last step. */
+export function insideDelivery(cardId: number): boolean {
+  const sessionId = insideRun()
+  if (!sessionId) return false
+  const store = readStore()
+  const delivery = activeIn(store, cardId)
+  if (!delivery) return false
+  return delivery.sessions.includes(sessionId)
+}
+
+/** Where the delivery in flight on this card stands (#307), or nothing when the card is
+ *  free. Derived on every read from the card's questions and the delivery's own records. */
+export function deliveryStateOf(cardId: number): DeliveryState | undefined {
+  const delivery = activeDelivery(cardId)
+  return delivery && deliveryState(delivery, openQuestions(cardId))
+}
+
+/** Why this card can't be changed from outside its delivery — one is in flight — or
+ *  nothing when it is free. The sentence names the delivery, says what it is building, and
+ *  names the one thing that takes the card back; "try again later" without any of those is
+ *  a refusal nobody can act on.
+ *
+ *  A run of the delivery itself passes straight through. */
+export function heldByDelivery(cardId: number, program?: string): string | undefined {
+  const delivery = activeDelivery(cardId)
+  if (!delivery) return undefined
+  if (insideDelivery(cardId)) return undefined
+  const cmd = program ?? boardCommand()
+  const state = deliveryState(delivery, openQuestions(cardId))
+  const answer =
+    state.stage === 'refused' ? `Clear that and it lands by itself.` : `Answer it with \`${cmd} card resolve ${cardId}\`.`
+  const doing = state.paused
+    ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
+      `${answer} Or take the card back with `
+    : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
+        `so the board won't change it. Take the card back with `
+  // Two ways out, and neither keeps the work: giving a delivery up takes its checkout with
+  // it (#720).
+  return (
+    `delivery ${delivery.deliveryId} ${doing}` +
+    `Discard on the card page, or \`${cmd} delivery cancel ${delivery.deliveryId}\` to end it here.`
+  )
+}

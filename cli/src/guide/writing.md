@@ -1,0 +1,109 @@
+# Write a card
+
+A card has a **human half** for review and a folded **agent half** for implementation.
+Every flow writes a card in this order:
+
+```text
+<one short paragraph: the observable result and the current behavior or constraint it changes.>
+
+## Worth noting              <- answered material decisions; keep empty when none
+- **<question the decision settles>**: <answer>
+
+## Worth noting after implementation
+- **<question the decision settles>**: <answer>
+                             <- answered material decisions building turned up; written
+                                by the build, omit when empty. Never approved delivery scope
+
+## By `<name>` agent         <- every preview agent's section
+
+<!-- agent -->               <- boundary
+
+## Today
+## Scope                     <- requirements, not rationale
+## Todo                      <- one build step per checkbox
+## Decided by the agent
+- **<question the decision settles>**: <answer>
+### Overruled by the user    <- always last
+```
+
+## `Worth noting`
+
+- **Classify first**: follow `akb guide update-questions`; this section contains only answers
+  classified as `Worth noting`.
+- **Keep it glanceable**: one entry is one reviewer decision, written as one sentence that
+  states the chosen behavior and its main cost. Merge entries governed by one policy. One
+  to three independent entries is normal.
+- **Cut the story**: omit chronology, evidence trails, exhaustive consequences, and the
+  rejected option unless it is necessary to understand the main cost.
+
+## `Worth noting after implementation`
+
+- **Classify first**: follow `akb guide update-questions`; this section contains only answers
+  classified as `Worth noting after implementation`.
+- **Keep it non-blocking**: this section never changes or blocks a delivery already in
+  flight.
+- **Use the same compact format**: one reviewer decision and its main cost in one sentence.
+- **Exclude work logs**: never put diagnostics, run history, check results, suggestions,
+  or unresolved questions here.
+- **Never approve a deviation here**: work that contradicts the approved requirements must
+  be fixed or sent to the user by the build.
+
+## Agent sections
+
+- **Owner's rules first**: before rewriting, removing, or overruling content a preview agent
+  owns, read that agent's rules with `akb raw agent-file <agent> AGENT.md`, and the
+  references they point to for the affected part with the same command and their path. When
+  they cannot be read, surface the gap before changing that content.
+
+## `Today`
+
+- **Omit by default**: write it, heading included, only when the build depends on findings
+  the code does not make obvious; a small change to a few simple files needs none.
+
+## `Todo`
+
+- **Build steps only**: finish planning on the card; never defer it to a todo.
+- **Preserve completed work**: never edit, delete, or untick a checked todo; append a todo to
+  reverse it.
+
+## `Decided by the agent`
+
+- **Only what changes the build**: include answered decisions the builder would otherwise
+  get wrong and neither `Worth noting` section holds; omit a finding that needs no action.
+- **Preserve superseded calls**: move agent or review decisions the user reverses to
+  `Overruled by the user`; delete one the card leaves the builder no room to repeat.
+
+## General writing requirements
+
+- **Keep section titles fixed**: do not rename or translate an existing `##` or `###`
+  section title, and leave empty scaffold sections in place.
+- **Edit only the body**: use board commands for every frontmatter field (`akb guide board`).
+- **Name the source in frontmatter**: pass each plan path, card `#id`, or URL the card came
+  from as `--source` to `akb raw create`, or `--add-source` to `akb raw update`; never write
+  a `## Source` section.
+- **Write for a fresh reader**: use professional, comprehensible language with no assumed
+  conversation context.
+- **Keep human half self-contained**: nothing above `<!-- agent -->` may rely on the folded
+  agent half.
+- **Keep bullets atomic**: use `- **<short title>**: <one clear sentence>` for one rule per
+  bullet.
+- **Specify behavior**: omit planning notes and unnecessary coding details.
+- **Supported embeds**: only valid `<Asset>`, `<Compare>` and `<Storyboard>` markers alone in a
+  paragraph embed content; other HTML or JSX is not allowed. Inline or fenced examples remain text.
+- **Compare**: to show two images or two videos against each other, such as a source and its
+  clone, write `<Compare a="<src>" b="<src>" label="..." a-label="..." b-label="..." />`;
+  never render a side-by-side file for it. For videos, add `shots="<src>"`: a JSON list of
+  `{ "id": "S1", "start": 0, "end": 2.25, "name": "..." }` covering video A in order, or a
+  storyboard of A. B may be a storyboard instead of a video; it then shows its shot with the
+  id A is on, beside that shot of a storyboard `shots`.
+- **Asset label and alt**: `label` is a tag of a few words; an image's caption goes in its
+  optional `alt="..."`, its shipped alt text, which cannot contain `<`, `>` or its own quote mark.
+- **Asset variants**: versions of the same content, such as languages or devices, are one tag
+  with `variants='{"<label>": "<src>", ...}'`, `src` being the one shown first; alternatives the
+  user picks between stay separate tags.
+- **Say each fact once**: a section holds only what the card does not already say; leave it
+  empty rather than restate the opening paragraph or another section. Cut only the repeated
+  part of a line: a name, value or case stated nowhere else stays.
+
+- **Validate after edits**: run `akb raw validate <id>` for every card you wrote. Fix each
+  reported file and line before finishing; validation does not rewrite the card for you.

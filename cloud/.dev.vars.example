@@ -1,0 +1,27 @@
+# Copy to .dev.vars for `npm run dev`. Never commit either file; the deployed Worker reads
+# these from its secret store instead (`wrangler secret put <NAME>`).
+SUPABASE_URL="https://<project-ref>.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="<the project's service role key>"
+# The invitation mail (#327). Optional: without it every route still answers and the hourly
+# run logs that it sent nothing.
+RESEND_API_KEY="<a Resend API key for send.ai4kanban.dev>"
+# The Slack app (#320). Optional as a set: without them the Slack routes say this build
+# carries no app, and — with no signing secret — no callback is trusted at all.
+SLACK_CLIENT_ID="<the Slack app's client id>"
+SLACK_CLIENT_SECRET="<the Slack app's client secret>"
+SLACK_SIGNING_SECRET="<the Slack app's signing secret>"
+# The two Lark store apps (#351) — one listed on open.feishu.cn, one on open.larksuite.com.
+# Optional as a set per cloud: a build carrying one offers that one and says so where the
+# other's Connect would be. The Encrypt Key is not optional within a set — without it no
+# callback from that cloud is trusted at all.
+FEISHU_APP_ID="<the 飞书 app's App ID>"
+FEISHU_APP_SECRET="<the 飞书 app's App Secret>"
+FEISHU_ENCRYPT_KEY="<the 飞书 app's Encrypt Key>"
+LARK_APP_ID="<the Lark app's App ID>"
+LARK_APP_SECRET="<the Lark app's App Secret>"
+LARK_ENCRYPT_KEY="<the Lark app's Encrypt Key>"
+# Pro billing through Creem (#1037). Optional as a pair: without them every /v1/billing route
+# refuses. A `creem_test_` key calls Creem's test store. The product ids are `vars` in
+# wrangler.jsonc.
+CREEM_API_KEY="<the Creem store's API key>"
+CREEM_WEBHOOK_SECRET="<the Creem webhook's signing secret>"

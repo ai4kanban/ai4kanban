@@ -1,0 +1,979 @@
+// The process that watches one run.
+//
+// A run has to outlive the command that started it: close the terminal and the agent keeps
+// working, and the run is still there to follow and to stop. So the command writes the run
+// down and spawns this — detached, with nothing attached to the terminal — and returns.
+// This is what actually starts the agent, writes its log, and does the bookkeeping either
+// side of it.
+//
+// It is one process per run. That is what makes a stop a real signal to a real process,
+// and what lets a run queued behind the shared-file lock keep waiting after whoever asked
+// for it has gone home.
+
+import { spawn, type ChildProcessByStdio, type StdioNull, type StdioPipe } from 'node:child_process'
+import type { Readable, Writable } from 'node:stream'
+import fs from 'node:fs'
+
+import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { boardComplaints } from '../reconcile'
+import { tickedSetupSteps } from '../setup'
+import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
+import { eventsPathOf, readRuns, withStore } from './store'
+import { lastSessionTotal, ownCost, reportsSessionTotal } from './own-cost'
+import { cleanupDiscardedCards } from '../../commands/remove'
+import { discardedCardsPrompt } from './prompts'
+import { contextLimit, refreshCatalog } from './catalog'
+import { boardCommand } from './command'
+import { BACKGROUND_WAIT, silenceMinutes } from './settings'
+import { advanceLanding } from './landing'
+import { runEnv } from './flow'
+import { endAgent, killMarked, runMark } from './stop'
+import { refineRunsAfter, specRunsAfter } from './follow'
+import { queueCompleted } from './propose'
+import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
+import { createStderrFilter, type RunEvent } from './wire'
+import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
+import { openPlan } from './resolve'
+import { humanSectionFor } from './runner'
+import { planRetry, retryLine } from './retry'
+import {
+  claimChanges,
+  markBoard,
+  refinementRunsAfter,
+  type BoardMarks,
+  type RefinementFollowUp,
+} from './refine'
+import {
+  acquireIndexLock,
+  askForSpec,
+  noteSpecRefusals,
+  readSpecRefusals,
+  claimCard,
+  clearAsks,
+  carriesSession,
+  closeRun,
+  forgetRun,
+  leftBoardOnLanding,
+  needsIndexLock,
+  patch,
+  peekRun,
+  readRefineAsks,
+  readSpec,
+  readSpecAsks,
+  liveSubRuns,
+  stopSubRuns,
+  resumeSessionId,
+  setCardStatus,
+  requestOf,
+  type CardClaim,
+} from './sessions'
+import { startResume, startRun } from './start'
+import type { TurnEnd } from './wire'
+import { holdsCard } from './types'
+import type { AgentRequest, ContextWindow, RunReason, RunRecord, RunStatus } from './types'
+
+// How long a run gets to end on its own after a stop asks it to, before it is killed
+// outright.
+const STOP_GRACE_MS = 5_000
+// And how long after that before the run is closed out whatever the child's pipes are
+// doing. See the note beside giveUp.
+const STOP_CLOSE_MS = 2_000
+// And how long the ending path itself gets to write the board out before the process
+// leaves anyway.
+const STOP_FINISH_MS = 10_000
+
+// How long a run may produce NOTHING AT ALL before the board ends it (#394). The limit
+// itself is the board's own setting (agent/settings.ts); this is the line the run is closed
+// with, because nothing here reads an agent's error format.
+//
+// The window is counted from the SPAWN and restarted by every raw byte on either pipe —
+// rendered text does not count, since an agent grinding through a long tool call writes
+// events that render to nothing. So a run queued behind the index lock is never ended
+// before it begins, and one that never says a word is still ended.
+const silenceSaid = (minutes: number): string =>
+  `the agent said nothing for ${minutes} minute${minutes === 1 ? '' : 's'}, so the run was ended.`
+// And the wait on its background tasks (#1540), which outlasts the silence limit.
+const backgroundSaid = (minutes: number): string =>
+  `the agent's background tasks did not finish within ${minutes / 60} hours, so the run was ended.`
+
+const MAX_FORMAT_REPAIRS = 3
+
+export async function watchRun(sessionId: string, resume = startResume): Promise<number> {
+  const spec = readSpec(sessionId)
+  const run = peekRun(sessionId)
+  if (!run || !spec) {
+    // Nothing to watch. Either the record has gone (a stop that landed before this process
+    // was up closed it) or the plan was never written.
+    if (run?.status === 'running') await closeRun(sessionId, { status: 'interrupted', code: null })
+    return 1
+  }
+
+  if (run.stopping) {
+    await closeRun(sessionId, { status: 'stopped', code: null })
+    return 1
+  }
+
+  // A stop can reach a run before it ever spawns, and an index run can wait a long time for
+  // its turn — so the record, not this process's own memory, is what says whether to carry
+  // on. It is re-read at every step.
+  const stopping = (): boolean => peekRun(sessionId)?.status !== 'running'
+
+  let releaseIndex: (() => void) | null = null
+  if (needsIndexLock(run.action)) {
+    releaseIndex = await acquireIndexLock(stopping)
+    if (!releaseIndex) {
+      // Stopped while queued, or waited past all reason. Either way nothing spawned.
+      if (!stopping()) await closeRun(sessionId, { status: 'interrupted', code: null })
+      return 0
+    }
+  }
+  const letGo = () => {
+    if (releaseIndex) releaseIndex()
+    releaseIndex = null
+  }
+
+  if (stopping()) {
+    letGo()
+    return 0
+  }
+
+  // Save the stage before the agent touches the card, so anything reading the board
+  // mid-run finds it already marked. The record keeps what was there, so the end of the run
+  // can put it back.
+  //
+  // Two steps, because `patch` holds the run record's lock across its callback and the
+  // board write is awaited: the record remembers the prior stage under the lock, and the
+  // card is marked once the lock is back.
+  let claim: CardClaim | undefined
+  const claimed = patch(sessionId, (r) => {
+    claim = claimCard(r)
+  })
+  const record = claimed ?? run
+  // A sub-run leaves the board's bookkeeping to its parent (#1421): no card hold, no checks,
+  // no landing and no follow-ups.
+  const sub = record.action === 'sub'
+  if (claim) await setCardStatus(claim.cardId, claim.status)
+
+  // The log is machine state like the record it belongs to, so a folder that refuses writes
+  // costs this run its log and nothing else (#622) — the stream swallows what it cannot
+  // write rather than throwing an error nothing here is listening for.
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  const logFile = fs.createWriteStream(record.logPath, { flags: 'a' })
+  logFile.on('error', () => {})
+  // Beside the log, the run's structured events (#2059): what the agent did, from a source
+  // that reports it, and every other line of the log as `log`.
+  const eventsFile = fs.createWriteStream(eventsPathOf(sessionId), { flags: 'a' })
+  eventsFile.on('error', () => {})
+  const event = (e: RunEvent) => eventsFile.write(`${JSON.stringify(e)}\n`)
+  const log = {
+    write(text: string) {
+      logFile.write(text)
+      if (text.trim()) event({ kind: 'log', data: { text } })
+    },
+    end: (closed?: () => void) => {
+      eventsFile.end()
+      logFile.end(closed)
+    },
+  }
+  // What the board settled before the agent said a word — a spec agent's setting whose saved
+  // value it no longer offers, and what it ran at instead. It goes above the output so the
+  // reason sits before the work it changed.
+  for (const note of spec.notes ?? []) log.write(`[board] ${note}\n`)
+
+  // The keys are read here and nowhere else: the plan on disk carries the command and the
+  // agent's name, never a key, and this is the one moment one is needed.
+  const active = openPlan(spec.plan)
+  if (active.startNote) log.write(`[board] ${active.startNote}\n`)
+  // Resume the recorded action, not another phase of the same delivery. A resume that could
+  // only open a new session (#1321) brings the whole ask instead.
+  const basePrompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? spec.prompt || resumePrompt(record.deliveryId, record.cardId, record.action) : spec.prompt)
+  const prompt = [basePrompt, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n')
+
+  // The board as it was the moment before the agent touched it. The difference between this
+  // and the same read at the close is what this run could be answerable for; which of it
+  // really is its own — and not a neighbouring run's — is settled at the close by
+  // `claimChanges`, and that is what earns a card the refine that follows.
+  const before = markBoard()
+  const sources = snapshotSpecs()
+  // And what was already broken about it. Only what a run BREAKS is worth reporting on that
+  // run: a board carrying a stale link from last month would otherwise put the same line on
+  // the end of every run forever, which is how a real warning gets read as furniture.
+  const wasBroken = new Set(boardComplaints())
+
+  // Where the pictures the sheet was pasted into go is the connector's own answer
+  // (agent/harnesses/types.ts): one that reads a path out of the words has them in the
+  // prompt already (agent/prompts.ts), and one with a flag per file is handed them here.
+  const takes = active.images
+  const shots = takes?.as === 'args' ? (record.pictures ?? []).flatMap((file) => takes.args(file)) : []
+  const [cmd, ...args] = [...active.argv, ...shots]
+  const workDir = active.cwd ?? REPO_ROOT
+  // How long this run may say nothing. Read once, here, like every other setting a run
+  // uses: a limit changed mid-run belongs to the next run.
+  const silenceFor = silenceMinutes()
+  const silenceMs = silenceFor * 60_000
+  // The catalogue the context ring's window comes from (#675), pulled behind the run rather
+  // than in front of it: this supervisor outlives the download, and a run must never wait on
+  // a network the board doesn't need. Whatever is already on disk answers until it lands.
+  void refreshCatalog()
+  // A connector the board talks to is started differently in two ways: the prompt is sent
+  // in the conversation rather than spelled on the command line, and its stdin stays open,
+  // because that is the half of the conversation this end writes (agent/wire/client.ts).
+  const client = active.client
+  // What a resumed run is told if that conversation turns out to be gone (#395): the task
+  // from the top, since the fresh session opened in its place holds none of it. Only a
+  // client can restart — a printing agent resumes on its own command line — and nothing
+  // comes back for a run whose ask can no longer be written down, which ends on a dead
+  // session exactly as it always did.
+  // Planning carried on (#1304) restarts with the ask it was given: that is the whole task.
+  const restartBase = !client || record.formatRepair ? undefined
+    : record.resumedFrom ? restartPrompt(requestOf(record), record.deliveryId)
+    : record.continues && !record.continues.fork ? spec.prompt : undefined
+  const restart = restartBase ? [restartBase, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n') : undefined
+  // A printing agent that reads its turns off stdin (#1540) is handed the prompt there, and
+  // stdin stays open until a turn ends with nothing left in the background.
+  const stdinPrompt = client ? undefined : active.stdinPrompt
+  // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
+  // for a conversation and closed for a command that only prints.
+  const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client || stdinPrompt ? 'pipe' : 'ignore', 'pipe', 'pipe']
+  // stdout and stderr are pipes whichever shape this is; only stdin differs.
+  let child: ChildProcessByStdio<Writable | null, Readable, Readable>
+  try {
+    child = spawn(cmd!, client || stdinPrompt ? args : [...args, prompt], {
+      // Where this run works: the project, or — inside a delivery with a worktree of its
+      // own (#303) — that worktree. Settled when the run was planned and written down with
+      // it, so the spawn, the connector's own folder flag and `PWD` are one answer.
+      cwd: workDir,
+      // The run's own id goes into the agent's environment, and this is the one place it
+      // can: the environment a run starts under is settled by the settings (resolve.ts),
+      // which never see a run id. It is what stops a run spawning a copy of itself —
+      // an agent inside a run that asks for a board action gets the flow printed instead
+      // (lib/agent/flow.ts).
+      env: runEnv(active.env, sessionId),
+      shell: false,
+      // `claude -p` waits ~3s on a piped stdin, then logs a "no stdin data" warning into
+      // our log. Close stdin so the log is only agent output.
+      stdio,
+    }) as ChildProcessByStdio<Writable | null, Readable, Readable>
+  } catch (e) {
+    log.end()
+    patch(sessionId, (r) => {
+      r.unspawned = true
+    })
+    await closeRun(sessionId, { status: 'error', ok: false, code: null, error: String(e) })
+    letGo()
+    return 1
+  }
+  // Read after the spawn, so the agent itself is never younger than its record (#1313).
+  const agentStartedAt = Date.now()
+  if (child.pid) {
+    patch(sessionId, (r) => {
+      r.agentPid = child.pid
+      r.agentStartedAt = agentStartedAt
+    })
+  }
+
+  const renderer = active.renderer
+  // A source that reports events has its log text in them already.
+  const structured = !!renderer?.events || !!client?.structured
+  const append = (str: string) => {
+    if (!str) return
+    if (structured) logFile.write(str)
+    else log.write(str)
+  }
+  const drainEvents = () => {
+    for (const e of renderer?.events?.() ?? []) event(e)
+  }
+  let inputOpen = !!stdinPrompt && !!child.stdin
+  const endInput = () => {
+    if (!inputOpen) return
+    inputOpen = false
+    child.stdin?.end()
+  }
+  if (inputOpen) {
+    child.stdin!.on('error', () => {})
+    child.stdin!.write(stdinPrompt!(prompt))
+  }
+  // A turn that ends with nothing left in the background is the last one.
+  let turnsSeen = 0
+  const afterTurn = () => {
+    const turns = renderer?.turns?.() ?? []
+    if (turns.length === turnsSeen) return
+    turnsSeen = turns.length
+    if (!turns.at(-1)!.background) endInput()
+  }
+  // Both ids are written into the record the first time the stream names them, and never
+  // looked for again — every write takes the record's lock, and a run's output arrives in
+  // hundreds of chunks.
+  let sawResumeId = !!record.resumeId
+  let sawModel = false
+  const gotResumeId = (id: string | undefined, restarted = false) => {
+    if (restarted) sawResumeId = catchResumeId(sessionId, id, true)
+    else if (!sawResumeId) sawResumeId = catchResumeId(sessionId, id)
+  }
+  const gotModel = (model: string | undefined) => {
+    if (!sawModel) sawModel = catchModel(sessionId, model)
+  }
+  // How full the window is, written down again every time the reading moves (#675) — unlike
+  // the two above, which are caught once. It is what makes a long run's ring climb while it
+  // works.
+  //
+  // The reading only moves when a request comes back, and a run's output arrives in hundreds
+  // of chunks that say nothing new — so a chunk that repeats the last reading stops here,
+  // before the record is read or written. The one exception is a window still unknown: for
+  // every connector but Codex it comes from the model, and the model can arrive long after
+  // the first reading does (OpenCode names one only once its stream has ended).
+  let lastUsed = 0
+  let gotLimit = false
+  const gotContext = (reading: ContextWindow | undefined) => {
+    if (!reading?.used) return
+    if (reading.used === lastUsed && gotLimit) return
+    lastUsed = reading.used
+    // Only Codex names its own window. For everyone else it is the catalogue's, looked up
+    // against the model this run named — so a run whose model never arrived, or one the
+    // catalogue has never heard of, carries a reading with no window and draws no ring.
+    const limit = reading.limit ?? contextLimit(record.harness, peekRun(sessionId)?.model)
+    gotLimit = limit !== undefined
+    patch(sessionId, (r) => {
+      r.context = { used: reading.used, limit }
+    })
+  }
+
+  // stdout is the agent's event stream — render it to readable lines as it arrives, with
+  // the parser its own agent brings. stderr is plain text and passes through, whichever
+  // kind of command this is: it is where a CLI puts its warnings either way — minus the
+  // agent's own housekeeping chatter, which says nothing about the run.
+  //
+  // `touch` restarts the silence window and is set once the promise below is running, which
+  // is where the run can be ended. stdout is listened to even when nothing renders it: a
+  // conversation's protocol is still the agent talking.
+  let touch = (): void => {}
+  child.stdout.on('data', (d: Buffer) => {
+    if (renderer) {
+      append(renderer.push(d.toString()))
+      drainEvents()
+      gotResumeId(renderer.resumeId?.())
+      gotModel(renderer.model?.())
+      gotContext(renderer.context?.())
+      afterTurn()
+    }
+    // After the render, so the window it restarts knows what is in the background now.
+    touch()
+  })
+  const errs = createStderrFilter(active.quietStderr)
+  child.stderr.on('data', (d: Buffer) => {
+    touch()
+    const text = errs.push(d.toString())
+    if (text) log.write(text)
+  })
+
+  let spawnError: string | undefined
+  let spawnWhy: RunReason | undefined
+  child.on('error', (err) => {
+    // The one failure worth saying in our own words: the agent's binary isn't on this
+    // machine — or isn't on the PATH this run started with. "spawn claude ENOENT" tells a
+    // user nothing.
+    const missing = (err as NodeJS.ErrnoException)?.code === 'ENOENT'
+    spawnError = missing
+      ? `${cmd} isn't installed, or isn't on this run's PATH. Install it with: ${active.install}`
+      : String(err)
+    spawnWhy = missing ? { kind: 'notInstalled', args: { cmd, install: active.install } } : undefined
+    // No process, so no session either — whatever id the connector would have taken (#1321).
+    if (child.pid === undefined) {
+      patch(sessionId, (r) => {
+        r.unspawned = true
+      })
+    }
+    log.write(`\n[error] ${spawnError}`)
+  })
+
+  return await new Promise<number>((resolve) => {
+    // Whichever path gets here first wins and the rest are no-ops: the child's own close,
+    // and the backstop below.
+    let done = false
+    // How the conversation ended, on a run the board talked to. It stands in for
+    // everything a printing agent's own output would have said.
+    let spoken: TurnEnd | undefined
+    // The silence window: whether it ran out, and the timer it runs on. `waited` is set
+    // when it ran out on background tasks (#1540).
+    let silent = false
+    let waited = false
+    let idle: ReturnType<typeof setTimeout> | undefined
+    // How a wait between retry attempts is cut short (#525). Set only while one is going,
+    // and it is what a stop reaches then: there is no child left to signal.
+    let wakeUp: (() => void) | undefined
+    const sleep = (ms: number): Promise<void> =>
+      new Promise((wake) => {
+        const t = setTimeout(() => {
+          wakeUp = undefined
+          wake()
+        }, ms)
+        wakeUp = () => {
+          clearTimeout(t)
+          wakeUp = undefined
+          wake()
+        }
+      })
+    const finish = async (code: number | null, wanted: boolean): Promise<void> => {
+      if (done) return
+      done = true
+      let asked = wanted
+      if (idle) clearTimeout(idle)
+      // Its sub-runs end first, so what they leave is in the folder this close reads.
+      await stopSubRuns(sessionId)
+      if (renderer) {
+        append(renderer.flush())
+        drainEvents()
+        // The ids may have been in the last partial line, on a very short run.
+        gotResumeId(renderer.resumeId?.())
+        gotModel(renderer.model?.())
+        gotContext(renderer.context?.())
+      }
+      const errRest = errs.flush()
+      if (errRest) log.write(errRest)
+
+      const endedAt = Date.now()
+      // A run somebody ended exits non-zero — we killed it — but that is not a failure, so
+      // the ask, not the code it died with, names the outcome.
+      // An implementation may exit cleanly after recording that it cannot continue. The
+      // blocker, not its shell code, makes that run unfinished and keeps the delivery ready
+      // for Resume rather than landing incomplete work.
+      const blocker = peekRun(sessionId)?.blocker
+      // And the same for a CLI that reports a failure on its stream and still exits 0.
+      // Only Claude Code does (agent/wire/stream.ts) — read after the flush above, so the
+      // closing event is in. A run that failed this way must not close as done: its card
+      // would advance and the refinements behind it would run on work that never happened.
+      const failure = renderer?.failure?.()
+      const unfinished = blocker || failure
+      const result = spoken ? spoken.result : renderer?.result()
+
+      // ---- a provider that failed for a moment (#525) ------------------------
+      //
+      // Waited out HERE, before a word of this run is written down: the record is still
+      // `running` and this process is still up, so the run stays the card's live run and its failure is not yet reported as final.
+      //
+      // Only a failure the AGENT reported can be one. A run the board itself ended — the
+      // silence limit, a stop — produced no provider signal to read, and
+      // one that recorded a blocker stopped on purpose. And no conversation to pick up is
+      // no retry: this continues the very turn that died, it never starts the work again.
+      const held = peekRun(sessionId) ?? record
+      const ours = asked || silent || !!blocker
+      const said = failure ?? spoken?.error
+      // What the CLI printed outside its own events — where a connection that dropped
+      // mid-stream leaves its only word, with no `result` event behind it.
+      const offStream = renderer?.offStream?.()
+      const blip =
+        ours || sub || (code === 0 && !said) || !resumeSessionId(held)
+          ? undefined
+          : active.transient?.({ failure: said, result, offStream })
+      const again = blip ? planRetry(held.retry, blip, held.startedAt) : null
+      if (again) {
+        log.write(`\n[board] ${retryLine(again)}\n`)
+        patch(sessionId, (r) => {
+          r.retry = again
+        })
+        await sleep(Math.max(0, again.at - Date.now()))
+        // A stop that landed during the wait ends the run here rather than after one more
+        // attempt — it is the Cancel the runs view offers beside the countdown.
+        if (stopped || peekRun(sessionId)?.stopping === true) asked = true
+      }
+      const retrying = !!again && !asked
+      // Planning that carried a session on (#1304) and failed before one request came back:
+      // the session is gone, so the step is started again in a new one.
+      const spent = spoken ? spoken.usage : renderer?.usage?.()
+      const lost =
+        !!spec.again && !held.deliveryId && !ours && !retrying && !spawnError && code !== 0 && lastUsed === 0 &&
+        !(spent && spent.input + spent.output + spent.cacheRead + spent.cacheCreation > 0)
+
+      // A run the silence window ended is a failure whatever the killed command or a
+      // connector's last turn goes on to report: we ended it, so our own call stands.
+      let status: RunStatus = asked
+        ? 'stopped'
+        : silent || unfinished
+          ? 'error'
+          : code === 0
+            ? 'done'
+            : 'error'
+      const reported = spoken ? spoken.costUsd : renderer?.costUsd?.()
+      // A session total carries what the session it continues spent (#1480, #1483).
+      const totals = reportsSessionTotal(record.harness)
+      const sessionTotal = totals ? reported : undefined
+      const carriedId = record.continues?.resumeId
+      const totalFrom = !totals
+        ? undefined
+        : record.resumedFrom
+          ? record.sessionCostFrom
+          : carriedId
+            ? lastSessionTotal(carriedId, readRuns())
+            : undefined
+      const totalCost = sessionTotal === undefined ? reported : ownCost(sessionTotal, totalFrom)
+      const usage = spoken ? spoken.usage : renderer?.usage?.()
+      // A connector the board TALKS to hands its reading back with the turn rather than on
+      // the stream, so this is where its ring gets its one update (#675).
+      if (spoken) gotContext(spoken.context)
+      const repairable = status === 'done'
+      const required = new Set(record.formatRepair?.cardIds ?? [])
+      const heldElsewhere = withStore((store) => new Set(store.runs
+        .filter((r) => r.sessionId !== sessionId && r.status === 'running' && holdsCard(r.action))
+        .flatMap((r) => [r.cardId, ...(r.createdCardIds ?? [])]).filter((id): id is number => id !== null)))
+      let formatErrors: ReturnType<typeof validateRunSpecs> = []
+      if (!sub) {
+        try {
+          const discarded = new Set(cleanupDiscardedCards(sessionId))
+          for (const [file, card] of sources) if (discarded.has(card.id)) sources.delete(file)
+          for (const id of discarded) required.delete(id)
+          const current = snapshotSpecs()
+          const onBoard = (id: number): boolean => [...current.values()].some((card) => card.id === id)
+          // A card off the board is missing only if it did not leave the way a finished card
+          // does (#682): a delivery that lands archives its card, and a run still working on
+          // that card when it happens has destroyed nothing. Those ids are logged below and
+          // kept out of `required`, so no format repair is ever asked to restore them.
+          const departed = new Set<number>()
+          const missing = (id: number): boolean => {
+            if (discarded.has(id) || onBoard(id)) return false
+            if (leftBoardOnLanding(id)) {
+              departed.add(id)
+              return false
+            }
+            return true
+          }
+          for (const id of [...required]) if (!onBoard(id) && !missing(id)) required.delete(id)
+          const human = humanSectionFor(requestOf(record))
+          const own = new Set([record.cardId, ...(peekRun(sessionId)?.createdCardIds ?? [])].filter((id): id is number => id !== null))
+          formatErrors = validateRunSpecs(sources, current, record.cardId, heldElsewhere, required, human ? { ...human, cards: own } : undefined)
+          for (const [file, card] of current) {
+            if (card.id === record.cardId || (!heldElsewhere.has(card.id) && sources.get(file)?.text !== card.text)) required.add(card.id)
+          }
+          for (const id of record.formatRepair?.cardIds ?? []) {
+            if (missing(id)) {
+              formatErrors.push({ file: rel(TODO), line: 1, rule: 'missing-card', message: `Task #${id} disappeared. Restore its card file.` })
+            }
+          }
+          if (record.cardId !== null && !['archive', 'reject'].includes(record.action)
+            && [...sources.values()].some((card) => card.id === record.cardId)
+            && missing(record.cardId)) {
+            required.add(record.cardId)
+            formatErrors.push({ file: rel(TODO), line: 1, rule: 'missing-card', message: `Task #${record.cardId} disappeared. Restore its card file; this run must not delete it.` })
+          }
+          for (const id of departed) log.write(`\n[board] Task #${id} left the board with its landing; there is nothing to restore.\n`)
+        } catch (error) {
+          formatErrors = [{ file: rel(TODO), line: 1, rule: 'read-error', message: `Cannot validate the card files: ${String(error)}. Restore readable Markdown files and retry.` }]
+        }
+      }
+      const contractError = formatErrors.length ? formatContractErrors(formatErrors) : undefined
+      if (contractError) {
+        log.write(`\n[validation] ${contractError}\n`)
+        if (status === 'done') status = 'error'
+        if (record.cardId !== null && !record.deliveryId) await setCardStatus(record.cardId, 'todo')
+      }
+      // A setup run exists to tick boxes and never stops to ask (#909), so a clean exit that
+      // ticked none did nothing. The last tick deletes the checklist, which reads as progress.
+      const tickedNothing = status === 'done' && tickedNoSetupStep(record)
+      const tickedNothingSaid = tickedNothing ? 'Setup ended without completing any step on its checklist.' : undefined
+      if (tickedNothing) {
+        status = 'error'
+        log.write(`\n[board] ${tickedNothingSaid}\n`)
+      }
+      // What this run changed, taken now and taken once (agent/refine.ts). Every ending
+      // claims, a failure included: a half-written card is not a card to refine, but leaving
+      // its edits unclaimed would hand them to whichever run closes next.
+      const changed = sub ? [] : [...new Set([...(record.formatRepair?.changedIds ?? []), ...claimChanges(before, sessionId)])].filter((id) => !peekRun(sessionId)?.discardedCards?.some((c) => c.id === id))
+      const original = record.formatRepair ? new Map(record.formatRepair.existingIds.map((id) => [id, ''])) : before
+      patch(sessionId, (r) => {
+        r.formatRepair = contractError ? {
+          attempt: record.formatRepair?.attempt ?? 0, errors: contractError,
+          cardIds: [...required], changedIds: changed, existingIds: [...original.keys()],
+        } : undefined
+      })
+      // The log is closed here and not before it, so what the board had to say about the run
+      // sits with the agent's output rather than after the marker that ends it.
+      //
+      // Stamp the elapsed time through the same stream (not an append after the stream is
+      // closed, which would race its pending flush), and hand the same instant to the
+      // record so the file and the record agree.
+      logFile.write(durationLine(endedAt - record.startedAt))
+      if (totalCost !== undefined) logFile.write(costLine(totalCost))
+      if (usage) logFile.write(usageLine(usage))
+      const model = peekRun(sessionId)?.model
+      if (model) logFile.write(modelLine(model))
+      // The final message goes to the log behind a marker line, so the file alone is the
+      // complete durable record and a later read can split events from message again.
+      if (result) logFile.write(`\n${RESULT_MARKER}\n${result}\n`)
+      await new Promise<void>((closed) => log.end(closed))
+
+      patch(sessionId, (r) => {
+        if (totalCost !== undefined) r.costUsd = totalCost
+        if (sessionTotal !== undefined) r.sessionCostUsd = sessionTotal
+        if (typeof totalFrom === 'number') r.sessionCostFrom = totalFrom
+        if (usage) r.usage = usage
+        if (result) r.result = result
+      })
+      // The refines themselves are only for a run that finished. One that failed or was
+      // ended left the board half-written, and a refine of half a card is a refine you throw
+      // away — and a spec agent sent at half a plan would answer the wrong plan.
+      //
+      // Worked out BEFORE the record closes, so anything watching for the run to end sees
+      // the note it ended with rather than catching the record a beat too early.
+      const settled = status === 'done' && !sub ? settleBoard(record, changed, original) : null
+      const broke = status === 'done' && !sub ? brokeBoard(wasBroken) : null
+      const note = status === 'done' ? joinNotes(settled?.stalled, broke?.note) : undefined
+      const noteWhy: RunReason[] = [
+        ...(status === 'done' ? settled?.stalledWhy ?? [] : []),
+        ...(broke ? [broke.why] : []),
+      ]
+      // Only what the board said in its own words has a kind; an agent's own error has none,
+      // and a screen shows nothing for it (#1241).
+      const saidOurs = !asked && silent && !spawnError
+      const errorWhy: RunReason[] = [
+        ...(contractError ? [{ kind: 'format' as const }] : []),
+        ...(spawnWhy ? [spawnWhy] : []),
+        ...(saidOurs ? [waited
+          ? { kind: 'backgroundSilent' as const, args: { n: String(BACKGROUND_WAIT.minutes / 60) } }
+          : { kind: 'silent' as const, args: { n: String(silenceFor) } }] : []),
+      ]
+      const quietSaid = waited ? backgroundSaid(BACKGROUND_WAIT.minutes) : silenceSaid(silenceFor)
+      if (sub) {
+        await closeRun(sessionId, {
+          status,
+          ok: asked ? undefined : status === 'done',
+          code: asked ? null : code,
+          error: spawnError ?? (asked ? undefined : silent ? quietSaid : (spoken?.error ?? failure)),
+          errorWhy,
+          endedAt,
+        })
+        resolve(status === 'done' ? 0 : 1)
+        return
+      }
+      await closeRun(sessionId, {
+        status,
+        // `ok` stays unset on a stopped run, as it does on one that was cut off: it
+        // neither passed nor failed, it was ended.
+        ok: asked ? undefined : status === 'done',
+        code: asked ? null : code,
+        // What went wrong, in whoever's words know: ours when the command wouldn't start or
+        // when it went quiet, the agent's own when the conversation ended badly or its
+        // stream said so. That cause leads; a card it left half-written follows.
+        error: joinNotes(spawnError ?? (asked ? undefined : silent ? quietSaid : (spoken?.error ?? failure)),
+          contractError, tickedNothingSaid),
+        note,
+        errorWhy,
+        noteWhy,
+        endedAt,
+        tickedNothing,
+      })
+      letGo()
+      if (contractError && repairable
+        && (record.formatRepair?.attempt ?? 0) < MAX_FORMAT_REPAIRS) {
+        const next = await resume(sessionId)
+        if ('error' in next) patch(sessionId, (r) => {
+          r.error = `${contractError}\nCannot resume format repair: ${next.error}`
+          r.errorWhy = [{ kind: 'format' }, { kind: 'repairUnstarted', refusals: [next] }]
+        })
+      }
+      // The next attempt (#525), started the instant the failed one is written down — the
+      // same handoff a format repair makes, so the card is between runs for as long as one
+      // record write takes and no longer. A retry and a repair are never both on: a repair
+      // follows a run that finished, and this one failed.
+      if (retrying) {
+        const next = await resume(sessionId)
+        if ('error' in next) patch(sessionId, (r) => {
+          r.error = joinNotes(r.error, `Could not try again: ${next.error}`)
+          r.errorWhy = [...r.errorWhy ?? [], { kind: 'retryUnstarted', refusals: [next] }]
+        })
+      }
+      if (lost && status === 'error') {
+        const next = await startRun(spec.again!)
+        if (!('error' in next)) forgetRun(sessionId)
+      }
+      // The landing queue (#304): a delivery whose build has just finished takes the slot and
+      // lands here, and what it hands back is the run that landing wants — conflict
+      // resolution.
+      const landing = status === 'done' ? await advanceLanding() : null
+      // And the proposer's queue (#534, #1467): every card that reached the archive while this
+      // run was up — the one it archived itself, the one its landing completed, a group closed
+      // by either. `before` is the board as it stood at the spawn, which is the only record of
+      // what was still open then. The board's timer starts the reflection (#1475).
+      if (status === 'done') queueCompleted(before.keys())
+      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], landing)
+      resolve(status === 'done' ? 0 : 1)
+    }
+
+    // Ending the command ourselves — a stop asked, the silence window ran out, or the
+    // conversation is over. It gets a moment to end on its own, then it is killed, and the
+    // commands it started go with it (#1302, #1499).
+    let ending = false
+    const endChild = () => {
+      ending = true
+      try {
+        child.stdin?.end()
+      } catch {
+        // already gone
+      }
+      endAgent(child, runMark(sessionId), STOP_GRACE_MS)
+    }
+
+    // Putting the command down and declaring the run over whether or not its pipes come
+    // with it. Both endings take this path: a stop, and the silence window running out.
+    //
+    // Declaring it is not belt and braces. The child's `close` waits on the output PIPE,
+    // not on the process: a tool the agent left behind inherits that pipe and can hold it
+    // open long after the agent itself is gone, which would leave the run reading as
+    // running and its card locked for good.
+    const giveUp = (asked: boolean) => {
+      endChild()
+      after(STOP_GRACE_MS + STOP_CLOSE_MS, () => {
+        // Nothing else is waiting on this process, and something is still holding a pipe
+        // open — so leave rather than sit here for as long as it does. The ending path
+        // writes the board, so it is awaited first: exiting on the same tick would drop
+        // the card's stage, a stopped run's question, and the delivery's next run. The
+        // second timer is the bound — a landing that hangs cannot hold the process open.
+        after(STOP_FINISH_MS, () => process.exit(0))
+        void finish(null, asked).finally(() => process.exit(0))
+      })
+    }
+
+    let stopped = false
+    const askToStop = () => {
+      if (stopped) return
+      stopped = true
+      // Waiting between retry attempts (#525): there is no child to signal, so the wait is
+      // cut short and the close it was holding open carries on as a stop.
+      if (wakeUp) {
+        wakeUp()
+        return
+      }
+      if (done) return
+      giveUp(true)
+    }
+    process.on('SIGTERM', askToStop)
+    process.on('SIGINT', askToStop)
+
+    // The silence window (see silenceSaid), restarted by every byte the command writes and
+    // started here, a tick after the spawn — so a run that never says a word runs out too.
+    // A limit of 0 switches it off. Unref'd, like every other timer here: a window still
+    // open cannot hold this process past the run it was watching.
+    // Background tasks still running (#1540) wait longer, on the same switch.
+    touch = () => {
+      if (done || !silenceMs) return
+      if (idle) clearTimeout(idle)
+      const background = renderer?.background?.() ?? 0
+      idle = setTimeout(() => {
+        if (done || stopped || silent) return
+        // A run waiting on its sub-runs says nothing, and is not silent (#1421).
+        if (liveSubRuns(sessionId).length) {
+          touch()
+          return
+        }
+        // The background emptied and no turn followed: the agent has nothing left to say.
+        if (inputOpen && turnsSeen && !background) {
+          endInput()
+          touch()
+          return
+        }
+        silent = true
+        waited = background > 0
+        log.write(`\n[board] ${waited ? backgroundSaid(BACKGROUND_WAIT.minutes) : silenceSaid(silenceFor)}\n`)
+        giveUp(false)
+      }, background ? BACKGROUND_WAIT.minutes * 60_000 : silenceMs)
+      if (typeof idle.unref === 'function') idle.unref()
+    }
+    touch()
+
+    // The conversation, on a run the board talks to. It is the run: a command that answers
+    // back is a server and never exits on its own, so the turn's ending is the run's
+    // ending, and the process is closed out after it rather than waited on. What the turn
+    // says happened is the verdict — the exit code of a process we killed says nothing.
+    if (client) {
+      const toAgent = child.stdin
+      if (!toAgent) {
+        log.write(`\n[error] nothing could be written to ${cmd}, so there was no way to send it the task\n`)
+        void finish(1, false)
+      } else {
+        void client
+          .turn({
+            stdout: child.stdout,
+            stdin: toAgent,
+            prompt,
+            cwd: workDir,
+            // Only a resumed run carries a conversation to continue. A fresh run's session
+            // is opened inside the conversation, and its id comes back here.
+            resumeId: carriesSession(record) ? record.resumeId : undefined,
+            restartPrompt: restart,
+            log: append,
+            gotResumeId: (id, restarted) => gotResumeId(id, restarted),
+            gotModel: (model) => gotModel(model),
+            event,
+          })
+          .then((end) => {
+            spoken = end
+            endChild()
+            void finish(end.ok ? 0 : 1, peekRun(sessionId)?.stopping === true || stopped)
+          })
+      }
+    }
+
+    // An agent that exited on its own leaves what it put in the background running, in a
+    // worktree about to go and often holding the pipe `close` waits on (#1499).
+    child.once('exit', () => {
+      if (!ending) killMarked(runMark(sessionId), child.pid ? { pid: child.pid, since: agentStartedAt } : undefined)
+    })
+    child.on('close', (code) => void finish(code, peekRun(sessionId)?.stopping === true || stopped))
+  })
+}
+
+// How many broken links a run's note lists before it stops counting. The point is to say
+// the board came out of this run inconsistent, not to reprint the whole of it.
+const MAX_BROKEN = 5
+
+// What this run broke that was whole before it: a link into the README index, a card that
+// never got indexed, a `blocked_by` or `related` pointing at an id that isn't there any
+// more. Nothing else notices — the moves that check for it are the ones the agent skipped —
+// so a run that finished a card by deleting the file reads as a clean `✓ done` and the
+// board goes on quietly disagreeing with itself. Null when it came out whole.
+function brokeBoard(wasBroken: Set<string>): { note: string; why: RunReason } | null {
+  const broke = boardComplaints().filter((line) => !wasBroken.has(line))
+  if (!broke.length) return null
+  const shown = broke.slice(0, MAX_BROKEN)
+  const rest = broke.length - shown.length
+  const why: RunReason = { kind: 'broken', args: { n: String(broke.length), more: String(rest) }, lines: shown }
+  return { why, note: [
+    `the work is done, but the board came out of this run inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
+    ...shown.map((line) => `  ${line}`),
+    ...(rest ? [`  … and ${rest} more`] : []),
+    `a card is taken off the board with \`${boardCommand()} raw archive <id>\` or \`${boardCommand()} raw reject <id>\`, never by deleting its file.`,
+  ].join('\n') }
+}
+
+// A setup run that started with a checklist and ended with it still there, no box further on.
+function tickedNoSetupStep(record: RunRecord): boolean {
+  if (record.action !== 'setup' || record.setupTicked === undefined) return false
+  const now = tickedSetupSteps()
+  return now !== undefined && now <= record.setupTicked
+}
+
+const joinNotes = (...parts: (string | null | undefined)[]): string | undefined =>
+  parts.filter(Boolean).join('\n\n') || undefined
+
+// The refinement sessions this run leaves behind, worked out but not started, plus
+// `stalled` — a refinement loop that ended with its card unsettled (agent/refine.ts). The
+// pass's own call on the status stands: nothing out here has read the card.
+function settleBoard(
+  run: RunRecord,
+  changed: readonly number[],
+  before: BoardMarks,
+): RefinementFollowUp | null {
+  try {
+    const helpers = specRunsAfter(readSpecAsks(run.sessionId))
+    const waitingForSpec = helpers.some((req) => req.id === run.cardId)
+    return refinementRunsAfter(run, changed, before, waitingForSpec, readSpecRefusals(run.sessionId))
+  } catch {
+    // an unreadable board — the run it followed is done either way
+    return null
+  }
+}
+
+// What follows this run: the spec agents and refinements it asked for by name, and
+// refinement on each card it wrote, changed, or set free. Each one is an ordinary run of its
+// own, so it shows in the panel with its own log and can be stopped.
+//
+// Every one joins this run's flow, so the panel shows one job with its sessions on a
+// timeline rather than a scatter of unrelated rows.
+//
+// What was asked for by name goes first — a refine nobody asked for was inferred.
+//
+// A refusal is not worth reporting: the only one that comes up is a card that already has a
+// run on it, and that run is doing more than this one would have. Nothing here can fail the
+// run that just ended — it is over.
+async function followUp(
+  sessionId: string,
+  flowId: string | undefined,
+  runs: AgentRequest[],
+  landing: AgentRequest | null = null,
+): Promise<void> {
+  // A request that already names its flow keeps it — a refinement pass carries its loop's
+  // id, and that loop is this flow anyway.
+  const join = (req: AgentRequest): AgentRequest =>
+    req.flowId || !flowId ? req : { ...req, flowId }
+  try {
+    // Started first, then forgotten — so a crash between the two costs a repeated agent at
+    // worst, and never a section nobody ever writes.
+    await startHelpersInTurn(specRunsAfter(readSpecAsks(sessionId)), join, sessionId)
+    const asked = [
+      ...refineRunsAfter(readRefineAsks(sessionId)),
+    ]
+    for (const req of asked) await startRun(join(req))
+    clearAsks(sessionId)
+    if (landing) await startRun(join(landing))
+    for (const req of runs) await startRun(join(req))
+  } catch {
+    // a spawn that wouldn't — the run it followed is done either way
+  }
+}
+
+// The spec agents one run asked for, started ONE AT A TIME (#714).
+//
+// They are the planning stage's helpers, and every one of them writes into the same card.
+// Two sessions rewriting one card at once is what a user reads as work being overwritten, so
+// only the first is started here; the rest are handed to it, and its own close starts the
+// next.
+//
+// A helper that will not start is skipped rather than taking the queue down with it, and its
+// reason travels with the round to the planner, which asks again.
+async function startHelpersInTurn(
+  helpers: AgentRequest[],
+  join: (req: AgentRequest) => AgentRequest,
+  self: string,
+): Promise<void> {
+  const refused = readSpecRefusals(self)
+  let queue = helpers
+  while (queue.length) {
+    const [next, ...rest] = queue
+    const started = await startRun(join(next!))
+    if ('error' in started) {
+      refused.push({ error: started.error, ...(started.reason ? { reason: started.reason } : {}), ...(started.args ? { args: started.args } : {}) })
+      queue = rest
+      continue
+    }
+    noteSpecRefusals(started.run.sessionId, refused)
+    for (const req of rest) {
+      askForSpec(started.run.sessionId, {
+        specAgent: req.specAgent ?? '',
+        cardId: req.id as number,
+        ...(req.notes ? { notes: req.notes } : {}),
+      })
+    }
+    return
+  }
+}
+
+// setTimeout that can't hold this process open on its own.
+function after(ms: number, fn: () => void): void {
+  const t = setTimeout(fn, ms)
+  if (typeof t.unref === 'function') t.unref()
+}
+
+// An agent that mints its own session id reports it out of its output stream, so the id
+// shows up partway through the run. Save it the moment it does — a stop or a crash a
+// second later would otherwise leave a run with no way to continue it. First one wins: an
+// agent that names its id more than once is still one conversation.
+//
+// `restarted` is the one exception: a session opened because the resumed one was gone is a
+// DIFFERENT conversation, and the id the run is holding no longer resolves — so it is
+// written over, or every resume after this one would reseed from scratch again (#395).
+function catchResumeId(sessionId: string, id: string | undefined, restarted = false): boolean {
+  if (!id) return false
+  patch(sessionId, (r) => {
+    if (restarted || !r.resumeId) r.resumeId = id
+  })
+  return true
+}
+
+// The model the agent named for this run, taken the instant its output says one — the
+// opening banner, seconds in — so a live run can show what it is working with instead of
+// waiting for the end.
+function catchModel(sessionId: string, model: string | undefined): boolean {
+  if (!model) return false
+  patch(sessionId, (r) => {
+    if (!r.model) r.model = model
+  })
+  return true
+}

@@ -1,0 +1,853 @@
+// Starting a run, and everything you do to one afterwards: watch it, list them, stop one,
+// continue one that stopped short.
+//
+// Every one of these commands returns as soon as it has done its bit. Starting prints the
+// run's id and exits — the run outlives it — so the same run can be followed, stopped or
+// continued from anywhere, by anyone, including a process that never saw it start.
+
+import { recordAnswer } from '../lib/agent/answers'
+import {
+  activeDelivery,
+  deliveryAcceptsAnswers,
+  findDelivery,
+  heldByDelivery,
+  namedDelivery,
+  openQuestions,
+} from '../lib/agent/deliveries'
+import { advanceLanding } from '../lib/agent/landing'
+import { deliveryState } from '../lib/agent/pause'
+import { insideRun, printFlow } from '../lib/agent/flow'
+import { blockLanding } from '../lib/agent/landing'
+import { readLogTail, splitLog } from '../lib/agent/log'
+import { advancePhase, approvalRequest } from '../lib/agent/approve'
+import { refinementRequest, startRefinement } from '../lib/agent/refine'
+import { rejectCard } from '../lib/agent/reject'
+import {
+  askForRefine,
+  discardCost,
+  getRun,
+  listRuns,
+  peekRun,
+  planningRun,
+  resumeSessionId,
+  stopRun,
+  titleOf,
+} from '../lib/agent/sessions'
+import { currentSession } from '../lib/agent/origin'
+import { startResume, startRun, startSubRun } from '../lib/agent/start'
+import { knownWorkflow, scheduledAgent } from '../lib/agent/workflows'
+import { scheduledRequest } from '../lib/agent/scheduled'
+import { cardCreation, eventsPathOf, noteRefineTried, readRuns, withStore } from '../lib/agent/store'
+import type {
+  AgentRequest,
+  AnswerOutcome,
+  CommandAction,
+  CommandRequest,
+  DeliveryRecord,
+  RunView,
+} from '../lib/agent/types'
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { say } from '../lib/io'
+import { pidAlive } from '../lib/lock'
+import { die, BOARD_FLAG } from '../lib/paths'
+import { createTask, workspaceTask } from '../lib/cloud/tasks'
+import { findCard } from '../lib/view/read'
+import { creationRefusal, openOf } from '../lib/view/rules'
+import type { MoveResult } from '../lib/types'
+import {
+  cancelBoardDelivery as cancelDelivery,
+  discardBoardDelivery as discardDelivery,
+  resumeBoardDelivery as resumeDelivery,
+} from '../lib/board'
+
+// How long a `--follow` waits between reads of a run's log. Short enough that the log
+// reads as it happens, long enough that following a run is not a busy loop.
+const FOLLOW_MS = 400
+
+// ---- starting --------------------------------------------------------------
+
+/** The one door every kind of run goes through: work out what was asked for, write it
+ *  down, hand it to a watcher, and say which run started.
+ *
+ *  Or print the flow and start nothing — `--print`. An agent inside a run the board started
+ *  always prints because a run never starts another. A chat follows the same choice as any
+ *  coding-agent conversation: `--print` works here, and omitting it starts a run. */
+export async function cmdStartRun(
+  action: CommandAction,
+  args: unknown[],
+  opts: StartOptions,
+  program = 'akb',
+): Promise<MoveResult> {
+  const { req, follow, print } = readRequest(action, args, opts)
+  const task = action === 'create' && req.fromCard !== undefined ? workspaceTask() : null
+  if (task) return await createInCloud(task, req.description!, req.workflow)
+  // A card its creator has not finished writing takes no flow (#564) — printed here, or
+  // started below. `cardCreation` lets the creating run itself through, which is what keeps
+  // a create that goes on to refine its own card working.
+  if (Number.isInteger(req.id)) {
+    const creating = creationRefusal(req.id as number, cardCreation(req.id as number, req.discard === true), action, req.discard === true)
+    if (creating) die(creating, { kind: 'card-being-created', action })
+  }
+  const inside = insideRun()
+  // Only the user approves a round (#1790).
+  if (inside && action === 'approve') die('only the user approves a round — stop here and leave the card for them.', { kind: 'run-refused', action })
+  if (action === 'approve') sayIfHeld(req, program)
+  const runnable =
+    action === 'refine' ? refinementRequest(req) : action === 'approve' ? approvalRequest(req) : (req as AgentRequest)
+  if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })
+  // Refine is the one flow a run hands work to rather than does itself: a revise makes the
+  // change asked for and passes the card on. So it is written down here and started by this
+  // run's watcher at the close — in the same flow, so it reads as the next session of the
+  // job that handed the card over.
+  if (inside && action === 'refine' && !print) return queueRefine(inside, req)
+  // Planning never builds (#1295). A printed build here has no delivery and no worktree, so
+  // it would write code in the project checkout.
+  if (inside && action === 'implement' && planningRun(inside)) {
+    die('a planning run never builds — stop here; the user starts the build, in a session of its own.', {
+      kind: 'run-refused',
+      action,
+    })
+  }
+  if (inside || print) {
+    if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
+    // A refine done in this session is a refine tried (#1366): the board starts none of its own.
+    if (action === 'refine') {
+      try {
+        withStore((store) => noteRefineTried(store, runnable.id as number))
+      } catch {
+        // an unwritable record never costs the flow
+      }
+    }
+    if (runnable.action === 'approve') {
+      const moved = advancePhase(runnable.id as number)
+      if (moved) die(moved.error, { kind: 'run-refused', action })
+    }
+    return printFlow(runnable, program)
+  }
+  sayBeforeStart(req, program)
+  sayIfHeld(req, program)
+  const started = action === 'refine' ? await startRefinement(req) : await startRun(runnable)
+  if ('error' in started) die(started.error, { kind: 'run-refused', action })
+  const { run, spawned } = started
+  if (!spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
+  say(`${action} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
+  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${BOARD_FLAG}`)
+  say(`  stop it:   ${program} run stop ${short(run.sessionId)}${BOARD_FLAG}`)
+  if (follow) return await followStarted(run.sessionId, program, opts.events === true)
+  return { sessionId: run.sessionId, action, cardId: run.cardId }
+}
+
+/** One pass of a workflow's scheduled agent, now (#2068): what a Runner starts once it is due. */
+export async function cmdRunScheduled(workflow: string, agent: string, opts: StartOptions, program = 'akb'): Promise<MoveResult> {
+  const id = knownWorkflow(workflow)
+  const one = scheduledAgent(id, agent)
+  if (!one) die(`\`${id}\` schedules no agent called \`${agent}\``, { kind: 'run-refused', action: 'scheduled' })
+  const req = scheduledRequest({ workflow: id, agent: one!.agent })
+  if (insideRun() || opts.print) return printFlow(req, program)
+  const started = await startRun(req)
+  if ('error' in started) die(started.error, { kind: 'run-refused', action: 'scheduled' })
+  const { run, spawned } = started
+  if (!spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
+  say(`${one!.agent} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
+  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${BOARD_FLAG}`)
+  if (opts.follow) return await followStarted(run.sessionId, program, opts.events === true)
+  return { sessionId: run.sessionId, action: 'scheduled' }
+}
+
+/** In a Runner workspace a follow-up is a Cloud task of the same project (#2063), run there
+ *  from planning as a task of its own; nothing starts here. */
+async function createInCloud(task: string, description: string, workflow?: string): Promise<MoveResult> {
+  const title = description.split('\n')[0]!.trim().slice(0, 120)
+  const made = await createTask(task, { title, request: description, workflow, run: true })
+  if (!made.ok) die(`Cloud did not make the task: ${made.error}`, { kind: 'refused' })
+  const { task: created, from, replayed } = made.value
+  say(`made ${created.key} in Cloud${replayed ? ' (already made)' : ''} — it is planned there, from ${from.key}`)
+  return { key: created.key, task: created.id, replayed }
+}
+
+/** `akb card reject` (#1497): the card is filed on the spot, never by a run. A discard needs
+ *  no why (#601); a plain rejection does — it is what the rejection review learns from. */
+export async function cmdReject(id: number, why: string, opts: { discard?: boolean }): Promise<MoveResult> {
+  const reason = why.trim()
+  const discard = opts.discard === true
+  if (!discard && !reason) die('say why the card is being dropped, or pass --discard to just drop it')
+  const res = await rejectCard(id, { reason, discard }, true)
+  if (!res.ok) die(res.error, { kind: 'refused' })
+  const { output, ...fields } = res.data
+  if (output) say(output)
+  return fields
+}
+
+// Handing a card to a refinement from inside a run. Nothing spawns here — a run never
+// starts another — and nothing of this conversation is passed on: the refinement reads the
+// card, not the run that rewrote it.
+function queueRefine(inside: string, req: CommandRequest): MoveResult {
+  // A delivery holds its card here even against its own runs, which the hold usually lets
+  // through: what is being written down is a session that starts AFTER this one, and the
+  // delivery will still be in flight when it does.
+  const held = activeDelivery(req.id as number)
+  if (held) {
+    die(`delivery ${held.deliveryId} is in flight on #${req.id}, so it is not a card to hand over.`, {
+      kind: 'run-refused',
+      action: 'refine',
+    })
+  }
+  const queued = askForRefine(inside, {
+    cardId: req.id as number,
+    notes: req.notes,
+  })
+  if (queued === 'no-run') {
+    die(`run ${short(inside)} is not on this board's list, so the ask has nowhere to be written down`, {
+      kind: 'no-such-run',
+      run: inside,
+    })
+  }
+  say(
+    queued === 'already'
+      ? `#${req.id} has already been handed to a refinement — one ask is enough; it starts when this run ends.`
+      : `#${req.id} handed to a refinement. It starts when this run ends — don't wait for it, and don't refine the card yourself.`,
+  )
+  return { action: 'refine', cardId: req.id, queued: queued === 'queued', pending: true }
+}
+
+// The actions a delivery holds its card against. Each one either rewrites the sections the
+// delivery is building from — revise, refine and resolve all do — or takes the card off the
+// board under it. What is NOT here is the delivery's own work: `implement` reaches the
+// per-card run rule instead, and a resume carries the delivery on rather than starting
+// against it.
+//
+// The hold is the board's, not one screen's: the card page turns the same five controls off
+// (kanban-ui/components/CardPage.tsx), and a run of the delivery itself passes both.
+const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'approve', 'archive'])
+
+function sayIfHeld(req: CommandRequest, program: string): void {
+  if (!HELD_BY_DELIVERY.has(req.action) || req.id === undefined) return
+  // One way through: a delivery held on this card's questions is waiting on exactly the
+  // answer the hold would otherwise block. Resolve rewrites questions and never the approved
+  // copy, so the delivery is building exactly what it was building before (#302).
+  if (req.action === 'resolve' && deliveryAcceptsAnswers(req.id)) return
+  const held = heldByDelivery(req.id, program)
+  if (held) die(held, { kind: 'run-refused', action: req.action })
+}
+
+// Building a card whose blockers are still open is allowed — you named the id, so you meant
+// it — but it is said out loud first. The board's own picks skip these cards entirely, so a
+// run on one only ever comes from a person, and the usual reason is a blocker they forgot.
+// Only building counts: refining a card before its blocker clears is ordinary work.
+//
+// An open question is warned about the same way (#307), and for the same reason: the
+// delivery is started and builds, and then holds at landing until the question
+// is answered. The card page's Implement dialog says exactly this; the terminal was the
+// only side of the click missing it.
+function sayBeforeStart(req: CommandRequest, program: string): void {
+  if (req.action !== 'implement') return
+  if (req.id === undefined) return
+  const card = findCard(req.id)
+  const blockers = card?.openBlockers ?? []
+  if (blockers.length) {
+    say(`#${req.id} is blocked by ${blockers.map((b) => `#${b.id} ${b.title}`).join(', ')} — starting anyway.`)
+  }
+  const asked = openOf(card?.questions ?? []).length
+  if (req.action === 'implement' && asked) {
+    say(
+      `#${req.id} has ${asked} open question${asked === 1 ? '' : 's'} — it is built, then holds at landing ` +
+        `until ${asked === 1 ? 'it is' : 'they are'} answered. Answer first with \`${program} card resolve ${req.id}\`.`,
+    )
+  }
+}
+
+/** Every flow's own options, as its command declares them (lib/agent/flows.ts). Each flow
+ *  takes a few of these; none takes them all. */
+export interface StartOptions {
+  print?: boolean
+  follow?: boolean
+  /** With `follow`: the events file rather than the log (#2059). */
+  events?: boolean
+  /** create: the workflow the new cards run on. */
+  workflow?: string
+  /** The runtime this one run spawns on (#518), on the two flows that take one. */
+  runtime?: string
+  /** create: the card this came up on (#1273). */
+  fromCard?: string
+  /** review-memory: a Runner's tasks (#2065). */
+  task?: string[]
+  /** review-dismissals: every reason on the board (#2067). */
+  all?: boolean
+  /** reflect: the archived cards (#2068). */
+  cards?: string[]
+  /** refine, resolve, revise: a Cloud task's session and discussion (#2146). */
+  session?: string
+  fork?: boolean
+  transcript?: string
+}
+
+// Turn what was typed into the request the run is started from. The command line has been
+// read already: which words are actions, which values each option accepts, and that
+// `--print` and `--follow` cannot both be given are all its command's own checks. What is
+// left here is the shape of the request.
+function readRequest(
+  action: CommandAction,
+  args: unknown[],
+  opts: StartOptions,
+): { req: CommandRequest; follow: boolean; print: boolean } {
+  const follow = opts.follow === true
+  const print = opts.print === true
+  const words = (at: number): string | undefined => {
+    const value = args[at]
+    const text = Array.isArray(value) ? value.join(' ') : typeof value === 'string' ? value : ''
+    return text.trim() || undefined
+  }
+
+  // The actions that name no card.
+  if (action === 'create') {
+    const workflow = opts.workflow === undefined ? undefined : knownWorkflow(opts.workflow)
+    const fromCard = opts.fromCard === undefined ? undefined : Number(opts.fromCard)
+    if (fromCard !== undefined && !(Number.isInteger(fromCard) && findCard(fromCard))) {
+      die(`--from-card: no open card #${opts.fromCard}`, { kind: 'card-not-found', id: opts.fromCard })
+    }
+    return {
+      req: { action, description: words(0)!, workflow, runtime: opts.runtime, origin: currentSession(), fromCard },
+      follow,
+      print,
+    }
+  }
+  // Setting the board up names nothing at all. The checklist says what is left.
+  if (action === 'setup') return { req: { action }, follow, print }
+  if (action === 'review-memory') {
+    if (!opts.task?.length) die('name the Cloud tasks whose chats to review: --task <id...>', { kind: 'run-refused', action })
+    return { req: { action, tasks: opts.task }, follow, print }
+  }
+  if (action === 'review-dismissals') return { req: { action, ...(opts.all ? { allReasons: true } : {}) }, follow, print }
+  if (action === 'reflect') {
+    const cards = (opts.cards ?? []).map(Number)
+    if (!cards.length || !cards.every((n) => Number.isInteger(n) && n > 0)) {
+      die('name the archived cards to reflect on: --cards <id...>', { kind: 'run-refused', action })
+    }
+    return { req: { action, cards }, follow, print }
+  }
+
+  // A delivery verb is aimed at the delivery its command already looked up (#428) — never
+  // at a card id, because a build with no card has none. It carries both: the card where
+  // there is one, so every flow that names one still does, and the delivery always.
+  if (action === 'conflict') {
+    const delivery = args[0] as DeliveryRecord
+    return {
+      req: { action, id: delivery.cardId ?? undefined, deliveryId: delivery.deliveryId, title: delivery.title },
+      follow,
+      print,
+    }
+  }
+
+  // Everything else works on one card.
+  const id = args[0] as number
+  const req: CommandRequest = { action, id, title: titleOf(id) }
+  req.notes = words(1)
+  // The one run's own runtime (#518) — declared by `implement` alone among these, so
+  // nothing else can be given one.
+  if (action === 'implement') req.runtime = opts.runtime
+  if (opts.session || opts.transcript) {
+    req.carry = { resumeId: opts.session, fork: opts.session ? opts.fork === true : undefined, transcript: opts.transcript }
+  }
+  return { req, follow, print }
+}
+
+/** Send one more turn into a run that stopped short: same agent, same conversation, same
+ *  card — and the prompt is just "carry on". */
+export async function cmdResume(id: string | undefined, opts: { follow?: boolean }): Promise<MoveResult> {
+  const opened = await startResume(id ?? 'last')
+  if ('error' in opened) die(opened.error, { kind: 'run-refused' })
+  const { run } = opened
+  if (!opened.spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
+  const within = run.deliveryId ? ` in delivery ${run.deliveryId}` : ''
+  // A run with no session to pick up is started again rather than continued (#1321).
+  say(run.resumedFrom ? `continuing ${short(run.resumedFrom)} — run ${run.sessionId}${within}` : `trying again — run ${run.sessionId}${within}`)
+  if (opts.follow === true) return await followStarted(run.sessionId, 'akb')
+  return { sessionId: run.sessionId, resumedFrom: run.resumedFrom }
+}
+
+/** Take a card back from the delivery in flight on it: the delivery ends as cancelled, its
+ *  running run is stopped, the card unlocks, and Implement is offered again. Cancelling is
+ *  giving the delivery up, so its worktree and branch go with it (#720) — stopping the RUN
+ *  is the pause that keeps them. */
+export async function cmdCancel(named: string): Promise<MoveResult> {
+  const res = await cancelDelivery(named)
+  if (!res.ok) die(res.error ?? 'that delivery could not be cancelled', { kind: 'run-refused' })
+  // Read back rather than claimed: a removal git refused has already said so, and the next
+  // sweep is the retry.
+  const left = res.deliveryId ? discardCost(res.deliveryId)?.worktree : undefined
+  say(
+    left
+      ? `delivery ${res.deliveryId} cancelled — the card is yours again, and ${left} is still here for now.`
+      : `delivery ${res.deliveryId} cancelled — the card is yours again, and its worktree and branch are gone.`,
+  )
+  return { deliveryId: res.deliveryId }
+}
+
+/** Carry an ended delivery on from where it stopped (#639): one that failed or was
+ *  cancelled with its worktree and branch still here goes back to `active`, takes its card
+ *  back, and finishes the job — checks, landing and archive — without rebuilding
+ *  anything.
+ *
+ *  It looks before it carries on: work that has already reached the target branch under
+ *  another commit ends the delivery on that commit rather than landing it twice. */
+export async function cmdResumeDelivery(named: string): Promise<MoveResult> {
+  const res = await resumeDelivery(named)
+  if (!res.ok) die(res.error ?? 'that delivery could not be carried on', { kind: 'run-refused' })
+  if (res.landed) {
+    say(`delivery ${res.deliveryId} is done — its changes were already on the target branch.`)
+    return { deliveryId: res.deliveryId, landed: true }
+  }
+  say(`delivery ${res.deliveryId} carries on from where it stopped.`)
+  say(CARRY_ON_NEXT[res.carryOn ?? 'landing'](res.deliveryId as string))
+  return { deliveryId: res.deliveryId, carryOn: res.carryOn }
+}
+
+// What moves it on from here. The board picks the landing queue back up by itself; the two
+// that need a run say which command starts it.
+const CARRY_ON_NEXT: Record<string, (id: string) => string> = {
+  build: () => '  its build has not finished: press Implement on the card, or `akb run resume` the build that stopped.',
+  conflict: (id) => `  it stopped on a landing conflict: akb delivery conflict ${id}`,
+  landing: () => '  it is back in the landing queue, and lands on its own.',
+}
+
+/** Say what a round of applied answers did to a delivery's requirements (#637).
+ *
+ *  Written by the run that put the answers on the card, before it drops the questions — it
+ *  read both the question and what it wrote, so it is the one thing that can tell a
+ *  confirmation from a change. The landing queue reads this and never the card's text: a tidied sentence is not a changed requirement.
+ *
+ *  `--unchanged` carries the delivery on; `--changed` ends it and opens a fresh one on the
+ *  card as it then reads. Exactly one of them, each with its own one-line reason. */
+export async function cmdAnswered(
+  named: string,
+  opts: { changed?: string; unchanged?: string },
+): Promise<MoveResult> {
+  const outcome: AnswerOutcome | undefined = opts.changed ? 'changed' : opts.unchanged ? 'unchanged' : undefined
+  if (!outcome || (opts.changed && opts.unchanged)) {
+    die('say exactly one of --changed "<why>" or --unchanged "<why>".', { kind: 'run-refused' })
+  }
+  const delivery = namedDelivery(named)
+  if (!delivery) die(`no delivery here answers to "${named}"`, { kind: 'unknown-delivery' })
+  const res = recordAnswer(delivery.deliveryId, outcome, (opts.changed ?? opts.unchanged) as string)
+  if (!res.ok) die(res.error, { kind: 'run-refused' })
+  say(
+    outcome === 'unchanged'
+      ? `delivery ${delivery.deliveryId} carries on — the answers changed nothing it was approved to build.`
+      : `delivery ${delivery.deliveryId} is superseded — the board ends it and builds the card as it now reads.`,
+  )
+  return { deliveryId: delivery.deliveryId, answered: outcome }
+}
+
+/** Stop a landing whose fit run could not make the combined result work (#2043). The
+ *  delivery waits on the user with the reason, and nothing retries it. */
+export async function cmdBlocked(named: string, why: string[]): Promise<MoveResult> {
+  const reason = why.join(' ').trim()
+  if (!reason) die('say what is in the way: `delivery blocked <id> "<why>"`.', { kind: 'run-refused' })
+  const delivery = namedDelivery(named)
+  if (!delivery) die(`no delivery here answers to "${named}"`, { kind: 'unknown-delivery' })
+  const res = blockLanding(delivery.deliveryId, reason)
+  if (!res.ok) die(res.error, { kind: 'run-refused' })
+  say(`delivery ${delivery.deliveryId} stopped before landing — it waits for you, and nothing retries it.`)
+  return { deliveryId: delivery.deliveryId }
+}
+
+/** Throw a delivery's checkout away: its worktree and its branch, and everything only they
+ *  hold. The one command here that loses work, so it says exactly what it is about to take
+ *  and takes a second word — `--yes` — before it does.
+ *
+ *  A delivery the board decided to keep — one that stopped on its own with a job left to
+ *  finish — is the only kind that still has a checkout to reclaim (#720). */
+export async function cmdDiscard(named: string, opts: { yes?: boolean }): Promise<MoveResult> {
+  const cost = discardCost(named)
+  if (!cost) {
+    // Nothing to lose, so nothing to confirm: a delivery with no worktree left is already
+    // as discarded as it gets.
+    const res = await discardDelivery(named)
+    if (!res.ok) die(res.error ?? 'that delivery could not be discarded', { kind: 'run-refused' })
+    say(`delivery ${res.deliveryId} has no worktree left — nothing to discard.`)
+    return { deliveryId: res.deliveryId }
+  }
+  if (opts.yes !== true) {
+    say(`delivery ${cost.deliveryId} would lose:`)
+    say(`  ${cost.worktree} — its worktree, and anything in it that is not committed`)
+    if (cost.branch) say(`  ${cost.branch} — its branch, and every commit only that branch has`)
+    say('')
+    say(`nothing was removed. Run it again with --yes to go ahead.`)
+    return { deliveryId: cost.deliveryId, discarded: false }
+  }
+  const res = await discardDelivery(named)
+  if (!res.ok) die(res.error ?? 'that delivery could not be discarded', { kind: 'run-refused' })
+  say(`delivery ${res.deliveryId} discarded — its worktree and branch are gone.`)
+  return { deliveryId: res.deliveryId, discarded: true }
+}
+
+/** End a run. Its half-finished edits are left in the working tree — the board never
+ *  undoes work. */
+export async function cmdStop(id: string | undefined): Promise<MoveResult> {
+  const res = await stopRun(id ?? 'last')
+  if (!res.ok) die(res.error ?? 'that run could not be stopped', { kind: 'run-refused' })
+  say(`stopping ${short(res.sessionId!)}`)
+  return { sessionId: res.sessionId }
+}
+
+// ---- sub-runs (#1421) --------------------------------------------------------
+
+// How long one `run wait` waits before it hands back: well inside the two minutes a coding
+// agent's shell gives one command.
+const WAIT_MS = 90_000
+const WAIT_POLL_MS = 1_000
+
+// The run this agent is working inside, or a refusal naming who the command is for.
+function parentRun(verb: string): string {
+  const inside = insideRun()
+  if (!inside) die(`\`run ${verb}\` is for an agent inside a run: it works on that run's sub-runs.`, { kind: 'run-refused' })
+  return inside
+}
+
+/** Start a sub-run of the run this agent is inside, and return as soon as it has started. */
+export async function cmdSubStart(words: string[], opts: { runtime?: string; file?: string }): Promise<MoveResult> {
+  const parent = parentRun('start')
+  let prompt = words.join(' ')
+  if (opts.file) {
+    try {
+      prompt = fs.readFileSync(path.resolve(opts.file), 'utf8')
+    } catch {
+      die(`--file: cannot read ${opts.file}`, { kind: 'run-refused' })
+    }
+  }
+  if (!prompt.trim()) die('say what the sub-run should do, or pass --file <path>.', { kind: 'run-refused' })
+  const started = startSubRun(parent, prompt.trim(), opts.runtime)
+  if ('error' in started) die(started.error, { kind: 'run-refused', reason: started.reason })
+  if (!started.spawned) die(`couldn't start a process for run ${started.run.sessionId}`, { kind: 'spawn-failed' })
+  say(`sub-run ${short(started.run.sessionId)} started`)
+  return { sessionId: started.run.sessionId }
+}
+
+/** Wait for this run's sub-runs to end — the named ones, or all — for at most WAIT_MS. Each
+ *  that ended is said with its status and last message; those still running are listed. */
+export async function cmdSubWait(ids: string[], waitMs = WAIT_MS): Promise<MoveResult> {
+  const parent = parentRun('wait')
+  const mine = async () => (await listRuns()).filter((r) => r.parentId === parent)
+  const pick = (runs: RunView[]): RunView[] => {
+    if (!ids.length) return runs
+    return ids.map((id) => {
+      const hits = runs.filter((r) => r.sessionId.startsWith(id))
+      if (hits.length !== 1) die(hits.length ? `"${id}" matches more than one sub-run` : `no sub-run of this run answers to "${id}"`, { kind: 'no-such-run', run: id })
+      return hits[0]!
+    })
+  }
+  let runs = pick(await mine())
+  for (const until = Date.now() + waitMs; runs.some((r) => r.status === 'running') && Date.now() < until; ) {
+    await new Promise((wake) => setTimeout(wake, WAIT_POLL_MS))
+    const now = await mine()
+    runs = runs.map((r) => now.find((n) => n.sessionId === r.sessionId) ?? r)
+  }
+  if (!runs.length) say('this run has started no sub-runs')
+  const ended = runs.filter((r) => r.status !== 'running')
+  const running = runs.filter((r) => r.status === 'running')
+  for (const r of ended) {
+    say(`${MARK[r.status] ?? '?'} ${short(r.sessionId)}  ${r.status}`)
+    say(r.result?.trim() ? r.result.trim() : '(no last message)')
+    say('')
+  }
+  if (running.length) {
+    say(`still running: ${running.map((r) => short(r.sessionId)).join(', ')} — run \`run wait\` again.`)
+  }
+  return {
+    ended: ended.map((r) => ({ sessionId: r.sessionId, status: r.status, result: r.result })),
+    running: running.map((r) => r.sessionId),
+  }
+}
+
+// ---- reading ---------------------------------------------------------------
+
+/** What is running, and what ran lately. */
+export async function cmdRuns(opts: { card?: number; all?: boolean }, program = 'akb'): Promise<MoveResult> {
+  let runs = await listRuns()
+  const card = opts.card ?? null
+  if (card !== null) runs = runs.filter((r) => r.cardId === card)
+  const live = runs.filter((r) => r.status === 'running')
+  const shown = opts.all === true ? runs : [...live, ...runs.filter((r) => r.status !== 'running').slice(-10)]
+  if (!shown.length) {
+    say(card !== null ? `nothing has run on #${card}` : 'nothing is running, and nothing has lately')
+    return { runs: [] }
+  }
+  // A sub-run sits under the run that started it (#1421).
+  const shownIds = new Set(shown.map((r) => r.sessionId))
+  for (const r of shown) {
+    if (r.parentId && shownIds.has(r.parentId)) continue
+    say(runLine(r, program))
+    for (const sub of runs.filter((s) => s.parentId === r.sessionId)) say(runLine(sub, program, '    └ '))
+  }
+  if (live.length) say('')
+  say(
+    live.length
+      ? `${live.length} running. Follow one with \`${program} run log <id> --follow${BOARD_FLAG}\`.`
+      : 'nothing running.',
+  )
+  return { runs: shown }
+}
+
+/** One run's log — what it is doing, or what it did. */
+export async function cmdLog(
+  named: string | undefined,
+  opts: { full?: boolean; follow?: boolean; events?: boolean },
+  program = 'akb',
+): Promise<MoveResult> {
+  const id = named ?? 'last'
+  const view = await getRun(id, opts.full === true ? Infinity : undefined)
+  if (!view) die(`no run here answers to "${id}"`, { kind: 'no-such-run', run: id })
+  if (opts.follow === true) {
+    say(runLine(view, program))
+    const events = opts.events === true
+    return { sessionId: view.sessionId, ...(await followRun(view.sessionId, events ? '' : view.tail ?? '', program, events)) }
+  }
+  say(runLine(view, program))
+  say('')
+  if (view.tail) say(view.tail)
+  if (view.result) {
+    say('')
+    say(view.result)
+  }
+  if (view.note) {
+    say('')
+    say(view.note)
+  }
+  return {
+    sessionId: view.sessionId,
+    status: view.status,
+    tail: view.tail,
+    result: view.result,
+    note: view.note,
+  }
+}
+
+// Follow a run to its end, printing the log as it arrives. This is the one command that
+// waits, and it is a choice the user made — the run itself is never waited on.
+//
+// It reads the file rather than the run's own output, so it works on any run, including
+// one this machine did not start. It follows the whole job: every session the run's flow
+// goes on to start (a format repair, a retry, a helper), and on a build the delivery until
+// it has landed or waits on the user.
+export async function followRun(sessionId: string, already = '', program = 'akb', events = false): Promise<MoveResult> {
+  const first = await getRun(sessionId)
+  if (!first) return {}
+  const seen = new Set<string>()
+  let current: RunView = first
+  let last: RunView = first
+  let printed = already.length
+  for (;;) {
+    last = await followOne(current, printed, events)
+    seen.add(current.sessionId)
+    printed = 0
+    const deliveryId = last.deliveryId ?? first.deliveryId
+    const next = nextInFlow(first, current.sessionId, seen) ?? (deliveryId ? await moveDelivery(deliveryId) : undefined)
+    if (next === undefined) break
+    if (next === null) {
+      await pause(LANDING_POLL_MS)
+      continue
+    }
+    current = next
+    say('')
+    say(runLine(current, program))
+  }
+  if (last.result) {
+    if (!events) process.stdout.write('\n')
+    say(last.result)
+  }
+  if (last.note) {
+    if (!events) process.stdout.write('\n')
+    say(last.note)
+  }
+  say('')
+  say(runLine(last, program))
+  const deliveryId = last.deliveryId ?? first.deliveryId
+  const delivery = deliveryId ? deliveryOutcome(deliveryId) : undefined
+  if (delivery) say(`delivery ${delivery.id}: ${delivery.line}`)
+  const failed =
+    last.status !== 'done'
+      ? `run ${short(last.sessionId)} ended ${last.status}${last.error ? `: ${last.error}` : ''}`
+      : delivery && delivery.status !== 'finished'
+        ? `delivery ${delivery.id} did not land: ${delivery.line}`
+        : undefined
+  // The agent's own session, for a Cloud task to carry on (#2146).
+  const held = peekRun(last.sessionId)
+  const agentSession = held ? resumeSessionId(held) : undefined
+  return {
+    status: last.status,
+    result: last.result,
+    note: last.note,
+    ...(last.sessionId !== sessionId ? { lastSessionId: last.sessionId } : {}),
+    ...(agentSession ? { agentSession } : {}),
+    ...(delivery ? { delivery } : {}),
+    ...(failed ? { failed } : {}),
+  }
+}
+
+/** A followed run that started work, refused when the work did not end well — so a caller
+ *  scripting `--follow` reads the outcome off the exit code. */
+export async function followStarted(sessionId: string, program: string, events = false): Promise<MoveResult> {
+  const res = await followRun(sessionId, '', program, events)
+  if (typeof res.failed === 'string') die(res.failed, { kind: 'run-failed', sessionId, ...res })
+  return { sessionId, ...res }
+}
+
+const LANDING_POLL_MS = 2000
+
+// Async on purpose: the watcher is this process's child, and a blocked event loop never reaps
+// it, so it would read as alive for good.
+const pause = (ms: number): Promise<void> => new Promise((done) => setTimeout(done, ms))
+
+// One session to its end: its record closed and its watcher gone, so everything the watcher
+// starts or lands at the close is written down before the next one is looked for.
+async function followOne(view: RunView, already: number, events: boolean): Promise<RunView> {
+  let seen = already
+  let known = view
+  // A close clears the record's pid, so the watcher is remembered from before it.
+  let watcher = view.pid
+  const drain = (logPath: string) => {
+    if (events) {
+      // Whole lines only: the watcher may be halfway through one.
+      const text = readLogTail(eventsPathOf(view.sessionId), Infinity) ?? ''
+      const upTo = text.lastIndexOf('\n') + 1
+      if (upTo > seen) {
+        process.stdout.write(text.slice(seen, upTo))
+        seen = upTo
+      }
+      return
+    }
+    const text = readLogTail(logPath, Infinity)
+    if (text === null) return
+    const { tail } = splitLog(text)
+    if (tail.length > seen) {
+      process.stdout.write(tail.slice(seen))
+      seen = tail.length
+    }
+  }
+  for (;;) {
+    drain(known.logPath)
+    const now = await getRun(view.sessionId)
+    if (now) known = now
+    watcher = now?.pid ?? watcher
+    if ((!now || now.status !== 'running') && !pidAlive(watcher)) {
+      drain(known.logPath)
+      // A resume drops the record it took over from; it is the successor, not an ending.
+      return now ?? { ...known, status: known.status === 'running' ? 'interrupted' : known.status }
+    }
+    await pause(FOLLOW_MS)
+  }
+}
+
+// The next session of the same job: one the flow started after this one, or the resume
+// that took it over. Sub-runs belong to their parent and are not followed on their own.
+function nextInFlow(first: RunView, after: string, seen: Set<string>): RunView | undefined {
+  const runs = readRuns()
+  const next = runs
+    .filter((r) => !seen.has(r.sessionId) && r.action !== 'sub' && r.startedAt >= first.startedAt)
+    .filter((r) => r.resumedFrom === after || (!!first.flowId && r.flowId === first.flowId))
+    .sort((a, b) => a.startedAt - b.startedAt)[0]
+  return next ? { ...next } : undefined
+}
+
+// A delivery whose runs are over and which still has the board's own landing work left:
+// moved on here, as a board tick would. The run that landing wants started, null to look
+// again shortly, or undefined when it is settled or waits on the user.
+async function moveDelivery(deliveryId: string): Promise<RunView | null | undefined> {
+  const delivery = findDelivery(deliveryId)
+  if (!delivery || delivery.status !== 'active') return undefined
+  const state = deliveryState(delivery, delivery.cardId === null ? 0 : openQuestions(delivery.cardId))
+  if (state.paused || state.stage === 'working') return undefined
+  const ask = await advanceLanding()
+  if (!ask) return null
+  const started = await startRun(ask)
+  return 'error' in started ? null : { ...started.run }
+}
+
+/** A landed delivery also names its commit and the branch it landed on. */
+function deliveryOutcome(
+  deliveryId: string,
+): { id: string; status: string; stage?: string; line: string; commit?: string; branch?: string } | undefined {
+  const delivery = findDelivery(deliveryId)
+  if (!delivery) return undefined
+  if (delivery.status !== 'active') {
+    const commit = delivery.status === 'finished' ? delivery.landing?.commit : undefined
+    const line = commit ? `landed as ${commit.slice(0, 7)}` : delivery.status === 'finished' ? 'finished, nothing committed' : delivery.status
+    return {
+      id: deliveryId,
+      status: delivery.status,
+      line,
+      ...(commit ? { commit, ...(delivery.targetBranch ? { branch: delivery.targetBranch } : {}) } : {}),
+    }
+  }
+  const state = deliveryState(delivery, delivery.cardId === null ? 0 : openQuestions(delivery.cardId))
+  return { id: deliveryId, status: delivery.status, stage: state.stage, line: state.line }
+}
+
+// ---- how a run reads -------------------------------------------------------
+
+const MARK: Record<string, string> = {
+  running: '·',
+  done: '✓',
+  error: '✗',
+  interrupted: '~',
+  stopped: '■',
+}
+
+function runLine(r: RunView, program = 'akb', indent = ''): string {
+  const sub = r.action === 'sub'
+  // A spec run says which agent it is: `spec` alone would read the same for every one of
+  // them, and which agent is working is the whole of what that row has to say.
+  const kind = r.specAgent && !sub ? `${r.action} ${r.specAgent}` : r.action
+  const what = r.cardId !== null && !sub ? `${kind} #${r.cardId}` : kind
+  const bits = [
+    `${indent}${MARK[r.status] ?? '?'} ${short(r.sessionId)}`,
+    sub ? what : what.padEnd(18),
+    r.status === 'running' ? `running ${ago(Date.now() - r.startedAt)}` : r.status,
+  ]
+  // Which delivery this run belongs to, when it belongs to one. Without it a delivery's
+  // three runs read as three unrelated attempts at the same card.
+  if (r.deliveryId && !sub) bits.push(`delivery ${r.deliveryId}`)
+  if (r.durationMs !== undefined) bits.push(`in ${ago(r.durationMs)}`)
+  if (r.model) bits.push(r.model)
+  if (r.costUsd !== undefined) bits.push(`$${r.costUsd.toFixed(4)}`)
+  if (r.canResume) bits.push(`— continue it with \`${program} run resume ${short(r.sessionId)}${BOARD_FLAG}\``)
+  if (r.canRetry) bits.push(`— try it again with \`${program} run resume ${short(r.sessionId)}${BOARD_FLAG}\``)
+  const line = bits.join('  ')
+  // The board's own last word rides on the row, not only in the log. `✓ done` beside a run
+  // that left the board inconsistent reads as "nothing to see here", which is the one thing
+  // it must not — and a note nobody opens the log for is a note nobody reads.
+  // So does why a setup run that exited cleanly still failed (#909).
+  const under = [
+    r.input && firstLine(r.input),
+    r.tickedNothing && r.error && `! ${firstLine(r.error)}`,
+    r.note && `! ${firstLine(r.note)}`,
+  ].filter(Boolean)
+  const pad = ' '.repeat(indent.length + 4)
+  return under.length ? [line, ...under.map((s) => `${pad}${s}`)].join('\n') : line
+}
+
+// Eight characters of a run's id: enough to name one on a board, short enough to type
+// and to read down a column. Every command that takes an id takes any prefix of one.
+export const short = (sessionId: string): string => sessionId.slice(0, 8)
+
+function firstLine(text: string): string {
+  const line = text.split('\n')[0]!.trim()
+  return line.length > 80 ? `${line.slice(0, 77)}…` : line
+}
+
+function ago(ms: number): string {
+  const s = Math.round(ms / 1000)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ${s % 60}s`
+  return `${Math.floor(m / 60)}h ${m % 60}m`
+}
+
+/** The watcher's own door. Not a command anyone types — it is what `spawnWatcher` starts,
+ *  and it is spelled so it can never be mistaken for one. */
+export async function cmdWatch(sessionId: string): Promise<number> {
+  const { watchRun } = await import('../lib/agent/watch')
+  return watchRun(sessionId)
+}

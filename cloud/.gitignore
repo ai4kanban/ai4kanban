@@ -1,0 +1,6 @@
+.dev.vars
+.wrangler/
+node_modules/
+.slack-preview/
+# Packed from cli/src by scripts/builtin-workflows.mjs.
+src/v1/builtin-workflows.json

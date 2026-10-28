@@ -1,0 +1,28 @@
+# Publishes wildcrane-runner to npm with provenance (runner/scripts/publish.mjs).
+# Trusted publishing: npm takes this workflow's OIDC token, so no npm token is stored here.
+name: runner-release
+
+on:
+  push:
+    tags: ['runner-v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm ci
+        working-directory: cli
+      - run: npm install
+        working-directory: runner
+      - run: node scripts/publish.mjs
+        working-directory: runner

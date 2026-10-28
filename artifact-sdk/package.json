@@ -1,0 +1,31 @@
+{
+  "name": "wildcrane-artifact-sdk",
+  "version": "0.1.0",
+  "description": "Write your own WildCrane review preview for your own artifact types, and publish it.",
+  "license": "MIT",
+  "homepage": "https://wildcrane.ai/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai4kanban/ai4kanban.git",
+    "directory": "artifact-sdk"
+  },
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "bin": { "artifact-sdk": "bin/artifact-sdk.mjs" },
+  "files": ["dist", "bin", "src", "README.md"],
+  "engines": { "node": ">=20" },
+  "publishConfig": { "access": "public", "provenance": true },
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.bin.json && tsc -p tsconfig.example.json",
+    "lint": "npm run typecheck",
+    "example": "npm run build && cp dist/index.js examples/subtitles/sdk.js && node bin/artifact-sdk.mjs publish examples/subtitles",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "wildcrane",
+  "version": "0.1.0",
+  "description": "Shape ideas with Codex and start them as WildCrane tasks, run on this computer.",
+  "author": { "name": "WildCrane" },
+  "homepage": "https://wildcrane.ai/",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "WildCrane",
+        "shortDescription": "Shape ideas in Codex, start them as WildCrane tasks",
+        "developerName": "WildCrane",
+        "category": "Productivity",
+        "capabilities": ["Interactive", "Read", "Write"],
+        "websiteURL": "https://wildcrane.ai/",
+        "defaultPrompt": ["I have an idea for this project", "Show my WildCrane projects and connections"],
+        "logo": "./assets/logo-mark-white.png"
+      }
+    }
+  }
+}

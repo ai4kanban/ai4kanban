@@ -1,0 +1,117 @@
+// The agent files this command ships, inlined into the one built file.
+//
+// One entry per file, keyed by its path inside `src/agents/`. The bundler turns each import
+// into the file's text (`loader: {'.md': 'text'}` in scripts/build.mjs), the way the flows
+// are carried, so `akb` needs no folder on disk to run a built-in agent.
+//
+// This list is the whole of what TypeScript knows about a built-in agent: no name, no
+// description, no setting. All of that is read out of the `AGENT.md` the same way a
+// project's own agent is read, so adding a built-in agent is adding files and the two lines
+// naming them here.
+
+import apiDesigner from '../../agents/api-designer/AGENT.md'
+import blogIllustrator from '../../agents/blog-illustrator/AGENT.md'
+import blogPlanner from '../../agents/blog-planner/AGENT.md'
+import blogWriter from '../../agents/blog-writer/AGENT.md'
+import carouselPlanner from '../../agents/carousel-planner/AGENT.md'
+import carouselRenderer from '../../agents/carousel-renderer/AGENT.md'
+import carouselSlidesExample from '../../agents/carousel-renderer/references/slides.example.json'
+import carouselSlidesSchema from '../../agents/carousel-renderer/references/slides.schema.json'
+import carouselSlidesValidator from '../../agents/carousel-renderer/scripts/validate-storyboard.mjs' with { type: 'text' }
+import competitorResearch from '../../agents/competitor-research/AGENT.md'
+import copywriting from '../../agents/copywriting/AGENT.md'
+import coverDesigner from '../../agents/cover-designer/AGENT.md'
+import demoRehearser from '../../agents/demo-rehearser/AGENT.md'
+import emailPlanner from '../../agents/email-planner/AGENT.md'
+import emailRenderer from '../../agents/email-planner/scripts/render.mjs' with { type: 'text' }
+import deckBuilder from '../../agents/deck-builder/AGENT.md'
+import deckPlanner from '../../agents/deck-planner/AGENT.md'
+import slidesExample from '../../agents/deck-planner/references/slides.example.json'
+import slidesSchema from '../../agents/deck-planner/references/slides.schema.json'
+import slidesValidator from '../../agents/deck-planner/scripts/validate-storyboard.mjs' with { type: 'text' }
+import slidesPacker from '../../agents/deck-builder/scripts/pack-pptx.mjs' with { type: 'text' }
+import illustrator from '../../agents/illustrator/AGENT.md'
+import hyperframesEditor from '../../agents/hyperframes-editor/AGENT.md'
+import hyperframesRecorder from '../../agents/hyperframes-editor/record.mjs' with { type: 'text' }
+import hyperframesTemplates from '../../agents/hyperframes-editor/template-selection.md'
+import promptWriter from '../../agents/prompt-writer/AGENT.md'
+import qaManager from '../../agents/qa-manager/AGENT.md'
+import schemaDesigner from '../../agents/schema-designer/AGENT.md'
+import scriptwriter from '../../agents/scriptwriter/AGENT.md'
+import socialIllustrator from '../../agents/social-illustrator/AGENT.md'
+import scriptwriterRecipes from '../../agents/scriptwriter/references/index.md'
+import storyboardContract from '../../agents/scriptwriter/references/storyboard-contract.md'
+import storyboardExample from '../../agents/scriptwriter/references/storyboard.example.json'
+import storyboardSchema from '../../agents/scriptwriter/references/storyboard.schema.json'
+import storyboardValidator from '../../agents/scriptwriter/scripts/validate-storyboard.mjs' with { type: 'text' }
+import scriptwriterVoices from '../../agents/scriptwriter/references/voices.md'
+import compositionIndex from '../../agents/scriptwriter/references/composition/index.md'
+import compositionProductLaunchFilms from '../../agents/scriptwriter/references/composition/product-launch-films.md'
+import compositionToolingShownWorking from '../../agents/scriptwriter/references/composition/tooling-shown-working.md'
+import compositionMotionSoundEffects from '../../agents/scriptwriter/references/composition/motion-sound-effects.md'
+import compositionWorkflowsIntegrations from '../../agents/scriptwriter/references/composition/workflows-integrations.md'
+import compositionShaderTransitions from '../../agents/scriptwriter/references/composition/shader-transitions.md'
+import desktopFocusRecipe from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md'
+import desktopFocusDemo from '../../agents/scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx'
+import uiDesigner from '../../agents/ui-designer/AGENT.md'
+import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
+import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
+import videoCloner from '../../agents/video-cloner/AGENT.md'
+import videoClonerMusic from '../../agents/video-cloner/references/music.md'
+import videoTemplateBuilder from '../../agents/video-template-builder/AGENT.md'
+import workflowWriter from '../../agents/workflow-writer/AGENT.md'
+
+export const BUNDLED_AGENT_FILES: Record<string, string> = {
+  'api-designer/AGENT.md': apiDesigner,
+  'blog-illustrator/AGENT.md': blogIllustrator,
+  'blog-planner/AGENT.md': blogPlanner,
+  'blog-writer/AGENT.md': blogWriter,
+  'carousel-planner/AGENT.md': carouselPlanner,
+  'carousel-renderer/AGENT.md': carouselRenderer,
+  'carousel-renderer/references/slides.example.json': carouselSlidesExample as unknown as string,
+  'carousel-renderer/references/slides.schema.json': carouselSlidesSchema as unknown as string,
+  'carousel-renderer/scripts/validate-storyboard.mjs': carouselSlidesValidator,
+  'competitor-research/AGENT.md': competitorResearch,
+  'copywriting/AGENT.md': copywriting,
+  'cover-designer/AGENT.md': coverDesigner,
+  'deck-builder/AGENT.md': deckBuilder,
+  'deck-builder/scripts/pack-pptx.mjs': slidesPacker,
+  'deck-planner/AGENT.md': deckPlanner,
+  'demo-rehearser/AGENT.md': demoRehearser,
+  'deck-planner/references/slides.example.json': slidesExample as unknown as string,
+  'deck-planner/references/slides.schema.json': slidesSchema as unknown as string,
+  'deck-planner/scripts/validate-storyboard.mjs': slidesValidator,
+  'email-planner/AGENT.md': emailPlanner,
+  'email-planner/scripts/render.mjs': emailRenderer,
+  'hyperframes-editor/AGENT.md': hyperframesEditor,
+  'hyperframes-editor/record.mjs': hyperframesRecorder,
+  'hyperframes-editor/template-selection.md': hyperframesTemplates,
+  'illustrator/AGENT.md': illustrator,
+  'prompt-writer/AGENT.md': promptWriter,
+  'qa-manager/AGENT.md': qaManager,
+  'schema-designer/AGENT.md': schemaDesigner,
+  'scriptwriter/AGENT.md': scriptwriter,
+  'scriptwriter/references/index.md': scriptwriterRecipes,
+  'scriptwriter/references/storyboard-contract.md': storyboardContract,
+  // TypeScript reads a `.json` import as data; the bundler hands over its text.
+  'scriptwriter/references/storyboard.example.json': storyboardExample as unknown as string,
+  'scriptwriter/references/storyboard.schema.json': storyboardSchema as unknown as string,
+  'scriptwriter/scripts/validate-storyboard.mjs': storyboardValidator,
+  'scriptwriter/references/voices.md': scriptwriterVoices,
+  'scriptwriter/references/composition/index.md': compositionIndex,
+  'scriptwriter/references/composition/product-launch-films.md': compositionProductLaunchFilms,
+  'scriptwriter/references/composition/tooling-shown-working.md': compositionToolingShownWorking,
+  'scriptwriter/references/composition/motion-sound-effects.md': compositionMotionSoundEffects,
+  'scriptwriter/references/composition/workflows-integrations.md': compositionWorkflowsIntegrations,
+  'scriptwriter/references/composition/shader-transitions.md': compositionShaderTransitions,
+  'scriptwriter/recipes/desktop-overview-focus-interact-hold/recipe.md': desktopFocusRecipe,
+  'scriptwriter/recipes/desktop-overview-focus-interact-hold/demo.tsx': desktopFocusDemo,
+  'social-illustrator/AGENT.md': socialIllustrator,
+  'ui-designer/AGENT.md': uiDesigner,
+  'ui-designer/references/rendered-screen.md': uiDesignerRendered,
+  'tech-stack-advisor/AGENT.md': techStackAdvisor,
+  'video-cloner/AGENT.md': videoCloner,
+  'video-cloner/references/music.md': videoClonerMusic,
+  'video-template-builder/AGENT.md': videoTemplateBuilder,
+  'workflow-writer/AGENT.md': workflowWriter,
+}

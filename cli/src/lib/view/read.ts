@@ -1,0 +1,366 @@
+// ---- the board, read whole -------------------------------------------------
+//
+// One pass over `docs/kanban/todo/` that gives back every open card, the columns they fall
+// into, and the handful of board-wide facts a screen draws around them — the archive's
+// topics and how far setup got.
+//
+// This is the reading half of what the writing commands own. It is the ONE reader: a board
+// UI asks for this rather than walking the files itself, so a card can never say one thing
+// on a page and another on the command line.
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { activeDelivery, isResumable, listDeliveries, manualSettled } from '../agent/deliveries'
+import { deliveryState } from '../agent/pause'
+import { openOf } from './rules'
+import { readRuns } from '../agent/sessions'
+import { cardsBeingCreated } from '../agent/store'
+import type { DeliveryLanding, DeliveryRecord } from '../agent/types'
+import { branchExists, worktreeExists } from '../agent/worktree'
+import { cardSources } from '../card-sources'
+import { idPrefix, isGroupFolder, isLegacyRecurring, subtaskLines } from '../cards'
+import { TODO } from '../paths'
+import { parseFrontmatter } from '../frontmatter'
+import { readSetupChecklist } from '../setup'
+// The reading rules a hosted page shares (#322): what a `## Todo` counts, what really blocks
+// a card, and how the bands are laid out.
+import {
+  attachBlockers,
+  countTodos,
+} from '../board/assemble'
+import { revisionOf } from '../board/revision'
+import { archivesOnApproval, cardStage, cardStages, workflowFor } from '../agent/workflows'
+import type {
+  Card,
+  CardLandingRetry,
+  CardStatus,
+  SetupState,
+  Subtask,
+} from './types'
+
+// Read one card file into a Card. Null when it has no id or no frontmatter.
+function readCard(file: string, relFromTodo: string): Card | null {
+  const id = idPrefix(path.basename(relFromTodo))
+  if (id === null) {
+    // Group root: the id lives on the folder, the file is root.md.
+    const parts = relFromTodo.split(path.sep)
+    const folderId = idPrefix(parts[parts.length - 2] || '')
+    if (folderId === null) return null
+    return buildCard(folderId, file, relFromTodo)
+  }
+  return buildCard(id, file, relFromTodo)
+}
+
+function buildCard(id: number, file: string, relFromTodo: string): Card | null {
+  const text = fs.readFileSync(file, 'utf8')
+  const { meta, body } = parseFrontmatter(text)
+  if (!meta) return null
+  const relPath = relFromTodo.split(path.sep).join('/')
+  const flow = workflowFor(meta.workflow)
+  const plan = !!meta.workflow && archivesOnApproval(flow)
+  const stages = cardStages(meta, flow).length
+  return {
+    id,
+    // Derived from the file exactly as it is on disk (lib/board/revision.ts), so a card
+    // read here and a card read by the contract agree on what version this is.
+    revision: revisionOf(text),
+    updatedAt: fs.statSync(file).mtime.toISOString(),
+    relPath,
+    title: meta.title,
+    priority: meta.priority,
+    roi: meta.roi,
+    status: meta.status as CardStatus,
+    blocked_by: meta.blocked_by,
+    related: meta.related,
+    questions: meta.questions,
+    workflow: meta.workflow,
+    ...(plan ? { deliversIn: 'plan' as const } : {}),
+    ...(stages > 1 ? { stages, stage: cardStage(meta, flow) } : {}),
+    modules: meta.modules,
+    schedule: meta.schedule,
+    body: body.replace(/^\n+/, '').replace(/\s+$/, ''),
+    todos: countTodos(body),
+    isGroup: false, // readGroup flips this on the one card that is a root
+    openBlockers: [], // filled by attachBlockers once every card has been read
+  }
+}
+
+// Read a group folder: its root card (carrying a light list of its subtasks for the root
+// page) and the full subtask cards (each linked back to the root so a subtask page can
+// point up). Subtasks never surface as their own board cards.
+function readGroup(folderName: string): { root: Card; subCards: Card[] } | null {
+  const groupDir = path.join(TODO, folderName)
+  const rootFile = path.join(groupDir, 'root.md')
+  // A group folder whose card isn't written yet — the name minted, `root.md` still to come.
+  // Nothing to show for it: its name says group (../cards.ts), so it waits.
+  if (!fs.existsSync(rootFile)) return null
+  const root = readCard(rootFile, path.join(folderName, 'root.md'))
+  if (!root) return null
+  // Group-ness comes from the folder's name, not from the subtask count below: a finished
+  // subtask's file is removed, so a group whose subtasks are all done reads as zero
+  // subtasks and would stop looking like a group right when it becomes archiveable.
+  root.isGroup = true
+  // The gate is "all subtasks resolved", not "all todos done", so this can't reuse
+  // `countTodos` — that one's plain done/total drives the progress bar and must keep
+  // reading a struck-but-unticked line as unfinished. `ticked` is the closing rule's
+  // (lib/group-close.ts) and no screen's, so it is dropped here.
+  const { total, resolved } = subtaskLines(root.body)
+  root.subtaskLines = { total, resolved }
+
+  const subCards: Card[] = []
+  const recurse = (dir: string, relDir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const childRel = path.join(relDir, entry.name)
+      if (entry.isDirectory()) {
+        recurse(path.join(dir, entry.name), childRel)
+      } else if (entry.name.endsWith('.md') && entry.name !== 'README.md' && entry.name !== 'root.md') {
+        const c = readCard(path.join(dir, entry.name), childRel)
+        if (c) {
+          c.parent = { id: root.id, title: root.title }
+          subCards.push(c)
+        }
+      }
+    }
+  }
+  recurse(groupDir, folderName)
+  subCards.sort((a, b) => a.id - b.id)
+
+  root.subtasks = subCards.map<Subtask>((c) => ({
+    id: c.id,
+    title: c.title,
+    todos: c.todos,
+    blocked_by: c.blocked_by,
+    status: c.status,
+    ...(c.updatedAt ? { updatedAt: c.updatedAt } : {}),
+  }))
+  return { root, subCards }
+}
+
+// The plain `NN-slug.md` cards in one folder under todo/ — the board's own top level, or a
+// folder an older layout left. Group folders are read by readGroup instead.
+function standaloneCards(dirRel: string): Card[] {
+  const dir = dirRel ? path.join(TODO, dirRel) : TODO
+  if (!fs.existsSync(dir)) return []
+  const cards: Card[] = []
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'README.md') {
+      const c = readCard(path.join(dir, entry.name), path.join(dirRel, entry.name))
+      if (c) cards.push(c)
+    }
+  }
+  return cards.sort((a, b) => a.id - b.id)
+}
+
+// Read every card once. `board` is what the columns show: standalone cards and group roots
+// (never a subtask). `every` also includes each group's subtasks, so a `#<id>` reference
+// linkifies and its own page resolves for any open card.
+function collectCards(): { board: Card[]; every: Card[] } {
+  const board: Card[] = []
+  const every: Card[] = []
+  // todo/ is flat, so its own `NN-slug.md` files are cards in their own right.
+  const top = standaloneCards('')
+  board.push(...top)
+  every.push(...top)
+  for (const entry of fs.readdirSync(TODO, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    if (isGroupFolder(entry.name)) {
+      const g = readGroup(entry.name)
+      if (g) {
+        board.push(g.root)
+        every.push(g.root, ...g.subCards)
+      }
+    } else if (!isLegacyRecurring(entry.name)) {
+      // A recurring card waiting to become an agent is no card (#1414).
+      const cards = standaloneCards(entry.name)
+      board.push(...cards)
+      every.push(...cards)
+    }
+  }
+  // The two arrays hold the same card objects, so annotating `every` covers the board cards
+  // as well.
+  attachBlockers(every)
+  // …and how far each card's creation got (#564), read off the live runs rather than the
+  // file: a card is on the board before the run that called for it has finished writing it.
+  const creating = cardsBeingCreated()
+  for (const card of every) {
+    const state = creating.get(card.id)
+    if (state) card.creation = state
+  }
+  return { board, every }
+}
+
+/** Any open card by id, including a group subtask the columns don't show. */
+export function findCard(id: number): Card | null {
+  const card = collectCards().every.find((c) => c.id === id) ?? null
+  if (card) {
+    attachDelivery(card)
+    attachSources(card)
+  }
+  return card
+}
+
+// Where the card came from (#1306). Only the single-card read: resolving reads plans and triage.
+function attachSources(card: Card): void {
+  try {
+    const { meta, body } = parseFrontmatter(fs.readFileSync(path.join(TODO, card.relPath), 'utf8'))
+    const sources = meta ? cardSources(meta, body) : []
+    if (sources.length) card.sources = sources
+  } catch {
+    // drawn without a source
+  }
+}
+
+// The delivery in flight on this card, read fresh. Only the single-card read attaches it:
+// the board draws no delivery of its own, and the hold it feeds is the card page's.
+//
+// A plain read of the record, never `listRuns()`: that one reaps, which writes the record
+// and calls board moves, and a card can be read with the board's own lock already held.
+function attachDelivery(card: Card): void {
+  const delivery = activeDelivery(card.id)
+  // In manual commit mode a finished build leaves the commit to the user, and this read is
+  // where that is noticed (#303): they committed and the delivery ends here, or it is still
+  // waiting and the sentence below says so.
+  const awaitingCommit = delivery ? manualSettled(delivery) : undefined
+  // Read again when that settled it: a delivery that just finished is no longer in flight,
+  // and the card is free.
+  const live = awaitingCommit ? delivery : activeDelivery(card.id)
+  attachDiscard(card, live)
+  attachLanded(card, live)
+  attachFinished(card, live)
+  if (!live) return
+  const session = readRuns().find((r) => r.status === 'running' && r.deliveryId === live.deliveryId && r.action !== 'sub')
+  card.delivery = {
+    id: live.deliveryId,
+    startedAt: live.startedAt,
+    state: deliveryState(live, openOf(card.questions).length),
+    commitMode: live.commitMode === 'auto' || live.commitMode === 'files' ? live.commitMode : 'manual',
+    supersedes: supersededBy(card.id, live),
+    sessionId: session?.sessionId,
+    waiting: live.review?.stopped?.why,
+    filesStop:
+      live.review?.stopped?.reason === 'outside' || live.review?.stopped?.reason === 'output'
+        ? { reason: live.review.stopped.reason, paths: live.review.stopped.paths ?? [] }
+        : undefined,
+    worktree: live.worktree,
+    branch: live.branch,
+    targetBranch: live.targetBranch,
+    manualWhy: live.manualWhy,
+    lost: lostCheckout(live),
+    landing: live.landing && {
+      status: live.landing.status,
+      why: live.landing.why,
+      wait: live.landing.wait,
+      commit: live.landing.commit,
+      overlap: live.landing.overlap?.length ? live.landing.overlap : undefined,
+      retry: landingRetry(live.landing),
+    },
+  }
+}
+
+// The landing retry the block's bar draws: an agent resolving a conflict (#595), or a target
+// branch that moved under the landing (#665). The conflict comes first — it is the one with
+// an agent on it, and its own retry wait is the one `conflictAt` times.
+function landingRetry(landing: DeliveryLanding): CardLandingRetry | undefined {
+  if (landing.conflictFiles?.length || landing.fitAt) {
+    return {
+      kind: 'conflict',
+      attempt: (landing.conflictFails ?? 0) + 1,
+      files: landing.conflictFiles ?? [],
+      at: landing.conflictAt,
+    }
+  }
+  if (landing.retryAt) return { kind: 'moved', attempt: landing.attempts + 1, at: landing.retryAt }
+  return undefined
+}
+
+// The delivery this one replaced (#307): the newest ended delivery on this card that the
+// landing queue superseded, when it ended before this one started. Read from the steps
+// rather than from a field of its own — a delivery the user cancelled carries no such step,
+// and reads as what it was.
+function supersededBy(cardId: number, live: DeliveryRecord): string | undefined {
+  const before = listDeliveries()
+    .filter((d) => d.cardId === cardId && d.status !== 'active' && (d.endedAt ?? 0) <= live.startedAt)
+    .pop()
+  return before?.steps.some((s) => s.step === 'superseded') ? before.deliveryId : undefined
+}
+
+// The delivery that landed and left the card behind (#307). Normally there is nothing to
+// see — the board archives the card in the same breath — so this is the blink between the
+// two, and what the page says when the archive itself could not be made.
+function attachLanded(card: Card, active: DeliveryRecord | undefined): void {
+  if (active) return
+  const landed = listDeliveries()
+    .filter((d) => d.cardId === card.id && d.status === 'finished' && d.landing?.status === 'landed')
+    .pop()
+  if (landed) card.landed = { id: landed.deliveryId, commit: landed.landing?.commit }
+}
+
+// The card's newest finished delivery (#305), so the delivery block can go on drawing what
+// the last one built after it has ended — its **Diff** tab is where the commit that landed
+// is read. A cancelled delivery is not one of these: it finished nothing.
+function attachFinished(card: Card, active: DeliveryRecord | undefined): void {
+  if (active) return
+  const last = listDeliveries()
+    .filter((d) => d.cardId === card.id && d.status === 'finished')
+    .pop()
+  if (!last) return
+  card.finished = {
+    id: last.deliveryId,
+    commitMode: last.commitMode === 'auto' || last.commitMode === 'files' ? last.commitMode : 'manual',
+    commit: last.landing?.commit,
+    targetBranch: last.targetBranch,
+  }
+}
+
+// A delivery whose checkout has gone missing since it was written down: the folder was
+// deleted, or the branch was. Said plainly, because nothing will put it back — the card is
+// cancelled and started again, and a board that silently forked a second worktree would
+// build the card twice.
+function lostCheckout(delivery: DeliveryRecord): string | undefined {
+  if (!delivery.worktree) return undefined
+  const lostTree = !worktreeExists(delivery.worktree)
+  const lostBranch = !branchExists(delivery.branch)
+  if (!lostTree && !lostBranch) return undefined
+  const gone = lostTree && lostBranch ? 'worktree and branch are' : lostTree ? 'worktree is' : 'branch is'
+  return `its ${gone} gone — discard this delivery and start the card again, nothing will rebuild it`
+}
+
+// The delivery of this card whose worktree could still be thrown away: the one in flight,
+// or the newest ended one the board KEPT (#720) — one that stopped on its own with a job
+// left to finish. Every other ending gives its checkout back on its own, so what is offered
+// here is work somebody still has a choice about.
+function attachDiscard(card: Card, active: DeliveryRecord | undefined): void {
+  const holder =
+    active?.worktree
+      ? active
+      : listDeliveries()
+          .filter((d) => d.cardId === card.id && d.status !== 'active' && d.worktree)
+          .pop()
+  if (!holder?.worktree) return
+  card.discard = {
+    id: holder.deliveryId,
+    worktree: holder.worktree,
+    branch: holder.branch,
+    active: holder.status === 'active',
+    // Whether that ended delivery can be carried on instead of thrown away (#639): its
+    // checkout is really here and nothing else has taken the card. The same judgement
+    // `akb delivery resume` makes, so the button and the command never disagree.
+    resumable: holder.status !== 'active' && isResumable(holder),
+  }
+}
+
+/** Every open card, subtasks included. */
+export function allCards(): Card[] {
+  return collectCards().every
+}
+
+/** How far setup got: every box in order, the count, and the first unticked one. Null when
+ *  there is no checklist (setup is finished) and also when there is one we can't read a
+ *  single box out of — a file we don't understand is not something to nag about. */
+export function readSetupState(): SetupState | null {
+  const steps = readSetupChecklist()
+  if (!steps || steps.length === 0) return null
+  const done = steps.filter((s) => s.done).length
+  return { steps, done, total: steps.length, next: steps.find((s) => !s.done) ?? null }
+}
