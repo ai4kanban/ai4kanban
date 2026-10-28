@@ -41,10 +41,58 @@ test('signed out, one button signs in and adds the folder', async ($, on) => {
   await $.command.run({ command: 'wildcrane', args: '' } as never)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
-    expect((await ui.find({ key: 'setup' }))?.text).toContain('登录并添加此目录')
+    expect((await ui.find({ key: 'setup' }))?.text).toContain('登录并添加为项目')
     await ui.unmount()
   }
   expect(fake.calls.map((c) => c.action)).toContain('state')
+})
+
+const NOT_ADDED = {
+  dir: '~/git/wildcrane-clone',
+  signedIn: true,
+  folder: null,
+  refused: null,
+  projects: [],
+  elsewhere: [
+    { project: 'prj_wc', name: 'wildcrane', workspace_name: 'Personal', personal: true },
+    { project: 'prj_site', name: 'site-redesign', workspace_name: 'Acme', personal: false },
+  ],
+}
+
+test('a folder not added lists the projects it can be bound to, and Bind adds it to one', async ($, on) => {
+  const fake = host(on, { state: NOT_ADDED, addFolder: { added: true, project: 'prj_wc' } }, 'zh')
+  await $.command.run({ command: 'wildcrane', args: '' } as never)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({ ...PANE, surface })
+    expect((await ui.find({ key: 'setup' }))?.text).toContain('添加为项目')
+    expect(await ui.find({ text: /绑定到这台电脑上还没有目录/ })).toBeDefined()
+    expect(await ui.find({ text: /Acme/ })).toBeDefined()
+    expect(await ui.find({ text: /Personal/ })).toBeUndefined()
+    expect((await ui.find({ key: 'bind-prj_wc' }))?.text).toContain('绑定')
+    await ui.unmount()
+  }
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'bind-prj_wc' })
+  await ui.unmount()
+  expect(fake.calls.find((c) => c.action === 'addFolder')).toMatchObject({ project: 'prj_wc' })
+})
+
+test('binding a folder that belongs to another project says so', async ($, on) => {
+  host(on, { state: NOT_ADDED, addFolder: { error: 'folder_taken' } })
+  await $.command.run({ command: 'wildcrane', args: '' } as never)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'bind-prj_site' })
+  expect(await ui.find({ text: /already belongs to another project/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('with nothing to bind, the folder keeps its plain hint', async ($, on) => {
+  host(on, { state: { ...NOT_ADDED, elsewhere: [] } })
+  await $.command.run({ command: 'wildcrane', args: '' } as never)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ text: /same-named project/ })).toBeDefined()
+  expect(await ui.find({ text: /Or bind/ })).toBeUndefined()
+  await ui.unmount()
 })
 
 test('one idea open in full, the other a row; Start sends the version shown', async ($, on) => {

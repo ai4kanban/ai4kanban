@@ -17,6 +17,9 @@ export type Draft = { discussion: string; version: number; ideas: Idea[]; workfl
 
 export type Folder = { project: string; name: string; dir: string; board: string }
 
+/** An account's project with no folder on this computer, which this folder can be bound to. */
+export type Bindable = { project: string; name: string; workspace_name: string; personal: boolean }
+
 export type Status = {
   dir: string
   signedIn: boolean
@@ -24,6 +27,7 @@ export type Status = {
   folder?: Folder | null
   refused?: string | null
   projects?: Folder[]
+  elsewhere?: Bindable[]
   error?: string
 }
 

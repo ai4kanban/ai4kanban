@@ -158,24 +158,34 @@ async function state(cwd: string) {
   if (!readSession()) return { ...base, signedIn: false, signing }
   const found = await folderOf(cwd)
   if ('error' in found) return { ...base, signedIn: true, ...found }
+  const refused = found.folder ? null : refusal(cwd)
   return {
     ...base,
     signedIn: true,
     folder: found.folder,
-    refused: found.folder ? null : refusal(cwd),
+    refused,
     projects: found.folders.map((f) => ({ ...f, dir: home(f.path), board: boardUrl(f.project) })),
+    ...(found.folder || refused ? {} : { elsewhere: await elsewhere() }),
   }
 }
 
-async function addFolder(cwd: string) {
+/** The account's projects with no folder on this computer: the ones this folder can be bound to. */
+async function elsewhere() {
+  const list = await api.listElsewhere(machineId())
+  if (!list.ok) return []
+  return list.value.projects.map(({ project, name, workspace_name, personal }) => ({ project, name, workspace_name, personal }))
+}
+
+/** This folder as a project: `project` binds it to that existing one, else a new one is made. */
+async function addFolder(cwd: string, bind?: string) {
   const why = refusal(cwd)
   if (why) return { error: why }
   const real = fs.realpathSync(cwd)
   const found = await folderOf(real)
   if ('error' in found) return found
   let project = found.folder?.project
-  if (!project) {
-    const added = await api.addFolder(machineId(), path.basename(real) || real, real)
+  if (!project || (bind && bind !== project)) {
+    const added = await api.addFolder(machineId(), path.basename(real) || real, real, bind)
     if (!added.ok) return failure(added)
     project = added.value.folder.project
   }
@@ -224,6 +234,7 @@ const PanelArgs = {
   idea: z.string().optional(),
   workflow: z.string().optional(),
   version: z.number().int().optional(),
+  project: z.string().optional(),
 }
 
 type Panel = { [K in keyof typeof PanelArgs]: z.infer<(typeof PanelArgs)[K]> }
@@ -237,7 +248,7 @@ export async function panel(args: Panel): Promise<unknown> {
       startSignIn()
       return { signing }
     case 'addFolder':
-      return addFolder(cwd)
+      return addFolder(cwd, args.project)
     case 'chats':
       return chats()
     case 'discussion': {

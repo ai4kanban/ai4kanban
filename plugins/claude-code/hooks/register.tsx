@@ -116,8 +116,8 @@ async function goTab($: EngineInterface, tab: Tab): Promise<void> {
   await refresh($)
 }
 
-/** Signs in, or adds this folder: whichever is missing. */
-async function setup($: EngineInterface): Promise<void> {
+/** Signs in, or adds this folder: whichever is missing. `project` binds the folder to that one. */
+async function setup($: EngineInterface, project?: string): Promise<void> {
   const status = await read($, statusState)
   if (!status?.signedIn) {
     await update($, statusState, (s) => (s ? { ...s, signing: { url: null, failed: null } } : s))
@@ -125,7 +125,7 @@ async function setup($: EngineInterface): Promise<void> {
     await refresh($)
     return
   }
-  const added = await ask($, 'addFolder')
+  const added = await ask($, 'addFolder', project ? { project } : {})
   if (added.error) await update($, statusState, (s) => (s ? { ...s, refused: added.error === 'folder_taken' ? 'taken' : added.error ?? null } : s))
   else await refresh($)
 }
@@ -256,7 +256,7 @@ export const register: Register = (on) => {
     const v = await view($)
     const act: Handlers = {
       tab: (tab) => void goTab($, tab),
-      setup: () => void setup($),
+      setup: (project) => void setup($, project),
       send: (text) => void send($, text),
       show: (n) => void show($, n),
       workflow: (idea, workflow) => void setWorkflow($, idea, workflow),

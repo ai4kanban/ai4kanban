@@ -3,10 +3,13 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
+import os from 'node:os'
 import { describe, it } from 'node:test'
 
+import { runnerHome, useRunnerHome } from '../src/home'
 import { linesFor } from '../src/i18n'
 import { holdMachine, lockPath } from '../src/lock'
+import { FakeCloud, writeFakeSession } from './fake-cloud'
 
 // The Claude Code (#2161) and Codex (#2160) plugins: one process per computer runs the jobs, and
 // their component speaks MCP on stdout and ends with its host.
@@ -67,10 +70,10 @@ describe('one Runner per computer', () => {
 })
 
 /** The built component of `host`'s plugin, spoken to over stdio. */
-function component(host: 'claude-code' | 'codex') {
+function component(host: 'claude-code' | 'codex', cloud = 'http://127.0.0.1:9') {
   const server = path.join(process.env.RUNNER_DIST!, '..', '..', 'plugins', host, 'server', 'dist', 'index.mjs')
   const child = spawn(process.execPath, [server, ...(host === 'codex' ? ['codex'] : [])], {
-    stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, AI4KANBAN_CLOUD_URL: 'http://127.0.0.1:9' },
+    stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, AI4KANBAN_CLOUD_URL: cloud },
   })
   const answers = new Map<number, Record<string, unknown>>()
   let buffer = ''
@@ -119,5 +122,46 @@ describe('the plugin component', () => {
     const exited = new Promise<number | null>((r) => child.on('exit', r))
     child.stdin.end()
     assert.equal(await exited, 0)
+  })
+
+  it('binds the folder to an existing project, and refuses one already holding another', async () => {
+    useRunnerHome()
+    fs.rmSync(runnerHome(), { recursive: true, force: true })
+    writeFakeSession(runnerHome())
+    const cloud = new FakeCloud()
+    await cloud.start()
+    cloud.others = [{ project: 'prj_docs', name: '帮助文档', workspace: 'ws_team', workspace_name: 'Northwind', personal: false }]
+    const site = fs.mkdtempSync(path.join(os.homedir(), '.wildcrane-test-site-'))
+    const docs = fs.mkdtempSync(path.join(os.homedir(), '.wildcrane-test-docs-'))
+    const { child, answers, send, ready } = component('claude-code', `http://127.0.0.1:${cloud.port}`)
+    let id = 10
+    const panel = async (args: Record<string, unknown>) => {
+      const n = id++
+      const key = fs.readFileSync(path.join(runnerHome(), 'plugin', 'panel.key'), 'utf8').trim()
+      send(n, 'tools/call', { name: 'wildcrane_panel', arguments: { key, ...args } })
+      await until(() => answers.has(n), 10_000)
+      return JSON.parse((answers.get(n)!.result as { content: { text: string }[] }).content[0]!.text) as Record<string, unknown>
+    }
+    try {
+      await ready
+      const before = await panel({ action: 'state', cwd: docs })
+      assert.deepEqual(before.elsewhere, [{ project: 'prj_docs', name: '帮助文档', workspace_name: 'Northwind', personal: false }])
+
+      assert.equal((await panel({ action: 'addFolder', cwd: site })).added, true)
+      assert.deepEqual(await panel({ action: 'addFolder', cwd: site, project: 'prj_docs' }), { error: 'folder_taken', message: 'taken' })
+
+      const bound = await panel({ action: 'addFolder', cwd: docs, project: 'prj_docs' })
+      assert.equal(bound.project, 'prj_docs')
+      const after = await panel({ action: 'state', cwd: docs })
+      assert.equal((after.folder as { project: string }).project, 'prj_docs')
+      assert.equal(after.elsewhere, undefined)
+    } finally {
+      const exited = new Promise((r) => child.on('exit', r))
+      child.stdin.end()
+      await exited
+      await cloud.stop()
+      fs.rmSync(site, { recursive: true, force: true })
+      fs.rmSync(docs, { recursive: true, force: true })
+    }
   })
 })

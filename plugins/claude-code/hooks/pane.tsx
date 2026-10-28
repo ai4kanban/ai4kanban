@@ -26,7 +26,7 @@ export interface View {
 
 export interface Handlers {
   tab(tab: Tab): void
-  setup(): void
+  setup(project?: string): void
   send(text: string): void
   show(n: number): void
   workflow(idea: string, workflow: string): void
@@ -92,12 +92,13 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
   if (!status.signedIn || !status.folder) {
     const signing = status.signing
     const refused = status.refused ? c.refused[status.refused] ?? c.startFailed : null
+    const bindable = status.signedIn ? status.elsewhere ?? [] : []
     return (
       <Box flexDirection="column" gap={1}>
         {header(true)}
         <Box flexDirection="column">
           <Text>{status.dir}</Text>
-          <Text dimColor>{c.dirHint}</Text>
+          <Text dimColor>{bindable.length ? c.bindHint : c.dirHint}</Text>
         </Box>
         {refused ? <Text color="warning">{refused}</Text> : null}
         {status.error === 'offline' ? <Text color="warning">{c.offline}</Text> : null}
@@ -110,6 +111,20 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
         ) : (
           <Button key="setup" variant="primary" autoFocus label={status.signedIn ? c.addDir : c.signInAdd} onPress={() => act.setup()} />
         )}
+        {bindable.length ? (
+          <Box flexDirection="column">
+            <Text dimColor>{c.bindHeading}</Text>
+            {bindable.map((p) => (
+              <Box key={`bindable-${p.project}`} flexDirection="row" gap={2}>
+                <Box flexDirection="row" gap={2} flexGrow={1}>
+                  <Text bold>{p.name}</Text>
+                  {p.personal ? null : <Text dimColor>{p.workspace_name}</Text>}
+                </Box>
+                <Button key={`bind-${p.project}`} label={c.bind} onPress={() => act.setup(p.project)} />
+              </Box>
+            ))}
+          </Box>
+        ) : null}
       </Box>
     )
   }
