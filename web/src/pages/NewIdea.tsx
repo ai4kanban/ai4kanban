@@ -198,6 +198,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
               />
               {rt && (
                 <Menu
+                  panel="w-[230px]"
                   trigger={({ open, onClick }) => (
                     <TrayPick open={open} onClick={onClick} title={T.runtimeLabel} icon={<AgentMark harness={MARK[rt.connector]} size={14} />}>
                       {runtimeName(rt)}
@@ -213,7 +214,21 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
                   ]}
                 />
               )}
-              {rt && runnerGone(runtimes!, rt) && <span className="text-[12px] text-nb-peach-ink">{T.runtimes.goneHere}</span>}
+              {rt && runnerGone(runtimes!, rt) && (
+                <span className="basis-full px-2 pb-1 text-[12px] leading-snug text-nb-peach-ink">
+                  {runtimes!.data.some((r) => r.id !== rt.id && !runnerGone(runtimes!, r)) ? (
+                    T.runtimes.goneHere
+                  ) : (
+                    <>
+                      {T.runtimes.goneOnly[0]}
+                      <button type="button" onClick={() => openSettings("runtimes")} className="cursor-pointer font-[700] underline underline-offset-2">
+                        {T.runtimes.goneOnly[1]}
+                      </button>
+                      {T.runtimes.goneOnly[2]}
+                    </>
+                  )}
+                </span>
+              )}
               {current?.placed === false && !current.general && <span className="text-[12px] text-nb-ink-soft">{T.notPlaced}</span>}
             </div>
           </div>
