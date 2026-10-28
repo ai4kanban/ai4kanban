@@ -3,7 +3,7 @@
 
 import type { ElementTable, RenderElement } from 'claude-code'
 
-import type { Chat, Connection, Draft, Idea, Status, Tab } from '../types'
+import type { Adding, Chat, Connection, Draft, Idea, Removing, Status, Tab } from '../types'
 import { ago, copyFor } from './copy'
 import { LOGO_MARK, markOf } from './logo'
 
@@ -21,6 +21,8 @@ export interface View {
   chats: Chat[] | null
   connections: Connection[] | null
   synced: boolean
+  removing: Removing
+  adding: Adding
   root: string
 }
 
@@ -36,6 +38,14 @@ export interface Handlers {
   openChat(chat: Chat): void
   back(): void
   recheck(): void
+  /** Opens a project row's unbind question, or says why it cannot be unbound. */
+  remove(project: string): void
+  confirmRemove(project: string): void
+  /** Closes the open question or folder field. */
+  cancel(): void
+  /** Opens or closes the folder field: `null` for a new project, else binding that one. */
+  adding(project: string | null): void
+  add(path: string): void
 }
 
 export type Surface =
@@ -80,7 +90,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     <Box flexDirection="row" gap={1}>
       {logo}
       <Text bold>WildCrane</Text>
-      {!bare && status?.folder ? <Text dimColor>{status.folder.name}</Text> : null}
+      <Text dimColor>{c.pluginName}</Text>
       <Box flexGrow={1} />
       {!bare && status?.folder ? <Text dimColor={v.synced} color={v.synced ? undefined : 'warning'}>{v.synced ? c.synced : c.unsynced}</Text> : null}
     </Box>
@@ -249,31 +259,84 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     )
   }
 
-  const projects = () => (
-    <Box flexDirection="column" gap={1}>
+  const folderField = (adding: NonNullable<Adding>, label: string) => {
+    const error = !adding.error ? null : adding.error === 'taken' && adding.holder ? c.bindTaken(adding.holder) : c.folderRefused[adding.error] ?? c.addFailed
+    return (
       <Box flexDirection="column">
-        <Text dimColor>{c.thisDir}</Text>
-        <Box flexDirection="row" gap={2}>
-          <Box flexGrow={1}>
-            <Text>{status.dir}</Text>
+        <ui.Input key={`folder-${adding.project ?? 'new'}`} placeholder={c.folderAsk} value={adding.path} submitLabel={label} autoFocus onSubmit={(value: string) => act.add(value)} />
+        {error ? <Text color="warning">{error}</Text> : null}
+      </Box>
+    )
+  }
+
+  // This computer's projects, the current one marked, then the account's ones not here.
+  const projects = () => {
+    const adding = v.adding
+    const removing = v.removing
+    const elsewhere = status.elsewhere ?? []
+    return (
+      <Box flexDirection="column" gap={1}>
+        <Box flexDirection="column">
+          <Box flexDirection="row">
+            <Box flexGrow={1} />
+            <Button key="new-project" label={`+ ${c.newProject}`} onPress={() => act.adding(null)} />
           </Box>
-          <Text color="success">✓ {c.added}</Text>
+          {adding && adding.project === null ? folderField(adding, c.create) : null}
         </Box>
-      </Box>
-      <Box flexDirection="column">
-        <Text dimColor>{c.addedProjects}</Text>
-        {(status.projects ?? []).map((p) => (
-          <Box key={`prj-${p.project}`} flexDirection="row" gap={2}>
-            <Box flexDirection="column" flexGrow={1}>
-              <Text bold>{p.name}</Text>
-              <Text dimColor>{p.dir}</Text>
-            </Box>
-            <Link href={p.board} label={`${c.board} ↗`} />
+        <Box flexDirection="column" gap={desk ? 0 : 1}>
+          {(status.projects ?? []).map((p) => {
+            const asking = removing?.project === p.project
+            return (
+              <Box key={`prj-${p.project}`} flexDirection="column">
+                <Box flexDirection="row" gap={2}>
+                  <Box flexDirection="column" flexGrow={1}>
+                    <Box flexDirection="row" gap={1}>
+                      <Text bold>{p.name}</Text>
+                      {p.project === status.folder?.project ? <Text color="success">{c.current}</Text> : null}
+                    </Box>
+                    <Text dimColor>{p.dir}</Text>
+                  </Box>
+                  <Link href={p.board} label={`${c.board} ↗`} />
+                  <Button key={`remove-${p.project}`} plain dimColor={!asking} label={c.remove} onPress={() => act.remove(p.project)} />
+                </Box>
+                {asking && removing?.busy ? <Text color="warning">{c.removeBusy}</Text> : null}
+                {asking && !removing?.busy ? (
+                  <Box flexDirection="column">
+                    <Text color="warning">{c.removeAsk(p.name)}</Text>
+                    <Box flexDirection="row" gap={2}>
+                      <Button key={`unbind-${p.project}`} variant="primary" autoFocus label={c.remove} onPress={() => act.confirmRemove(p.project)} />
+                      <Button key={`keep-${p.project}`} label={c.cancel} onPress={() => act.cancel()} />
+                    </Box>
+                  </Box>
+                ) : null}
+              </Box>
+            )
+          })}
+        </Box>
+        {elsewhere.length ? (
+          <Box flexDirection="column">
+            <Text dimColor>{c.elsewhere}</Text>
+            {elsewhere.map((p) => {
+              const open = adding?.project === p.project
+              return (
+                <Box key={`away-${p.project}`} flexDirection="column">
+                  <Box flexDirection="row" gap={2}>
+                    <Box flexDirection="row" gap={2} flexGrow={1}>
+                      <Text dimColor>{p.name}</Text>
+                      {p.personal ? null : <Text dimColor>{p.workspace_name}</Text>}
+                    </Box>
+                    <Link href={p.board} label={`${c.board} ↗`} />
+                    <Button key={`bind-${p.project}`} plain dimColor={!open} label={c.bind} onPress={() => act.adding(p.project)} />
+                  </Box>
+                  {open && adding ? folderField(adding, c.bind) : null}
+                </Box>
+              )
+            })}
           </Box>
-        ))}
+        ) : null}
       </Box>
-    </Box>
-  )
+    )
+  }
 
   const connections = () => {
     if (!v.connections) return <Text dimColor>{c.checking}</Text>

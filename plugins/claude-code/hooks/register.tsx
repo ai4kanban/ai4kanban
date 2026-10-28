@@ -5,7 +5,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
-import type { Chat, Connection, Draft, Status, Tab } from '../types'
+import type { Adding, Chat, Connection, Draft, Removing, Status, Tab } from '../types'
 import { langOf } from './copy'
 import { Pane, type Handlers, type View } from './pane'
 
@@ -25,6 +25,8 @@ const textState = atom({ plugin: 'wildcrane', key: 'text' } as const, '')
 const chatsState = atom({ plugin: 'wildcrane', key: 'chats' } as const, null as Chat[] | null)
 const connectionsState = atom({ plugin: 'wildcrane', key: 'connections' } as const, null as Connection[] | null)
 const syncedState = atom({ plugin: 'wildcrane', key: 'synced' } as const, false)
+const removingState = atom({ plugin: 'wildcrane', key: 'removing' } as const, null as Removing)
+const addingState = atom({ plugin: 'wildcrane', key: 'adding' } as const, null as Adding)
 
 type Answer = Record<string, unknown> & { error?: string }
 
@@ -112,6 +114,7 @@ async function refresh($: EngineInterface): Promise<void> {
 }
 
 async function goTab($: EngineInterface, tab: Tab): Promise<void> {
+  await cancel($)
   await update($, tabState, () => tab)
   await refresh($)
 }
@@ -128,6 +131,53 @@ async function setup($: EngineInterface, project?: string): Promise<void> {
   const added = await ask($, 'addFolder', project ? { project } : {})
   if (added.error) await update($, statusState, (s) => (s ? { ...s, refused: added.error === 'folder_taken' ? 'taken' : added.error ?? null } : s))
   else await refresh($)
+}
+
+/** Closes the Projects tab's open question or folder field. */
+async function cancel($: EngineInterface): Promise<void> {
+  await update($, removingState, () => null)
+  await update($, addingState, () => null)
+}
+
+/** A row's Unbind: asks first, or says at once that a job holds the folder. Pressed again, it closes. */
+async function remove($: EngineInterface, project: string): Promise<void> {
+  const open = (await read($, removingState))?.project === project
+  await cancel($)
+  if (open) return
+  const busy = !!(await read($, statusState))?.projects?.find((p) => p.project === project)?.busy
+  await update($, removingState, () => ({ project, busy }))
+}
+
+async function confirmRemove($: EngineInterface, project: string): Promise<void> {
+  const answer = await ask($, 'removeFolder', { project })
+  if (answer.error === 'busy') return void (await update($, removingState, () => ({ project, busy: true })))
+  await cancel($)
+  if (answer.error) await refresh($)
+  else await update($, statusState, () => answer as unknown as Status)
+}
+
+/** New project's or a row's Bind field: opened empty, or with this folder when it has no project yet. */
+async function toggleAdding($: EngineInterface, project: string | null): Promise<void> {
+  const open = await read($, addingState)
+  await cancel($)
+  if (open && open.project === project) return
+  const status = await read($, statusState)
+  await update($, addingState, () => ({ project, path: status?.folder ? '' : status?.dir ?? '', error: null, holder: null }))
+}
+
+async function add($: EngineInterface, value: string): Promise<void> {
+  const adding = await read($, addingState)
+  const path = value.trim()
+  if (!adding || !path) return
+  const answer = await ask($, 'addFolder', adding.project ? { path, project: adding.project } : { path })
+  if (answer.error) {
+    const error = answer.error === 'folder_taken' ? 'taken' : answer.error
+    const holder = typeof answer.name === 'string' ? answer.name : null
+    await update($, addingState, () => ({ ...adding, path: value, error, holder }))
+    return
+  }
+  await cancel($)
+  await refresh($)
 }
 
 /** The person's words, to this Claude session under this session's discussion. Kept until sent. */
@@ -204,6 +254,8 @@ async function view($: EngineInterface): Promise<View> {
     chats: await read($, chatsState),
     connections: await read($, connectionsState),
     synced: await read($, syncedState),
+    removing: await read($, removingState),
+    adding: await read($, addingState),
     root: $.plugin.root,
   }
 }
@@ -266,6 +318,11 @@ export const register: Register = (on) => {
       openChat: (chat) => void openChat($, chat),
       back: () => void back($),
       recheck: () => void checkConnections($),
+      remove: (project) => void remove($, project),
+      confirmRemove: (project) => void confirmRemove($, project),
+      cancel: () => void cancel($),
+      adding: (project) => void toggleAdding($, project),
+      add: (path) => void add($, path),
     }
     if (e.surface === 'terminal') return Pane({ surface: 'terminal', ui: $.ui.resolve(e) }, v, act)
     if (e.surface === 'desktop') return Pane({ surface: 'desktop', ui: $.ui.resolve(e) }, v, act)

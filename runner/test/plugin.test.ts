@@ -6,6 +6,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { describe, it } from 'node:test'
 
+import { markUnsent } from '../src/cache'
 import { runnerHome, useRunnerHome } from '../src/home'
 import { linesFor } from '../src/i18n'
 import { holdMachine, lockPath } from '../src/lock'
@@ -145,16 +146,65 @@ describe('the plugin component', () => {
     try {
       await ready
       const before = await panel({ action: 'state', cwd: docs })
-      assert.deepEqual(before.elsewhere, [{ project: 'prj_docs', name: '帮助文档', workspace_name: 'Northwind', personal: false }])
+      assert.deepEqual(before.elsewhere, [{ project: 'prj_docs', name: '帮助文档', workspace_name: 'Northwind', personal: false, board: `${before.web}/projects/prj_docs` }])
 
       assert.equal((await panel({ action: 'addFolder', cwd: site })).added, true)
-      assert.deepEqual(await panel({ action: 'addFolder', cwd: site, project: 'prj_docs' }), { error: 'folder_taken', message: 'taken' })
+      const siteName = path.basename(fs.realpathSync(site))
+      assert.deepEqual(await panel({ action: 'addFolder', cwd: site, project: 'prj_docs' }), { error: 'folder_taken', message: 'taken', name: siteName })
 
       const bound = await panel({ action: 'addFolder', cwd: docs, project: 'prj_docs' })
       assert.equal(bound.project, 'prj_docs')
       const after = await panel({ action: 'state', cwd: docs })
       assert.equal((after.folder as { project: string }).project, 'prj_docs')
-      assert.equal(after.elsewhere, undefined)
+      assert.deepEqual(after.elsewhere, [])
+    } finally {
+      const exited = new Promise((r) => child.on('exit', r))
+      child.stdin.end()
+      await exited
+      await cloud.stop()
+      fs.rmSync(site, { recursive: true, force: true })
+      fs.rmSync(docs, { recursive: true, force: true })
+    }
+  })
+
+  it('adds a typed folder, refuses one already added, and unbinds one no job holds', async () => {
+    useRunnerHome()
+    fs.rmSync(runnerHome(), { recursive: true, force: true })
+    writeFakeSession(runnerHome())
+    const cloud = new FakeCloud()
+    await cloud.start()
+    cloud.others = [{ project: 'prj_docs', name: '帮助文档', workspace: 'ws_team', workspace_name: 'Northwind', personal: false }]
+    const site = fs.mkdtempSync(path.join(os.homedir(), '.wildcrane-test-site-'))
+    const docs = fs.mkdtempSync(path.join(os.homedir(), '.wildcrane-test-docs-'))
+    const { child, answers, send, ready } = component('claude-code', `http://127.0.0.1:${cloud.port}`)
+    let id = 10
+    const panel = async (args: Record<string, unknown>) => {
+      const n = id++
+      const key = fs.readFileSync(path.join(runnerHome(), 'plugin', 'panel.key'), 'utf8').trim()
+      send(n, 'tools/call', { name: 'wildcrane_panel', arguments: { key, cwd: site, ...args } })
+      await until(() => answers.has(n), 10_000)
+      return JSON.parse((answers.get(n)!.result as { content: { text: string }[] }).content[0]!.text) as Record<string, unknown>
+    }
+    try {
+      await ready
+      assert.equal((await panel({ action: 'addFolder', path: `~/${path.basename(site)}` })).added, true)
+      assert.equal((await panel({ action: 'addFolder', path: site })).error, 'folder_taken')
+      assert.equal((await panel({ action: 'addFolder', path: '~' })).error, 'home')
+      assert.equal((await panel({ action: 'addFolder', path: path.join(site, 'nowhere') })).error, 'missing')
+      assert.equal((await panel({ action: 'addFolder', path: docs, project: 'prj_docs' })).project, 'prj_docs')
+      const added = await panel({ action: 'state' })
+      assert.equal((added.projects as unknown[]).length, 2)
+      assert.deepEqual(added.elsewhere, [])
+
+      markUnsent(fs.realpathSync(docs), true)
+      assert.deepEqual(await panel({ action: 'removeFolder', project: 'prj_docs' }), { error: 'busy' })
+      assert.equal(((await panel({ action: 'state' })).projects as { busy: boolean }[]).find((p) => p.busy) !== undefined, true)
+      markUnsent(fs.realpathSync(docs), false)
+
+      const removed = await panel({ action: 'removeFolder', project: 'prj_docs' })
+      assert.deepEqual((removed.projects as { project: string }[]).map((p) => p.project), [(removed.folder as { project: string }).project])
+      assert.deepEqual((removed.elsewhere as { project: string }[]).map((p) => p.project), ['prj_docs'])
+      assert.ok(fs.existsSync(docs))
     } finally {
       const exited = new Promise((r) => child.on('exit', r))
       child.stdin.end()
@@ -184,7 +234,7 @@ describe('the plugin component', () => {
     try {
       await ready
       const before = await call('wildcrane_status', { path: docs })
-      assert.deepEqual(before.elsewhere, [{ project: 'prj_docs', name: '帮助文档', workspace_name: 'Northwind', personal: false }])
+      assert.deepEqual(before.elsewhere, [{ project: 'prj_docs', name: '帮助文档', workspace_name: 'Northwind', personal: false, board: `${before.web}/projects/prj_docs` }])
       assert.equal((await call('wildcrane_add_folder', { path: docs, project: 'prj_docs' })).project, 'prj_docs')
       const after = await call('wildcrane_status', { path: docs })
       assert.equal((after.folder as { project: string }).project, 'prj_docs')

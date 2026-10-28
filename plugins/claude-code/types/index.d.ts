@@ -15,10 +15,18 @@ export type Workflow = { id: string; name: string; names?: { en: string; zh: str
 
 export type Draft = { discussion: string; version: number; ideas: Idea[]; workflows: Workflow[] }
 
-export type Folder = { project: string; name: string; dir: string; board: string }
+/** `busy` while a job, unsent work or a paused task holds the folder: it cannot be unbound. */
+export type Folder = { project: string; name: string; dir: string; board: string; busy?: boolean }
 
-/** An account's project with no folder on this computer, which this folder can be bound to. */
-export type Bindable = { project: string; name: string; workspace_name: string; personal: boolean }
+/** An account's project with no folder on this computer, which a folder can be bound to. */
+export type Bindable = { project: string; name: string; workspace_name: string; personal: boolean; board: string }
+
+/** The Projects row asking to unbind, or saying it cannot. */
+export type Removing = { project: string; busy: boolean } | null
+
+/** The folder field open under New project (`project` null) or under an `elsewhere` row's Bind;
+ *  `error` a refusal's code, `holder` the project a taken folder belongs to. */
+export type Adding = { project: string | null; path: string; error: string | null; holder: string | null } | null
 
 export type Status = {
   dir: string
@@ -57,6 +65,8 @@ declare module 'claude-code' {
       chats: Chat[] | null
       connections: Connection[] | null
       synced: boolean
+      removing: Removing
+      adding: Adding
     }
   }
 }

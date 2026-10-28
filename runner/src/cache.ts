@@ -77,7 +77,8 @@ function paused(dir: string): boolean {
   }
 }
 
-const kept = (dir: string) => busy.has(dir) || fs.existsSync(unsentFile(dir)) || paused(dir)
+/** A job, unsent work or a paused delivery still holds the folder. */
+export const kept = (dir: string) => busy.has(dir) || fs.existsSync(unsentFile(dir)) || paused(dir)
 
 /** Empty a linked folder's `.akb/`, its own files untouched; false when it is kept. */
 export function clearAkb(dir: string): boolean {

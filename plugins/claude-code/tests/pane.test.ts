@@ -152,3 +152,75 @@ test('over the plan limit, the start is refused in words and nothing is retried'
   await ui.unmount()
   expect(fake.calls.filter((c) => c.action === 'start').length).toBe(1)
 })
+
+const SITE = { project: 'prj_site', name: 'site', dir: '~/git/site', board: 'https://app.wildcrane.ai/projects/prj_site' }
+const PROJECTS = {
+  ...SIGNED_IN,
+  projects: [FOLDER, SITE],
+  elsewhere: [{ project: 'prj_wc', name: 'wildcrane', workspace_name: 'Acme', personal: false, board: 'https://app.wildcrane.ai/projects/prj_wc' }],
+}
+
+const EMPTY = { discussion: 'dsc_1', version: 1, ideas: [], workflows: WORKFLOWS }
+
+async function onProjects($: Parameters<Parameters<typeof test>[1]>[0], surface: 'terminal' | 'desktop' = 'desktop') {
+  await $.command.run({ command: 'wildcrane', args: '' } as never)
+  const ui = await $.ui.mount({ ...PANE, surface })
+  await ui.press({ key: 'tab-projects' })
+  return ui
+}
+
+test('Projects is one list: the current project marked, the ones not here below with their boards', async ($, on) => {
+  host(on, { discussion: EMPTY, state: PROJECTS }, 'zh')
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await onProjects($, surface)
+    expect(await ui.find({ text: /Claude Code 插件/ })).toBeDefined()
+    expect(await ui.find({ text: /^当前$/ })).toBeDefined()
+    expect((await ui.find({ key: 'remove-prj_site' }))?.text).toContain('解绑')
+    expect((await ui.find({ key: 'new-project' }))?.text).toContain('新建项目')
+    expect(await ui.find({ text: /不在这台电脑上/ })).toBeDefined()
+    expect((await ui.find({ key: 'bind-prj_wc' }))?.text).toContain('绑定')
+    expect(await ui.find({ type: 'Link', text: /看板/ })).toBeDefined()
+    expect(await ui.find({ text: /本目录|已添加/ })).toBeUndefined()
+    await ui.unmount()
+  }
+})
+
+test('Unbind asks first, then unbinds; Cancel changes nothing', async ($, on) => {
+  const fake = host(on, { discussion: EMPTY, state: PROJECTS, removeFolder: { ...PROJECTS, projects: [FOLDER] } })
+  const ui = await onProjects($)
+  await ui.press({ key: 'remove-prj_site' })
+  expect(await ui.find({ text: /Unbind site from this folder/ })).toBeDefined()
+  await ui.press({ key: 'keep-prj_site' })
+  expect(await ui.find({ text: /Unbind site from this folder/ })).toBeUndefined()
+  expect(fake.calls.some((c) => c.action === 'removeFolder')).toBe(false)
+  await ui.press({ key: 'remove-prj_site' })
+  await ui.press({ key: 'unbind-prj_site' })
+  expect(fake.calls.find((c) => c.action === 'removeFolder')).toMatchObject({ project: 'prj_site' })
+  expect(await ui.find({ key: 'remove-prj_site' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a folder a job holds is not unbound, and says why', async ($, on) => {
+  const fake = host(on, { discussion: EMPTY, state: { ...PROJECTS, projects: [FOLDER, { ...SITE, busy: true }] } })
+  const ui = await onProjects($)
+  await ui.press({ key: 'remove-prj_site' })
+  expect(await ui.find({ text: /A task is running in this folder/ })).toBeDefined()
+  expect(await ui.find({ key: 'unbind-prj_site' })).toBeUndefined()
+  await ui.unmount()
+  expect(fake.calls.some((c) => c.action === 'removeFolder')).toBe(false)
+})
+
+test('New project and Bind take a typed folder, and a taken one is refused by name', async ($, on) => {
+  const fake = host(on, { discussion: EMPTY, state: PROJECTS, addFolder: { error: 'folder_taken', name: 'site' } })
+  const ui = await onProjects($)
+  await ui.press({ key: 'new-project' })
+  await ui.input({ key: 'folder-new', text: '~/git/app', kind: 'submit' })
+  expect(fake.calls.find((c) => c.action === 'addFolder')).toMatchObject({ path: '~/git/app' })
+  expect(fake.calls.find((c) => c.action === 'addFolder')?.project).toBeUndefined()
+  await ui.press({ key: 'bind-prj_wc' })
+  expect(await ui.find({ key: 'folder-new' })).toBeUndefined()
+  await ui.input({ key: 'folder-prj_wc', text: '~/git/site', kind: 'submit' })
+  expect(fake.calls.filter((c) => c.action === 'addFolder').at(-1)).toMatchObject({ path: '~/git/site', project: 'prj_wc' })
+  expect(await ui.find({ text: /already belongs to site/ })).toBeDefined()
+  await ui.unmount()
+})

@@ -17,9 +17,10 @@ import { z } from 'zod'
 
 import { readSession } from '../../cli/src/lib/cloud/session'
 import * as api from './api'
+import { clearAkb, kept } from './cache'
 import { startRunner, type Runner } from './connect'
 import { WEB_URL, taskUrl } from './desktop'
-import { allow, refusal } from './folders'
+import { allow, disallow, refusal } from './folders'
 import { machineId, machineName, runnerHome, useRunnerHome } from './home'
 import { VERSION } from './protocol'
 import { LABELS, detectRuntimes, hints } from './runtimes'
@@ -164,27 +165,32 @@ async function state(cwd: string) {
     signedIn: true,
     folder: found.folder,
     refused,
-    projects: found.folders.map((f) => ({ ...f, dir: home(f.path), board: boardUrl(f.project) })),
-    ...(found.folder || refused ? {} : { elsewhere: await elsewhere() }),
+    projects: found.folders.map((f) => ({ ...f, dir: home(f.path), board: boardUrl(f.project), busy: kept(realpath(f.path)) })),
+    elsewhere: await elsewhere(),
   }
 }
 
-/** The account's projects with no folder on this computer: the ones this folder can be bound to. */
+/** The account's projects with no folder on this computer: the ones a folder can be bound to. */
 async function elsewhere() {
   const list = await api.listElsewhere(machineId())
   if (!list.ok) return []
-  return list.value.projects.map(({ project, name, workspace_name, personal }) => ({ project, name, workspace_name, personal }))
+  return list.value.projects.map(({ project, name, workspace_name, personal }) => ({ project, name, workspace_name, personal, board: boardUrl(project) }))
 }
 
-/** This folder as a project: `project` binds it to that existing one, else a new one is made. */
-async function addFolder(cwd: string, bind?: string) {
-  const why = refusal(cwd)
+/** A folder the person typed: `~` is their home, a relative one is under `cwd`. */
+const typed = (given: string, cwd: string) => path.resolve(cwd, given.trim().replace(/^~(?=$|[\\/])/, os.homedir()))
+
+/** A folder as a project: `project` binds it to that existing one, else a new one is made.
+ *  `strict` refuses a folder already added, which otherwise answers its own project. */
+async function addFolder(dir: string, bind?: string, strict = false) {
+  const why = refusal(dir)
   if (why) return { error: why }
-  const real = fs.realpathSync(cwd)
+  const real = fs.realpathSync(dir)
   const found = await folderOf(real)
   if ('error' in found) return found
   let project = found.folder?.project
-  if (!project || (bind && bind !== project)) {
+  if (found.folder && (bind ? bind !== found.folder.project : strict)) return { error: 'folder_taken', message: 'taken', name: found.folder.name }
+  if (!project) {
     const added = await api.addFolder(machineId(), path.basename(real) || real, real, bind)
     if (!added.ok) return failure(added)
     project = added.value.folder.project
@@ -192,6 +198,21 @@ async function addFolder(cwd: string, bind?: string) {
   allow(real)
   runner?.renew()
   return { added: true, project, board: boardUrl(project) }
+}
+
+/** Unbinds `project`'s folder on this computer and empties its `.akb/`; refused while a job, unsent
+ *  work or a paused delivery holds it. The project and its tasks stay. */
+async function removeFolder(cwd: string, project: string) {
+  const found = await folderOf(cwd)
+  if ('error' in found) return found
+  const held = found.folders.find((f) => f.project === project)
+  if (!held) return { error: 'not_found' }
+  if (kept(realpath(held.path))) return { error: 'busy' }
+  const removed = await api.removeFolder(machineId(), project)
+  if (!removed.ok) return failure(removed)
+  for (const dir of disallow(held.path)) clearAkb(dir)
+  runner?.renew()
+  return state(cwd)
 }
 
 async function chats() {
@@ -227,7 +248,7 @@ async function open(session: string, project: string | null, cwd: string) {
 
 const PanelArgs = {
   key: z.string(),
-  action: z.enum(['state', 'signIn', 'addFolder', 'chats', 'discussion', 'workflow', 'discard', 'start', 'connections']),
+  action: z.enum(['state', 'signIn', 'addFolder', 'removeFolder', 'chats', 'discussion', 'workflow', 'discard', 'start', 'connections']),
   session: z.string().optional(),
   cwd: z.string().optional(),
   discussion: z.string().optional(),
@@ -235,6 +256,7 @@ const PanelArgs = {
   workflow: z.string().optional(),
   version: z.number().int().optional(),
   project: z.string().optional(),
+  path: z.string().optional(),
 }
 
 type Panel = { [K in keyof typeof PanelArgs]: z.infer<(typeof PanelArgs)[K]> }
@@ -248,7 +270,9 @@ export async function panel(args: Panel): Promise<unknown> {
       startSignIn()
       return { signing }
     case 'addFolder':
-      return addFolder(cwd, args.project)
+      return args.path ? addFolder(typed(args.path, cwd), args.project, true) : addFolder(cwd, args.project)
+    case 'removeFolder':
+      return args.project ? removeFolder(cwd, args.project) : { error: 'bad_request' }
     case 'chats':
       return chats()
     case 'discussion': {
