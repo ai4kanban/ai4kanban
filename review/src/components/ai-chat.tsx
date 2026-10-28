@@ -319,10 +319,7 @@ export function AiChat({
         }}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return;
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            void send();
-          } else if (e.key === "ArrowUp" && !draft && !(e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) && recall()) {
+          if (e.key === "ArrowUp" && !draft && !(e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) && recall()) {
             e.preventDefault();
           }
         }}

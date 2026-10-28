@@ -158,12 +158,6 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
                 rows={2}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    void send();
-                  }
-                }}
                 placeholder={placeholder}
                 aria-label={placeholder}
                 className="max-h-[320px] min-h-[56px] w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft focus:outline-none max-md:max-h-[40dvh] max-md:min-h-[104px] max-md:text-[16px]"
