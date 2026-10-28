@@ -1,10 +1,11 @@
 // Copied from legacy kanban-ui/components/Rail.tsx: the find box (`/` focuses it, ↑↓ pick,
-// Enter opens), then 工作流, 统计 and the current project's conversations newest first (a task's
+// Enter opens), then 看板 (the current project's board), 工作流, 统计 and the current project's conversations newest first (a task's
 // chat or an idea conversation; one in no project counts as general's), the archive at the foot. The rail has no surface: it sits on the window's cream.
 // 收起左栏 sits beside the archive; collapsed, a narrow bar of icons keeps 展开左栏 in that spot.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiArchive, FiBarChart2, FiGrid, FiSearch, FiSidebar, FiTerminal, FiX } from "react-icons/fi";
+import { LuSquareKanban } from "react-icons/lu";
 import { HAIRLINE } from "@review/components/chrome";
 import { cn } from "@review/lib/utils";
 import { HOST_NAMES, type ChatRow, type Task } from "../api";
@@ -31,6 +32,8 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
   const matches = useMemo(() => matchTasks(store.tasks ?? [], query), [store.tasks, query]);
   const [lit, setLit] = useState(-1);
   useEffect(() => setLit(-1), [query]);
+  const boardHref = store.current && `/projects/${encodeURIComponent(store.current.id)}`;
+  const onBoard = !!boardHref && path === boardHref;
   if (!open) {
     return (
       <aside className="flex h-full w-[52px] shrink-0 flex-col items-center gap-1 pb-[13px] pt-1">
@@ -46,6 +49,11 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
         >
           <FiSearch size={14} aria-hidden />
         </button>
+        {boardHref && (
+          <Link href={boardHref} aria-label={T.tabs.board} data-tip={T.tabs.board} className={cn(ICON, "nb-tip-start", onBoard && "bg-nb-paper text-nb-ink")}>
+            <LuSquareKanban size={14} aria-hidden />
+          </Link>
+        )}
         <Link href={archiveHref} aria-label={T.archive} data-tip={T.archive} className={cn(ICON, "nb-tip-start mt-auto", path === "/archive" && "bg-nb-paper text-nb-ink")}>
           <FiArchive size={14} aria-hidden />
         </Link>
@@ -73,6 +81,12 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
         }}
       />
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+        {boardHref && (
+          <Link href={boardHref} className={cn(ROW, "h-[30px]", onBoard && ACTIVE)}>
+            <LuSquareKanban size={13} aria-hidden />
+            <span className="flex-1 truncate">{T.tabs.board}</span>
+          </Link>
+        )}
         <Link href="/workflows" className={cn(ROW, "h-[30px]", path === "/workflows" && ACTIVE)}>
           <FiGrid size={13} aria-hidden />
           <span className="flex-1 truncate">{T.flows.title}</span>

@@ -5,7 +5,8 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
-import { FiArchive, FiBarChart2, FiCheck, FiChevronRight, FiColumns, FiCreditCard, FiFolder, FiGlobe, FiGrid, FiInbox, FiLogOut, FiMessageSquare, FiMoreHorizontal, FiSettings, FiUsers } from "react-icons/fi";
+import { FiArchive, FiBarChart2, FiCheck, FiChevronRight, FiCreditCard, FiFolder, FiGlobe, FiGrid, FiInbox, FiLogOut, FiMessageSquare, FiMoreHorizontal, FiSettings, FiUsers } from "react-icons/fi";
+import { LuSquareKanban } from "react-icons/lu";
 import { signOut } from "@review/auth";
 import { Button } from "@review/components/button";
 import { HAIRLINE } from "@review/components/chrome";
@@ -113,7 +114,7 @@ export function Window({
           <nav className="box-content flex h-[60px] shrink-0 items-center justify-around border-t pb-[env(safe-area-inset-bottom)] text-[11px] font-[700]" style={{ borderColor: HAIRLINE }}>
             {(
               [
-                ["board", <FiColumns key="i" size={17} aria-hidden />, T.tabs.board],
+                ["board", <LuSquareKanban key="i" size={17} aria-hidden />, T.tabs.board],
                 ["chats", <FiMessageSquare key="i" size={17} aria-hidden />, T.tabs.chats],
                 ["more", <FiMoreHorizontal key="i" size={17} aria-hidden />, T.tabs.more],
               ] as const
