@@ -185,11 +185,12 @@ export function AiChat({
 
   const runtime = chat.runtimes.find((r) => r.id === (picked ?? chat.runtime)) ?? chat.runtimes[0]!;
   const busy = working(chat) || sending;
+  const blocked = !!gone?.includes(runtime.id);
   const empty = chat.messages.length === 0;
 
   const send = async () => {
     const body = draft.trim();
-    if ((!body && !staged.length) || busy) return;
+    if ((!body && !staged.length) || busy || blocked) return;
     setSending(true);
     setProblem(null);
     try {
@@ -255,7 +256,7 @@ export function AiChat({
   };
 
   const status = chat.status === "failed" ? c.failed : chat.status === "conflict" ? c.conflict : null;
-  const notes = [!chat.runner.connected && c.offline, gone?.includes(runtime.id) && c.runnerGone, problem ?? status].filter((x): x is string => !!x);
+  const notes = [!chat.runner.connected && c.offline, blocked && c.runnerGone, problem ?? status].filter((x): x is string => !!x);
   const asks = [card.question && c.asks.question, card.comments && c.asks.comments, card.previews && c.asks.previews, c.asks.skip].filter(
     (x): x is string => !!x,
   );
@@ -371,7 +372,7 @@ export function AiChat({
               <FiSquare className="text-[13px]" aria-hidden />
             </Button>
           ) : (
-            <Button size="xs" disabled={busy || (!draft.trim() && !staged.length)} onClick={() => void send()} aria-label={c.send} title={c.send}>
+            <Button size="xs" disabled={busy || blocked || (!draft.trim() && !staged.length)} onClick={() => void send()} aria-label={c.send} title={c.send}>
               <FiSend className="text-[13px]" aria-hidden />
             </Button>
           )}

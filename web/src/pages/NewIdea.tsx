@@ -97,7 +97,8 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
     return () => window.removeEventListener("keydown", key);
   }, [home]);
 
-  const ready = !!text.trim() && !busy && (!triage || pick.kind === "flow");
+  const rt = runtimes?.data.find((r) => r.id === runtime);
+  const ready = !!text.trim() && !busy && (!triage || pick.kind === "flow") && !(rt && runnerGone(runtimes!, rt));
 
   const send = async () => {
     if (!ready) return;
@@ -133,7 +134,6 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
     }
   };
 
-  const rt = runtimes?.data.find((r) => r.id === runtime);
   const offline = store.runnerOnline === false;
   const placeholder = pick.kind === "new" ? T.builder.newPlaceholder : pick.kind === "edit" ? T.builder.editPlaceholder : T.placeholder;
 
