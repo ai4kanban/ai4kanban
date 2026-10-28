@@ -77,7 +77,7 @@ export function Subtasks({ task }: { task: Task }) {
         </>
       )}
       {(!mapDrawn || open) && (
-        <ul className={`mt-1.5 flex flex-col ${phone ? "gap-0.5" : "gap-1.5"}`}>
+        <ul className={`mt-1.5 flex flex-col ${phone ? "gap-0.5" : "gap-1.5"} ${mapDrawn ? "a4k-reveal" : ""}`}>
           {subtasks.map((s) => {
             const number = (
               <span className="shrink-0 text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>

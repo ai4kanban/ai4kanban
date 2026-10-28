@@ -107,7 +107,7 @@ export function Workflows() {
               {!owner && <span className="ml-auto min-w-0 truncate pb-2 text-[12.5px] text-nb-ink-soft">{T.flows.ownerInstalls}</span>}
             </div>
             {list && !shown.length && q && <p className="text-[13px] text-nb-ink-soft">{T.flows.noMatches}</p>}
-            <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+            <div key={tab} className="a4k-reveal grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
               {shown.map((w) => {
                 const name = workflowName(w);
                 return (
@@ -162,7 +162,7 @@ function UninstallConfirm({ name, onCancel, onConfirm }: { name: string; onCance
     };
   }, [onCancel]);
   return (
-    <div ref={box} role="dialog" className="nb-panel absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] max-w-[calc(100vw-2rem)] bg-nb-paper p-3">
+    <div ref={box} role="dialog" className="nb-panel nb-pop origin-top-right absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] max-w-[calc(100vw-2rem)] bg-nb-paper p-3">
       <p className="text-[13px] font-[700]">{T.flows.uninstallAsk(name)}</p>
       <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{T.flows.uninstallBody}</p>
       <div className="mt-3 flex justify-end gap-2">

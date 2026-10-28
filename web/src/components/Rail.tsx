@@ -8,6 +8,7 @@ import { FiArchive, FiBarChart2, FiGrid, FiLoader, FiSearch, FiSidebar, FiTermin
 import { LuSquareKanban } from "react-icons/lu";
 import { Button } from "@review/components/button";
 import { HAIRLINE } from "@review/components/chrome";
+import { useArrived } from "@review/lib/motion";
 import { cn } from "@review/lib/utils";
 import { closeChat, HOST_NAMES, type ChatRow, type Task } from "../api";
 import { T } from "../i18n";
@@ -36,14 +37,20 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
   useEffect(() => setLit(-1), [query]);
   const boardHref = store.current && `/projects/${encodeURIComponent(store.current.id)}`;
   const onBoard = !!boardHref && path === boardHref;
+  // Only a fold or unfold plays; a page opening draws the rail as it was.
+  const [moved, setMoved] = useState(false);
+  const toggle = () => {
+    setMoved(true);
+    onToggle();
+  };
   if (!open) {
     return (
-      <aside className="flex h-full w-[52px] shrink-0 flex-col items-center gap-1 pb-[13px] pt-1">
+      <aside className={cn("nb-glide flex h-full w-[52px] shrink-0 flex-col items-center gap-1 pb-[13px] pt-1", moved && "animate-[nbFadeIn_180ms_ease-out]")}>
         <button
           type="button"
           onClick={() => {
             setFindNow(true);
-            onToggle();
+            toggle();
           }}
           aria-label={T.find}
           data-tip={T.find}
@@ -59,14 +66,14 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
         <Link href={archiveHref} aria-label={T.archive} data-tip={T.archive} className={cn(ICON, "nb-tip-start mt-auto", path === "/archive" && "bg-nb-paper text-nb-ink")}>
           <FiArchive size={14} aria-hidden />
         </Link>
-        <button type="button" onClick={onToggle} aria-label={T.expandRail} data-tip={T.expandRail} className={cn(ICON, "nb-tip-start")}>
+        <button type="button" onClick={toggle} aria-label={T.expandRail} data-tip={T.expandRail} className={cn(ICON, "nb-tip-start")}>
           <FiSidebar size={15} aria-hidden />
         </button>
       </aside>
     );
   }
   return (
-    <aside className="flex h-full w-[244px] shrink-0 flex-col gap-0.5 px-3 pb-3 pt-1">
+    <aside className={cn("nb-glide flex h-full w-[244px] shrink-0 flex-col gap-0.5 px-3 pb-3 pt-1", moved && "animate-[nbEnter_220ms_ease-out]")}>
       <FindBox
         autoFocus={findNow}
         value={query}
@@ -121,7 +128,7 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
           type="button"
           onClick={() => {
             setFindNow(false);
-            onToggle();
+            toggle();
           }}
           aria-label={T.collapseRail} data-tip={T.collapseRail} className={ICON}>
           <FiSidebar size={15} aria-hidden />
@@ -140,6 +147,7 @@ export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: st
   const store = useStore();
   const mine = chatsHere(store, chats);
   const [asking, setAsking] = useState<string | null>(null);
+  const arrived = useArrived(mine.length ? mine.map((c) => c.discussion ?? c.task) : null);
   if (!mine.length) return big ? <p className="px-4 py-3 text-[13px] text-nb-ink-soft">{T.noChats}</p> : null;
   return (
     <>
@@ -148,7 +156,7 @@ export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: st
         const id = c.discussion ?? c.task;
         const on = !big && active === id;
         return (
-          <div key={id} className="group relative shrink-0">
+          <div key={id} className={cn("group relative shrink-0", arrived(id) && "a4k-reveal")}>
             <Link
               href={"key" in c ? `/tasks/${encodeURIComponent(c.key)}?chat=1` : `/discussions/${encodeURIComponent(c.discussion)}`}
               className={cn(ROW, on && ACTIVE, big ? "h-11 rounded-none px-4 pr-12 text-[14px]" : "group-hover:pr-9", !big && asking === id && "pr-9", !on && asking === id && "bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]")}
@@ -217,7 +225,7 @@ function CloseChat({ chat, big, open, onOpen, onClosed }: { chat: ChatRow; big?:
         </button>
       </span>
       {open && (
-        <div ref={(el) => el?.scrollIntoView({ block: "nearest" })} role="dialog" className={cn("nb-panel absolute top-[calc(100%+6px)] z-20 bg-nb-paper p-3", big ? "right-3 w-[260px]" : "inset-x-0")}>
+        <div ref={(el) => el?.scrollIntoView({ block: "nearest" })} role="dialog" className={cn("nb-panel nb-pop absolute top-[calc(100%+6px)] z-20 bg-nb-paper p-3", big ? "right-3 w-[260px]" : "inset-x-0")}>
           <p className="text-[13px] font-[700] text-nb-ink">{T.closeAsk}</p>
           <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{chat.discussion ? T.closeIdeaBody : T.closeTaskBody}</p>
           {failed && <p className="mt-1 text-[12px] leading-snug text-nb-peach-ink">{T.closeFailed}</p>}

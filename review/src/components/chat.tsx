@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FiArrowUp, FiCornerUpLeft, FiEdit3, FiMessageSquare, FiX } from "react-icons/fi";
 import type { Copy } from "../i18n";
+import { useArrived } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
 import { HAIRLINE, QUIET } from "./chrome";
@@ -49,6 +50,7 @@ export function ChatPane({
 }) {
   const list = useRef<HTMLDivElement>(null);
   const firstFresh = thread.findIndex((e) => e.fresh);
+  const arrived = useArrived(thread.length ? thread.map((e) => e.key) : null);
   useLayoutEffect(() => {
     const el = list.current;
     if (!el) return;
@@ -79,7 +81,7 @@ export function ChatPane({
         ) : (
           <ol className="flex flex-col gap-5">
             {thread.map((e, i) => (
-              <li key={e.key} data-fresh={i === firstFresh || undefined}>
+              <li key={e.key} data-fresh={i === firstFresh || undefined} className={arrived(e.key) ? "nb-rise" : undefined}>
                 {i === firstFresh && <Fresh label={c.fresh} />}
                 <Said c={c} e={e} />
               </li>

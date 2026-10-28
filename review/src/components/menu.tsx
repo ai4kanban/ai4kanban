@@ -2,6 +2,7 @@
 // pick, Esc or a click outside. The panel wears legacy ui/popover.tsx's POPUP_PANEL.
 
 import { useEffect, useRef, useState } from "react";
+import { closing, useShown } from "../lib/motion";
 import { cn } from "../lib/utils";
 
 export const POPUP_PANEL = "rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper text-nb-ink shadow-[3px_3px_0_0_var(--color-nb-ink)]";
@@ -28,6 +29,7 @@ export function Menu({
   panel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const shown = useShown(open);
   const box = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -43,8 +45,8 @@ export function Menu({
   return (
     <span ref={box} className={cn("relative min-w-0", full ? "flex w-full" : "inline-flex")}>
       {trigger({ open, onClick: () => setOpen((v) => !v) })}
-      {open && (
-        <span role="menu" className={cn(POPUP_PANEL, "absolute top-[calc(100%+4px)] z-30 flex max-h-[min(360px,50vh)] min-w-[160px] flex-col overflow-y-auto p-1", full && "w-full", align === "end" ? "right-0" : "left-0", panel)}>
+      {shown && (
+        <span role="menu" data-closing={closing(open)} className={cn(POPUP_PANEL, "nb-pop absolute top-[calc(100%+4px)] z-30 flex max-h-[min(360px,50vh)] min-w-[160px] flex-col overflow-y-auto p-1", full && "w-full", align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left", panel)}>
           {head}
           {items.map((it) => (
             <button

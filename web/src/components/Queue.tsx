@@ -59,7 +59,7 @@ export function Queue({ tasks, phone }: { tasks: Task[]; phone: boolean }) {
   ];
   if (phone) return <Swiped cols={cols} />;
   return (
-    <div className="flex h-full min-h-0 items-stretch gap-8 overflow-x-auto p-4">
+    <div className="a4k-reveal flex h-full min-h-0 items-stretch gap-8 overflow-x-auto p-4">
       {cols.map((col) => (
         <section key={col.key} className={`flex min-h-0 flex-col ${col.key === "needs" ? MAIN_W : SIDE_W}`}>
           <div className={`mb-3 flex h-8 shrink-0 items-center justify-between gap-3 rounded-[10px] px-2.5 ${HEAD[col.key].bar}`}>

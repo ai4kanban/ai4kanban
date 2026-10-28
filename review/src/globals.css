@@ -347,6 +347,102 @@ body {
     opacity: 0.12;
   }
 }
+/* Legacy motion (kanban-ui design.md "Interaction and motion"): 120ms by default, nothing
+   past ~300ms, and only what the user touched moves. */
+@keyframes nbSlideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes nbSlideOutRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+/* A chat line fades up into place; a control taking another's place fades in. */
+@keyframes nbRise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes nbEnter {
+  from {
+    opacity: 0;
+  }
+}
+/* A popup settles from its trigger and fades out on close (lib/motion.ts keeps it drawn meanwhile). */
+.nb-pop {
+  animation: nbPopIn 130ms ease both;
+}
+.nb-pop[data-closing] {
+  animation: nbFadeOut 120ms ease both;
+  pointer-events: none;
+}
+.nb-scrim {
+  animation: nbFadeIn 180ms ease both;
+}
+.nb-scrim[data-closing] {
+  animation: nbFadeOut 150ms ease both;
+}
+.nb-rise {
+  animation: nbRise 220ms ease-out both;
+}
+.nb-fold[open] > :not(summary) {
+  animation: nbFadeIn 180ms ease-out;
+}
+/* A rail opening and folding: its width glides. Only while it moves — a drag must follow the pointer. */
+.nb-glide {
+  transition: width 220ms cubic-bezier(0.32, 0.72, 0, 1), flex-grow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* Plain controls ease their colour; a `transition-*` utility still overrides. */
+@layer base {
+  :where(a, button, summary, [role="menuitem"], [role="option"], [role="tab"]) {
+    transition-property: color, background-color, border-color, opacity;
+    transition-duration: 120ms;
+    transition-timing-function: ease;
+  }
+}
+/* Less motion: nothing slides or scales; fades stay, so every state still reads. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes nbPopIn {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes nbRise {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes nbSlideInRight {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes nbSlideOutRight {
+    to {
+      opacity: 0;
+    }
+  }
+  .a4k-skel::after,
+  .a4k-breathe {
+    animation: none;
+  }
+  .nb-glide {
+    transition: none;
+  }
+  .nb-press:hover,
+  .nb-press:active {
+    transform: none;
+  }
+}
 /* A touch screen has no hover, so a tip that only answers one says nothing at
    all — and a mark whose whole message is its tip is then a mark that means
    nothing. `:focus` rather than `:focus-visible`: a tap focuses without the

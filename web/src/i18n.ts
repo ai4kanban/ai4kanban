@@ -13,6 +13,7 @@ export type ToolKind = "read" | "edit" | "delete" | "move" | "search" | "execute
 const zh = {
   find: "查找任务",
   noMatches: "没有找到任务",
+  loading: "正在加载",
   clear: "清除",
   matches: "找到的任务",
   chats: "对话",
@@ -500,6 +501,7 @@ export type Copy = typeof zh;
 const en: Copy = {
   find: "Find a task",
   noMatches: "No tasks found",
+  loading: "Loading",
   clear: "Clear",
   matches: "Matching tasks",
   chats: "Chats",

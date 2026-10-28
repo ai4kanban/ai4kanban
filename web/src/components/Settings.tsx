@@ -10,6 +10,7 @@ import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiCredit
 import { AgentMark, type Harness } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { Menu, POPUP_PANEL, type MenuEntry } from "@review/components/menu";
+import { useShown } from "@review/lib/motion";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { F } from "../first-run-i18n";
@@ -97,10 +98,13 @@ export function SettingsHost() {
     window.addEventListener(OPEN, show);
     return () => window.removeEventListener(OPEN, show);
   }, []);
-  return open ? <SettingsDialog section={open} onPick={setOpen} onClose={() => setOpen(null)} /> : null;
+  const [last, setLast] = useState<Section>("general");
+  if (open && open !== last) setLast(open);
+  const shown = useShown(!!open, 150);
+  return shown ? <SettingsDialog section={open ?? last} closing={!open} onPick={setOpen} onClose={() => setOpen(null)} /> : null;
 }
 
-function SettingsDialog({ section, onPick, onClose }: { section: Section; onPick: (s: Section) => void; onClose: () => void }) {
+function SettingsDialog({ section, closing, onPick, onClose }: { section: Section; closing: boolean; onPick: (s: Section) => void; onClose: () => void }) {
   const store = useStore();
   const [projectId, setProjectId] = useState(store.current?.id ?? null);
   const project = store.projects.find((p) => p.id === projectId) ?? null;
@@ -139,8 +143,8 @@ function SettingsDialog({ section, onPick, onClose }: { section: Section; onPick
   };
   const projectSection = section === "workflows" || section === "board";
   return (
-    <div className="nb-scrim z-50" style={{ alignItems: "center" }} onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal aria-label={T.settings} className="nb-panel relative flex flex-col" style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}>
+    <div className="nb-scrim z-50" data-closing={closing || undefined} style={{ alignItems: "center" }} onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal aria-label={T.settings} className="nb-panel nb-pop relative flex flex-col" style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}>
         <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-5 py-3">
           <h2 className="min-w-0 truncate text-[15px] font-[800] tracking-[-0.02em]">{T.settings}</h2>
           <button type="button" aria-label={T.close} onClick={onClose} className="-mr-1 grid size-7 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink">
@@ -167,7 +171,7 @@ function SettingsDialog({ section, onPick, onClose }: { section: Section; onPick
                 <FiChevronDown size={12} aria-hidden className={cn("shrink-0 opacity-70", switching && "rotate-180")} />
               </button>
               {switching && (
-                <div role="listbox" aria-label={T.pickProject} className={cn(POPUP_PANEL, "absolute left-1 top-[26px] z-30 flex max-h-[min(360px,50vh)] w-[220px] flex-col overflow-y-auto p-1")}>
+                <div role="listbox" aria-label={T.pickProject} className={cn(POPUP_PANEL, "nb-pop origin-top-left absolute left-1 top-[26px] z-30 flex max-h-[min(360px,50vh)] w-[220px] flex-col overflow-y-auto p-1")}>
                   {store.projects.map((p) => (
                     <button
                       key={p.id}
@@ -198,7 +202,7 @@ function SettingsDialog({ section, onPick, onClose }: { section: Section; onPick
               {PROJECT.map(entry)}
             </div>
           </nav>
-          <div className="min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-md:px-4 max-md:pt-5">
+          <div key={`${section}:${projectId}`} className="a4k-reveal min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-md:px-4 max-md:pt-5">
             {section === "general" && (
               <GeneralPanel
                 onReplay={() => {
@@ -479,7 +483,7 @@ function ConfirmDelete({ name, onCancel, onConfirm }: { name: string; onCancel: 
     return () => window.removeEventListener("pointerdown", away);
   }, [onCancel]);
   return (
-    <div ref={box} role="alertdialog" className={`${POPUP_PANEL} absolute left-0 top-[calc(100%+8px)] z-30 w-[320px] max-w-[calc(100vw-4rem)] rounded-[13px] p-3 text-left`}>
+    <div ref={box} role="alertdialog" className={`${POPUP_PANEL} nb-pop origin-top-left absolute left-0 top-[calc(100%+8px)] z-30 w-[320px] max-w-[calc(100vw-4rem)] rounded-[13px] p-3 text-left`}>
       <p className="text-[13px] font-[700] text-nb-ink">{T.runtimes.removeTitle(name)}</p>
       <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">{T.runtimes.removeBlurb}</p>
       <div className="mt-3 flex items-center justify-end gap-2">

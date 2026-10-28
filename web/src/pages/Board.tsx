@@ -6,6 +6,7 @@ import { useNarrow } from "../lib/narrow";
 import { useStore } from "../store";
 import { BoardCheer } from "../components/Cheer";
 import { Queue } from "../components/Queue";
+import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
 import { Gone } from "./Gone";
 
@@ -16,7 +17,12 @@ export function Board({ projectId }: { projectId: string }) {
   useEffect(() => {
     document.title = `${project ? project.name : T.projects} · WildCrane`;
   }, [project?.name]);
-  if (!store.tasks) return <Window>{null}</Window>;
+  if (!store.tasks)
+    return (
+      <Window>
+        <Skeleton className="max-w-[420px] p-6" />
+      </Window>
+    );
   if (!project) return <Gone text={T.notFoundProject} />;
   const tasks = store.tasks.filter((t) => t.project === project.id);
   return (

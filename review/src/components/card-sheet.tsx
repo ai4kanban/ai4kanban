@@ -249,7 +249,7 @@ export function RemoveButton({ busy, onRemove }: { busy: boolean; onRemove: (rea
         <FiXCircle className="text-[14px]" aria-hidden />
       </button>
       {open && (
-        <div role="dialog" className="nb-panel absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] max-w-[calc(100vw-24px)] bg-nb-paper p-3">
+        <div role="dialog" className="nb-panel nb-pop origin-top-right absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] max-w-[calc(100vw-24px)] bg-nb-paper p-3">
           <p className="text-[13px] font-[700]">{a.removeAsk}</p>
           <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{a.removeBody}</p>
           <textarea

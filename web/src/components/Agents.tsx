@@ -270,7 +270,7 @@ function FlowPicker({ flows, flow, open, onOpen, onPick }: { flows: Flow[]; flow
         <FiChevronDown aria-hidden className={cn("shrink-0 text-nb-ink-soft", open && "rotate-180")} />
       </button>
       {open && (
-        <div role="dialog" aria-label={c.workflows} className={cn(POPUP_PANEL, "absolute inset-x-0 top-[calc(100%+6px)] z-30 p-1")}>
+        <div role="dialog" aria-label={c.workflows} className={cn(POPUP_PANEL, "nb-pop origin-top absolute inset-x-0 top-[calc(100%+6px)] z-30 p-1")}>
           <div className="relative mb-1 p-1">
             <FiSearch aria-hidden className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[12px] text-nb-ink-soft" />
             <input
@@ -537,7 +537,7 @@ function CadenceMenu({ agent, onSave }: { agent: Item; onSave: (s: { on: boolean
     setRefused(await onSave({ on: true, cadence: text }));
   };
   return (
-    <div role="dialog" className={cn(POPUP_PANEL, "absolute right-0 top-[calc(100%+6px)] z-30 w-[232px] p-1 text-left max-sm:left-0 max-sm:right-auto")}>
+    <div role="dialog" className={cn(POPUP_PANEL, "nb-pop origin-top-right absolute right-0 top-[calc(100%+6px)] z-30 w-[232px] p-1 text-left max-sm:left-0 max-sm:right-auto")}>
       {next && (
         <>
           <p className="px-2.5 pt-1.5 pb-1 text-[11.5px] leading-[16px] text-nb-ink-soft">{next}</p>

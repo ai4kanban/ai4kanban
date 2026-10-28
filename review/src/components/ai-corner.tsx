@@ -47,7 +47,7 @@ export function AiCorner({
   if (open)
     return (
       <>
-        <div className="absolute bottom-[76px] right-5 z-40">{children}</div>
+        <div className="nb-pop origin-bottom-right absolute bottom-[76px] right-5 z-40">{children}</div>
         <Button onClick={onToggle} className="absolute bottom-5 right-5 z-40 size-11 rounded-full p-0" aria-label={c.close} title={c.close}>
           <FiX className="text-[18px]" aria-hidden />
         </Button>

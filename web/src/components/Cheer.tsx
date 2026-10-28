@@ -79,7 +79,7 @@ function Corner({ task, Scene, now, onDone }: { task: Task; Scene: Scene; now: D
         onDone();
         navigate(`/tasks/${encodeURIComponent(task.key)}`);
       }}
-      className="cheer-corner nb-panel-sm absolute bottom-4 right-4 z-30 flex w-[280px] cursor-pointer flex-col overflow-hidden p-0 text-left max-md:hidden"
+      className="cheer-corner nb-panel-sm a4k-reveal absolute bottom-4 right-4 z-30 flex w-[280px] cursor-pointer flex-col overflow-hidden p-0 text-left max-md:hidden"
     >
       <Scene now={now} />
       <span className="flex h-[30px] items-center gap-1.5 px-2.5 text-[11.5px] leading-none">

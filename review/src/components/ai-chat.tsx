@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { FiCheck, FiChevronDown, FiCopy, FiImage, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
 import { ApiError, clearChat, readChat, sendChat, stopChat, type Chat, type ChatImage, type ChatMessage, type ChatRuntime, type Connector } from "../api";
 import type { Copy } from "../i18n";
+import { useArrived } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { AgentMark, type Harness } from "./agent-mark";
 import { Button } from "./button";
@@ -82,6 +83,7 @@ export function AiChat({
 }) {
   const io = api ?? linkChat(token);
   const [chat, setChat] = useState<Chat | null>(null);
+  const arrived = useArrived(chat && chat.messages.map((m) => m.id));
   const [draft, setDraft] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -302,7 +304,7 @@ export function AiChat({
           <div className={cn("flex flex-col gap-2", page && "mx-auto max-w-[600px]")}>
             {chat.messages.map((m) =>
               m.role === "user" ? (
-                <div key={m.id} className="ml-16 mt-3 flex flex-col items-end first:mt-0">
+                <div key={m.id} className={cn("ml-16 mt-3 flex flex-col items-end first:mt-0", arrived(m.id) && "nb-rise")}>
                   <div className="max-w-full rounded-[10px] bg-nb-ink/5 p-2.5">
                     {!!m.image_names?.length && (
                       <div className="flex flex-wrap justify-end gap-[5px]">
@@ -318,7 +320,7 @@ export function AiChat({
                   </div>
                 </div>
               ) : (
-                <Reply key={m.id} c={c} m={m} phone={phone} />
+                <Reply key={m.id} c={c} m={m} phone={phone} rise={arrived(m.id)} />
               ),
             )}
             {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{chat.status === "queued" ? c.queued : c.replying}</p>}
@@ -358,7 +360,7 @@ const ACTION = "inline-flex size-6 cursor-pointer items-center justify-center ro
 const ON_HOVER = "opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100";
 
 /** An agent's reply: its words, then one line of 已停止 · time · tokens · cost and its copy button. */
-function Reply({ c, m, phone }: { c: AiCopy; m: ChatMessage; phone?: boolean }) {
+function Reply({ c, m, phone, rise }: { c: AiCopy; m: ChatMessage; phone?: boolean; rise?: boolean }) {
   const { copied, copy } = useCopyText();
   const u = m.usage;
   const parts: ReactNode[] = [
@@ -371,7 +373,7 @@ function Reply({ c, m, phone }: { c: AiCopy; m: ChatMessage; phone?: boolean }) 
     m.cost_usd != null && <span title={c.costHint}>{m.cost_usd < 0.005 ? c.costTiny : c.cost(m.cost_usd.toFixed(2))}</span>,
   ].filter(Boolean);
   return (
-    <div className="group mt-3">
+    <div className={cn("group mt-3", rise && "nb-rise")}>
       <Markdown body={m.body} className="nb-sessionlog-md" />
       <div className="mt-1 flex h-6 items-center gap-1">
         {(m.stopped || parts.length > 0) && (
@@ -451,7 +453,7 @@ function Pick({
         <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
       </button>
       {open && (
-        <div role="menu" className="nb-panel absolute bottom-[calc(100%+6px)] left-0 z-10 w-[256px] max-w-[calc(100vw-24px)] bg-nb-paper p-1">
+        <div role="menu" className="nb-panel nb-pop origin-bottom-left absolute bottom-[calc(100%+6px)] left-0 z-10 w-[256px] max-w-[calc(100vw-24px)] bg-nb-paper p-1">
           {options.map((o) => {
             const detail = detailOf(c, o);
             const note = gone?.includes(o.id) ? c.runnerRemoved : noteOf(c, o);
@@ -524,7 +526,7 @@ function Clear({ c, disabled, onClear }: { c: AiCopy; disabled: boolean; onClear
         <FiTrash2 className="text-[13px]" aria-hidden />
       </button>
       {open && (
-        <div role="dialog" className="nb-panel absolute bottom-[calc(100%+6px)] right-0 z-10 w-[260px] bg-nb-paper p-3">
+        <div role="dialog" className="nb-panel nb-pop origin-bottom-right absolute bottom-[calc(100%+6px)] right-0 z-10 w-[260px] bg-nb-paper p-3">
           <p className="text-[13px] font-[700] text-nb-ink">{c.clearAsk}</p>
           <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{c.clearBody}</p>
           <div className="mt-3 flex justify-end gap-2">

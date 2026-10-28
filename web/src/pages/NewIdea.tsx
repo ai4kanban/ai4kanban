@@ -316,7 +316,7 @@ function WorkflowPick({ workflows, pick, flowsOnly, onPick, onDeleted }: { workf
         {label}
       </TrayPick>
       {open && (
-        <span role="menu" className={cn(POPUP_PANEL, "absolute bottom-[calc(100%+4px)] left-0 z-30 flex max-h-[min(420px,60vh)] w-[230px] flex-col overflow-y-auto p-1")}>
+        <span role="menu" className={cn(POPUP_PANEL, "nb-pop origin-bottom-left absolute bottom-[calc(100%+4px)] left-0 z-30 flex max-h-[min(420px,60vh)] w-[230px] flex-col overflow-y-auto p-1")}>
           {!flowsOnly && row("auto", T.builder.auto, pick.kind === "auto", AUTO)}
           {builtins.map((w) => row(w.id, workflowName(w), pick.kind === "flow" && pick.id === w.id, { kind: "flow", id: w.id }))}
           {own.length > 0 && RULE}
@@ -347,7 +347,7 @@ function WorkflowPick({ workflows, pick, flowsOnly, onPick, onDeleted }: { workf
         </span>
       )}
       {asking && (
-        <div role="dialog" className="nb-panel absolute left-0 top-[calc(100%+6px)] z-20 w-[280px] bg-nb-paper p-3 max-md:w-[min(280px,calc(100vw-48px))]">
+        <div role="dialog" className="nb-panel nb-pop origin-top-left absolute left-0 top-[calc(100%+6px)] z-20 w-[280px] bg-nb-paper p-3 max-md:w-[min(280px,calc(100vw-48px))]">
           <p className="text-[13px] font-[700]">{T.builder.deleteAsk(asking.name)}</p>
           <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{failed ? T.builder.deleteFailed : T.builder.deleteBody}</p>
           <div className="mt-3 flex justify-end gap-2">

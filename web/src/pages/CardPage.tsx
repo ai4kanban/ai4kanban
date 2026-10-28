@@ -36,6 +36,7 @@ import { StageBand, type StageState } from "../components/StageBand";
 import { titleOf } from "../components/Agents";
 import { Subtasks } from "../components/Subtasks";
 import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/Settings";
+import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
 import { Gone } from "./Gone";
 
@@ -257,7 +258,12 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   );
 
   if (missing && !task) return <Gone text={T.notFound} />;
-  if (!task) return <Window>{null}</Window>;
+  if (!task)
+    return (
+      <Window>
+        <Skeleton className="max-w-[420px] p-6" />
+      </Window>
+    );
 
   const project = store.projects.find((p) => p.id === task.project);
   const waiting = task.status === "waiting_review" && !!ready;
@@ -541,7 +547,7 @@ function ShareSlot({ task }: { task: string }) {
     <div ref={box} className="relative">
       <ShareButton quiet label={REVIEW.share.button} open={open} onClick={() => void toggle()} />
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-[60] max-md:fixed max-md:inset-x-3 max-md:top-[calc(3.5rem+env(safe-area-inset-top))]">
+        <div className="nb-pop origin-top-right absolute right-0 top-[calc(100%+8px)] z-[60] max-md:fixed max-md:inset-x-3 max-md:top-[calc(3.5rem+env(safe-area-inset-top))]">
           {state ? (
             <SharePanel
               key={state.link.id}

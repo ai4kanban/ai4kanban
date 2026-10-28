@@ -16,6 +16,7 @@ import { numberOf } from "../lib/card";
 import { useNarrow } from "../lib/narrow";
 import { Link, navigate } from "../router";
 import { useStore } from "../store";
+import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
 import { Gone } from "./Gone";
 import { refusal } from "./NewIdea";
@@ -29,7 +30,7 @@ const LINK = "cursor-pointer text-[12px] font-[700] text-nb-accent-deep underlin
 const GHOST_INK = "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink";
 const CHECK = "size-[14px] shrink-0 cursor-pointer accent-nb-accent-deep";
 const ICON_BTN = "nb-tip grid size-[26px] shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]";
-const ROW = "flex min-h-[28px] cursor-pointer items-start gap-3 px-3 py-[5px] leading-[18px] outline-none";
+const ROW = "flex min-h-[28px] cursor-pointer items-start gap-3 px-3 py-[5px] leading-[18px] outline-none transition-colors duration-[120ms]";
 const SELECTED = "bg-nb-accent-soft shadow-[inset_2px_0_0_0_var(--color-nb-accent-deep)]";
 const BUSY = "disabled:cursor-default disabled:opacity-40";
 const TICKED = "bg-[color-mix(in_srgb,var(--color-nb-accent-soft)_55%,transparent)]";
@@ -321,7 +322,7 @@ export function TriagePage({ projectId }: { projectId: string }) {
     </div>
   );
 
-  const body = loading ? null : list.length === 0 ? (
+  const body = loading ? <Skeleton className="max-w-[420px] p-4" /> : list.length === 0 ? (
     tab === "pending" ? <Empty title={C.empty} hint={C.emptyHint} /> : <Empty title={C.historyEmpty} hint={C.historyEmptyHint} />
   ) : rows.length === 0 ? (
     <div className="m-auto flex flex-col items-center gap-2 py-10 text-center">
@@ -333,7 +334,7 @@ export function TriagePage({ projectId }: { projectId: string }) {
   ) : (
     <>
       {!phone && pickBar}
-      <ul className="flex flex-col">
+      <ul key={tab} className="a4k-reveal flex flex-col">
         {rows.map((it, k) => {
           const first = k === 0 || sourceKey(rows[k - 1]!) !== sourceKey(it);
           const common = { item: it, first, top: k === 0, source: sourceOf(it), selected: it.id === selected, onOpen: () => setSelected(it.id) };
@@ -552,7 +553,7 @@ function IgnoredToast({ items, onUndo, onReason, onClose }: { items: api.TriageI
     return () => clearTimeout(id);
   }, [asking]);
   return (
-    <div role="status" className="nb-panel-sm absolute bottom-5 left-1/2 z-30 flex w-[460px] max-w-[calc(100%-24px)] -translate-x-1/2 flex-col gap-2 bg-nb-paper px-3.5 py-2.5">
+    <div role="status" className="nb-panel-sm nb-rise absolute bottom-5 left-1/2 z-30 flex w-[460px] max-w-[calc(100%-24px)] -translate-x-1/2 flex-col gap-2 bg-nb-paper px-3.5 py-2.5">
       <div className="flex h-7 items-center gap-3">
         <span className="min-w-0 flex-1 truncate text-[12.5px] font-[600]">{items.length === 1 ? C.ignoredOne(items[0]!.title) : C.ignoredN(items.length)}</span>
         <button type="button" onClick={onUndo} className={cn(LINK, "shrink-0")}>
@@ -608,7 +609,7 @@ function Detail({
   useEffect(() => setEditing(false), [item.id]);
   const open = item.state === "open";
   return (
-    <aside aria-label={item.title} className="flex h-full flex-col bg-nb-cream max-md:bg-nb-paper">
+    <aside aria-label={item.title} className="flex h-full flex-col bg-nb-cream max-md:animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)] max-md:bg-nb-paper">
       <div className="flex shrink-0 items-center gap-2 py-2.5 pl-3 pr-1">
         <span className="flex h-8 min-w-0 flex-1 items-center gap-1.5 text-[12px]">
           <RowSource source={source} />

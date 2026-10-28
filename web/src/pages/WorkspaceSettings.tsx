@@ -300,7 +300,7 @@ function Runners({ owner }: { owner: boolean }) {
                   {T.ws.remove}
                 </button>
                 {asking === r.machine && (
-                  <div role="dialog" className={cn(POPUP_PANEL, "absolute right-0 top-[calc(100%+8px)] z-10 flex w-[248px] flex-col gap-3 p-3")}>
+                  <div role="dialog" className={cn(POPUP_PANEL, "nb-pop origin-top-right absolute right-0 top-[calc(100%+8px)] z-10 flex w-[248px] flex-col gap-3 p-3")}>
                     <p className="text-[12.5px] leading-[1.5]">{T.runners.removeAsk(name)}</p>
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="xs" onClick={close}>

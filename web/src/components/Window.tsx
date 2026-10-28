@@ -53,8 +53,19 @@ export function Window({
   const phone = useNarrow();
   const [rail, setRail] = useState(() => localStorage.getItem(RAIL_KEY) !== "0");
   const [tab, setTab] = useState<"board" | "chats" | "more">("board");
+  const [tabbed, setTabbed] = useState(false);
+  // The side rail slides in when it opens on this page, not when a page opens with it.
+  const [hadSide, setHadSide] = useState(!!side);
+  const [sideMoved, setSideMoved] = useState(false);
+  if (hadSide !== !!side) {
+    setHadSide(!!side);
+    setSideMoved(true);
+  }
   const { path } = useLocation();
-  useEffect(() => setTab("board"), [path]);
+  useEffect(() => {
+    setTab("board");
+    setTabbed(false);
+  }, [path]);
 
   useEffect(() => {
     if (project) store.setCurrent(project.id);
@@ -99,7 +110,7 @@ export function Window({
           {newIdea}
           {phoneTop}
         </div>
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div key={tab} className={cn("relative min-h-0 flex-1 overflow-hidden", tabbed && "a4k-reveal")}>
           {tab === "chats" ? (
             <div className="flex h-full flex-col overflow-y-auto py-1">
               <ChatList chats={store.chats} active={activeChat} big />
@@ -124,6 +135,7 @@ export function Window({
                 type="button"
                 onClick={() => {
                   if (k === "board" && tab === "board" && !project && path !== "/") navigate("/");
+                  setTabbed(k !== tab);
                   setTab(k);
                 }}
                 aria-current={tab === k ? "page" : undefined}
@@ -166,7 +178,7 @@ export function Window({
       <div className="flex min-h-0 flex-1">
         <Rail open={rail} onToggle={toggleRail} archiveHref={archiveHref} activeChat={activeChat} />
         <div className={cn("relative min-w-0 flex-1 overflow-hidden bg-nb-paper", side ? "rounded-t-[14px]" : "rounded-tl-[14px]")}>{children}</div>
-        {side && <div className="w-[360px] shrink-0 px-3">{side}</div>}
+        {side && <div className={cn("w-[360px] shrink-0 px-3", sideMoved && "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]")}>{side}</div>}
       </div>
       <SettingsHost />
     </div>
@@ -181,7 +193,7 @@ function PhoneFind() {
     <div className="relative min-w-0 flex-1">
       <FindBox phone value={q} onChange={setQ} onMove={() => {}} onOpen={() => matches[0] && navigate(`/tasks/${encodeURIComponent(matches[0].key)}`)} />
       {q.trim() && (
-        <div className="nb-panel-sm absolute inset-x-0 top-[calc(100%+6px)] z-40 flex max-h-[60vh] flex-col overflow-y-auto p-1">
+        <div className="nb-panel-sm nb-pop origin-top absolute inset-x-0 top-[calc(100%+6px)] z-40 flex max-h-[60vh] flex-col overflow-y-auto p-1">
           {matches.map((t) => (
             <Link key={t.id} href={`/tasks/${encodeURIComponent(t.key)}`} onClick={() => setQ("")} className="flex h-10 items-center gap-2 rounded-[7px] px-2.5 text-[14px] text-nb-ink no-underline">
               <span className="shrink-0 text-[12px] font-[800] text-nb-accent-deep">#{t.key.replace(/^.*-/, "")}</span>

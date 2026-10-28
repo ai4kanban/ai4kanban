@@ -8,6 +8,7 @@ import * as api from "../api";
 import { T } from "../i18n";
 import { useNarrow } from "../lib/narrow";
 import { useStore } from "../store";
+import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
 
 const RANGES = [30, 90, 365];
@@ -78,8 +79,10 @@ export function Stats() {
           </div>
           {failed ? (
             <p className="text-[13px] text-nb-ink-soft">{T.stats.failed}</p>
-          ) : rows === null ? null : (
-            <>
+          ) : rows === null ? (
+            <Skeleton />
+          ) : (
+            <div className="a4k-reveal flex flex-col gap-4">
               <div className="nb-section grid grid-cols-4 bg-nb-sheet max-md:grid-cols-2">
                 {(
                   [
@@ -151,7 +154,7 @@ export function Stats() {
                   />
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

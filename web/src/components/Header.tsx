@@ -11,6 +11,7 @@ import { Avatar } from "@review/components/chat";
 import { HAIRLINE } from "@review/components/chrome";
 import { LangSelect } from "@review/components/lang-select";
 import { POPUP_PANEL } from "@review/components/menu";
+import { closing, useShown } from "@review/lib/motion";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { useNeedsByProject } from "../alerts";
@@ -29,6 +30,7 @@ export function Me() {
   const { me } = useStore();
   const who = meName(me);
   const [open, setOpen] = useState(false);
+  const shown = useShown(open);
   const box = useDismiss<HTMLSpanElement>(open, () => setOpen(false));
   const pick = (go: () => void) => () => {
     setOpen(false);
@@ -39,8 +41,8 @@ export function Me() {
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={who} title={who} className="inline-flex cursor-pointer items-center rounded-full max-md:min-h-[36px]">
         <Avatar who={who} size={24} />
       </button>
-      {open && (
-        <span role="menu" className={cn(POPUP_PANEL, "absolute right-0 top-[calc(100%+4px)] z-30 flex w-[260px] flex-col p-1")}>
+      {shown && (
+        <span role="menu" data-closing={closing(open)} className={cn(POPUP_PANEL, "nb-pop origin-top-right absolute right-0 top-[calc(100%+4px)] z-30 flex w-[260px] flex-col p-1")}>
           <span className="flex items-center gap-2.5 px-2.5 py-2">
             <Avatar who={who} size={32} />
             <span className="flex min-w-0 flex-col">
@@ -109,7 +111,7 @@ export function useDismiss<E extends HTMLElement>(open: boolean, close: () => vo
   return box;
 }
 
-const MENU = "nb-panel-sm absolute left-0 top-[calc(100%+6px)] z-40 flex w-[260px] flex-col p-1.5";
+const MENU = "nb-panel-sm nb-pop origin-top-left absolute left-0 top-[calc(100%+6px)] z-40 flex w-[260px] flex-col p-1.5";
 const ROW = "flex h-9 w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 text-left text-[13px] hover:bg-nb-wash";
 const SEGMENT = "flex h-7 min-w-0 cursor-pointer items-center gap-1.5 rounded-[8px] px-1.5 text-[13px] font-[700] text-nb-ink hover:bg-nb-wash";
 const BADGE = "inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px]";
@@ -139,6 +141,7 @@ export function WsMark({ ws, size = 18 }: { ws: api.Workspace; size?: number }) 
 export function WorkspaceSwitch() {
   const store = useStore();
   const [open, setOpen] = useState(false);
+  const shown = useShown(open);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
@@ -177,8 +180,8 @@ export function WorkspaceSwitch() {
         <span className="max-w-[160px] truncate max-md:hidden">{wsName(store.ws)}</span>
         <FiChevronDown size={12} className="shrink-0 opacity-60" aria-hidden />
       </button>
-      {open && (
-        <div className={MENU} role="menu">
+      {shown && (
+        <div className={MENU} data-closing={closing(open)} role="menu">
           {store.workspaces.map((w) => (
             <button key={w.id} type="button" role="menuitem" onClick={() => pick(w.id)} className={cn(ROW, "h-10 gap-2.5", w.id === store.ws.id && "bg-nb-wash font-[700]")}>
               <WsMark ws={w} size={20} />
@@ -240,6 +243,7 @@ export function ProjectChip() {
   const store = useStore();
   const needs = useNeedsByProject();
   const [open, setOpen] = useState(false);
+  const shown = useShown(open);
   const box = useDismiss<HTMLSpanElement>(open, () => setOpen(false));
   const current = store.current;
   const elsewhere = [...needs.keys()].some((id) => id !== current?.id && store.projects.some((p) => p.id === id));
@@ -266,8 +270,8 @@ export function ProjectChip() {
           <FiChevronDown size={12} className="shrink-0 opacity-60" aria-hidden />
         </button>
       )}
-      {open && (
-        <div className={MENU} role="menu">
+      {shown && (
+        <div className={MENU} data-closing={closing(open)} role="menu">
           {store.projects.map((p) => (
               <button
                 key={p.id}

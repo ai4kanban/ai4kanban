@@ -44,7 +44,7 @@ export function Archive() {
           {rows.length === 0 ? (
             <p className="text-[13px] text-nb-ink-soft">{T.archiveEmpty}</p>
           ) : (
-            <div className="nb-section flex flex-col bg-nb-sheet">
+            <div key={sort} className="nb-section a4k-reveal flex flex-col bg-nb-sheet">
               {rows.map((t, k) => {
                 const unread = !!alerts.of(t.id)?.alerts.some((a) => a.kind === "done" || a.kind === "comment");
                 return (

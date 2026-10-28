@@ -271,7 +271,7 @@ function IdeaCard({
   className?: string;
 }) {
   return (
-    <section aria-label={T.idea.ideas} className={cn("flex flex-col overflow-hidden rounded-[14px] bg-nb-cream", className)}>
+    <section aria-label={T.idea.ideas} className={cn("a4k-reveal flex flex-col overflow-hidden rounded-[14px] bg-nb-cream", className)}>
       {ideas.length > 1 && (
         <div role="tablist" className="flex shrink-0 items-end gap-5 overflow-x-auto pt-2" style={{ paddingInline: PAD, borderBottom: `1px solid ${HAIRLINE}` }}>
           {ideas.map((i) => {
@@ -293,7 +293,7 @@ function IdeaCard({
           })}
         </div>
       )}
-      <div className="min-h-0 flex-1 overflow-y-auto" style={{ padding: PAD }}>
+      <div key={idea.id} className="a4k-reveal min-h-0 flex-1 overflow-y-auto" style={{ padding: PAD }}>
         <div className="flex items-start gap-2">
           <h2 className="min-w-0 flex-1 text-[16px] font-[800] leading-[1.35] tracking-[-0.01em]">{idea.title}</h2>
           {!idea.task && (

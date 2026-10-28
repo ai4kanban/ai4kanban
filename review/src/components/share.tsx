@@ -73,7 +73,7 @@ export function Share(props: PanelProps) {
     <div ref={box} className="relative">
       <ShareButton label={c.button} open={open} onClick={() => setOpen((v) => !v)} />
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-[60] max-md:fixed max-md:inset-x-3 max-md:top-14">
+        <div className="nb-pop origin-top-right absolute right-0 top-[calc(100%+8px)] z-[60] max-md:fixed max-md:inset-x-3 max-md:top-14">
           <SharePanel {...props} />
         </div>
       )}
