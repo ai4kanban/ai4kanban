@@ -133,7 +133,7 @@ function Swiped({ cols }: { cols: Col[] }) {
   const go = (i: number) => strip.current?.scrollTo({ left: i * strip.current.clientWidth, behavior: "smooth" });
   const here = cols[Math.min(at, cols.length - 1)]!;
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       <div className="flex h-10 shrink-0 items-center gap-2 px-4">
         <h2 className="nb-tag shrink-0 whitespace-nowrap">
           <span className={HEAD[here.key].dot}>●</span>
@@ -150,7 +150,7 @@ function Swiped({ cols }: { cols: Col[] }) {
       </div>
       <div ref={strip} onScroll={onScroll} className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overscroll-x-contain">
         {cols.map((col) => (
-          <section key={col.key} aria-label={col.title} className="min-h-0 w-full shrink-0 snap-center overflow-y-auto px-2 pb-3">
+          <section key={col.key} aria-label={col.title} className="min-h-0 w-full shrink-0 snap-center overflow-y-auto overscroll-y-contain px-2 pb-3">
             {col.body}
           </section>
         ))}
