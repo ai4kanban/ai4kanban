@@ -215,6 +215,47 @@ describe('the plugin component', () => {
     }
   })
 
+  it('tells both hosts to update the plugin once Cloud refuses its Runner as outdated', async () => {
+    useRunnerHome()
+    fs.rmSync(runnerHome(), { recursive: true, force: true })
+    writeFakeSession(runnerHome())
+    const cloud = new FakeCloud()
+    cloud.minProtocol = 99
+    await cloud.start()
+    const children: ReturnType<typeof component>['child'][] = []
+    const status = async (as: 'claude-code' | 'codex') => {
+      const { child, answers, send, ready } = component(as, `http://127.0.0.1:${cloud.port}`)
+      children.push(child)
+      await ready
+      for (let n = 10; ; n++) {
+        if (as === 'codex') send(n, 'tools/call', { name: 'wildcrane_status', arguments: { path: os.homedir() } })
+        else {
+          const key = fs.readFileSync(path.join(runnerHome(), 'plugin', 'panel.key'), 'utf8').trim()
+          send(n, 'tools/call', { name: 'wildcrane_panel', arguments: { key, action: 'state', cwd: os.homedir() } })
+        }
+        await until(() => answers.has(n), 10_000)
+        const now = JSON.parse((answers.get(n)!.result as { content: { text: string }[] }).content[0]!.text) as Record<string, unknown>
+        if (now.runner === 'outdated') return now
+        await new Promise((r) => setTimeout(r, 100))
+      }
+    }
+    try {
+      const panel = await status('claude-code')
+      assert.match(String(panel.next), /claude plugin update wildcrane@wildcrane/)
+      children[0]!.stdin.end()
+      await new Promise((r) => children[0]!.on('exit', r))
+      assert.match(String((await status('codex')).next), /codex plugin add wildcrane@wildcrane/)
+    } finally {
+      for (const child of children) {
+        if (child.exitCode !== null) continue
+        const exited = new Promise((r) => child.on('exit', r))
+        child.stdin.end()
+        await exited
+      }
+      await cloud.stop()
+    }
+  })
+
   it('lets Codex bind the folder to an existing project', async () => {
     useRunnerHome()
     fs.rmSync(runnerHome(), { recursive: true, force: true })

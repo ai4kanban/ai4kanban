@@ -224,3 +224,22 @@ test('New project and Bind take a typed folder, and a taken one is refused by na
   expect(await ui.find({ text: /already belongs to site/ })).toBeDefined()
   await ui.unmount()
 })
+
+test('an outdated Runner shows the update commands above every tab', async ($, on) => {
+  host(on, { discussion: EMPTY, state: { ...PROJECTS, runner: 'outdated' } }, 'zh')
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await onProjects($, surface)
+    expect(await ui.find({ text: /插件版本过旧/ })).toBeDefined()
+    expect(await ui.find({ type: 'Code', text: /claude plugin update wildcrane@wildcrane/ })).toBeDefined()
+    await ui.press({ key: 'tab-ideas' })
+    expect(await ui.find({ text: /插件版本过旧/ })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+test('a running Runner shows no update notice', async ($, on) => {
+  host(on, { discussion: EMPTY, state: { ...PROJECTS, runner: 'running' } })
+  const ui = await onProjects($)
+  expect(await ui.find({ text: /out of date/ })).toBeUndefined()
+  await ui.unmount()
+})

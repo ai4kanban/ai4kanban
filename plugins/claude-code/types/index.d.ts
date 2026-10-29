@@ -30,6 +30,7 @@ export type Adding = { project: string | null; path: string; error: string | nul
 
 export type Status = {
   dir: string
+  runner?: 'off' | 'waiting' | 'running' | 'outdated'
   signedIn: boolean
   signing?: { url: string | null; failed: string | null } | null
   folder?: Folder | null

@@ -112,11 +112,12 @@ async function draftOf(id: string) {
 
 /** The Runner: started once signed in, closed with the host. */
 let runner: Runner | null = null
-let runnerState: 'off' | 'waiting' | 'running' = 'off'
+/** `outdated`: Cloud refused this plugin's Runner; it stays off until the plugin is updated. */
+let runnerState: 'off' | 'waiting' | 'running' | 'outdated' = 'off'
 let host: Host = 'claude-code'
 
 function run(): void {
-  if (runner || process.env.WILDCRANE_JOB || !readSession()) return
+  if (runner || runnerState === 'outdated' || process.env.WILDCRANE_JOB || !readSession()) return
   const id = machineId()
   runnerState = 'running'
   runner = startRunner({
@@ -125,9 +126,9 @@ function run(): void {
     onWaiting: () => (runnerState = 'waiting'),
     onConnected: () => (runnerState = 'running'),
   })
-  void runner.stopped.then(() => {
+  void runner.stopped.then((stop) => {
     runner = null
-    runnerState = 'off'
+    runnerState = stop.reason === 'outdated' ? 'outdated' : 'off'
   })
 }
 
@@ -154,8 +155,14 @@ async function folderOf(cwd: string) {
   return { folders: list.value.folders, folder: list.value.folders.find((f) => realpath(f.path) === real) ?? null }
 }
 
+/** How to update the plugin, which carries its own Runner. */
+const UPDATE = {
+  'claude-code': 'The WildCrane plugin is out of date, so tasks no longer run on this computer. Tell the user to run `claude plugin marketplace update wildcrane` and `claude plugin update wildcrane@wildcrane` in a terminal, then `/reload-plugins`.',
+  codex: 'The WildCrane plugin is out of date, so tasks no longer run on this computer. Tell the user to download `wildcrane-codex.zip` from the latest `plugin-v*` release at https://github.com/ai4kanban/ai4kanban/releases, unzip it over the old copy, then run `codex plugin remove wildcrane@wildcrane` and `codex plugin add wildcrane@wildcrane`.',
+}
+
 async function state(cwd: string) {
-  const base = { dir: home(cwd), runner: runnerState, web: WEB_URL() }
+  const base = { dir: home(cwd), runner: runnerState, web: WEB_URL(), ...(runnerState === 'outdated' ? { next: UPDATE[host] } : {}) }
   if (!readSession()) return { ...base, signedIn: false, signing }
   const found = await folderOf(cwd)
   if ('error' in found) return { ...base, signedIn: true, ...found }
@@ -384,7 +391,7 @@ export function server(): McpServer {
     })
     mcp.registerTool('wildcrane_draft_save', { description: saveWhat, inputSchema: saveSchema }, save)
     mcp.registerTool('wildcrane_status', {
-      description: "WildCrane on this computer: whether the user is signed in, the projects added here with their boards (the one for `path` marked), this computer's recent discussions, and which agent CLIs are ready.",
+      description: "WildCrane on this computer: whether the user is signed in, the projects added here with their boards (the one for `path` marked), this computer's recent discussions, which agent CLIs are ready, and `next` when the plugin needs an update.",
       inputSchema: { path: z.string().optional().describe('The current working directory.') },
     }, async ({ path: given }, extra) => {
       const dir = pathOf(given, extra._meta as Meta)

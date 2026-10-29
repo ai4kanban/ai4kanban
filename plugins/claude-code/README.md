@@ -16,6 +16,18 @@ claude plugin marketplace add ai4kanban/ai4kanban
 claude plugin install wildcrane@wildcrane
 ```
 
+## Update
+
+The plugin carries its own Runner, so an outdated plugin stops running tasks until it is updated:
+
+```sh
+claude plugin marketplace update wildcrane
+claude plugin update wildcrane@wildcrane
+```
+
+Then run `/reload-plugins` in Claude Code. To update automatically, turn on auto-update for
+wildcrane under `/plugin` → Marketplaces.
+
 ## Develop
 
 ```sh

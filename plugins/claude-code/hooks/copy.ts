@@ -75,6 +75,7 @@ const ZH = {
   opened: 'WildCrane 面板已打开。',
   needsMods: 'WildCrane 面板需要 Claude Code 2.1.287 或更高版本，并开启插件 Mod。',
   notHere: '请在终端或 Claude Desktop 中使用 WildCrane 面板。',
+  outdated: '插件版本过旧，任务暂停在这台电脑上运行。在终端执行以下命令更新，再运行 /reload-plugins：',
 }
 
 export type Copy = typeof ZH
@@ -154,7 +155,10 @@ const EN: Copy = {
   opened: 'The WildCrane panel is open.',
   needsMods: 'The WildCrane panel needs Claude Code 2.1.287 or later with plugin mods on.',
   notHere: 'Use the WildCrane panel in a terminal or Claude Desktop.',
+  outdated: 'The plugin is out of date, so tasks no longer run on this computer. Update it in a terminal, then run /reload-plugins:',
 }
+
+export const UPDATE_COMMANDS = 'claude plugin marketplace update wildcrane\nclaude plugin update wildcrane@wildcrane'
 
 export type Lang = 'zh' | 'en'
 

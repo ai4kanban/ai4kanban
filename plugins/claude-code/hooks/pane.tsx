@@ -4,7 +4,7 @@
 import type { ElementTable, RenderElement } from 'claude-code'
 
 import type { Adding, Chat, Connection, Draft, Idea, Removing, Status, Tab } from '../types'
-import { ago, copyFor } from './copy'
+import { UPDATE_COMMANDS, ago, copyFor } from './copy'
 import { LOGO_MARK, markOf } from './logo'
 
 export interface View {
@@ -98,6 +98,14 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
 
   if (!status) return <Box>{header(true)}</Box>
 
+  const outdated =
+    status.runner === 'outdated' ? (
+      <Box flexDirection="column" paddingX={1} borderStyle="round" borderColor="warning">
+        <Text color="warning">{c.outdated}</Text>
+        <ui.Code source={UPDATE_COMMANDS} language="sh" />
+      </Box>
+    ) : null
+
   // Signed out, or this folder not added: one button does what is missing.
   if (!status.signedIn || !status.folder) {
     const signing = status.signing
@@ -106,6 +114,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     return (
       <Box flexDirection="column" gap={1}>
         {header(true)}
+        {outdated}
         <Box flexDirection="column">
           <Text>{status.dir}</Text>
           <Text dimColor>{bindable.length ? c.bindHint : c.dirHint}</Text>
@@ -370,6 +379,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
   return (
     <Box flexDirection="column" gap={1}>
       {header()}
+      {outdated}
       {nav}
       {body}
     </Box>
