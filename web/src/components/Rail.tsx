@@ -132,7 +132,7 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
           navigate(`/tasks/${encodeURIComponent(t.key)}`);
         }}
       />
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto [&>*]:shrink-0">
         {boardHref && (
           <Link href={boardHref} className={cn(ROW, "h-[30px]", onBoard && ACTIVE)}>
             <LuSquareKanban size={13} aria-hidden />
@@ -162,7 +162,7 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
           <ChatList chats={store.chats} active={activeChat} />
         )}
       </nav>
-      <div className="mt-auto flex items-center gap-1">
+      <div className="mt-auto flex shrink-0 items-center gap-1">
         <Link href={archiveHref} className={cn(ROW, "h-[30px] min-w-0 flex-1", path === "/archive" && ACTIVE)}>
           <FiArchive size={13} aria-hidden />
           {T.archive}
@@ -369,7 +369,7 @@ export function FindBox({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   return (
-    <label className={cn("flex h-[30px] items-center gap-2 rounded-[8px] border bg-nb-paper px-2.5 text-[13px] text-nb-ink-soft", !phone && "mb-2")} style={{ borderColor: HAIRLINE }}>
+    <label className={cn("flex h-[30px] shrink-0 items-center gap-2 rounded-[8px] border bg-nb-paper px-2.5 text-[13px] text-nb-ink-soft", !phone && "mb-2")} style={{ borderColor: HAIRLINE }}>
       <FiSearch size={13} aria-hidden className="shrink-0" />
       <input
         ref={box}
