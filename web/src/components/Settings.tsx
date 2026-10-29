@@ -1,12 +1,13 @@
 // 设置 (#2074, #2080, #2106), after legacy kanban-ui/components/Configuration.tsx and Runtimes.tsx: a
-// dialog of the account's sections, each mounted only while shown: 通用 (#2132), 运行时 and 账单; the
+// dialog of the account's sections, each mounted only while shown: 通用 (#2132), 运行时 and 账单, then 工作流,
+// a link to the current project's workflow settings in a new tab (#21); the
 // workspace and the project have their own settings pages (#2201). The runtime list is the
 // account's own, Global default first. Each runtime is bound to one Runner (#2135); an open row is
 // a list of settings — Runner, connector, model, then what that connector declares. The API key
 // lives only on the Runner: the page can replace or clear it, never read it.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiCreditCard, FiEdit3, FiKey, FiPlus, FiRefreshCw, FiSettings, FiSliders, FiTerminal, FiTrash2, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiCreditCard, FiEdit3, FiExternalLink, FiGitCommit, FiKey, FiPlus, FiRefreshCw, FiSettings, FiSliders, FiTerminal, FiTrash2, FiX, FiZap } from "react-icons/fi";
 import { AgentMark, type Harness } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { Menu, POPUP_PANEL, type MenuEntry } from "@review/components/menu";
@@ -15,6 +16,8 @@ import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { F } from "../first-run-i18n";
 import { settingText, T } from "../i18n";
+import { projectSettingsHref } from "../lib/settings";
+import { useStore } from "../store";
 import { BillingPanel } from "./Billing";
 import { GeneralPanel, replayTour } from "./Welcome";
 
@@ -97,7 +100,11 @@ export function SettingsHost() {
   return shown ? <SettingsDialog section={open ?? last} closing={!open} onPick={setOpen} onClose={() => setOpen(null)} /> : null;
 }
 
+const NAV_ITEM =
+  "relative flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] nb-focus max-md:w-auto max-md:shrink-0 max-md:whitespace-nowrap max-md:rounded-none max-md:px-0 max-md:py-2.5";
+
 function SettingsDialog({ section, closing, onPick, onClose }: { section: Section; closing: boolean; onPick: (s: Section) => void; onClose: () => void }) {
+  const project = useStore().current;
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
@@ -128,7 +135,7 @@ function SettingsDialog({ section, closing, onPick, onClose }: { section: Sectio
                   aria-current={on || undefined}
                   onClick={() => onPick(id)}
                   className={cn(
-                    "relative flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] nb-focus max-md:w-auto max-md:shrink-0 max-md:whitespace-nowrap max-md:rounded-none max-md:px-0 max-md:py-2.5",
+                    NAV_ITEM,
                     on ? "bg-nb-accent-soft text-nb-accent-deep max-md:bg-transparent max-md:text-nb-ink" : "text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink max-md:hover:bg-transparent",
                   )}
                 >
@@ -138,6 +145,13 @@ function SettingsDialog({ section, closing, onPick, onClose }: { section: Sectio
                 </button>
               );
             })}
+            {project && (
+              <a href={projectSettingsHref(project.id, "workflows")} target="_blank" rel="noreferrer" className={cn(NAV_ITEM, "text-nb-ink-soft no-underline hover:bg-nb-ink/5 hover:text-nb-ink max-md:hover:bg-transparent")}>
+                <FiGitCommit className="shrink-0 text-[15px] max-md:hidden" aria-hidden />
+                {T.agents.workflows}
+                <FiExternalLink className="ml-auto shrink-0 text-[12px] opacity-60 max-md:ml-0" aria-hidden />
+              </a>
+            )}
           </nav>
           <div key={section} className="a4k-reveal min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-md:px-4 max-md:pt-5">
             {section === "general" && (
