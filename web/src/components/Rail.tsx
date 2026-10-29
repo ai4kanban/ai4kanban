@@ -139,9 +139,10 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
   );
 }
 
-/** The chats in the current project; one in no project is general's. */
+/** The chats in the current project, less done tasks' (still on the task page); one in no project is general's. */
 export function chatsHere(store: ReturnType<typeof useStore>, chats = store.chats): ChatRow[] {
-  return chats.filter((c) => (c.project || store.general?.id) === store.current?.id);
+  const done = new Set(store.tasks?.flatMap((t) => (t.status === "done" ? t.id : [])));
+  return chats.filter((c) => (c.project || store.general?.id) === store.current?.id && !(c.task && done.has(c.task)));
 }
 
 export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: string; big?: boolean }) {
