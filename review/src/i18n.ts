@@ -244,7 +244,7 @@ const zh = {
     or: "或",
     github: "用 GitHub 登录",
     codeTitle: "输入验证码",
-    codeBody: (email: string) => `验证码已发送至 ${email}，10 分钟内有效。`,
+    codeSent: ["验证码已发送至 ", "，10 分钟内有效。"],
     codePlaceholder: "6 位验证码",
     submit: "登录",
     verifying: "正在登录…",
@@ -256,6 +256,7 @@ const zh = {
     tooMany: "请求太频繁，请稍后再试。",
     failed: "登录没有完成，请重试。",
     signingIn: "正在登录…",
+    terms: ["继续即表示你同意", "服务条款", "和", "隐私政策", "。"],
   },
   notInvited: {
     title: "这个链接仅限受邀的人",
@@ -488,7 +489,7 @@ const en: Copy = {
     or: "or",
     github: "Sign in with GitHub",
     codeTitle: "Enter your code",
-    codeBody: (email: string) => `We sent a code to ${email}. It expires in 10 minutes.`,
+    codeSent: ["We sent a code to ", ". It expires in 10 minutes."],
     codePlaceholder: "6-digit code",
     submit: "Sign in",
     verifying: "Signing in…",
@@ -500,6 +501,7 @@ const en: Copy = {
     tooMany: "Too many attempts. Try again in a moment.",
     failed: "Sign-in didn't finish. Try again.",
     signingIn: "Signing in…",
+    terms: ["By continuing, you agree to the", "Terms of Service", "and", "Privacy Policy", "."],
   },
   notInvited: {
     title: "This link is for invited people only",

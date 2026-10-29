@@ -342,6 +342,14 @@ body {
   opacity: 0.35;
   animation: a4kBreathe 1.8s ease-in-out infinite;
 }
+.a4k-caret {
+  animation: a4kCaret 1s steps(1) infinite;
+}
+@keyframes a4kCaret {
+  50% {
+    opacity: 0;
+  }
+}
 @keyframes a4kBreathe {
   50% {
     opacity: 0.12;
@@ -432,6 +440,7 @@ body {
     }
   }
   .a4k-skel::after,
+  .a4k-caret,
   .a4k-breathe {
     animation: none;
   }
