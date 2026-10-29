@@ -16,9 +16,11 @@ const CIRCUMFERENCE = 2 * Math.PI * R;
 export function ContextRing({
   context,
   tip,
+  className = "",
 }: {
   context: { used?: number; limit?: number } | null | undefined;
   tip: (used: string, limit: string) => string;
+  className?: string;
 }) {
   const used = context?.used;
   const limit = context?.limit;
@@ -28,7 +30,7 @@ export function ContextRing({
   const label = tip(shortTokens(used), shortTokens(limit));
   return (
     // A span, not a button: the run header that holds it is a button already.
-    <span className="nb-tip nb-focus inline-flex shrink-0 rounded-full p-0.5" data-tip={label} aria-label={label} role="img" tabIndex={0}>
+    <span className={`nb-tip nb-focus inline-flex shrink-0 rounded-full p-0.5 ${className}`} data-tip={label} aria-label={label} role="img" tabIndex={0}>
       <svg viewBox="0 0 14 14" className="size-[14px] -rotate-90" aria-hidden>
         <circle cx="7" cy="7" r={R} fill="none" className="stroke-nb-ink/12" strokeWidth="2.5" />
         <circle

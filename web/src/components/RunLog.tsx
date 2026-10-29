@@ -417,7 +417,7 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
 
   const livePlan = live && p.structured && !!p.plan?.length;
   return (
-    <div className="nb-section overflow-hidden bg-nb-sheet">
+    <div className="nb-section bg-nb-sheet">
       {p.structured && <style>{MOTION}</style>}
       <button type="button" onClick={() => job && setOpen((v) => !v)} aria-expanded={open} className="flex h-10 w-full cursor-pointer items-center gap-3 px-4 text-left">
         <span className="text-[12px] font-[700]">{T.runLog}</span>
@@ -451,12 +451,12 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
               </span>
             </>
           )}
-          <ContextRing context={info?.context ?? p.context} tip={T.log.context} />
+          <ContextRing context={info?.context ?? p.context} tip={T.log.context} className="nb-tip-end" />
           {job && <FiChevronDown size={13} aria-hidden className={open ? "rotate-180" : ""} />}
         </span>
       </button>
       {open && job && (
-        <div className="flex max-h-[50vh] flex-col border-t border-nb-ink/12 bg-nb-canvas shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]">
+        <div className="flex max-h-[50vh] flex-col rounded-b-[14px] border-t border-nb-ink/12 bg-nb-canvas shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]">
           {livePlan && (
             <div className="shrink-0 border-b border-nb-ink/12 px-4 py-2.5">
               <Plan entries={p.plan!} />
