@@ -149,6 +149,7 @@ export function taskInput(body: Fields): { fields: Fields; workflow: string } {
       run: body.run === undefined || body.run === false ? undefined : bool(body.run, 'run'),
       skip_plan: body.skip_plan === undefined || body.skip_plan === false ? undefined : bool(body.skip_plan, 'skip_plan'),
       runtime: body.runtime == null ? undefined : idOf(body.runtime, 'rt', 'runtime'),
+      machine: body.machine == null ? undefined : uuid(body.machine, 'machine'),
       triage: body.triage == null ? undefined : triageIdOf(body.triage),
       context: contextOf(body.context),
       metadata: body.metadata == null ? undefined : taskMetadataOf(body.metadata),

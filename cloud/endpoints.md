@@ -224,11 +224,18 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
     that address as a `member` (none: `conflict`). `PATCH …/members/{account}` `{ role:
     "owner" | "member" }`; `DELETE` removes one, or the caller themself, which is leaving.
     Owners manage members; the creator stays an owner and cannot leave (`last_owner`).
-  - `GET /v1/workspaces/{id}/runners` — `{ runners: [{ machine, name, owner, connected, last_active }] }`:
-    every member's computer holding a folder of one of its projects; `owner` is its member's
-    display name. `DELETE …/runners/{machine}`
-    (`owner_only`) removes the workspace's folders there, and that computer claims none of its
-    jobs until its owner places one of its projects there again.
+  - `GET /v1/workspaces/{id}/runners` — `{ runners: [{ machine, name, owner, owner_account,
+    connected, last_active, shared, projects, runs? }] }`: every member's computer holding a
+    folder of one of its projects; `owner` is its member's display name, `projects` the
+    workspace's projects there, and `runs: { count, by }` — on the caller's own computer only —
+    the members' tasks running or queued there. `DELETE …/runners/{machine}`
+    (`owner_only`) removes the workspace's folders there and ends its share, and that computer
+    claims none of its jobs until its owner places one of its projects there again.
+  - **Shared computers** (#2196): `PUT …/runners/{machine}/share` — its owner only (else
+    `not_found`), never in a personal workspace — lets members run tasks there, in the owner's
+    folder on the owner's runtime for that computer; `DELETE …/share` ends it, stopping the
+    members' runs there and their queued steps, and unpinning their tasks. Both answer `{ object:
+    "runner", workspace, machine, shared }`. An owner leaving the workspace ends theirs.
   - `GET /v1/workspaces/{id}/stats?from=YYYY-MM-DD&to=YYYY-MM-DD&tz=<IANA>` — per day, in `tz`
     (UTC by default), tasks `created`, `completed` (`done`) and `rejected` (`cancelled`), and
     the `usage` tokens and `costUsd` of runs finished that day. Days with nothing are left out;
@@ -298,14 +305,21 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   the next approval, then builds, or ends a task whose workflow has nothing to land. A build held
   on the card's question asks it the same way, and the answer carries the build on. A decision
   while a step is waiting or running is `conflict`. A task reads `run: { state: "queued" |
-  "running", runner_connected, machine, stopping, runner_removed, job } | null`, `result` once done, `failure` once failed, and
+  "running", runner_connected, machine, runtime_name, stopping, runner_removed, job } | null`, `result` once done, `failure` once failed, and
   `last_job`, whose log `GET /v1/runner/jobs/{id}/stream` streams and `GET /v1/runner/jobs/{id}` reads once ended. Nothing is retried; a step whose
   Runner went away fails the task. A running task cannot be cancelled (`task_running`).
 - **Stop and resume** (#2128): `POST /v1/tasks/{id}/stop` stops a running step, keeping its work:
   `run.stopping` until its Runner has stopped, a Runner not connected stopping once it connects,
-  then the task is `stopped`. A stopped or failed task reads `resume: { machine } | null`;
+  then the task is `stopped`. A stopped or failed task reads `resume: { machine, available } | null`;
   `POST /v1/tasks/{id}/resume` runs its last step again on that computer, carrying on its work,
-  and waits while it is offline. Either one refused is `conflict`.
+  and waits while it is offline. Either one refused is `conflict`. `available: false` — a shared
+  computer no longer shared — is `runner_unavailable` unless the resume names `{ machine }`,
+  which starts the step afresh there.
+- **Which computer** (#2196): `POST /v1/tasks` and `…/ideas/{idea}/start` take `machine` — one of
+  the creator's holding the project, or one shared with the workspace and online, else
+  `runner_unavailable`. Left out: the creator's own, or with none holding the project, the first
+  shared one online. Every step, chat and resume of the task then goes there; the task reads
+  `run.machine` and `run.runtime_name`, never the owner's folder or settings.
 - **Runtimes** (#2074, #2135): the caller's own list of what their tasks run on, whatever the
   workspace — `{ name, runner, connector: "claude-code" | "codex" | "cursor" | "opencode" | "kimi" | "dsh" | "zcode" | "grok",
   model | null, settings, secretsSet }`. `runner` is the Runner's machine id: the runtime's jobs go to that computer
@@ -497,8 +511,8 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   workspace, project, title, messages, status: "idle" | "replying" | "failed", job, runtime, runtimes,
   runner, context, ideas: [{ id, title, outcome, acceptance: [], workflow, task: { id, key } |
   null }] }`. `PATCH …/ideas/{idea}` `{ workflow }` (installed or the workspace's own, else
-  `not_found`), `DELETE …/ideas/{idea}` discards one; `POST …/ideas/{idea}/start` `{ project?, skip_plan? }`
-  answers 201 the task `POST /v1/tasks` with `run: true` (and `skip_plan`) makes of it — request the outcome and
+  `not_found`), `DELETE …/ideas/{idea}` discards one; `POST …/ideas/{idea}/start` `{ project?, skip_plan?, machine? }`
+  answers 201 the task `POST /v1/tasks` with `run: true` (and `skip_plan`, `machine`) makes of it — request the outcome and
   a `## Done when` list — and a task reads `discussion`. A started idea is `conflict` to all
   three. `GET /v1/chats` lists it as `{ discussion, title, project, last_message_at, state }`
   (`waiting_you` when the agent spoke last and an idea waits) until it had ideas and none waits.
@@ -695,6 +709,7 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `sign_in_required` / `not_invited` | An `invited` link with no sign-in, or one whose email is not a guest of the task. |
 | `view_only` / `owner_only` | A write through a `link` link without a role, or what only the workspace's members may do. |
 | `chat_busy` / `runner_offline` | A chat message while a reply is on its way, or with the task's Runner not connected. |
+| `runner_unavailable` | Running, resuming or chatting on a shared computer no longer shared with the workspace, or picking one not shared or offline. |
 | `runner_removed` | Running, resuming or chatting on a runtime whose Runner an owner removed from the workspace; nothing is kept. A step already queued waits instead, with `run.runner_removed`. |
 | `runtime_unavailable` | A chat message on a connector not installed or signed in on the task's Runner: `connector`, and `reason` `not_installed` or `signed_out`. |
 | `read_only` | A built-in workflow cannot be changed or deleted. |

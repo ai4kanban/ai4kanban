@@ -585,13 +585,26 @@ describe('workspaces (#2045)', () => {
 
   it('lists a workspace’s Runners and removes one by machine (#2134)', async () => {
     db.v1_list_workspace_runners = () => ({ runners: [] })
-    db.v1_remove_workspace_runner = () => ({ deleted: true })
+    db.v1_remove_workspace_runner = () => ({ stop: [], result: { deleted: true } })
     assert.equal((await send('/v1/workspaces/ws_1/runners')).status, 200)
     assert.deepEqual(callsTo('v1_list_workspace_runners')[0].body, { p_account: USER, p_workspace: 'ws_1' })
     assert.equal((await send('/v1/workspaces/ws_1/runners/mac', { method: 'DELETE' })).status, 400)
-    assert.equal((await send(`/v1/workspaces/ws_1/runners/${OWNER}`, { method: 'DELETE' })).status, 200)
+    assert.deepEqual(await (await send(`/v1/workspaces/ws_1/runners/${OWNER}`, { method: 'DELETE' })).json(), { deleted: true })
     assert.deepEqual({ ...callsTo('v1_remove_workspace_runner')[0].body, p_daily_write_budget: 0 },
       { p_account: USER, p_workspace: 'ws_1', p_machine: OWNER, p_daily_write_budget: 0 })
+  })
+
+  it('shares a computer with the workspace and ends the share (#2196)', async () => {
+    db.v1_share_runner = ({ p_shared }) => ({ stop: [], result: { shared: p_shared } })
+    const share = `/v1/workspaces/ws_1/runners/${OWNER}/share`
+    assert.deepEqual(await (await send(share, { method: 'PUT' })).json(), { shared: true })
+    assert.deepEqual(await (await send(share, { method: 'DELETE' })).json(), { shared: false })
+    assert.deepEqual(callsTo('v1_share_runner').map((c) => [c.body.p_workspace, c.body.p_machine, c.body.p_shared]),
+      [['ws_1', OWNER, true], ['ws_1', OWNER, false]])
+    assert.equal((await send('/v1/workspaces/ws_1/runners/mac/share', { method: 'PUT' })).status, 400)
+    db.v1_resume_task = ({ p_id, p_machine }) => ({ id: p_id, machine: p_machine })
+    assert.deepEqual(await (await send('/v1/tasks/task_1/resume', { method: 'POST', body: { machine: OWNER } })).json(), { id: 'task_1', machine: OWNER })
+    assert.equal((await send('/v1/tasks/task_1/resume', { method: 'POST', body: { machine: 'mac' } })).status, 400)
   })
 
   it('reads daily stats over whole days, a year at most, in an IANA zone (#2066)', async () => {

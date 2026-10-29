@@ -130,8 +130,8 @@ const change = async (c: Call, fn: string, args: Record<string, unknown>) => jso
 
 /** A chat's reply (#2133) or a task's run (#2128) stopped: a running one's Runner is told over its log. */
 async function stopJob(c: Call, fn: string, args: Record<string, unknown>): Promise<Response> {
-  const { job, result } = (await write(c, fn, args)) as { job: string | null; result: unknown }
-  if (job) c.ctx.waitUntil(stopRun(c.env, job))
+  const { job, stop, result } = (await write(c, fn, args)) as { job?: string | null; stop?: string[]; result: unknown }
+  for (const held of [job, ...(stop ?? [])]) if (held) c.ctx.waitUntil(stopRun(c.env, held))
   return json(result)
 }
 
@@ -313,17 +313,24 @@ async function createTask(c: Call): Promise<Response> {
 const discussionId = (c: Call) => id(c, 'dsc', 'discussion')
 const ideaId = (c: Call) => id(c, 'idea', 'idea', 1)
 
-/** `{ project?, expectedVersion? }`: the task goes there, else into the discussion's project. */
+/** `{ machine? }`: the computer a task runs on (#2196), one of the caller's or one shared with them. */
+const machineOf = (body: unknown) => {
+  const held = body === null ? {} : objectOf(body)
+  return held.machine == null ? null : uuid(held.machine, 'machine')
+}
+
+/** `{ project?, expectedVersion?, machine? }`: the task goes there, else into the discussion's project. */
 async function startIdeaRoute(c: Call): Promise<Response> {
   const body = await bodyOf(c.request)
   const held = body === null ? {} : objectOf(body)
   const project = held.project == null ? null : idOf(held.project, 'prj', 'project')
+  const machine = machineOf(body)
   if (held.expectedVersion != null && !Number.isInteger(held.expectedVersion)) throw badRequest('expectedVersion must be an integer.')
   const version = (held.expectedVersion as number | undefined) ?? null
   if (held.skip_plan != null && typeof held.skip_plan !== 'boolean') throw badRequest('skip_plan must be a boolean.')
   const skipPlan = held.skip_plan === true
   return idempotent(c.env, c.caller, c.request, body, async () => {
-    const task = await startIdea(c.env, c.caller.accountId, discussionId(c), ideaId(c), project, version, skipPlan)
+    const task = await startIdea(c.env, c.caller.accountId, discussionId(c), ideaId(c), project, version, skipPlan, machine)
     poke(c.env, c.ctx, c.caller.accountId)
     return { status: 201, body: task }
   })
@@ -842,7 +849,12 @@ export const ROUTES: [string, string, Handler][] = [
     change(c, 'v1_remove_member', { p_workspace: workspaceId(c), p_member: memberOf(c) })],
   ['GET', '/v1/workspaces/{id}/runners', (c) => read(c, 'v1_list_workspace_runners', { p_workspace: workspaceId(c) })],
   ['DELETE', '/v1/workspaces/{id}/runners/{machine}', (c) =>
-    change(c, 'v1_remove_workspace_runner', { p_workspace: workspaceId(c), p_machine: uuid(c.params[1], 'machine') })],
+    stopJob(c, 'v1_remove_workspace_runner', { p_workspace: workspaceId(c), p_machine: uuid(c.params[1], 'machine') })],
+  // Sharing a computer with the workspace's members (#2196); ending it stops their runs there.
+  ['PUT', '/v1/workspaces/{id}/runners/{machine}/share', (c) =>
+    stopJob(c, 'v1_share_runner', { p_workspace: workspaceId(c), p_machine: uuid(c.params[1], 'machine'), p_shared: true })],
+  ['DELETE', '/v1/workspaces/{id}/runners/{machine}/share', (c) =>
+    stopJob(c, 'v1_share_runner', { p_workspace: workspaceId(c), p_machine: uuid(c.params[1], 'machine'), p_shared: false })],
 
   ['GET', '/v1/api-keys', (c) => read(c, 'v1_list_api_keys', pageOf(c.url.searchParams, 'key'))],
   ['POST', '/v1/api-keys', createApiKey],
@@ -900,7 +912,7 @@ export const ROUTES: [string, string, Handler][] = [
   ['PATCH', '/v1/tasks/{id}', updateTask],
   ['POST', '/v1/tasks/{id}/cancel', cancelTask],
   ['POST', '/v1/tasks/{id}/stop', async (c) => stopJob(c, 'v1_stop_task', { p_id: await taskId(c) })],
-  ['POST', '/v1/tasks/{id}/resume', async (c) => change(c, 'v1_resume_task', { p_id: await taskId(c) })],
+  ['POST', '/v1/tasks/{id}/resume', async (c) => change(c, 'v1_resume_task', { p_id: await taskId(c), p_machine: machineOf(await bodyOf(c.request)) })],
   ['GET', '/v1/tasks/{id}/workflow', async (c) => readTaskWorkflow(c.env, c.caller.accountId, await taskId(c))],
   ['GET', '/v1/tasks/{id}/card', async (c) => readCard(c.env, c.caller.accountId, await taskId(c))],
   ['GET', '/v1/tasks/{id}/diff', async (c) => readTaskDiff(c.env, c.caller.accountId, await taskId(c))],

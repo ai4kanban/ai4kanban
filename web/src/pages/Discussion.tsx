@@ -15,6 +15,7 @@ import { Markdown } from "@review/components/Markdown";
 import { Menu } from "@review/components/menu";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
+import { ComputerMenu, useComputers } from "../components/ComputerMenu";
 import { REVIEW, T, workflowName } from "../i18n";
 import { useNarrow } from "../lib/narrow";
 import { numberOf } from "../lib/card";
@@ -51,6 +52,7 @@ export function DiscussionPage({ id }: { id: string }) {
   const [trouble, setTrouble] = useState<Trouble>(null);
   const [reload, setReload] = useState(0);
   const [tried, setTried] = useState(false);
+  const [machine, setMachine] = useState<string | null>(null);
   const gone = useGoneRuntimes();
 
   // Every read and write of the chat also brings the ideas. No clear: the rail closes a chat.
@@ -117,7 +119,7 @@ export function DiscussionPage({ id }: { id: string }) {
       if (code === "quota_exceeded") {
         const pro = await api.readBilling().then((r) => r.billing.plan === "pro", () => false);
         setTrouble({ text: pro ? T.limitPro : T.limit, upgrade: !pro });
-      } else setTrouble({ text: code === "offline" ? T.errors.offline : T.errors.generic });
+      } else setTrouble({ text: code === "offline" ? T.errors.offline : code === "runner_unavailable" ? T.unavailable : T.errors.generic });
       if (code === "conflict" || code === "not_found") setReload((n) => n + 1);
     } finally {
       setBusy(false);
@@ -126,7 +128,7 @@ export function DiscussionPage({ id }: { id: string }) {
   /** `build`: straight to building, with no plan to review first. */
   const start = (i: api.Idea, build: boolean) =>
     act(async () => {
-      const task = await api.startIdea(id, i.id, store.current?.id, d?.external ? d.version : undefined, build);
+      const task = await api.startIdea(id, i.id, store.current?.id, d?.external ? d.version : undefined, build, machine ?? undefined);
       store.patchTask(task);
       setD((was) => was && { ...was, ideas: was.ideas.map((x) => (x.id === i.id ? { ...x, task: { id: task.id, key: task.key } } : x)) });
     });
@@ -138,6 +140,9 @@ export function DiscussionPage({ id }: { id: string }) {
       ideas={ideas}
       idea={idea}
       workflows={workflows}
+      project={store.current?.id ?? d?.project ?? undefined}
+      machine={machine}
+      onMachine={setMachine}
       busy={busy}
       trouble={trouble}
       onShow={(i) => setShown(i.id)}
@@ -259,6 +264,9 @@ function IdeaCard({
   ideas,
   idea,
   workflows,
+  project,
+  machine,
+  onMachine,
   busy,
   trouble,
   onShow,
@@ -270,6 +278,9 @@ function IdeaCard({
   ideas: api.Idea[];
   idea: api.Idea;
   workflows: api.Workflow[];
+  project: string | undefined;
+  machine: string | null;
+  onMachine: (machine: string) => void;
   busy: boolean;
   trouble: Trouble;
   onShow: (i: api.Idea) => void;
@@ -278,6 +289,7 @@ function IdeaCard({
   onDiscard: (i: api.Idea) => void;
   className?: string;
 }) {
+  const computers = useComputers(project);
   return (
     <section aria-label={T.idea.ideas} className={cn("a4k-reveal flex flex-col overflow-hidden rounded-[14px] bg-nb-cream", className)}>
       {ideas.length > 1 && (
@@ -359,6 +371,7 @@ function IdeaCard({
               }))}
             />
           )}
+          {!idea.task && <ComputerMenu c={computers} value={machine} onPick={onMachine} up />}
           <span className="ml-auto flex items-center gap-2.5">
             {idea.task ? (
               <span className="-mr-1.5">

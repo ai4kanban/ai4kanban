@@ -38,6 +38,7 @@ import { Subtasks } from "../components/Subtasks";
 import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/Settings";
 import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
+import { ComputerMenu, useComputers } from "../components/ComputerMenu";
 import { Gone } from "./Gone";
 
 /** A task's key, as a card's `source` names the task it came from (#2063). */
@@ -65,6 +66,7 @@ function sayError(e: unknown): string {
   if (code === "chat_busy") return REVIEW.ai.busy;
   if (code === "runner_offline") return REVIEW.ai.offline;
   if (code === "runner_removed") return REVIEW.ai.removed;
+  if (code === "runner_unavailable") return T.unavailable;
   return T.errors.generic;
 }
 
@@ -257,6 +259,9 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     [known, ownKey],
   );
 
+  const [pick, setPick] = useState<string | null>(null);
+  const computers = useComputers(task?.project);
+
   if (missing && !task) return <Gone text={T.notFound} />;
   if (!task)
     return (
@@ -273,6 +278,9 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const landing = task.status === "done" ? task.landing : null;
   const reason = task.status === "failed" ? knownFailure(task.failure) : null;
   const stopping = task.run?.state === "running" && task.run.stopping;
+  // The computer it ran on is no longer shared (#2196): resuming picks another.
+  const unavailable = !task.run && (task.resume ? task.resume.available === false : task.status === "stopped");
+  const target = pick ?? computers.def?.machine;
   const staged = !!flow && flow.rounds > 1;
   const stageNames = flow && staged
     ? Array.from({ length: flow.rounds }, (_, i) => flow.stages[i]?.map((a) => titles.get(a) ?? titleOf({ agent: a, title: {} })).join(T.stage.join) || T.agents.approval(i + 1))
@@ -334,9 +342,9 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       setOwn(t);
       store.patchTask(t);
     });
-  const resume = () =>
+  const resume = (machine?: string) =>
     act(async () => {
-      const t = await api.resumeTask(task.id);
+      const t = await api.resumeTask(task.id, machine);
       setOwn(t);
       store.patchTask(t);
     });
@@ -423,7 +431,17 @@ export function CardPage({ taskKey }: { taskKey: string }) {
           {T.retry}
         </Button>
       )}
-      {task.resume && (
+      {unavailable ? (
+        <>
+          <span className="ml-2 text-[12.5px]">
+            <ComputerMenu c={computers} value={pick} onPick={setPick} />
+          </span>
+          <Button size="xs" className="ml-1" disabled={busy || !target} onClick={() => void resume(target)}>
+            <FiPlay className="text-[14px]" aria-hidden />
+            {T.resume}
+          </Button>
+        </>
+      ) : task.resume && (
         <Button size="xs" className="ml-2" disabled={busy} onClick={() => void resume()}>
           <FiPlay className="text-[14px]" aria-hidden />
           {T.resume}
@@ -505,7 +523,11 @@ export function CardPage({ taskKey }: { taskKey: string }) {
                 <>
                   {trouble && <Line tone="peach" icon={<FiAlertCircle size={14} aria-hidden />}>{trouble}</Line>}
                   {reason && <Line tone="peach" icon={<FiAlertCircle size={14} aria-hidden />}>{reason}</Line>}
-                  {task.status === "stopped" && task.resume && <Line tone="grey" icon={<FiPauseCircle size={14} aria-hidden />}>{T.stoppedLine(task.resume.machine)}</Line>}
+                  {unavailable ? (
+                    <Line tone="peach" icon={<FiAlertCircle size={14} aria-hidden />}>{task.resume ? T.unavailableLine(task.resume.machine) : T.unavailable}</Line>
+                  ) : (
+                    task.status === "stopped" && task.resume && <Line tone="grey" icon={<FiPauseCircle size={14} aria-hidden />}>{T.stoppedLine(task.resume.machine)}</Line>
+                  )}
                   {task.status === "done" && task.result && !built && <Line tone="mint" icon={<FiCheckCircle size={14} aria-hidden />}>{task.result}</Line>}
                   {landing && <LandedDiff task={task.id} landing={landing} />}
                   {!project?.general && <Subtasks task={task} />}

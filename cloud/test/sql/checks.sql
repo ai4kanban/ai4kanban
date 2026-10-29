@@ -5439,4 +5439,117 @@ begin
 end
 $board_import$;
 
+-- #2196: a computer shared with a team workspace runs its members' tasks in its owner's folder and
+-- runtime; ending the share stops theirs and leaves the owner's.
+do $shared_runners$
+declare
+  O constant uuid := 'a0a0a0a0-2196-4196-8196-000000000001';
+  M constant uuid := 'b0b0b0b0-2196-4196-8196-000000000002';
+  X constant uuid := 'c0c0c0c0-2196-4196-8196-000000000003';
+  MAC constant uuid := 'd0d0d0d0-2196-4196-8196-000000000004';
+  BUDGET constant integer := 100000;
+  RUNTIMES constant jsonb := '[{"name": "codex", "installed": true}, {"name": "claude-code", "installed": true}]';
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  v_ws text;
+  v_prj text;
+  v_mine text;
+  v_theirs text;
+  v_queued text;
+  v_job cloud.runner_jobs;
+  v_own cloud.runner_jobs;
+  v_json jsonb;
+begin
+  insert into cloud.accounts (id, handle) values (O, 'sr-o'), (M, 'sr-m'), (X, 'sr-x');
+  v_ws := api.v1_create_workspace(O, '{"name": "Shared"}', BUDGET) ->> 'id';
+  insert into cloud.v1_workspace_members (workspace_id, account_id, role) values (v_ws, M, 'member'), (v_ws, X, 'owner');
+  v_prj := api.v1_create_project(O, jsonb_build_object('name', 'Site', 'workspace', v_ws), BUDGET) ->> 'id';
+  perform api.register_runner(O, MAC, 'Tao''s Mac', 10, '0.5.0', RUNTIMES, false, 900, BUDGET);
+  perform api.add_project_folder(O, MAC, 'Site', '/Users/o/site', BUDGET, v_prj);
+  insert into cloud.runtimes (id, account_id, name, connector, runner, settings)
+  values ('rt_sr_mac', O, 'Codex on Mac', 'codex', MAC, '{"effort": "high"}');
+
+  -- Off until its owner shares it: nobody else may, and a personal workspace has no one to share with.
+  v_json := api.v1_list_workspace_runners(M, v_ws) -> 'runners' -> 0;
+  assert not (v_json ->> 'shared')::boolean and v_json ->> 'owner_account' = O::text
+    and v_json -> 'projects' = jsonb_build_array(v_prj) and not v_json ? 'runs', format('a Runner misread: %s', v_json);
+  perform pg_temp.refuses(format('select api.v1_create_task(%L, %L, %L, %s)', M,
+    jsonb_build_object('title', 'Early', 'project', v_prj, 'run', true, 'machine', MAC), CODING, BUDGET),
+    'AKB26', 'a member ran on a computer not shared');
+  perform pg_temp.refuses(format('select api.v1_share_runner(%L, %L, %L, true, %s)', M, v_ws, MAC, BUDGET),
+    'AKB20', 'a member shared another''s computer');
+  perform pg_temp.refuses(format('select api.v1_share_runner(%L, %L, %L, true, %s)', X, v_ws, MAC, BUDGET),
+    'AKB20', 'a workspace owner shared another''s computer');
+  perform pg_temp.refuses(format('select api.v1_share_runner(%L, %L, %L, true, %s)', O,
+    (select id from cloud.v1_workspaces where account_id = O and personal), MAC, BUDGET),
+    'AKB20', 'a computer was shared with a personal workspace');
+
+  -- Shared: a member with no computer of their own runs there, in its owner's folder and runtime.
+  perform api.v1_share_runner(O, v_ws, MAC, true, BUDGET);
+  assert (api.v1_list_workspace_runners(M, v_ws) -> 'runners' -> 0 ->> 'shared')::boolean, 'a shared computer was not listed shared';
+  v_theirs := api.v1_create_task(M, jsonb_build_object('title', 'Theirs', 'project', v_prj, 'run', true), CODING, BUDGET) ->> 'id';
+  v_job := cloud.v1_flow_job(v_theirs);
+  assert v_job.owner_id = M and v_job.machine_id = MAC and v_job.project_dir = '/Users/o/site'
+    and v_job.runtime_id = 'rt_sr_mac' and v_job.runtime = 'codex' and v_job.settings = '{"effort": "high"}',
+    format('a member''s job misread: %s', row_to_json(v_job));
+  v_json := api.v1_task(M, v_theirs);
+  assert v_json -> 'run' ->> 'machine' = 'Tao''s Mac' and v_json -> 'run' ->> 'runtime_name' = 'Codex on Mac'
+    and (v_json -> 'run' ->> 'runner_connected')::boolean, format('a member''s run misread: %s', v_json);
+  assert json_array_length(api.list_runner_jobs(O, MAC)) = 1, 'the owner''s Runner did not list a member''s job';
+  assert (api.claim_runner_job(O, MAC, v_job.id, 900, BUDGET) ->> 'claimed')::boolean, 'the owner''s Runner could not claim';
+  assert (select claimed_by from cloud.runner_jobs where id = v_job.id) = O, 'the claim did not name its Runner';
+  assert (api.renew_runner_job(O, MAC, v_job.id, 900, BUDGET) ->> 'renewed')::boolean, 'the owner''s Runner could not renew';
+
+  -- The member sees the computer and runtime, never the folder or the settings.
+  assert api.read_runner_job(M, v_job.id) -> 'job' ->> 'projectDir' is null
+    and (api.read_runner_job(M, v_job.id) -> 'job' -> 'settings')::jsonb = '{}', 'a member read the folder';
+  assert api.read_runner_job(O, v_job.id) -> 'job' ->> 'projectDir' = '/Users/o/site', 'the owner''s Runner lost the folder';
+  assert api.v1_list_workspace_runners(M, v_ws)::text not like '%/Users/o%', 'a member read a path';
+
+  -- The owner sees who runs there; a pick of a computer not theirs is refused, their own default kept.
+  v_queued := api.v1_create_task(M, jsonb_build_object('title', 'Queued', 'project', v_prj, 'run', true, 'machine', MAC),
+    CODING, BUDGET) ->> 'id';
+  v_mine := api.v1_create_task(O, jsonb_build_object('title', 'Mine', 'project', v_prj, 'run', true), CODING, BUDGET) ->> 'id';
+  v_own := cloud.v1_flow_job(v_mine);
+  assert (select machine_id from cloud.tasks where id = v_mine) is null and v_own.machine_id = MAC, 'the owner''s task was pinned';
+  perform api.claim_runner_job(O, MAC, v_own.id, 900, BUDGET);
+  v_json := api.v1_list_workspace_runners(O, v_ws) -> 'runners' -> 0 -> 'runs';
+  assert v_json = '{"count": 2, "by": ["sr-m"]}', format('the owner misread the members'' runs: %s', v_json);
+
+  -- Ending the share stops the members' runs and queued steps; the owner's own keeps running.
+  v_json := api.v1_share_runner(O, v_ws, MAC, false, BUDGET);
+  assert v_json -> 'stop' = jsonb_build_array(v_job.id) and not (v_json -> 'result' ->> 'shared')::boolean,
+    format('ending the share misread: %s', v_json);
+  assert (select stop_requested from cloud.runner_jobs where id = v_job.id), 'a member''s run kept going';
+  assert not (select stop_requested from cloud.runner_jobs where id = v_own.id), 'the owner''s own run was stopped';
+  assert api.v1_task(M, v_queued) ->> 'status' = 'stopped' and api.v1_task(M, v_queued) -> 'run' = 'null',
+    'a member''s queued step was left queued';
+  assert not exists (select 1 from cloud.tasks where id in (v_theirs, v_queued) and machine_id is not null),
+    'a member''s task stayed pinned';
+  assert json_array_length(api.list_runner_jobs(O, MAC)) = 2, 'the owner''s Runner lost its held jobs';
+  perform api.finish_runner_job(O, MAC, v_job.id, 'stopped', '', BUDGET, null);
+  v_json := api.v1_task(M, v_theirs);
+  assert v_json ->> 'status' = 'stopped' and v_json -> 'resume' ->> 'machine' = 'Tao''s Mac'
+    and not (v_json -> 'resume' ->> 'available')::boolean, format('a stopped member task misread: %s', v_json);
+
+  -- Resuming asks for another computer; picking a shared one starts the step there afresh.
+  perform pg_temp.refuses(format('select api.v1_resume_task(%L, %L, %s)', M, v_theirs, BUDGET),
+    'AKB26', 'a member resumed on a computer no longer shared');
+  perform pg_temp.refuses(format('select api.v1_resume_task(%L, %L, %s, %L)', M, v_theirs, BUDGET, MAC),
+    'AKB26', 'a member picked a computer no longer shared');
+  perform api.v1_share_runner(O, v_ws, MAC, true, BUDGET);
+  perform api.v1_resume_task(M, v_queued, BUDGET, MAC);
+  v_job := cloud.v1_flow_job(v_queued);
+  assert v_job.machine_id = MAC and v_job.runtime_id = (cloud.v1_host_runtime(O, MAC)).id and not v_job.flow ? 'resume',
+    format('a picked resume misread: %s', row_to_json(v_job));
+
+  -- Stopping the workspace's tasks on it ends the share too.
+  perform api.v1_remove_workspace_runner(O, v_ws, MAC, BUDGET);
+  assert not exists (select 1 from cloud.shared_runners where machine_id = MAC), 'a removed computer stayed shared';
+  assert api.v1_task(M, v_queued) ->> 'status' = 'stopped', 'a removed computer kept a member''s queued step';
+
+  raise notice 'sql checks: #2196 shared runner checks passed';
+end
+$shared_runners$;
+
 rollback;

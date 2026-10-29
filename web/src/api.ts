@@ -24,7 +24,7 @@ export interface Task {
   created_by?: string;
   /** `machine` is the computer the step runs on; `stopping` once asked to stop (#2128); `runner_removed` when
    *  a queued step's computer was removed from the workspace (#2143). */
-  run?: { state: "queued" | "running"; runner_connected: boolean; machine?: string | null; stopping?: boolean; runner_removed?: boolean; job: string } | null;
+  run?: { state: "queued" | "running"; runner_connected: boolean; machine?: string | null; runtime_name?: string | null; stopping?: boolean; runner_removed?: boolean; job: string } | null;
   result?: string | null;
   failure?: string | null;
   last_job?: string | null;
@@ -37,7 +37,8 @@ export interface Task {
   /** Where a built task's commit landed (#2109); null when nothing was committed. */
   landing?: { commit: string; branch: string; machine: string } | null;
   /** Set while a stopped or failed task can resume on the computer holding its work (#2128). */
-  resume?: { machine: string } | null;
+  /** `available` is false once the computer it ran on is no longer shared (#2196): resuming then names another. */
+  resume?: { machine: string; available: boolean } | null;
 }
 
 /** A landed commit's changes, read from the computer it landed on; `truncated` leaves out every `patch`. */
@@ -412,9 +413,22 @@ export const setMemberRole = (ws: string, account: string, role: Member["role"])
 export const removeMember = (ws: string, account: string) => call(`/v1/workspaces/${enc(ws)}/members/${enc(account)}`, { method: "DELETE" });
 
 /** `owner` is its member's display name. */
-export type WorkspaceRunner = { machine: string; name: string; owner: string; connected: boolean; last_active: string | null };
+/** `shared` with the workspace's members by its owner (#2196); `runs`, on your own computer only, the members' tasks on it. */
+export type WorkspaceRunner = {
+  machine: string;
+  name: string;
+  owner: string;
+  owner_account: string;
+  connected: boolean;
+  last_active: string | null;
+  shared: boolean;
+  projects: string[];
+  runs?: { count: number; by: string[] };
+};
 export const listRunners = (ws: string) => json<{ runners: WorkspaceRunner[] }>(call(`/v1/workspaces/${enc(ws)}/runners`)).then((r) => r.runners);
 export const removeRunner = (ws: string, machine: string) => call(`/v1/workspaces/${enc(ws)}/runners/${enc(machine)}`, { method: "DELETE" });
+export const shareRunner = (ws: string, machine: string, shared: boolean) =>
+  call(`/v1/workspaces/${enc(ws)}/runners/${enc(machine)}/share`, { method: shared ? "PUT" : "DELETE" });
 
 export const listProjects = (ws: string) => all<Project>(`/v1/projects?workspace=${enc(ws)}`);
 export const listTasks = (ws: string) => all<Task>(`/v1/tasks?workspace=${enc(ws)}`);
@@ -452,7 +466,7 @@ export const createTask = ({ images, ...body }: { title: string; request: string
   json<Task>(call("/v1/tasks", { ...post({ ...body, ...(images?.length ? { images } : {}), source: "web", run: true }), headers: { "idempotency-key": crypto.randomUUID() } }));
 export const cancelTask = (task: string, reason?: string) => json<Task>(call(`/v1/tasks/${enc(task)}/cancel`, post(reason ? { reason } : undefined)));
 export const stopTask = (task: string) => json<Task>(call(`/v1/tasks/${enc(task)}/stop`, post()));
-export const resumeTask = (task: string) => json<Task>(call(`/v1/tasks/${enc(task)}/resume`, post()));
+export const resumeTask = (task: string, machine?: string) => json<Task>(call(`/v1/tasks/${enc(task)}/resume`, post(machine ? { machine } : undefined)));
 
 export const listTriage = (ws: string, state: TriageItem["state"]) => all<TriageItem>(`/v1/triage?workspace=${enc(ws)}&state=${state}`, Infinity);
 /** One page of sorted items, newest first. */
@@ -499,11 +513,16 @@ export const readDiscussion = (id: string) => json<Discussion>(call(`/v1/discuss
 export const deleteIdea = (id: string, idea: string) => json<Discussion>(call(`/v1/discussions/${enc(id)}/ideas/${enc(idea)}`, { method: "DELETE" }));
 export const setIdeaWorkflow = (id: string, idea: string, workflow: string) =>
   json<Discussion>(call(`/v1/discussions/${enc(id)}/ideas/${enc(idea)}`, { method: "PATCH", body: JSON.stringify({ workflow }) }));
-export const startIdea = (id: string, idea: string, project?: string, expectedVersion?: number, skipPlan?: boolean) =>
+export const startIdea = (id: string, idea: string, project?: string, expectedVersion?: number, skipPlan?: boolean, machine?: string) =>
   json<Task>(
     call(
       `/v1/discussions/${enc(id)}/ideas/${enc(idea)}/start`,
-      post({ ...(project ? { project } : {}), ...(expectedVersion != null ? { expectedVersion } : {}), ...(skipPlan ? { skip_plan: true } : {}) }),
+      post({
+        ...(project ? { project } : {}),
+        ...(expectedVersion != null ? { expectedVersion } : {}),
+        ...(skipPlan ? { skip_plan: true } : {}),
+        ...(machine ? { machine } : {}),
+      }),
     ),
   );
 type ChatImage = import("@review/api").ChatImage;

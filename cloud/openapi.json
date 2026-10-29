@@ -602,6 +602,42 @@
                               "null"
                             ],
                             "format": "date-time"
+                          },
+                          "owner_account": {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "Its member's account id"
+                          },
+                          "shared": {
+                            "type": "boolean",
+                            "description": "Shared with the workspace's members by its owner (#2196)"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The workspace's projects with a folder there"
+                          },
+                          "runs": {
+                            "type": "object",
+                            "description": "On the caller's own computer only: the members' tasks running or queued there.",
+                            "properties": {
+                              "count": {
+                                "type": "integer"
+                              },
+                              "by": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "description": "Their creators' display names"
+                              }
+                            },
+                            "required": [
+                              "count",
+                              "by"
+                            ]
                           }
                         },
                         "required": [
@@ -609,7 +645,10 @@
                           "name",
                           "owner",
                           "connected",
-                          "last_active"
+                          "last_active",
+                          "owner_account",
+                          "shared",
+                          "projects"
                         ]
                       }
                     }
@@ -682,7 +721,7 @@
             }
           }
         },
-        "description": "Owners only (`owner_only`). Removes the workspace's folders on that computer; it claims none of the workspace's jobs until its owner places one of its projects there again."
+        "description": "Owners only (`owner_only`). Removes the workspace's folders on that computer; it claims none of the workspace's jobs until its owner places one of its projects there again. Ends its share with the workspace too."
       }
     },
     "/v1/api-keys": {
@@ -2278,6 +2317,11 @@
                     "type": "string",
                     "description": "One of your runtimes to run every step on; Global default when left out."
                   },
+                  "machine": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The computer to run on (#2196): one of yours holding the project, or one shared with the workspace and online, else `runner_unavailable`. Left out: yours, or with no folder of the project on any of yours, the first shared one online. A shared computer runs the task in its owner's folder on its owner's runtime."
+                  },
                   "triage": {
                     "type": "string",
                     "description": "A triage item waiting to be sorted that this task is made of; it becomes `carded`. Its project when `project` is left out."
@@ -2574,7 +2618,7 @@
         "tags": [
           "Tasks"
         ],
-        "description": "Runs a stopped or failed `run` task's last step again on the computer that ran it (`resume.machine`), carrying on its work there; it waits while that computer is offline. A task that cannot be resumed is `conflict`, and one whose computer was removed from the workspace `runner_removed`.",
+        "description": "Runs a stopped or failed `run` task's last step again on the computer that ran it (`resume.machine`), carrying on its work there; it waits while that computer is offline. A task that cannot be resumed is `conflict`, and one whose computer was removed from the workspace `runner_removed`. `machine` starts the last step afresh on another computer, one of the creator's or one shared with the workspace and online; with none, a step whose shared computer is no longer shared (`resume.available: false`) is `runner_unavailable`.",
         "responses": {
           "200": {
             "description": "OK",
@@ -2607,7 +2651,24 @@
             },
             "description": "The task’s id or its key (`WC-12`), current or one it had before."
           }
-        ]
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "machine": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The computer to run it on instead (#2196)."
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/tasks/{id}/workflow": {
@@ -3887,6 +3948,11 @@
                   "skip_plan": {
                     "type": "boolean",
                     "description": "When true, the task builds straight after its card is written, with no plan to review."
+                  },
+                  "machine": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "As `POST /v1/tasks`' `machine`."
                   }
                 }
               }
@@ -7127,6 +7193,148 @@
         },
         "description": "Answers how many of each left the list; a rejection, dismissal or restore after this brings one back."
       }
+    },
+    "/v1/workspaces/{id}/runners/{machine}/share": {
+      "put": {
+        "summary": "Share a computer with the workspace",
+        "tags": [
+          "Workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "machine",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "const": "runner"
+                    },
+                    "workspace": {
+                      "type": "string"
+                    },
+                    "machine": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "shared": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "object",
+                    "workspace",
+                    "machine",
+                    "shared"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Its owner only: the caller's own computer holding one of the workspace's projects, else `not_found`; a personal workspace is `conflict`. Its members may then run tasks there, in the owner's folder and on the owner's runtime for that computer."
+      },
+      "delete": {
+        "summary": "Stop sharing a computer",
+        "tags": [
+          "Workspaces"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "machine",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "const": "runner"
+                    },
+                    "workspace": {
+                      "type": "string"
+                    },
+                    "machine": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "shared": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "object",
+                    "workspace",
+                    "machine",
+                    "shared"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Its owner only. The members' runs there stop now, their queued steps end `stopped`, and their tasks are no longer pinned there; the owner's own keep running. Removing the computer (`DELETE …/runners/{machine}`) or its owner leaving ends the share too."
+      }
     }
   },
   "components": {
@@ -7473,10 +7681,15 @@
             "properties": {
               "machine": {
                 "type": "string"
+              },
+              "available": {
+                "type": "boolean",
+                "description": "False once that computer is no longer shared with the task's creator; resume names another `machine`."
               }
             },
             "required": [
-              "machine"
+              "machine",
+              "available"
             ]
           },
           "id": {
@@ -7605,6 +7818,13 @@
               "job": {
                 "type": "string",
                 "description": "The step's job; `GET /v1/runner/jobs/{id}/stream` streams its log while it runs, and `GET /v1/runner/jobs/{id}` reads it once ended."
+              },
+              "runtime_name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The name of the runtime the step runs on."
               }
             },
             "required": [

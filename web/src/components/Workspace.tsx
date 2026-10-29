@@ -1,5 +1,5 @@
 // 工作空间设置 (#2045, #2201): the name, the members, a team workspace's Runners with their
-// owners (#2134), and for an owner inviting by email, roles, removing and deleting the workspace;
+// owners (#2134) and your own shared with its members (#2196), and for an owner inviting by email, roles, removing and deleting the workspace;
 // a member reads and may leave. A personal workspace takes no members. A refusal is one line
 // where it happened.
 
@@ -149,7 +149,7 @@ export function WorkspacePanel({ at }: { at?: "runners" }) {
         })}
       </div>
 
-      {team && <Runners owner={owner} at={at} />}
+      {team && <Runners owner={owner} at={at} members={members} />}
 
       {team && !owner && (
         <div className="flex flex-col gap-2 rounded-[12px] border px-4 py-3.5" style={{ borderColor: HAIRLINE }}>
@@ -341,40 +341,65 @@ function ConfirmDelete({ project, onClose }: { project: api.Project; onClose: ()
 
 const since = (iso: string) => T.runners.ago(Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60000)));
 
-/** A team workspace's computers, each with its owner; an owner stops sending tasks to one after a small ask under its button. */
-function Runners({ owner, at }: { owner: boolean; at?: "runners" }) {
-  const ws = useStore().ws;
+/** 给成员使用 on your own computer (#2196). */
+const Switch = ({ on, label, disabled, onChange }: { on: boolean; label: string; disabled?: boolean; onChange: () => void }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={on}
+    aria-label={label}
+    disabled={disabled}
+    onClick={onChange}
+    className={cn("relative inline-flex h-[18px] w-[30px] shrink-0 cursor-pointer rounded-full transition-colors nb-focus disabled:cursor-default", on ? "bg-nb-mint" : "bg-nb-ink/20")}
+  >
+    <span aria-hidden className={cn("absolute top-[2px] size-[14px] rounded-full bg-white shadow-sm transition-[left]", on ? "left-[14px]" : "left-[2px]")} />
+  </button>
+);
+
+/** A team workspace's computers, each with its owner; an owner stops sending tasks to one after a small ask under its button.
+ *  Your own takes 给成员使用, asking first when members run on it; a teammate's shared one reads 已共享. */
+function Runners({ owner, at, members }: { owner: boolean; at?: "runners"; members: api.Member[] }) {
+  const store = useStore();
+  const ws = store.ws;
+  const me = store.me.accountId;
   const [runners, setRunners] = useState<api.WorkspaceRunner[] | null>(null);
-  const [mine, setMine] = useState<Set<string>>(new Set());
   const [asking, setAsking] = useState<string | null>(null);
+  const [unsharing, setUnsharing] = useState<string | null>(null);
   const [problem, setProblem] = useState<{ at: string; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const close = useCallback(() => setAsking(null), []);
+  const close = useCallback(() => (setAsking(null), setUnsharing(null)), []);
   const box = useRef<HTMLSpanElement>(null);
-  useAway(box, asking !== null, close);
+  useAway(box, asking !== null || unsharing !== null, close);
   const section = useRef<HTMLDivElement>(null);
 
   const load = () => void api.listRunners(ws.id).then(setRunners, () => setRunners([]));
   useEffect(load, [ws.id]);
-  useEffect(() => void api.listRuntimes().then((l) => setMine(new Set(l.runners.map((r) => r.id))), () => {}), []);
   useEffect(() => {
     const el = section.current;
     // Only the page's own scroller moves; scrollIntoView would shift the window around it too.
     if (runners && el && at === "runners") el.closest(".overflow-y-auto")?.scrollTo({ top: el.offsetTop - 16 });
   }, [runners !== null, at]);
 
-  const stop = async (machine: string) => {
+  const run = async (machine: string, work: () => Promise<unknown>) => {
     setBusy(true);
     setProblem(null);
     try {
-      await api.removeRunner(ws.id, machine);
-      setAsking(null);
+      await work();
+      close();
       load();
     } catch (e) {
       setProblem({ at: machine, text: say(e) });
     } finally {
       setBusy(false);
     }
+  };
+  const share = (r: api.WorkspaceRunner) => {
+    if (r.shared && r.runs?.count) return setUnsharing(unsharing === r.machine ? null : r.machine);
+    void run(r.machine, () => api.shareRunner(ws.id, r.machine, !r.shared));
+  };
+  const whoOf = (account: string, fallback: string) => {
+    const m = members.find((x) => x.account === account);
+    return m ? (m.email ?? `@${m.handle}`) : fallback;
   };
 
   return (
@@ -392,23 +417,51 @@ function Runners({ owner, at }: { owner: boolean; at?: "runners" }) {
       {runners?.length === 0 && <p className="py-2 text-[12.5px] text-nb-ink-soft">{T.runners.empty}</p>}
       {runners?.map((r, i) => {
         const name = r.name || T.runners.unnamed;
-        const yours = mine.has(r.machine);
+        const yours = r.owner_account === me;
         const whose = yours ? T.runners.yours : r.owner ? T.runners.ownedBy(r.owner) : "";
         return (
           <div key={r.machine} className="flex flex-wrap items-center gap-3.5 py-4" style={i ? { borderTop: `1px solid ${HAIRLINE}` } : undefined}>
             <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-nb-wash text-nb-ink-soft">
               <FiMonitor size={14} aria-hidden />
             </span>
-            <div className="min-w-0 flex-1">
+            <div className={cn("min-w-0 flex-1", yours && "max-md:basis-[calc(100%-46px)]")}>
               <div className="flex items-center gap-2">
                 <span className="truncate text-[13.5px] font-[700]">{name}</span>
                 <span className={cn("inline-flex h-[18px] shrink-0 items-center gap-1 rounded-[5px] px-1.5 text-[11px] font-[700]", r.connected ? "bg-nb-mint-soft text-nb-mint-ink" : "bg-nb-wash text-nb-ink-soft")}>
                   <span aria-hidden className={cn("size-1.5 rounded-full", r.connected ? "bg-nb-mint" : "bg-nb-ink-soft/50")} />
                   {r.connected ? T.runners.online : T.runners.offline}
                 </span>
+                {!yours && r.shared && <span className="inline-flex h-[18px] shrink-0 items-center rounded-[5px] bg-nb-sky-soft px-1.5 text-[11px] font-[700] text-nb-sky-ink">{T.runners.shared}</span>}
               </div>
-              <div className="mt-1 truncate text-[12px] text-nb-ink-soft">{[whose, r.last_active && T.runners.active(since(r.last_active))].filter(Boolean).join(" · ")}</div>
+              <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[12px] text-nb-ink-soft">
+                <Avatar who={whoOf(r.owner_account, r.owner)} size={16} />
+                <span className="truncate">{[whose, r.last_active && T.runners.active(since(r.last_active))].filter(Boolean).join(" · ")}</span>
+              </div>
             </div>
+            {yours && (
+              <span ref={unsharing === r.machine ? box : undefined} className="relative shrink-0 max-md:ml-[46px] max-md:mr-auto">
+                <label className="flex cursor-pointer items-center gap-2 text-[12px] font-[600]">
+                  {T.runners.share}
+                  <Switch on={r.shared && unsharing !== r.machine} label={T.runners.share} disabled={busy} onChange={() => share(r)} />
+                </label>
+                {unsharing === r.machine && r.runs && (
+                  <div role="dialog" className={cn(POPUP_PANEL, "nb-pop origin-top-right absolute right-0 max-md:left-0 max-md:right-auto max-md:origin-top-left top-[calc(100%+8px)] z-10 flex w-[280px] max-w-[calc(100vw-3rem)] flex-col gap-3 p-3")}>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[13px] font-[700] leading-[1.5]">{T.runners.unshareAsk(name)}</p>
+                      <p className="text-[12px] leading-[1.5] text-nb-ink-soft">{T.runners.unshareBody(r.runs.by, r.runs.count)}</p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="xs" onClick={close}>
+                        {T.ws.cancel}
+                      </Button>
+                      <Button variant="ghost" size="xs" disabled={busy} style={DANGER} onClick={() => void run(r.machine, () => api.shareRunner(ws.id, r.machine, false))}>
+                        {T.runners.unshare}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </span>
+            )}
             {owner && (
               <span ref={asking === r.machine ? box : undefined} className="relative shrink-0">
                 <button
@@ -429,7 +482,7 @@ function Runners({ owner, at }: { owner: boolean; at?: "runners" }) {
                       <Button variant="ghost" size="xs" onClick={close}>
                         {T.ws.cancel}
                       </Button>
-                      <Button variant="ghost" size="xs" disabled={busy} style={DANGER} onClick={() => void stop(r.machine)}>
+                      <Button variant="ghost" size="xs" disabled={busy} style={DANGER} onClick={() => void run(r.machine, () => api.removeRunner(ws.id, r.machine))}>
                         {T.runners.confirm}
                       </Button>
                     </div>

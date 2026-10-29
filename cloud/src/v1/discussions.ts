@@ -67,6 +67,7 @@ interface Discussion {
  *  answers the task the first one made. */
 export async function startIdea(
   env: Env, account: string, discussion: string, idea: string, project: string | null, expectedVersion: number | null = null, skipPlan = false,
+  machine: string | null = null,
 ): Promise<{ id: string }> {
   const held = await call<Discussion>(env, 'v1_discussion', { p_account: account, p_id: discussion })
   const found = held.ideas.find((i) => i.id === idea)
@@ -84,6 +85,7 @@ export async function startIdea(
     p_max_tasks: limits.tasks,
     p_expected_version: expectedVersion,
     p_skip_plan: skipPlan,
+    p_machine: machine,
   })
   await placeWorkflow(env, account, task.id)
   return task

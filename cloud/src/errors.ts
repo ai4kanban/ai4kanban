@@ -61,6 +61,7 @@ export type RefusalCode =
   | 'chat_busy'
   | 'runner_offline'
   | 'runner_removed'
+  | 'runner_unavailable'
   | 'machine_offline'
   | 'commit_gone'
   | 'runtime_unavailable'
@@ -384,6 +385,7 @@ const SHARED_REFUSALS: Record<string, Refusal> = {
   runner_offline: new Refusal('runner_offline', 409, 'The Runner this task runs on is not connected.'),
   runner_removed: new Refusal('runner_removed', 409, "This runtime's Runner was removed from this workspace. Pick another runtime."),
   runner_outdated: new Refusal('runner_outdated', 409, 'This Runner is out of date. Update it to keep keys there.'),
+  runner_unavailable: new Refusal('runner_unavailable', 409, 'That computer is no longer available. Pick another one.'),
   review_outdated: new Refusal('review_outdated', 409, 'This task has changed since it was opened. Reload it and review again.'),
   card_missing: new Refusal('card_missing', 409, 'This task has no full card to review yet.'),
   task_running: new Refusal('task_running', 409, 'A running task cannot be cancelled.'),

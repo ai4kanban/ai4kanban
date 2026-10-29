@@ -91,6 +91,8 @@ const zh = {
   resume: "续跑",
   stoppedLine: (machine: string) => `已停止。改动保留在 ${machine} 上，「续跑」从停下的地方接着做。`,
   removedLine: (machine: string) => `无法开始：${machine || "这台电脑"} 已移出工作空间。在这台电脑上重新选好项目文件夹即可。`,
+  unavailableLine: (machine: string) => `「${machine}」已不再共享。另选一台电脑继续。`,
+  unavailable: "这台电脑已不可用，请另选一台。",
   runLog: "运行日志",
   running: "运行中",
   done: "已完成",
@@ -195,6 +197,12 @@ const zh = {
     stopBody: (o: string | null) =>
       o === null ? "电脑仍在你的账号里。你在它上面再添加这个工作空间的项目，就会恢复。" : `电脑仍在 ${o} 的账号里。${o} 在它上面再添加这个工作空间的项目，就会恢复。`,
     confirm: "停止",
+    share: "给成员使用",
+    shared: "已共享",
+    sharedBy: (o: string) => `${o} 共享`,
+    unshareAsk: (m: string) => `停止给成员使用「${m}」？`,
+    unshareBody: (names: string[], n: number) => `${names.join("、")} 的 ${n} 个任务会立即停止，需要重新发起。`,
+    unshare: "停止共享",
     empty: "还没有电脑在这个工作空间放项目。",
     setup: "如何设置运行电脑",
     ago: (min: number) =>
@@ -596,6 +604,8 @@ const en: Copy = {
   resume: "Resume",
   stoppedLine: (machine) => `Stopped. The changes stay on ${machine}; Resume picks up where it left off.`,
   removedLine: (machine) => `Can't start: ${machine || "This computer"} left this workspace. Pick the project folder on it again to continue.`,
+  unavailableLine: (machine) => `“${machine}” is no longer shared. Pick another computer to continue.`,
+  unavailable: "That computer is no longer available. Pick another one.",
   runLog: "Run log",
   running: "Running",
   done: "Done",
@@ -703,6 +713,12 @@ const en: Copy = {
         ? "It stays in your account. Add a project from this workspace on it again to resume."
         : `It stays in ${o}'s account. It resumes once ${o} adds a project from this workspace on it again.`,
     confirm: "Stop",
+    share: "Share with members",
+    shared: "Shared",
+    sharedBy: (o) => `Shared by ${o}`,
+    unshareAsk: (m) => `Stop sharing “${m}”?`,
+    unshareBody: (names, n) => `${names.join(", ")}’s ${n} ${n === 1 ? "run stops" : "runs stop"} now and must be started again.`,
+    unshare: "Stop sharing",
     empty: "No computer has a project from this workspace yet.",
     setup: "How to set up a Runner",
     ago: (min) => {
