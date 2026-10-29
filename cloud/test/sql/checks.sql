@@ -2758,6 +2758,7 @@ begin
   perform api.finish_runner_job(A, HOME, v_first, 'done', '', BUDGET);
   perform api.claim_runner_job(A, HOME, v_job, 900, BUDGET);
   assert api.v1_shared_chat('g1', A, null) ->> 'status' = 'replying', 'a claimed reply was not replying';
+  assert api.v1_shared_chat('g1', A, null) ->> 'job' = v_job::text, 'a replying chat did not name its job';
 
   -- The reply lands as a message; the session and its context are kept.
   perform api.finish_runner_job(A, HOME, v_job, 'done', '', BUDGET,
@@ -2766,6 +2767,7 @@ begin
   assert v_json ->> 'status' = 'idle' and jsonb_array_length(v_json -> 'messages') = 2
     and v_json -> 'messages' -> 1 ->> 'role' = 'agent' and v_json -> 'messages' -> 1 ->> 'body' = 'Two tiers.'
     and v_json -> 'context' = '{"used": 38000, "limit": 200000}', 'a reply did not land';
+  assert v_json -> 'job' = 'null', 'an idle chat named a job';
 
   -- The next message continues the session and carries the conversation.
   perform api.v1_shared_chat_send('g1', A, null, 'And the copy?', null, BUDGET);
@@ -4034,6 +4036,7 @@ begin
     and jsonb_array_length(v_json -> 'messages') = 1 and (v_json -> 'runner' ->> 'connected')::boolean,
     format('a new discussion misread: %s', v_json);
   v_job := (select job_id from cloud.discussions where id = v_dsc);
+  assert v_json ->> 'job' = v_job::text, 'a replying discussion did not name its job';
   v_run := cloud.runner_job_json((select j from cloud.runner_jobs j where j.id = v_job));
   assert v_run ->> 'task' is null and v_run ->> 'project' = v_prj and v_run -> 'discussion' ->> 'id' = v_dsc
     and (v_run -> 'discussion' -> 'ideas')::jsonb = '[]' and v_run ->> 'prompt' like '%akb guide discuss-idea%No ideas yet.%Add a pricing page'
@@ -4060,6 +4063,7 @@ begin
   assert v_idea like 'idea\_%' and v_json ->> 'status' = 'idle' and v_json ->> 'title' = 'Pricing page'
     and v_json -> 'messages' -> 1 ->> 'body' = 'One idea.' and v_json -> 'ideas' -> 0 -> 'acceptance' = '["Shows tiers", "Links to sign-up"]'
     and v_json -> 'ideas' -> 0 -> 'task' = 'null', format('the reply''s ideas misread: %s', v_json);
+  assert v_json -> 'job' = 'null', 'an idle discussion named a job';
   assert api.v1_list_chats(A, v_ws, null, 20) -> 'data' -> 0 ->> 'state' = 'waiting_you', 'an idea waiting did not wait for its creator';
 
   -- The next message continues the session, with the ideas in its prompt; asked to start, the finish says so.

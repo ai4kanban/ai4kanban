@@ -8923,6 +8923,13 @@
             ],
             "description": "`queued` behind the task's other Runner jobs; `conflict` when the card was updated elsewhere. A failure stays until the next message."
           },
+          "job": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The replying run's job, whose log `GET /v1/runner/jobs/{id}/stream` streams; null when idle."
+          },
           "runtime": {
             "type": "string",
             "description": "The pick: one of your runtimes' ids, or `task` to follow the task's runtime."
@@ -9298,6 +9305,13 @@
               "failed"
             ],
             "description": "A failure stays until the next message."
+          },
+          "job": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The replying run's job, whose log `GET /v1/runner/jobs/{id}/stream` streams; null when idle."
           },
           "runtime": {
             "type": "string",

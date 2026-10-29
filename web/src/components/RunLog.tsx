@@ -259,6 +259,59 @@ function Facts({ items }: { items: { text: string; title?: string; dim?: boolean
   );
 }
 
+/** A running job's log events past `after`, pushed until the job ends or the returned stop is called. */
+export function watchJobLog(job: string, after: number, add: (fresh: api.JobEvent[]) => void): () => void {
+  let stop = false;
+  let ws: WebSocket | null = null;
+  let retry: ReturnType<typeof setTimeout> | undefined;
+  let tries = 0;
+  const connect = async () => {
+    const opened = await api.openJobLog(job, after).catch(() => null);
+    if (stop) return opened?.close();
+    if (!opened) return reconnect();
+    ws = opened;
+    let ended = false;
+    opened.onopen = () => (tries = 0);
+    opened.onmessage = (m) => {
+      try {
+        const said = JSON.parse(String(m.data)) as { type?: string; events?: api.JobEvent[] };
+        if (said.type === "events" && Array.isArray(said.events)) {
+          const fresh = said.events.filter((e) => e.seq > after);
+          if (fresh.length) {
+            after = fresh[fresh.length - 1]!.seq;
+            add(fresh);
+          }
+        }
+        if (said.type === "ended") ended = true;
+      } catch {
+        // not ours to read
+      }
+    };
+    opened.onclose = () => {
+      if (!stop && !ended) reconnect();
+    };
+  };
+  const reconnect = () => {
+    retry = setTimeout(() => void connect(), RECONNECT_MS[Math.min(tries++, RECONNECT_MS.length - 1)]);
+  };
+  void connect();
+  return () => {
+    stop = true;
+    clearTimeout(retry);
+    ws?.close();
+  };
+}
+
+/** What a running job is doing now, as one line, null while it calls no tool (#2200). */
+export function watchDoing(job: string, show: (doing: string | null) => void): () => void {
+  const events: api.JobEvent[] = [];
+  return watchJobLog(job, -1, (fresh) => {
+    events.push(...fresh);
+    const kind = progressOf(events).doing;
+    show(kind ? T.log.doing[kind] : null);
+  });
+}
+
 /** `failure`: why the run failed, shown where its own output names no error. */
 export function RunLog({ task, failure }: { task: api.Task; failure?: string | null }) {
   const job = task.run?.job ?? task.last_job ?? null;
@@ -291,15 +344,6 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
   useEffect(() => {
     if (!job) return;
     let stop = false;
-    let ws: WebSocket | null = null;
-    let retry: ReturnType<typeof setTimeout> | undefined;
-    let tries = 0;
-    const add = (more: api.JobEvent[]) => {
-      const fresh = more.filter((e) => e.seq > after.current);
-      if (!fresh.length) return;
-      after.current = fresh[fresh.length - 1]!.seq;
-      setEvents((was) => [...was, ...fresh]);
-    };
     const read = async () => {
       try {
         const r = await api.readJob(job);
@@ -308,36 +352,16 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
         // the next change reads again
       }
     };
-    // A running job's log is pushed; an ended one has only its result.
-    const connect = async () => {
-      const opened = await api.openJobLog(job, after.current).catch(() => null);
-      if (stop) return opened?.close();
-      if (!opened) return reconnect();
-      ws = opened;
-      let ended = false;
-      opened.onopen = () => (tries = 0);
-      opened.onmessage = (m) => {
-        try {
-          const said = JSON.parse(String(m.data)) as { type?: string; events?: api.JobEvent[] };
-          if (said.type === "events" && Array.isArray(said.events)) add(said.events);
-          if (said.type === "ended") ended = true;
-        } catch {
-          // not ours to read
-        }
-      };
-      opened.onclose = () => {
-        if (!stop && !ended) reconnect();
-      };
-    };
-    const reconnect = () => {
-      retry = setTimeout(() => void connect(), RECONNECT_MS[Math.min(tries++, RECONNECT_MS.length - 1)]);
-    };
     void read();
-    if (live) void connect();
+    const unwatch = live
+      ? watchJobLog(job, after.current, (fresh) => {
+          after.current = fresh[fresh.length - 1]!.seq;
+          setEvents((was) => [...was, ...fresh]);
+        })
+      : undefined;
     return () => {
       stop = true;
-      clearTimeout(retry);
-      ws?.close();
+      unwatch?.();
     };
   }, [job, live]);
 

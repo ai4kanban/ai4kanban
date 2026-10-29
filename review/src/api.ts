@@ -69,6 +69,8 @@ export type ChatImage = { name: string; type: string; content: string };
 export interface Chat {
   messages: ChatMessage[];
   status: "idle" | "queued" | "replying" | "failed" | "conflict";
+  /** The replying run's job, null when idle. */
+  job: string | null;
   /** A runtime id, or `task` while following the task's. */
   runtime: string;
   runtimes: ChatRuntime[];

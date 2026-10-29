@@ -465,9 +465,10 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   caller's, newest message first: `{ task, key, title, project, last_message_at, state:
   "replying" | "waiting_you" | "idle" }`; a change raises `chat.updated` `{ task, state }` to the
   member alone. `GET` answers `{ messages: [{ id, role: "user" | "agent",
-  body, image_names, stopped, usage, cost_usd, duration_ms }], status, runtime, runtimes, runner: { connected }, context: { used, limit } | null }`:
+  body, image_names, stopped, usage, cost_usd, duration_ms }], status, job, runtime, runtimes, runner: { connected }, context: { used, limit } | null }`:
   `status` is `idle`, `queued` behind the task's other Runner jobs, `replying`, or how the last
-  reply failed (`failed`, `conflict` when the card was updated elsewhere); `runtimes` the options
+  reply failed (`failed`, `conflict` when the card was updated elsewhere); `job` the replying
+  run's job id, its log streamed by `GET /v1/runner/jobs/{id}/stream` (#2200), else null; `runtimes` the options
   `[{ id, name, default, connector, model, status: "ready" | "not_installed" | "signed_out" }]` —
   first the task's runtime as `id: "task"` (`name` null unless you started the task), then your
   other runtimes — with `status` read off the task creator's Runner; `runtime` the pick, `"task"`
@@ -490,7 +491,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   refused); `GET`, `DELETE /v1/discussions/{id}` (unstarted ideas go; started tasks stay with
   `discussion: null`); `POST`, `DELETE …/chat`, `POST …/chat/stop` as a task chat's (`{ body, runtime?, images? }`, one of your
   runtime ids), run on your Runner, in the project's folder when placed there. It reads `{ id,
-  workspace, project, title, messages, status: "idle" | "replying" | "failed", runtime, runtimes,
+  workspace, project, title, messages, status: "idle" | "replying" | "failed", job, runtime, runtimes,
   runner, context, ideas: [{ id, title, outcome, acceptance: [], workflow, task: { id, key } |
   null }] }`. `PATCH …/ideas/{idea}` `{ workflow }` (installed or the workspace's own, else
   `not_found`), `DELETE …/ideas/{idea}` discards one; `POST …/ideas/{idea}/start` `{ project? }`

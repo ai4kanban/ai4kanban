@@ -19,6 +19,7 @@ import { useNarrow } from "../lib/narrow";
 import { numberOf } from "../lib/card";
 import { Link } from "../router";
 import { useStore } from "../store";
+import { watchDoing } from "../components/RunLog";
 import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/Settings";
 import { Window } from "../components/Window";
 import { Gone } from "./Gone";
@@ -67,6 +68,7 @@ export function DiscussionPage({ id }: { id: string }) {
       send: (body, runtime, images) => chat.send(body, runtime, images).then(take),
       clear: () => chat.clear().then(take),
       stop: () => chat.stop().then(take),
+      watch: watchDoing,
     };
   }, [id]);
   const replied = useCallback(() => store.reload(), [store.reload]);

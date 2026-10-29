@@ -31,7 +31,7 @@ import { useStore } from "../store";
 import { StatusPill, type PillStatus } from "../components/chips";
 import { useDismiss } from "../components/Header";
 import { LandedCommit, LandedDiff } from "../components/Landed";
-import { RunLog } from "../components/RunLog";
+import { RunLog, watchDoing } from "../components/RunLog";
 import { StageBand, type StageState } from "../components/StageBand";
 import { titleOf } from "../components/Agents";
 import { Subtasks } from "../components/Subtasks";
@@ -372,7 +372,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       key={task.id}
       c={REVIEW.ai}
       token={task.id}
-      api={api.taskChat(task.id)}
+      api={{ ...api.taskChat(task.id), watch: watchDoing }}
       phone={narrow}
       card={{ question: asked, comments: comments.length > 0, previews: artifacts.length > 0 }}
       onReplied={() => void api.readTask(task.id).then(setOwn, () => {})}

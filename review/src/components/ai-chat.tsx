@@ -40,6 +40,8 @@ export type ChatApi = {
   send: (body: string, runtime: string, images: ChatImage[]) => Promise<Chat>;
   clear: () => Promise<Chat>;
   stop: () => Promise<Chat>;
+  /** Shows what a replying job is doing now, null while it calls no tool; returns the stop. */
+  watch?: (job: string, show: (doing: string | null) => void) => () => void;
 };
 
 const linkChat = (token: string): ChatApi => ({
@@ -94,6 +96,8 @@ export function AiChat({
   const picker = useRef<HTMLInputElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const was = useRef(false);
+  const [doing, setDoing] = useState<string | null>(null);
+  const job = chat?.status === "replying" ? chat.job : null;
 
   const take = useCallback(
     (next: Chat) => {
@@ -124,6 +128,11 @@ export function AiChat({
       clearInterval(timer);
     };
   }, [token, working(chat), reload]);
+
+  useEffect(() => {
+    setDoing(null);
+    if (job && io.watch) return io.watch(job, setDoing);
+  }, [job]);
 
   useLayoutEffect(() => {
     const el = input.current;
@@ -323,7 +332,7 @@ export function AiChat({
                 <Reply key={m.id} c={c} m={m} phone={phone} rise={arrived(m.id)} />
               ),
             )}
-            {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{chat.status === "queued" ? c.queued : c.replying}</p>}
+            {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{chat.status === "queued" ? c.queued : (doing ?? c.replying)}</p>}
           </div>
         </div>
       )}
