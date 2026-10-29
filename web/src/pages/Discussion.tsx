@@ -305,7 +305,7 @@ function IdeaCard({
         <div className="flex items-start gap-2">
           <h2 className="min-w-0 flex-1 text-[16px] font-[800] leading-[1.35] tracking-[-0.01em]">{idea.title}</h2>
           {!idea.task && (
-            <button type="button" disabled={busy} onClick={() => onDiscard(idea)} aria-label={T.idea.discard} data-tip={T.idea.discard} className={cn(ICON, "-mr-1.5 -mt-1")}>
+            <button type="button" disabled={busy} onClick={() => onDiscard(idea)} aria-label={T.idea.discard} data-tip={T.idea.discard} className={cn(ICON, "nb-tip-below -mr-1.5 -mt-1")}>
               <FiTrash2 className="text-[13px]" aria-hidden />
             </button>
           )}
