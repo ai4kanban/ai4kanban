@@ -23,8 +23,6 @@ const HEARTBEAT_MS = 5 * 60_000
 /** How often to read the jobs when no Realtime hint can arrive. */
 const POLL_MS = 60_000
 const BACKOFF_MS = [1_000, 2_000, 5_000, 10_000, 30_000]
-/** Jobs run at once on this computer. The rest wait unclaimed. */
-const MAX_RUNNING = 2
 
 /** Why the Runner stopped for good. */
 export type Stop = { reason: 'elsewhere'; machine: string } | { reason: 'outdated' } | { reason: 'refused'; message: string }
@@ -204,8 +202,8 @@ export function startRunner(options: Options): Runner {
           await api.finishJob(registration.machineId, job.id, 'failed', 'The Runner restarted while this job was running.')
           continue
         }
-        // A connection test is short, and someone is waiting on it.
-        if (job.state !== 'waiting' || running.has(job.id) || (running.size >= MAX_RUNNING && !job.test)) continue
+        // Cloud lists only the jobs the plan's running limit lets start (#2209).
+        if (job.state !== 'waiting' || running.has(job.id)) continue
         start(job.id)
       }
     } finally {

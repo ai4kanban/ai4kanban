@@ -321,6 +321,12 @@ describe('the Runner', () => {
     assert.deepEqual(planned.map((p) => p.cwd), [fs.realpathSync(path.join(allowed, 'site'))])
   })
 
+  it('runs every job Cloud lists at once: the plan is the only limit (#17)', async () => {
+    const jobs = ['j1', 'j2', 'j3'].map((id) => cloud.dispatch({ id }))
+    start('setInterval(() => {}, 1000)')
+    await until(() => jobs.every((j) => j.state === 'claimed') && planned.length === 3)
+  })
+
   it('stops the local process when the lease is lost', async () => {
     const job = cloud.dispatch({ id: 'j1' })
     start('setInterval(() => console.log("tick"), 20)')
