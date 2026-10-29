@@ -105,7 +105,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     const open = card ? openQuestions(card.body) : [];
     return open.length ? open : [{ text: ready!.question!.trim(), options: ready!.options!.map((o) => o.label), recommend: [], multi: false }];
   }, [asked, card?.body, ready?.question]);
-  const [chat, setChat] = useAiOpen(query.get("chat") === "1", asked ? `${task!.id}:${ready!.phase}` : null);
+  const [chat, setChat] = useAiOpen(query.get("chat") === "1", asked && !narrow ? `${task!.id}:${ready!.phase}` : null);
   const [chatSeen, setChatSeen] = useState(0);
   const gone = useGoneRuntimes();
   useEffect(() => {

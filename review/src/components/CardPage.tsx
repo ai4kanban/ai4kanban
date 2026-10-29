@@ -78,7 +78,7 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
   }, [asking, card?.body, review.question]);
   const [answers, setAnswers] = useState(NO_ANSWERS);
   const [railOpen, setRailOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useAiOpen(false, asking ? String(review.phase) : null);
+  const [aiOpen, setAiOpen] = useAiOpen(false, asking && !narrow ? String(review.phase) : null);
   const [trouble, setTrouble] = useState<Trouble>(null);
   const [busy, setBusy] = useState(false);
   const [flow, setFlow] = useState<{ round: number; rounds: number } | null>(null);
