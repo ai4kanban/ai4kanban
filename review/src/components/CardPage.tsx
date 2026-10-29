@@ -185,7 +185,7 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
   ) : null;
   const actions = member && !over && (
     <>
-      {(shared.task.status === "queued" || shared.task.status === "waiting_review") && <RemoveButton busy={busy} onRemove={remove} />}
+      {(shared.task.status === "queued" || shared.task.status === "waiting_review") && <RemoveButton busy={busy} draftKey={`shared.task.${shared.task.id}.remove`} onRemove={remove} />}
       {ready && approve >= 0 && <RunButton refine={refining(flow)} busy={busy} onClick={run} />}
     </>
   );
@@ -200,11 +200,12 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
   };
 
   const me = shared.me ? (shared.me.handle ? `@${shared.me.handle}` : shared.me.email) : null;
-  const rail = !viewer && <ChatPane c={c.comments} thread={thread} phone={narrow} canWrite onSend={comment} onClose={closeRail} />;
+  const rail = !viewer && <ChatPane c={c.comments} thread={thread} phone={narrow} canWrite onSend={comment} draftKey={`shared.task.${shared.task.id}.comment`} onClose={closeRail} />;
   const ai = member && (
     <AiChat
       c={c.ai}
       token={token}
+      draftKey={`shared.task.${shared.task.id}.chat`}
       phone={narrow}
       card={{ question: asking, comments: (shared.comments ?? []).length > 0, previews: shared.artifacts.length > 0 }}
       onReplied={replied}
