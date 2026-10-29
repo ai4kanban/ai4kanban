@@ -9,13 +9,18 @@
 - [让编码代理能驱动看板](skill/install-agent-skill/case.md)
 - [用一句话建卡](skill/create-card/case.md)
 
+## cloud
+
+- [查看价格并选择方案](cloud/view-pricing/case.md)
+- [未登录调用公开 API](cloud/call-api-signed-out/case.md)
+- [打开分享出来的卡片链接](cloud/open-card-link/case.md)
+
 ## marketing
 
 已覆盖，无用例：这是在看板上写的营销工作本身，没有用户操作的产品界面。
 
 ## 待覆盖
 
-- **cloud**
 - **review**
 - **web**
 - **runner**
@@ -28,3 +33,5 @@
   `AI4KANBAN_COMMAND=akb exec node <仓库>/cli/bin/ai4kanban.mjs "$@"`。先 `unset KANBAN_RUN
   KANBAN_BOARD_DIR KANBAN_DESKTOP AI4KANBAN_CLI`，并把 `AI4KANBAN_HOME` 指向临时目录，免得用到
   本机已装的旧版 `akb` 或真实看板。
+- **cloud**：直接对线上 `https://api.ai4kanban.dev` 取证，`curl` 看响应，页面用无头 Chrome 截图
+  （`--virtual-time-budget=4000`，等价格数字滚完）；点击按钮用自己端口的 CDP。
