@@ -393,6 +393,26 @@ body {
   animation: nbFadeOut 120ms ease both;
   pointer-events: none;
 }
+/* The card chat grows from its bubble; transitions, so reopening mid-close turns straight back. */
+.nb-chat {
+  transform-origin: bottom right;
+  transition:
+    opacity 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@starting-style {
+  .nb-chat {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+.nb-chat[data-closing] {
+  opacity: 0;
+  transform: scale(0.98);
+  transition-duration: 140ms;
+  transition-timing-function: ease;
+  pointer-events: none;
+}
 .nb-scrim {
   animation: nbFadeIn 180ms ease both;
 }
@@ -446,6 +466,15 @@ body {
   }
   .nb-glide {
     transition: none;
+  }
+  .nb-chat,
+  .nb-chat[data-closing] {
+    transform: none;
+  }
+  @starting-style {
+    .nb-chat {
+      transform: none;
+    }
   }
   .nb-press:hover,
   .nb-press:active {
