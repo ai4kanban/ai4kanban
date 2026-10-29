@@ -1,6 +1,6 @@
 // Copied from legacy kanban-ui/components/Rail.tsx: the find box (`/` focuses it, ↑↓ pick,
-// Enter opens), then 看板 (the current project's board), 工作流, 统计 and the current project's conversations newest first (a task's
-// chat or an idea conversation; one in no project counts as general's), the archive at the foot. The rail has no surface: it sits on the window's cream.
+// Enter opens), then 看板 (the current project's board), 工作流, 统计 and the current project's conversations newest first: 对话 (idea
+// conversations), then 任务 (task chats, numbered); one in no project counts as general's, the archive at the foot. The rail has no surface: it sits on the window's cream.
 // 收起左栏 sits beside the archive; collapsed, a narrow bar of icons keeps 展开左栏 in that spot.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
@@ -152,44 +152,61 @@ export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: st
   const [asking, setAsking] = useState<string | null>(null);
   const arrived = useArrived(mine.length ? mine.map((c) => c.discussion ?? c.task) : null);
   if (!mine.length) return big ? <p className="px-4 py-3 text-[13px] text-nb-ink-soft">{T.noChats}</p> : null;
+  const group = "px-2.5 pb-1 text-[11px] font-[700] text-nb-ink-soft";
+  const talks = mine.filter((c) => c.discussion);
+  const tasks = mine.filter((c) => !c.discussion);
+  const row = (c: ChatRow) => {
+    const id = c.discussion ?? c.task;
+    const on = !big && active === id;
+    return (
+      <div key={id} className={cn("group relative shrink-0", arrived(id) && "a4k-reveal")}>
+        <Link
+          href={"key" in c ? `/tasks/${encodeURIComponent(c.key)}?chat=1` : `/discussions/${encodeURIComponent(c.discussion)}`}
+          className={cn(ROW, on && ACTIVE, big ? "h-11 rounded-none px-4 pr-12 text-[14px]" : "group-hover:pr-9", !big && asking === id && "pr-9", !on && asking === id && "bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]")}
+        >
+          {"key" in c && (
+            <span className={cn("shrink-0 font-[800] tabular-nums text-nb-accent-deep", big ? "min-w-[30px] text-[12.5px]" : "min-w-[26px] text-[11.5px]")}>{numberOf(c.key)}</span>
+          )}
+          <span className={cn("min-w-0 flex-1 truncate", c.state === "waiting_you" && !on && "font-[700]")}>{c.title}</span>
+          {c.host && (
+            <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.idea.from(HOST_NAMES[c.host])} aria-label={T.idea.from(HOST_NAMES[c.host])}>
+              <FiTerminal size={12} aria-hidden />
+            </span>
+          )}
+          {c.state === "replying" && (
+            <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.chatReplying} aria-label={T.chatReplying}>
+              <FiLoader size={12} className="animate-spin" aria-hidden />
+            </span>
+          )}
+          {c.state === "waiting_you" && <span className="nb-tip size-1.5 shrink-0 rounded-full bg-nb-accent" data-tip={T.chatYou} aria-label={T.chatYou} />}
+        </Link>
+        <CloseChat
+          chat={c}
+          big={big}
+          open={asking === id}
+          onOpen={(open) => setAsking(open ? id : null)}
+          onClosed={() => {
+            store.dropChat(id);
+            if (active === id) navigate("/new");
+          }}
+        />
+      </div>
+    );
+  };
   return (
     <>
-      <span className={cn("px-2.5 pb-1 text-[11px] font-[700] text-nb-ink-soft", big && "px-4 pt-2")}>{T.chats}</span>
-      {mine.map((c) => {
-        const id = c.discussion ?? c.task;
-        const on = !big && active === id;
-        return (
-          <div key={id} className={cn("group relative shrink-0", arrived(id) && "a4k-reveal")}>
-            <Link
-              href={"key" in c ? `/tasks/${encodeURIComponent(c.key)}?chat=1` : `/discussions/${encodeURIComponent(c.discussion)}`}
-              className={cn(ROW, on && ACTIVE, big ? "h-11 rounded-none px-4 pr-12 text-[14px]" : "group-hover:pr-9", !big && asking === id && "pr-9", !on && asking === id && "bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]")}
-            >
-              <span className={cn("min-w-0 flex-1 truncate", c.state === "waiting_you" && !on && "font-[700]")}>{c.title}</span>
-              {c.host && (
-                <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.idea.from(HOST_NAMES[c.host])} aria-label={T.idea.from(HOST_NAMES[c.host])}>
-                  <FiTerminal size={12} aria-hidden />
-                </span>
-              )}
-              {c.state === "replying" && (
-                <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.chatReplying} aria-label={T.chatReplying}>
-                  <FiLoader size={12} className="animate-spin" aria-hidden />
-                </span>
-              )}
-              {c.state === "waiting_you" && <span className="nb-tip size-1.5 shrink-0 rounded-full bg-nb-accent" data-tip={T.chatYou} aria-label={T.chatYou} />}
-            </Link>
-            <CloseChat
-              chat={c}
-              big={big}
-              open={asking === id}
-              onOpen={(open) => setAsking(open ? id : null)}
-              onClosed={() => {
-                store.dropChat(id);
-                if (active === id) navigate("/new");
-              }}
-            />
-          </div>
-        );
-      })}
+      {talks.length > 0 && (
+        <>
+          <span className={cn(group, big && "px-4 pt-2")}>{T.chats}</span>
+          {talks.map(row)}
+        </>
+      )}
+      {tasks.length > 0 && (
+        <>
+          <span className={cn(group, big && "px-4 pt-2", talks.length > 0 && "mt-3")}>{T.taskChats}</span>
+          {tasks.map(row)}
+        </>
+      )}
     </>
   );
 }
