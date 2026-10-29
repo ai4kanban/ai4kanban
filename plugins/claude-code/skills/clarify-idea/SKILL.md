@@ -1,6 +1,6 @@
 ---
 name: clarify-idea
-description: Use when a WildCrane discussion message arrives from the idea panel. Shapes the conversation into ideas the user starts from the panel.
+description: Use when the user describes work they want done, or asks to turn something into a WildCrane task or idea. Shapes the conversation into ideas the user starts from the WildCrane panel.
 ---
 
 # Clarify an idea
@@ -10,10 +10,10 @@ current project's code when it helps, but never change a file.
 
 ## Ideas
 
-- **Read first**: call `wildcrane_draft_read` with the message's discussion id before every
-  save; the ideas and version there override earlier turns.
-- **Save the ideas**: call `wildcrane_draft_save` with that version and the full set of ideas;
-  on a version conflict, read again and merge only this turn's changes.
+- **Read first**: call `wildcrane_draft_read` with this session's id as `sessionId` (given at
+  session start) before every save; the ideas and version there override earlier turns.
+- **Save the ideas**: call `wildcrane_draft_save` with that discussion id, its version and the
+  full set of ideas; on a version conflict, read again and merge only this turn's changes.
 - **Idea shape**: a title, the outcome in at most 150 words in the user's language, a
   `Done when` list of checks a reviewer can verify, and no technical design.
 - **Pick the workflow**: name the listed workflow that does the work, judged by the work and
@@ -29,7 +29,7 @@ current project's code when it helps, but never change a file.
 
 ## Always
 
-- **Stay in the discussion**: use only that discussion, its ideas, and this project's code.
+- **Stay in the discussion**: use only this session's discussion, its ideas, and this project's code.
 - **Never start**: only the panel's **Start** button creates a task.
 - **Finish the turn**: save, then reply with what changed and any questions; never ask the
   user to confirm or press **Start**.

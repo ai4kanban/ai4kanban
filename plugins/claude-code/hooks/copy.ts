@@ -1,11 +1,8 @@
-// The panel's words, zh and en side by side. Idea and connection words are web/src/i18n.ts's own.
+// The panel's words, zh and en side by side. Idea and agent words are web/src/i18n.ts's own.
 
 const ZH = {
-  nav: { ideas: '想法', chats: '对话', projects: '项目', connections: '连接' },
-  synced: '已同步',
+  nav: { ideas: '想法', projects: '项目', agents: 'Agent' },
   unsynced: '未同步',
-  placeholder: '要做的事，比如「给官网加一个定价页」……',
-  send: '发给 Claude',
   acceptance: '验收',
   discard: '丢弃',
   workflow: '工作流',
@@ -17,20 +14,17 @@ const ZH = {
   retry: '重试',
   limit: '进行中的任务已达套餐上限。移除不再需要的任务，或升级后再发起。',
   startFailed: '没能发起，请重试。',
-  sendFailed: '没能发给 Claude，内容已保留，请重试。',
-  notReady: '运行任务的 agent 未就绪，请在「连接」里处理后再发起。',
-  ideaCount: (n: number) => (n ? `${n} 个想法` : '还没有想法'),
-  thisChat: '本会话',
-  earlierChats: '之前的会话',
-  noChats: '还没有对话',
-  back: '返回本会话',
-  addDir: '添加为项目',
-  signInAdd: '登录并添加为项目',
+  notReady: '运行任务的 Agent 未就绪，请在「Agent」页处理后再发起。',
+  empty: '还没有想法。在对话里告诉 Claude 要做什么，它会把想法整理到这里。',
+  welcome: '在对话里告诉 Claude 要做什么，它整理出的想法会列在这里，点「发起」交给这台电脑上的 Agent 运行。',
+  signIn: '登录',
   signingIn: '正在等待浏览器登录…',
   openSignIn: '打开登录页',
   signInFailed: '登录未完成，请重试。',
-  dirHint: '已登记的目录沿用原项目，否则在个人工作空间新建同名项目。',
-  bindHint: '可以新建项目，或绑定到这台电脑上还没有目录的已有项目。',
+  signOut: '退出登录',
+  signOutAsk: '退出登录？这台电脑上正在运行的任务会停止。',
+  notProject: (dir: string) => `${dir} 还不是项目，发起任务前先选一个：`,
+  createHere: (name: string) => `新建项目 ${name}`,
   bindHeading: '或绑定到已有项目',
   bind: '绑定',
   refused: {
@@ -49,7 +43,7 @@ const ZH = {
   cancel: '取消',
   removeAsk: (n: string) => `解除 ${n} 与这个目录的绑定？项目和任务都保留。`,
   removeBusy: '有任务正在这个目录里运行，结束后再解绑。',
-  elsewhere: '不在这台电脑上',
+  noFolder: '这台电脑上没有目录',
   folderRefused: {
     home: '不能用主目录，请填项目目录。',
     disk: '不能用整个磁盘，请填项目目录。',
@@ -60,6 +54,7 @@ const ZH = {
   bindTaken: (n: string) => `这个目录已属于 ${n}，先解绑再绑定。`,
   addFailed: '没能完成，请重试。',
   board: '看板',
+  agentsIntro: '任务由这台电脑上的 Agent 运行。',
   ready: '已就绪',
   signedOut: '未登录',
   notInstalled: '未安装',
@@ -67,13 +62,7 @@ const ZH = {
   notInstalledHint: (h: string) => `${h} 未安装。在这台电脑上执行：`,
   recheck: '重新检测',
   checking: '正在检测…',
-  justNow: '刚刚',
-  minutesAgo: (n: number) => `${n} 分钟前`,
-  hoursAgo: (n: number) => `${n} 小时前`,
-  yesterday: '昨天',
-  daysAgo: (n: number) => `${n} 天前`,
   opened: 'WildCrane 面板已打开。',
-  needsMods: 'WildCrane 面板需要 Claude Code 2.1.287 或更高版本，并开启插件 Mod。',
   notHere: '请在终端或 Claude Desktop 中使用 WildCrane 面板。',
   outdated: '插件版本过旧，任务暂停在这台电脑上运行。在终端执行以下命令更新，再运行 /reload-plugins：',
 }
@@ -81,11 +70,8 @@ const ZH = {
 export type Copy = typeof ZH
 
 const EN: Copy = {
-  nav: { ideas: 'Ideas', chats: 'Chats', projects: 'Projects', connections: 'Connections' },
-  synced: 'Synced',
+  nav: { ideas: 'Ideas', projects: 'Projects', agents: 'Agents' },
   unsynced: 'Not synced',
-  placeholder: 'What needs doing, e.g. “Add a pricing page to the website”…',
-  send: 'Send to Claude',
   acceptance: 'Done when',
   discard: 'Discard',
   workflow: 'Workflow',
@@ -97,20 +83,17 @@ const EN: Copy = {
   retry: 'Retry',
   limit: "You've reached your plan's limit on tasks in progress. Remove one you no longer need, or upgrade.",
   startFailed: "Couldn't start it. Try again.",
-  sendFailed: "Couldn't send it to Claude. Your text is kept; try again.",
-  notReady: 'The agent that runs tasks isn’t ready. Fix it under Connections, then start.',
-  ideaCount: (n) => (n ? `${n} idea${n > 1 ? 's' : ''}` : 'No ideas yet'),
-  thisChat: 'This session',
-  earlierChats: 'Earlier sessions',
-  noChats: 'No chats yet',
-  back: 'Back to this session',
-  addDir: 'Add as project',
-  signInAdd: 'Sign in and add as project',
+  notReady: 'The agent that runs tasks isn’t ready. Fix it under Agents, then start.',
+  empty: 'No ideas yet. Tell Claude what needs doing, and it lists the ideas here.',
+  welcome: 'Tell Claude what needs doing. The ideas it shapes show up here; Start hands one to an agent on this computer.',
+  signIn: 'Sign in',
   signingIn: 'Waiting for the browser…',
   openSignIn: 'Open the sign-in page',
   signInFailed: "Sign-in didn't finish. Try again.",
-  dirHint: 'A registered folder keeps its project; otherwise a same-named project is created in your personal workspace.',
-  bindHint: 'Create a project, or bind an existing one that has no folder on this computer.',
+  signOut: 'Sign out',
+  signOutAsk: 'Sign out? Tasks running on this computer will stop.',
+  notProject: (dir) => `${dir} isn’t a project yet. Pick one before you start a task:`,
+  createHere: (name) => `Create project ${name}`,
   bindHeading: 'Or bind an existing project',
   bind: 'Bind',
   refused: {
@@ -129,7 +112,7 @@ const EN: Copy = {
   cancel: 'Cancel',
   removeAsk: (n) => `Unbind ${n} from this folder? The project and its tasks stay.`,
   removeBusy: 'A task is running in this folder. Unbind it once that finishes.',
-  elsewhere: 'Not on this computer',
+  noFolder: 'No folder on this computer',
   folderRefused: {
     home: "Your home folder can't be used. Enter a project folder.",
     disk: "A whole disk can't be used. Enter a project folder.",
@@ -140,6 +123,7 @@ const EN: Copy = {
   bindTaken: (n) => `This folder already belongs to ${n}. Unbind it first.`,
   addFailed: "Couldn't do that. Try again.",
   board: 'Board',
+  agentsIntro: 'Tasks are run by these agents on this computer.',
   ready: 'Ready',
   signedOut: 'Signed out',
   notInstalled: 'Not installed',
@@ -147,13 +131,7 @@ const EN: Copy = {
   notInstalledHint: (h) => `${h} isn't installed. On this computer, run:`,
   recheck: 'Check again',
   checking: 'Checking…',
-  justNow: 'just now',
-  minutesAgo: (n) => `${n} min ago`,
-  hoursAgo: (n) => `${n} h ago`,
-  yesterday: 'yesterday',
-  daysAgo: (n) => `${n} days ago`,
   opened: 'The WildCrane panel is open.',
-  needsMods: 'The WildCrane panel needs Claude Code 2.1.287 or later with plugin mods on.',
   notHere: 'Use the WildCrane panel in a terminal or Claude Desktop.',
   outdated: 'The plugin is out of date, so tasks no longer run on this computer. Update it in a terminal, then run /reload-plugins:',
 }
@@ -168,13 +146,4 @@ export const copyFor = (lang: Lang): Copy => (lang === 'zh' ? ZH : EN)
 export function langOf(setting: unknown, system: string | undefined): Lang {
   if (typeof setting === 'string' && setting) return /^(zh|chinese)|中文/i.test(setting) ? 'zh' : 'en'
   return /^zh/i.test(system ?? '') ? 'zh' : 'en'
-}
-
-export function ago(c: Copy, at: string, now = Date.now()): string {
-  const minutes = Math.floor((now - Date.parse(at)) / 60_000)
-  if (!(minutes >= 1)) return c.justNow
-  if (minutes < 60) return c.minutesAgo(minutes)
-  if (minutes < 24 * 60) return c.hoursAgo(Math.floor(minutes / 60))
-  const days = Math.floor(minutes / (24 * 60))
-  return days === 1 ? c.yesterday : c.daysAgo(days)
 }

@@ -1,7 +1,7 @@
 // The Claude Code (#2161) and Codex (#2160) plugins' local component, started by the host over
 // stdio with every session. It gives the model two tools to draft a discussion's ideas, and runs
 // the computer's jobs while no other WildCrane does (lock.ts). Claude Code's panel takes one more
-// tool to sign in, add the folder, read and start ideas; Codex has no panel, so the model gets
+// tool to sign in and out, add the folder, read and start ideas; Codex has no panel, so the model gets
 // tools to sign in, add a folder and read the state, and ideas are started on the web. The host
 // closing stdin ends it.
 
@@ -15,7 +15,7 @@ import { McpServer, type ToolCallback } from '@modelcontextprotocol/sdk/server/m
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 
-import { readSession } from '../../cli/src/lib/cloud/session'
+import { clearSession, readSession } from '../../cli/src/lib/cloud/session'
 import * as api from './api'
 import { clearAkb, kept } from './cache'
 import { startRunner, type Runner } from './connect'
@@ -163,18 +163,31 @@ const UPDATE = {
 
 async function state(cwd: string) {
   const base = { dir: home(cwd), runner: runnerState, web: WEB_URL(), ...(runnerState === 'outdated' ? { next: UPDATE[host] } : {}) }
-  if (!readSession()) return { ...base, signedIn: false, signing }
+  const session = readSession()
+  if (!session) return { ...base, signedIn: false, signing }
+  const account = { name: session.name ?? session.handle, email: session.email }
   const found = await folderOf(cwd)
-  if ('error' in found) return { ...base, signedIn: true, ...found }
+  if ('error' in found) return { ...base, signedIn: true, account, ...found }
   const refused = found.folder ? null : refusal(cwd)
   return {
     ...base,
     signedIn: true,
+    account,
     folder: found.folder,
     refused,
     projects: found.folders.map((f) => ({ ...f, dir: home(f.path), board: boardUrl(f.project), busy: kept(realpath(f.path)) })),
     elsewhere: await elsewhere(),
   }
+}
+
+/** As the desktop app's: the Runner closes first, so a running job stops. */
+async function signOut(cwd: string) {
+  await runner?.close()
+  runner = null
+  runnerState = 'off'
+  signing = null
+  clearSession()
+  return state(cwd)
 }
 
 /** The account's projects with no folder on this computer: the ones a folder can be bound to. */
@@ -253,9 +266,19 @@ async function open(session: string, project: string | null, cwd: string) {
   return opened.value
 }
 
+/** A Claude Code session's draft: opened on first read in `cwd`'s project, or in none until one is chosen. */
+async function sessionDraft(session: string, cwd: string) {
+  const held = readChats().find((c) => c.session === session)
+  if (held) return draftOf(held.discussion)
+  const found = await folderOf(cwd)
+  if ('error' in found) return found
+  const opened = await open(session, found.folder?.project ?? null, cwd)
+  return 'error' in opened ? opened : draftOf(opened.id)
+}
+
 const PanelArgs = {
   key: z.string(),
-  action: z.enum(['state', 'signIn', 'addFolder', 'removeFolder', 'chats', 'discussion', 'workflow', 'discard', 'start', 'connections']),
+  action: z.enum(['state', 'signIn', 'signOut', 'addFolder', 'removeFolder', 'discussion', 'workflow', 'discard', 'start', 'connections']),
   session: z.string().optional(),
   cwd: z.string().optional(),
   discussion: z.string().optional(),
@@ -276,23 +299,15 @@ export async function panel(args: Panel): Promise<unknown> {
     case 'signIn':
       startSignIn()
       return { signing }
+    case 'signOut':
+      return signOut(cwd)
     case 'addFolder':
       return args.path ? addFolder(typed(args.path, cwd), args.project, true) : addFolder(cwd, args.project)
     case 'removeFolder':
       return args.project ? removeFolder(cwd, args.project) : { error: 'bad_request' }
-    case 'chats':
-      return chats()
-    case 'discussion': {
+    case 'discussion':
       if (args.discussion) return draftOf(args.discussion)
-      if (!args.session) return { error: 'bad_request' }
-      const held = readChats().find((c) => c.session === args.session)
-      if (held) return draftOf(held.discussion)
-      const found = await folderOf(cwd)
-      if ('error' in found) return found
-      if (!found.folder) return { error: 'no_folder' }
-      const opened = await open(args.session, found.folder.project, cwd)
-      return 'error' in opened ? opened : draftOf(opened.id)
-    }
+      return args.session ? sessionDraft(args.session, cwd) : { error: 'bad_request' }
     case 'workflow': {
       const set = await api.setIdeaWorkflow(args.discussion!, args.idea!, args.workflow!)
       return set.ok ? draftOf(args.discussion!) : failure(set)
@@ -302,7 +317,7 @@ export async function panel(args: Panel): Promise<unknown> {
       return dropped.ok ? draftOf(args.discussion!) : failure(dropped)
     }
     case 'start': {
-      const started = await api.startIdea(args.discussion!, args.idea!, args.version!)
+      const started = await api.startIdea(args.discussion!, args.idea!, args.version!, args.project)
       if (!started.ok) return failure(started)
       run()
       return { task: { ...started.value, url: taskUrl(started.value.key || started.value.id) } }
@@ -331,12 +346,13 @@ const threadOf = (meta: Meta) => `codex:${typeof meta?.threadId === 'string' && 
 const pathOf = (given: string | undefined, meta: Meta) => given || Object.keys(meta?.['x-codex-turn-metadata']?.workspaces ?? {})[0] || ''
 
 const SIGNED_OUT = { error: 'signed_out', message: 'Not signed in to WildCrane. Call wildcrane_sign_in, then try again.' }
+const PANEL_SIGNED_OUT = { error: 'signed_out', message: 'Not signed in to WildCrane. Tell the user to run /wildcrane and sign in, then try again.' }
 
 export function server(): McpServer {
   const mcp = new McpServer({ name: 'wildcrane', version: VERSION })
   const save: ToolCallback<{ discussionId: z.ZodString; expectedVersion: z.ZodNumber; ideas: z.ZodArray<typeof IdeaInput> }> =
     async ({ discussionId, expectedVersion, ideas }) => {
-      if (!readSession()) return { ...text(SIGNED_OUT), isError: true }
+      if (!readSession()) return { ...text(host === 'codex' ? SIGNED_OUT : PANEL_SIGNED_OUT), isError: true }
       const saved = await api.saveDraft(discussionId, expectedVersion, ideas)
       if (saved.ok) {
         const out = saved.value.ideas.map(ideaOf)
@@ -427,9 +443,17 @@ export function server(): McpServer {
 
   const key = panelKey()
   mcp.registerTool('wildcrane_draft_read', {
-    description: 'Read a WildCrane discussion: its ideas, their version, and the workflows an idea can use.',
-    inputSchema: { discussionId: z.string() },
-  }, async ({ discussionId }) => text(await draftOf(discussionId)))
+    description: "Read a WildCrane discussion: its ideas, their version, and the workflows an idea can use. Give `sessionId` for this Claude Code session's discussion, opened on first use.",
+    inputSchema: {
+      discussionId: z.string().optional(),
+      sessionId: z.string().optional().describe("This Claude Code session's id, given at session start."),
+    },
+  }, async ({ discussionId, sessionId }) => {
+    if (!readSession()) return { ...text(PANEL_SIGNED_OUT), isError: true }
+    if (discussionId) return text(await draftOf(discussionId))
+    if (!sessionId) return { ...text({ error: 'bad_request', message: 'Give discussionId or sessionId.' }), isError: true }
+    return text(await sessionDraft(sessionId, process.cwd()))
+  })
   mcp.registerTool('wildcrane_draft_save', { description: saveWhat, inputSchema: saveSchema }, save)
   mcp.registerTool('wildcrane_panel', {
     description: 'Used by the WildCrane panel only. Never call it.',

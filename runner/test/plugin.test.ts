@@ -215,6 +215,47 @@ describe('the plugin component', () => {
     }
   })
 
+  it("names the account, reads a session's discussion for the model, and signs out", async () => {
+    useRunnerHome()
+    fs.rmSync(runnerHome(), { recursive: true, force: true })
+    writeFakeSession(runnerHome())
+    const held = JSON.parse(fs.readFileSync(path.join(runnerHome(), 'session.json'), 'utf8'))
+    fs.writeFileSync(path.join(runnerHome(), 'session.json'), JSON.stringify({ ...held, name: 'Lin Chen', email: 'lin@acme.dev' }))
+    const cloud = new FakeCloud()
+    await cloud.start()
+    const { child, answers, send, ready } = component('claude-code', `http://127.0.0.1:${cloud.port}`)
+    let id = 10
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const n = id++
+      send(n, 'tools/call', { name, arguments: args })
+      await until(() => answers.has(n), 10_000)
+      return JSON.parse((answers.get(n)!.result as { content: { text: string }[] }).content[0]!.text) as Record<string, unknown>
+    }
+    const panel = (args: Record<string, unknown>) =>
+      call('wildcrane_panel', { key: fs.readFileSync(path.join(runnerHome(), 'plugin', 'panel.key'), 'utf8').trim(), cwd: os.homedir(), ...args })
+    try {
+      await ready
+      assert.deepEqual((await panel({ action: 'state' })).account, { name: 'Lin Chen', email: 'lin@acme.dev' })
+
+      const read = await call('wildcrane_draft_read', { sessionId: 'sess-1' })
+      assert.equal(read.discussion, 'dsc_1')
+      assert.equal((await call('wildcrane_draft_read', { sessionId: 'sess-1' })).discussion, 'dsc_1')
+      assert.equal((await panel({ action: 'discussion', session: 'sess-1' })).discussion, 'dsc_1')
+      assert.equal(cloud.discussions.length, 1)
+
+      const out = await panel({ action: 'signOut' })
+      assert.equal(out.signedIn, false)
+      assert.equal(out.runner, 'off')
+      assert.equal(fs.existsSync(path.join(runnerHome(), 'session.json')), false)
+      assert.equal((await call('wildcrane_draft_read', { sessionId: 'sess-1' })).error, 'signed_out')
+    } finally {
+      const exited = new Promise((r) => child.on('exit', r))
+      child.stdin.end()
+      await exited
+      await cloud.stop()
+    }
+  })
+
   it('tells both hosts to update the plugin once Cloud refuses its Runner as outdated', async () => {
     useRunnerHome()
     fs.rmSync(runnerHome(), { recursive: true, force: true })

@@ -1,6 +1,6 @@
 // The WildCrane panel's values, held by the host for the session.
 
-export type Tab = 'ideas' | 'chats' | 'projects' | 'connections'
+export type Tab = 'ideas' | 'projects' | 'agents'
 
 export type Idea = {
   id: string
@@ -13,7 +13,8 @@ export type Idea = {
 
 export type Workflow = { id: string; name: string; names?: { en: string; zh: string }; description: string }
 
-export type Draft = { discussion: string; version: number; ideas: Idea[]; workflows: Workflow[] }
+/** `project` null until a folder is chosen: Start then places the idea in this folder's. */
+export type Draft = { discussion: string; project?: string | null; version: number; ideas: Idea[]; workflows: Workflow[] }
 
 /** `busy` while a job, unsent work or a paused task holds the folder: it cannot be unbound. */
 export type Folder = { project: string; name: string; dir: string; board: string; busy?: boolean }
@@ -32,6 +33,7 @@ export type Status = {
   dir: string
   runner?: 'off' | 'waiting' | 'running' | 'outdated'
   signedIn: boolean
+  account?: { name?: string; email?: string }
   signing?: { url: string | null; failed: string | null } | null
   folder?: Folder | null
   refused?: string | null
@@ -40,11 +42,9 @@ export type Status = {
   error?: string
 }
 
-export type Chat = { session: string; discussion: string; dir: string; title: string; ideas: number; at: string }
-
 export type Connection = { name: string; label: string; state: 'ready' | 'signedOut' | 'notInstalled'; command: string | null }
 
-/** A failure the panel shows over the ideas: `offline`, `conflict`, `limit`, `startFailed`, `sendFailed`, `notReady`. */
+/** A failure the panel shows over the ideas: `offline`, `conflict`, `limit`, `startFailed`, `notReady`. */
 export type Banner = string | null
 
 declare module 'claude-code' {
@@ -56,18 +56,15 @@ declare module 'claude-code' {
       cwd: string
       status: Status | null
       draft: Draft | null
-      /** A discussion opened from Chats; null shows this session's. */
-      viewing: string | null
       open: number
       busy: boolean
       banner: Banner
-      /** What the person wrote and has not reached Claude yet. */
-      text: string
-      chats: Chat[] | null
       connections: Connection[] | null
       synced: boolean
       removing: Removing
       adding: Adding
+      /** The Sign out question is open. */
+      signingOut: boolean
     }
   }
 }

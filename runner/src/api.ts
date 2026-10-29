@@ -580,5 +580,6 @@ export const setIdeaWorkflow = (id: string, idea: string, workflow: string) =>
 
 export const dropIdea = (id: string, idea: string) => request<Discussion>('DELETE', `/v1/discussions/${q(id)}/ideas/${q(idea)}`)
 
-export const startIdea = (id: string, idea: string, expectedVersion: number) =>
-  request<{ id: string; key?: string }>('POST', `/v1/discussions/${q(id)}/ideas/${q(idea)}/start`, { expectedVersion })
+/** `project` places an idea of a discussion opened in no project. */
+export const startIdea = (id: string, idea: string, expectedVersion: number, project?: string) =>
+  request<{ id: string; key?: string }>('POST', `/v1/discussions/${q(id)}/ideas/${q(idea)}/start`, { expectedVersion, ...(project ? { project } : {}) })

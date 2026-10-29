@@ -112,6 +112,8 @@ export class FakeCloud {
   folders: { project: string; name: string; path: string; notify: boolean; machine: string }[] = []
   /** The account's projects with no folder anywhere yet (#2022). */
   others: { project: string; name: string; workspace: string; workspace_name: string; personal: boolean }[] = []
+  /** Claude Code and Codex sessions' discussions, by the session they were opened for. */
+  discussions: { id: string; request: string; project: string | null }[] = []
   inbox: { review: unknown[]; running: unknown[] } = { review: [], running: [] }
   /** The archived tasks whose chat this computer answered last (#2065). */
   chats: { task: string; project: string }[] = []
@@ -318,6 +320,13 @@ export class FakeCloud {
       if (folder[2] === 'remove') this.folders = this.folders.filter((f) => f !== held)
       else if (held) held.notify = body.on
       return send(200, { removed: true, folder: held })
+    }
+    if (route === '/v1/discussions/external' || /^\/v1\/discussions\/[^/]+$/.test(route)) {
+      const held = route === '/v1/discussions/external'
+        ? this.discussions.find((d) => d.request === body.requestId) ?? this.discussions[this.discussions.push({ id: `dsc_${this.discussions.length + 1}`, request: body.requestId, project: body.project ?? null }) - 1]!
+        : this.discussions.find((d) => d.id === route.split('/').pop())
+      if (!held) return refuse(404, 'not_found', 'no')
+      return send(200, { id: held.id, workspace: 'ws_me', project: held.project, title: '', version: 1, ideas: [], updated_at: new Date(0).toISOString() })
     }
     if (route === '/v1/runner/release') {
       if (this.runner && this.runner.machineId === body.machineId) this.runner.live = false

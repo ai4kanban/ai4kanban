@@ -1,12 +1,12 @@
 // The WildCrane panel (#2161): `/wildcrane` opens it in the terminal and in Claude Desktop's Code
-// tab, one tree for both. What the person writes goes to this Claude session; Cloud reads and
+// tab, one tree for both. Ideas are shaped in this Claude session's conversation; Cloud reads and
 // writes go through the plugin's own MCP server (server/), never from here.
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
-import type { Adding, Chat, Connection, Draft, Removing, Status, Tab } from '../types'
-import { langOf } from './copy'
+import type { Adding, Connection, Draft, Removing, Status, Tab } from '../types'
+import { copyFor, langOf } from './copy'
 import { Pane, type Handlers, type View } from './pane'
 
 const PANE = 'wildcrane'
@@ -17,16 +17,14 @@ const sessionState = atom({ plugin: 'wildcrane', key: 'session' } as const, '')
 const cwdState = atom({ plugin: 'wildcrane', key: 'cwd' } as const, '')
 const statusState = atom({ plugin: 'wildcrane', key: 'status' } as const, null as Status | null)
 const draftState = atom({ plugin: 'wildcrane', key: 'draft' } as const, null as Draft | null)
-const viewingState = atom({ plugin: 'wildcrane', key: 'viewing' } as const, null as string | null)
 const openState = atom({ plugin: 'wildcrane', key: 'open' } as const, 0)
 const busyState = atom({ plugin: 'wildcrane', key: 'busy' } as const, false)
 const bannerState = atom({ plugin: 'wildcrane', key: 'banner' } as const, null as string | null)
-const textState = atom({ plugin: 'wildcrane', key: 'text' } as const, '')
-const chatsState = atom({ plugin: 'wildcrane', key: 'chats' } as const, null as Chat[] | null)
 const connectionsState = atom({ plugin: 'wildcrane', key: 'connections' } as const, null as Connection[] | null)
-const syncedState = atom({ plugin: 'wildcrane', key: 'synced' } as const, false)
+const syncedState = atom({ plugin: 'wildcrane', key: 'synced' } as const, true)
 const removingState = atom({ plugin: 'wildcrane', key: 'removing' } as const, null as Removing)
 const addingState = atom({ plugin: 'wildcrane', key: 'adding' } as const, null as Adding)
+const signingOutState = atom({ plugin: 'wildcrane', key: 'signingOut' } as const, false)
 
 type Answer = Record<string, unknown> & { error?: string }
 
@@ -78,8 +76,7 @@ async function setDraft($: EngineInterface, answer: Answer): Promise<boolean> {
 }
 
 async function loadDraft($: EngineInterface): Promise<boolean> {
-  const viewing = await read($, viewingState)
-  return setDraft($, await ask($, 'discussion', viewing ? { discussion: viewing } : {}))
+  return setDraft($, await ask($, 'discussion'))
 }
 
 async function checkConnections($: EngineInterface): Promise<void> {
@@ -103,14 +100,10 @@ async function refresh($: EngineInterface): Promise<void> {
     polling = null
   }
   if ((await read($, bannerState)) === 'offline') await update($, bannerState, () => null)
-  if (!status.signedIn || !status.folder) return
+  if (!status.signedIn) return
   const tab = await read($, tabState)
   if (tab === 'ideas') await loadDraft($)
-  if (tab === 'chats') {
-    const answer = await ask($, 'chats')
-    if (!answer.error) await update($, chatsState, () => answer.chats as Chat[])
-  }
-  if (tab === 'connections' && !(await read($, connectionsState))) await checkConnections($)
+  if (tab === 'agents' && !(await read($, connectionsState))) await checkConnections($)
 }
 
 async function goTab($: EngineInterface, tab: Tab): Promise<void> {
@@ -119,18 +112,34 @@ async function goTab($: EngineInterface, tab: Tab): Promise<void> {
   await refresh($)
 }
 
-/** Signs in, or adds this folder: whichever is missing. `project` binds the folder to that one. */
-async function setup($: EngineInterface, project?: string): Promise<void> {
-  const status = await read($, statusState)
-  if (!status?.signedIn) {
-    await update($, statusState, (s) => (s ? { ...s, signing: { url: null, failed: null } } : s))
-    await ask($, 'signIn')
-    await refresh($)
-    return
-  }
+async function signIn($: EngineInterface): Promise<void> {
+  await update($, statusState, (s) => (s ? { ...s, signing: { url: null, failed: null } } : s))
+  await ask($, 'signIn')
+  await refresh($)
+}
+
+/** Makes this folder a project: a new one, or `project` bound to it. */
+async function addHere($: EngineInterface, project?: string): Promise<void> {
   const added = await ask($, 'addFolder', project ? { project } : {})
   if (added.error) await update($, statusState, (s) => (s ? { ...s, refused: added.error === 'folder_taken' ? 'taken' : added.error ?? null } : s))
   else await refresh($)
+}
+
+async function askSignOut($: EngineInterface, open: boolean): Promise<void> {
+  await cancel($)
+  await update($, signingOutState, () => open)
+}
+
+/** Back to how a first open looks. */
+async function signOut($: EngineInterface): Promise<void> {
+  const answer = await ask($, 'signOut')
+  await update($, signingOutState, () => false)
+  if (answer.error) return void (await refresh($))
+  await update($, statusState, () => answer as unknown as Status)
+  await update($, tabState, () => 'ideas')
+  await update($, draftState, () => null)
+  await update($, connectionsState, () => null)
+  await update($, bannerState, () => null)
 }
 
 /** Closes the Projects tab's open question or folder field. */
@@ -180,25 +189,6 @@ async function add($: EngineInterface, value: string): Promise<void> {
   await refresh($)
 }
 
-/** The person's words, to this Claude session under this session's discussion. Kept until sent. */
-async function send($: EngineInterface, value: string): Promise<void> {
-  const words = value.trim()
-  if (!words) return
-  await update($, textState, () => value)
-  if ((await read($, viewingState)) || !(await read($, draftState))) {
-    await update($, viewingState, () => null)
-    if (!(await loadDraft($))) return
-  }
-  const draft = await read($, draftState)
-  try {
-    await $.prompt.submit({ text: `[WildCrane idea · discussion ${draft!.discussion}]\n${words}`, asUser: true })
-    await update($, textState, () => '')
-    await update($, bannerState, () => null)
-  } catch {
-    await update($, bannerState, () => 'sendFailed')
-  }
-}
-
 async function setWorkflow($: EngineInterface, idea: string, workflow: string): Promise<void> {
   const draft = await read($, draftState)
   if (draft) await setDraft($, await ask($, 'workflow', { discussion: draft.discussion, idea, workflow }))
@@ -209,29 +199,19 @@ async function discard($: EngineInterface, idea: string): Promise<void> {
   if (draft) await setDraft($, await ask($, 'discard', { discussion: draft.discussion, idea }))
 }
 
-/** The one way a task is made: never while Claude is still changing the ideas or they are not synced. */
+/** The one way a task is made: never while Claude is still changing the ideas, they are not
+ *  synced, or this folder is no project yet. */
 async function start($: EngineInterface, idea: string): Promise<void> {
   const draft = await read($, draftState)
-  if (!draft || (await read($, busyState)) || !(await read($, syncedState))) return
-  const answer = await ask($, 'start', { discussion: draft.discussion, idea, version: draft.version })
+  const folder = (await read($, statusState))?.folder
+  if (!draft || !folder || (await read($, busyState)) || !(await read($, syncedState))) return
+  const answer = await ask($, 'start', { discussion: draft.discussion, idea, version: draft.version, ...(draft.project ? {} : { project: folder.project }) })
   await update($, bannerState, () => (answer.error ? START_REFUSALS[answer.error] ?? 'startFailed' : null))
   await loadDraft($)
 }
 
 async function retry($: EngineInterface): Promise<void> {
   await update($, bannerState, () => null)
-  await refresh($)
-}
-
-async function openChat($: EngineInterface, chat: Chat): Promise<void> {
-  const mine = chat.session === (await read($, sessionState))
-  await update($, viewingState, () => (mine ? null : chat.discussion))
-  await update($, openState, () => 0)
-  await goTab($, 'ideas')
-}
-
-async function back($: EngineInterface): Promise<void> {
-  await update($, viewingState, () => null)
   await refresh($)
 }
 
@@ -246,16 +226,14 @@ async function view($: EngineInterface): Promise<View> {
     session: await read($, sessionState),
     status: await read($, statusState),
     draft: await read($, draftState),
-    viewing: await read($, viewingState),
     open: await read($, openState),
     busy: await read($, busyState),
     banner: await read($, bannerState),
-    text: await read($, textState),
-    chats: await read($, chatsState),
     connections: await read($, connectionsState),
     synced: await read($, syncedState),
     removing: await read($, removingState),
     adding: await read($, addingState),
+    signingOut: await read($, signingOutState),
     root: $.plugin.root,
   }
 }
@@ -265,6 +243,18 @@ export const register: Register = (on) => {
     // A WildCrane job's own Claude session: the panel belongs to the person's.
     if (await $.env.get('WILDCRANE_JOB')) return next(e)
     await $.command.register({ name: 'wildcrane', description: 'Shape ideas with Claude and start them as WildCrane tasks' })
+    return next(e)
+  })
+
+  // A new, resumed or cleared conversation: the panel follows it to its ideas.
+  on('classic.SessionStart', async ($, e, next) => {
+    const opened = !!(await read($, sessionState))
+    await update($, sessionState, () => e.session_id)
+    await update($, cwdState, () => e.cwd)
+    await update($, draftState, () => null)
+    await update($, openState, () => 0)
+    await update($, bannerState, () => null)
+    if (opened) await refresh($)
     return next(e)
   })
 
@@ -278,7 +268,7 @@ export const register: Register = (on) => {
     await update($, cwdState, () => cwd)
     await $.ui.open({ id: PANE, title: 'WildCrane', focus: true })
     await refresh($)
-    return { text: (await read($, langState)) === 'zh' ? 'WildCrane 面板已打开。' : 'The WildCrane panel is open.' }
+    return { text: copyFor(lang).opened }
   })
 
   // The panel's tool is the panel's: kept out of the model's tool list.
@@ -290,7 +280,7 @@ export const register: Register = (on) => {
   // The model saved the ideas: the panel shows what it saved.
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
-    if (String(e.tool).endsWith('__wildcrane_draft_save') && !(await read($, viewingState))) await loadDraft($)
+    if (String(e.tool).endsWith('__wildcrane_draft_save')) await loadDraft($)
     return ran
   }).catch(($, e, next) => next(e))
 
@@ -308,15 +298,15 @@ export const register: Register = (on) => {
     const v = await view($)
     const act: Handlers = {
       tab: (tab) => void goTab($, tab),
-      setup: (project) => void setup($, project),
-      send: (text) => void send($, text),
+      signIn: () => void signIn($),
+      addHere: (project) => void addHere($, project),
+      askSignOut: (open) => void askSignOut($, open),
+      signOut: () => void signOut($),
       show: (n) => void show($, n),
       workflow: (idea, workflow) => void setWorkflow($, idea, workflow),
       discard: (idea) => void discard($, idea),
       start: (idea) => void start($, idea),
       retry: () => void retry($),
-      openChat: (chat) => void openChat($, chat),
-      back: () => void back($),
       recheck: () => void checkConnections($),
       remove: (project) => void remove($, project),
       confirmRemove: (project) => void confirmRemove($, project),

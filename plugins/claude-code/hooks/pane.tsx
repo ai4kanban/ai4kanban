@@ -3,8 +3,8 @@
 
 import type { ElementTable, RenderElement } from 'claude-code'
 
-import type { Adding, Chat, Connection, Draft, Idea, Removing, Status, Tab } from '../types'
-import { UPDATE_COMMANDS, ago, copyFor } from './copy'
+import type { Adding, Connection, Draft, Idea, Removing, Status, Tab } from '../types'
+import { UPDATE_COMMANDS, copyFor } from './copy'
 import { LOGO_MARK, markOf } from './logo'
 
 export interface View {
@@ -13,30 +13,30 @@ export interface View {
   session: string
   status: Status | null
   draft: Draft | null
-  viewing: string | null
   open: number
   busy: boolean
   banner: string | null
-  text: string
-  chats: Chat[] | null
   connections: Connection[] | null
   synced: boolean
   removing: Removing
   adding: Adding
+  signingOut: boolean
   root: string
 }
 
 export interface Handlers {
   tab(tab: Tab): void
-  setup(project?: string): void
-  send(text: string): void
+  signIn(): void
+  /** Makes this folder a project: a new one, or `project` bound to it. */
+  addHere(project?: string): void
+  /** Opens or closes the Sign out question. */
+  askSignOut(open: boolean): void
+  signOut(): void
   show(n: number): void
   workflow(idea: string, workflow: string): void
   discard(idea: string): void
   start(idea: string): void
   retry(): void
-  openChat(chat: Chat): void
-  back(): void
   recheck(): void
   /** Opens a project row's unbind question, or says why it cannot be unbound. */
   remove(project: string): void
@@ -54,7 +54,7 @@ export type Surface =
   | { surface: 'vscode'; ui: ElementTable<'vscode'> }
   | { surface: 'mobile'; ui: ElementTable<'mobile'> }
 
-const TABS: Tab[] = ['ideas', 'chats', 'projects', 'connections']
+const TABS: Tab[] = ['ideas', 'projects', 'agents']
 
 /** The CLIs a connection always lists; any other shows once installed. */
 const MAIN = ['claude-code', 'codex', 'cursor', 'opencode']
@@ -86,17 +86,22 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     return svg ? <Svg source={svg} alt={label} width={16} height={16} /> : null
   }
 
-  const header = (bare?: boolean) => (
+  const account = status?.signedIn ? status.account?.name || status.account?.email || null : null
+  const header = (
     <Box flexDirection="row" gap={1}>
       {logo}
       <Text bold>WildCrane</Text>
       <Text dimColor>{c.pluginName}</Text>
       <Box flexGrow={1} />
-      {!bare && status?.folder ? <Text dimColor={v.synced} color={v.synced ? undefined : 'warning'}>{v.synced ? c.synced : c.unsynced}</Text> : null}
+      {status?.signedIn && !v.synced ? <Text color="warning">{c.unsynced}</Text> : null}
+      {account ? <Text>{account}</Text> : null}
+      {status?.signedIn ? (
+        <Button key="sign-out" plain dimColor={!v.signingOut} label={c.signOut} onPress={() => act.askSignOut(!v.signingOut)} />
+      ) : null}
     </Box>
   )
 
-  if (!status) return <Box>{header(true)}</Box>
+  if (!status) return <Box>{header}</Box>
 
   const outdated =
     status.runner === 'outdated' ? (
@@ -106,20 +111,13 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
       </Box>
     ) : null
 
-  // Signed out, or this folder not added: one button does what is missing.
-  if (!status.signedIn || !status.folder) {
+  if (!status.signedIn) {
     const signing = status.signing
-    const refused = status.refused ? c.refused[status.refused] ?? c.startFailed : null
-    const bindable = status.signedIn ? status.elsewhere ?? [] : []
     return (
       <Box flexDirection="column" gap={1}>
-        {header(true)}
+        {header}
         {outdated}
-        <Box flexDirection="column">
-          <Text>{status.dir}</Text>
-          <Text dimColor>{bindable.length ? c.bindHint : c.dirHint}</Text>
-        </Box>
-        {refused ? <Text color="warning">{refused}</Text> : null}
+        <Text>{c.welcome}</Text>
         {status.error === 'offline' ? <Text color="warning">{c.offline}</Text> : null}
         {signing?.failed ? <Text color="warning">{c.signInFailed}</Text> : null}
         {signing && !signing.failed ? (
@@ -128,25 +126,23 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
             {signing.url ? <Link href={signing.url} label={c.openSignIn} /> : null}
           </Box>
         ) : (
-          <Button key="setup" variant="primary" autoFocus label={status.signedIn ? c.addDir : c.signInAdd} onPress={() => act.setup()} />
-        )}
-        {bindable.length ? (
-          <Box flexDirection="column">
-            <Text dimColor>{c.bindHeading}</Text>
-            {bindable.map((p) => (
-              <Box key={`bindable-${p.project}`} flexDirection="row" gap={2}>
-                <Box flexDirection="row" gap={2} flexGrow={1}>
-                  <Text bold>{p.name}</Text>
-                  {p.personal ? null : <Text dimColor>{p.workspace_name}</Text>}
-                </Box>
-                <Button key={`bind-${p.project}`} label={c.bind} onPress={() => act.setup(p.project)} />
-              </Box>
-            ))}
+          <Box flexDirection="row">
+            <Button key="sign-in" variant="primary" autoFocus label={c.signIn} onPress={() => act.signIn()} />
           </Box>
-        ) : null}
+        )}
       </Box>
     )
   }
+
+  const confirm = v.signingOut ? (
+    <Box flexDirection="column" gap={1} paddingX={1} borderStyle="round" borderColor="warning">
+      <Text color="warning">{c.signOutAsk}</Text>
+      <Box flexDirection="row" gap={2}>
+        <Button key="sign-out-confirm" variant="primary" autoFocus label={c.signOut} onPress={() => act.signOut()} />
+        <Button key="sign-out-cancel" label={c.cancel} onPress={() => act.askSignOut(false)} />
+      </Box>
+    </Box>
+  ) : null
 
   const nav = (
     <Box flexDirection="row" gap={desk ? 2 : 3}>
@@ -180,7 +176,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
   )
 
   const open = (draft: Draft, idea: Idea, notice: RenderElement | null) => {
-    const blocked = v.busy || !!v.banner || !v.synced
+    const blocked = v.busy || !!v.banner || !v.synced || !status.folder
     const outcome = [idea.outcome, idea.acceptance.length ? `**${c.acceptance}**\n${idea.acceptance.map((a) => `- ${a}`).join('\n')}` : '']
       .filter(Boolean)
       .join('\n\n')
@@ -218,52 +214,55 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     )
   }
 
+  // This folder is no project yet: a new one, or one of the account's bound to it.
+  const notProject = () => {
+    const refused = status.refused ? c.refused[status.refused] ?? c.addFailed : null
+    const name = status.dir.split(/[\\/]/).filter(Boolean).pop() ?? status.dir
+    const bindable = status.elsewhere ?? []
+    return (
+      <Box flexDirection="column" gap={1}>
+        <Text>{c.notProject(status.dir)}</Text>
+        {refused ? <Text color="warning">{refused}</Text> : null}
+        <Box flexDirection="row">
+          <Button key="create-here" variant="primary" autoFocus label={c.createHere(name)} onPress={() => act.addHere()} />
+        </Box>
+        {bindable.length ? (
+          <Box flexDirection="column">
+            <Text dimColor>{c.bindHeading}</Text>
+            {bindable.map((p) => (
+              <Box key={`bindable-${p.project}`} flexDirection="row" gap={2}>
+                <Box flexDirection="row" gap={2} flexGrow={1}>
+                  <Text bold>{p.name}</Text>
+                  {p.personal ? null : <Text dimColor>{p.workspace_name}</Text>}
+                </Box>
+                <Button key={`bind-here-${p.project}`} label={c.bind} onPress={() => act.addHere(p.project)} />
+              </Box>
+            ))}
+          </Box>
+        ) : null}
+      </Box>
+    )
+  }
+
   const ideas = () => {
     const warn = v.banner ? (c as unknown as Record<string, string>)[v.banner] : v.busy ? c.busy : null
-    const notice = warn ? note(warn, v.banner === 'offline' || v.banner === 'sendFailed') : null
-    const input = v.viewing ? (
-      <Button key="back" plain label={`← ${c.back}`} onPress={() => act.back()} />
-    ) : (
-      <ui.Input key="idea" placeholder={c.placeholder} value={v.text} submitLabel={c.send} autoFocus onSubmit={(value: string) => act.send(value)} />
-    )
+    const notice = warn ? note(warn, v.banner === 'offline') : null
+    const setup = status.folder ? null : notProject()
     const draft = v.draft
     if (!draft?.ideas.length) {
       return (
         <Box flexDirection="column" gap={1}>
-          {input}
+          {setup}
           {notice}
+          {setup ? null : <Text dimColor>{c.empty}</Text>}
         </Box>
       )
     }
     const shown = Math.min(v.open, draft.ideas.length - 1)
     return (
       <Box flexDirection="column" gap={1}>
-        {input}
+        {setup}
         {draft.ideas.map((idea, i) => (i === shown ? open(draft, idea, notice) : row(idea, i)))}
-      </Box>
-    )
-  }
-
-  const chats = () => {
-    if (!v.chats) return <Text dimColor>…</Text>
-    const mine = v.chats.filter((x) => x.session === v.session)
-    const past = v.chats.filter((x) => x.session !== v.session)
-    const item = (x: Chat) => (
-      <Box key={`chat-${x.discussion}`} flexDirection="column">
-        <Button key={`open-${x.discussion}`} plain label={x.title || c.ideaCount(0)} onPress={() => act.openChat(x)} />
-        <Text dimColor>{`${c.ideaCount(x.ideas)} · ${ago(c, x.at)}`}</Text>
-      </Box>
-    )
-    return (
-      <Box flexDirection="column" gap={1}>
-        <Box flexDirection="column">
-          <Text dimColor>{c.thisChat}</Text>
-          {mine.length ? mine.map(item) : <Text dimColor>{c.ideaCount(0)}</Text>}
-        </Box>
-        <Box flexDirection="column" gap={desk ? 0 : 1}>
-          <Text dimColor>{c.earlierChats}</Text>
-          {past.length ? past.map(item) : <Text dimColor>{c.noChats}</Text>}
-        </Box>
       </Box>
     )
   }
@@ -278,7 +277,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     )
   }
 
-  // This computer's projects, the current one marked, then the account's ones not here.
+  // One list: this computer's projects, the current one marked, then the account's ones not here.
   const projects = () => {
     const adding = v.adding
     const removing = v.removing
@@ -301,9 +300,12 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
                   <Box flexDirection="column" flexGrow={1}>
                     <Box flexDirection="row" gap={1}>
                       <Text bold>{p.name}</Text>
-                      {p.project === status.folder?.project ? <Text color="success">{c.current}</Text> : null}
                     </Box>
-                    <Text dimColor>{p.dir}</Text>
+                    <Box flexDirection="row" gap={1}>
+                      {p.project === status.folder?.project ? <Text color="success">{c.current}</Text> : null}
+                      {p.project === status.folder?.project ? <Text dimColor>·</Text> : null}
+                      <Text dimColor>{p.dir}</Text>
+                    </Box>
                   </Box>
                   <Link href={p.board} label={`${c.board} ↗`} />
                   <Button key={`remove-${p.project}`} plain dimColor={!asking} label={c.remove} onPress={() => act.remove(p.project)} />
@@ -321,36 +323,35 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
               </Box>
             )
           })}
-        </Box>
-        {elsewhere.length ? (
-          <Box flexDirection="column">
-            <Text dimColor>{c.elsewhere}</Text>
-            {elsewhere.map((p) => {
-              const open = adding?.project === p.project
-              return (
-                <Box key={`away-${p.project}`} flexDirection="column">
-                  <Box flexDirection="row" gap={2}>
-                    <Box flexDirection="row" gap={2} flexGrow={1}>
-                      <Text dimColor>{p.name}</Text>
+          {elsewhere.map((p) => {
+            const open = adding?.project === p.project
+            return (
+              <Box key={`away-${p.project}`} flexDirection="column">
+                <Box flexDirection="row" gap={2}>
+                  <Box flexDirection="column" flexGrow={1}>
+                    <Box flexDirection="row" gap={1}>
+                      <Text bold>{p.name}</Text>
                       {p.personal ? null : <Text dimColor>{p.workspace_name}</Text>}
                     </Box>
-                    <Link href={p.board} label={`${c.board} ↗`} />
-                    <Button key={`bind-${p.project}`} plain dimColor={!open} label={c.bind} onPress={() => act.adding(p.project)} />
+                    <Text dimColor>{c.noFolder}</Text>
                   </Box>
-                  {open && adding ? folderField(adding, c.bind) : null}
+                  <Link href={p.board} label={`${c.board} ↗`} />
+                  <Button key={`bind-${p.project}`} plain dimColor={!open} label={c.bind} onPress={() => act.adding(p.project)} />
                 </Box>
-              )
-            })}
-          </Box>
-        ) : null}
+                {open && adding ? folderField(adding, c.bind) : null}
+              </Box>
+            )
+          })}
+        </Box>
       </Box>
     )
   }
 
-  const connections = () => {
+  const agents = () => {
     if (!v.connections) return <Text dimColor>{c.checking}</Text>
     return (
       <Box flexDirection="column" gap={desk ? 0 : 1}>
+        <Text dimColor>{c.agentsIntro}</Text>
         {v.connections
           .filter((x) => MAIN.includes(x.name) || x.state !== 'notInstalled')
           .map((x) => (
@@ -375,11 +376,12 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     )
   }
 
-  const body = v.tab === 'ideas' ? ideas() : v.tab === 'chats' ? chats() : v.tab === 'projects' ? projects() : connections()
+  const body = v.tab === 'ideas' ? ideas() : v.tab === 'projects' ? projects() : agents()
   return (
     <Box flexDirection="column" gap={1}>
-      {header()}
+      {header}
       {outdated}
+      {confirm}
       {nav}
       {body}
     </Box>
