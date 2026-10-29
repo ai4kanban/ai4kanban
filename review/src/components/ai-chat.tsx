@@ -17,7 +17,7 @@ import { Button } from "./button";
 import { Copied, useCopyText } from "./copy";
 import { ImagePreview } from "./image-preview";
 import { Markdown } from "./Markdown";
-import { IMAGE_TYPES, StagedThumbs, useStagedImages } from "./staged-images";
+import { AddImages, StagedThumbs, useStagedImages } from "./staged-images";
 
 type AiCopy = Copy["ai"];
 
@@ -100,7 +100,6 @@ export function AiChat({
   const pics = useStagedImages(c, setProblem);
   const { staged, dragging } = pics;
   const input = useRef<HTMLTextAreaElement>(null);
-  const picker = useRef<HTMLInputElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const was = useRef(false);
   const [doing, setDoing] = useState<string | null>(null);
@@ -235,7 +234,7 @@ export function AiChat({
         aria-label={ask ?? c.ask}
         className={cn("w-full resize-none bg-transparent px-2.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none max-md:text-[16px]", phone && "max-h-[40dvh] min-h-[108px] overflow-y-auto")}
       />
-      <div className="flex h-7 items-center justify-between">
+      <div className="flex h-7 items-center justify-between max-md:h-9">
         <span className="flex h-full min-w-0 items-center gap-1.5">
           <Pick
             c={c}
@@ -251,25 +250,10 @@ export function AiChat({
           {chat.context && <ContextRing label={c.context(kilo(chat.context.used), kilo(chat.context.limit))} filled={chat.context.used / chat.context.limit} />}
         </span>
         <span className="flex h-full items-center gap-1">
-          <button
-            type="button"
-            onClick={() => picker.current?.click()}
-            aria-label={c.addImages}
-            title={c.addImages}
-            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink"
-          >
-            <FiImage className="text-[14px]" aria-hidden />
-          </button>
-          <input
-            ref={picker}
-            type="file"
-            accept={IMAGE_TYPES.join(",")}
-            multiple
-            hidden
-            onChange={(e) => {
-              void pics.add([...(e.target.files ?? [])]);
-              e.target.value = "";
-            }}
+          <AddImages
+            c={c}
+            onAdd={(files) => void pics.add(files)}
+            className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] text-[14px] text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink max-md:size-9 max-md:text-[17px]"
           />
           {!empty && io.clear && <Clear c={c} disabled={busy} onClear={clear} />}
           {working(chat) ? (

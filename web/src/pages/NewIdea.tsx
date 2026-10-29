@@ -11,7 +11,7 @@ import { FiAlertCircle, FiArrowUp, FiCheck, FiChevronDown, FiEdit2, FiLayout, Fi
 import { AgentMark } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { ITEM, Menu, POPUP_PANEL } from "@review/components/menu";
-import { StagedThumbs, useStagedImages } from "@review/components/staged-images";
+import { AddImages, StagedThumbs, useStagedImages } from "@review/components/staged-images";
 import { keptDraft, useDraft } from "@review/lib/draft";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
@@ -185,7 +185,12 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
                 aria-label={placeholder}
                 className="max-h-[320px] min-h-[56px] w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft focus:outline-none max-md:max-h-[40dvh] max-md:min-h-[104px] max-md:text-[16px]"
               />
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-between">
+                <AddImages
+                  c={REVIEW.ai}
+                  onAdd={(files) => void pics.add(files)}
+                  className="-ml-2 inline-flex size-9 cursor-pointer items-center justify-center rounded-full text-[17px] text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink"
+                />
                 <button
                   type="button"
                   onClick={() => void send()}

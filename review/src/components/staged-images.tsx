@@ -2,12 +2,12 @@
 // shrunk to what Cloud takes, shown as thumbnails until sent.
 
 import { useRef, useState, type ClipboardEvent, type DragEvent } from "react";
-import { FiX } from "react-icons/fi";
+import { FiImage, FiX } from "react-icons/fi";
 import type { ChatImage } from "../api";
 import type { Copy } from "../i18n";
 import { ImagePreview } from "./image-preview";
 
-type ImageCopy = Pick<Copy["ai"], "notImage" | "tooBig" | "tooMany" | "openImage" | "removeImage">;
+type ImageCopy = Pick<Copy["ai"], "notImage" | "tooBig" | "tooMany" | "openImage" | "removeImage" | "addImages">;
 
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 const MAX_IMAGES = 4;
@@ -116,6 +116,29 @@ export function useStagedImages(c: ImageCopy, onProblem: (problem: string | null
     void add(files);
   };
   return { staged, images: staged.map((s) => s.image), dragging, add, remove, clear, drop, paste };
+}
+
+/** The way to add pictures where there is nothing to paste or drop from: the system's own picker (#27). */
+export function AddImages({ c, onAdd, className }: { c: ImageCopy; onAdd: (files: File[]) => void; className: string }) {
+  const picker = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button type="button" onClick={() => picker.current?.click()} aria-label={c.addImages} title={c.addImages} className={className}>
+        <FiImage aria-hidden />
+      </button>
+      <input
+        ref={picker}
+        type="file"
+        accept={IMAGE_TYPES.join(",")}
+        multiple
+        hidden
+        onChange={(e) => {
+          onAdd([...(e.target.files ?? [])]);
+          e.target.value = "";
+        }}
+      />
+    </>
+  );
 }
 
 /** The staged pictures as thumbnails: one opens large, its corner takes it out. */
