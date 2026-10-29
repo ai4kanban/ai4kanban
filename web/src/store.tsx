@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import * as api from "./api";
 import { T } from "./i18n";
 import { readCard, type CardInfo } from "./lib/card";
+import { forgetAllBut } from "./lib/chat-images";
 import { openStream, type Event } from "./stream";
 
 const WS_KEY = "wildcrane.web.workspace";
@@ -88,7 +89,14 @@ export function StoreProvider({ me, workspaces: first, children }: { me: api.Me;
   }, []);
 
   const loadRunner = useCallback(() => api.readRunner().then((r) => (setRunner(!!r?.connected), setRunnerName(r?.name ?? null)), () => {}), []);
-  const loadChats = useCallback(() => api.listChats(ws.id).then(setChats, () => {}), [ws.id]);
+  const loadChats = useCallback(
+    () =>
+      api.listChats(ws.id).then((p) => {
+        setChats(p.data);
+        if (p.next === null) void forgetAllBut(ws.id, p.data.flatMap((c) => c.discussion ?? []));
+      }, () => {}),
+    [ws.id],
+  );
   const loadLists = useCallback(async () => {
     try {
       const [p, t] = await Promise.all([api.listProjects(ws.id), api.listTasks(ws.id)]);

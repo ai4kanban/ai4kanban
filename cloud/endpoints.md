@@ -497,8 +497,8 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   workspace, project, title, messages, status: "idle" | "replying" | "failed", job, runtime, runtimes,
   runner, context, ideas: [{ id, title, outcome, acceptance: [], workflow, task: { id, key } |
   null }] }`. `PATCH …/ideas/{idea}` `{ workflow }` (installed or the workspace's own, else
-  `not_found`), `DELETE …/ideas/{idea}` discards one; `POST …/ideas/{idea}/start` `{ project? }`
-  answers 201 the task `POST /v1/tasks` with `run: true` makes of it — request the outcome and
+  `not_found`), `DELETE …/ideas/{idea}` discards one; `POST …/ideas/{idea}/start` `{ project?, skip_plan? }`
+  answers 201 the task `POST /v1/tasks` with `run: true` (and `skip_plan`) makes of it — request the outcome and
   a `## Done when` list — and a task reads `discussion`. A started idea is `conflict` to all
   three. `GET /v1/chats` lists it as `{ discussion, title, project, last_message_at, state }`
   (`waiting_you` when the agent spoke last and an idea waits) until it had ideas and none waits.

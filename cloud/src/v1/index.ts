@@ -320,8 +320,10 @@ async function startIdeaRoute(c: Call): Promise<Response> {
   const project = held.project == null ? null : idOf(held.project, 'prj', 'project')
   if (held.expectedVersion != null && !Number.isInteger(held.expectedVersion)) throw badRequest('expectedVersion must be an integer.')
   const version = (held.expectedVersion as number | undefined) ?? null
+  if (held.skip_plan != null && typeof held.skip_plan !== 'boolean') throw badRequest('skip_plan must be a boolean.')
+  const skipPlan = held.skip_plan === true
   return idempotent(c.env, c.caller, c.request, body, async () => {
-    const task = await startIdea(c.env, c.caller.accountId, discussionId(c), ideaId(c), project, version)
+    const task = await startIdea(c.env, c.caller.accountId, discussionId(c), ideaId(c), project, version, skipPlan)
     poke(c.env, c.ctx, c.caller.accountId)
     return { status: 201, body: task }
   })

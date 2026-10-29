@@ -1121,17 +1121,20 @@ describe('discussions (#2073)', () => {
   it('starts an idea on its workflow, against the workspace’s plan', async () => {
     BUILTIN_WORKFLOWS.push(coding)
     db.v1_discussion = () => discussion
-    db.v1_start_idea = ({ p_discussion, p_idea, p_project, p_workflow, p_max_tasks }) =>
-      ({ id: 'task_1', p_discussion, p_idea, p_project, workflow: p_workflow.id, builtin: p_workflow.builtin, p_max_tasks })
+    db.v1_start_idea = ({ p_discussion, p_idea, p_project, p_workflow, p_max_tasks, p_skip_plan }) =>
+      ({ id: 'task_1', p_discussion, p_idea, p_project, workflow: p_workflow.id, builtin: p_workflow.builtin, p_max_tasks, p_skip_plan })
     db.v1_task_workflow = () => json({ code: 'AKB20', message: 'No task has this id.' }, 400)
     const started = await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST', body: { project: 'prj_2' } })
     assert.equal(started.status, 201)
-    assert.deepEqual(await started.json(), { id: 'task_1', p_discussion: 'dsc_1', p_idea: 'idea_1', p_project: 'prj_2', workflow: 'wf_builtin_coding', builtin: true, p_max_tasks: 3 })
+    assert.deepEqual(await started.json(), { id: 'task_1', p_discussion: 'dsc_1', p_idea: 'idea_1', p_project: 'prj_2', workflow: 'wf_builtin_coding', builtin: true, p_max_tasks: 3, p_skip_plan: false })
+    const built = await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST', body: { skip_plan: true } })
+    assert.equal((await built.json()).p_skip_plan, true)
+    assert.equal((await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST', body: { skip_plan: 'yes' } })).status, 400)
     assert.equal((await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST' })).status, 201)
     assert.equal((await send('/v1/discussions/dsc_1/ideas/idea_9/start', { method: 'POST' })).status, 404)
     db.v1_discussion = () => ({ ...discussion, ideas: [{ ...discussion.ideas[0], task: { id: 'task_1', key: 'S-1' } }] })
     assert.equal((await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST' })).status, 409)
-    assert.equal(callsTo('v1_start_idea').length, 2)
+    assert.equal(callsTo('v1_start_idea').length, 3)
   })
 
   it('lists after a task or a discussion', async () => {

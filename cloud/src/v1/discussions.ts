@@ -62,11 +62,11 @@ interface Discussion {
   ideas: { id: string; workflow: string; task: { id: string } | null }[]
 }
 
-/** As `POST /v1/tasks` with `run: true`, on the idea's workflow, counted against the
+/** As `POST /v1/tasks` with `run: true` (and `skip_plan` when asked), on the idea's workflow, counted against the
  *  workspace's plan. A Claude Code discussion's start names the version it showed, and a retry
  *  answers the task the first one made. */
 export async function startIdea(
-  env: Env, account: string, discussion: string, idea: string, project: string | null, expectedVersion: number | null = null,
+  env: Env, account: string, discussion: string, idea: string, project: string | null, expectedVersion: number | null = null, skipPlan = false,
 ): Promise<{ id: string }> {
   const held = await call<Discussion>(env, 'v1_discussion', { p_account: account, p_id: discussion })
   const found = held.ideas.find((i) => i.id === idea)
@@ -83,6 +83,7 @@ export async function startIdea(
     p_workflow: definition,
     p_max_tasks: limits.tasks,
     p_expected_version: expectedVersion,
+    p_skip_plan: skipPlan,
   })
   await placeWorkflow(env, account, task.id)
   return task

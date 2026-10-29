@@ -1,8 +1,9 @@
 // `/discussions/<id>` (#2073), after legacy kanban-ui's CreateSheet: the conversation on the left,
-// the ideas a cream card standing beside it (tabs when several), each started from its own foot.
-// At phone width the ideas are rows over the box, and one opened lies over the thread. The thread
-// and the box are the card page's chat (review/'s AiChat), drawn as a page. A discussion held in
-// a Claude Code or Codex session (#2160) has no thread here: a note sends the user back to it.
+// the ideas a cream card standing beside it (tabs when several), its next steps straight after the
+// idea (#2202). At phone width the ideas are rows over the box, and one opened lies over the
+// thread. The thread and the box are the card page's chat (review/'s AiChat), drawn as a page. A
+// discussion held in a Claude Code or Codex session (#2160) has no thread here: a note sends the
+// user back to it.
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { FiAlertCircle, FiArrowUpRight, FiCheck, FiChevronDown, FiFileText, FiLayout, FiTerminal, FiTrash2 } from "react-icons/fi";
@@ -23,6 +24,7 @@ import { watchDoing } from "../components/RunLog";
 import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/Settings";
 import { Window } from "../components/Window";
 import { Gone } from "./Gone";
+import { keepImages, readImage } from "../lib/chat-images";
 
 const ICON = "nb-tip inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink";
 const PAD = 24;
@@ -30,7 +32,6 @@ const NO_ASKS = { question: false, comments: false, previews: false };
 const COPY = {
   ...REVIEW.ai,
   ask: T.idea.ask,
-  clearBody: T.idea.clearBody,
   offline: T.idea.offline,
   notInstalledHere: T.idea.notInstalledHere,
   signedOutHere: T.idea.signedOutHere,
@@ -52,7 +53,7 @@ export function DiscussionPage({ id }: { id: string }) {
   const [tried, setTried] = useState(false);
   const gone = useGoneRuntimes();
 
-  // Every read and write of the chat also brings the ideas.
+  // Every read and write of the chat also brings the ideas. No clear: the rail closes a chat.
   const io = useMemo<ChatApi>(() => {
     const take = (next: api.Discussion) => {
       setD(next);
@@ -65,10 +66,14 @@ export function DiscussionPage({ id }: { id: string }) {
           if (e instanceof api.ApiError && (e.code === "not_found" || e.status === 404)) setMissing(true);
           throw e;
         }),
-      send: (body, runtime, images) => chat.send(body, runtime, images).then(take),
-      clear: () => chat.clear().then(take),
+      send: async (body, runtime, images) => {
+        const next = await chat.send(body, runtime, images);
+        await keepImages(id, next.workspace, next.messages, images);
+        return take(next);
+      },
       stop: () => chat.stop().then(take),
       watch: watchDoing,
+      image: (message, name) => readImage(id, message, name),
     };
   }, [id]);
   const replied = useCallback(() => store.reload(), [store.reload]);
@@ -118,9 +123,10 @@ export function DiscussionPage({ id }: { id: string }) {
       setBusy(false);
     }
   };
-  const start = (i: api.Idea) =>
+  /** `build`: straight to building, with no plan to review first. */
+  const start = (i: api.Idea, build: boolean) =>
     act(async () => {
-      const task = await api.startIdea(id, i.id, store.current?.id, d?.external ? d.version : undefined);
+      const task = await api.startIdea(id, i.id, store.current?.id, d?.external ? d.version : undefined, build);
       store.patchTask(task);
       setD((was) => was && { ...was, ideas: was.ideas.map((x) => (x.id === i.id ? { ...x, task: { id: task.id, key: task.key } } : x)) });
     });
@@ -135,10 +141,10 @@ export function DiscussionPage({ id }: { id: string }) {
       busy={busy}
       trouble={trouble}
       onShow={(i) => setShown(i.id)}
-      onStart={(i) => void start(i)}
+      onStart={(i, build) => void start(i, build)}
       onPick={(i, w) => void pick(i, w)}
       onDiscard={(i) => void discard(i)}
-      className={narrow ? "absolute inset-x-3 bottom-1 top-3" : "my-5 mr-5 w-[440px] shrink-0"}
+      className={narrow ? "absolute inset-x-3 bottom-1 top-3" : "my-5 mr-5 max-h-[calc(100%-40px)] w-[440px] shrink-0 self-start"}
     />
   );
   const rows = ideas.length > 0 && (
@@ -158,7 +164,7 @@ export function DiscussionPage({ id }: { id: string }) {
               setShown(i.id);
               setOpen(true);
             }}
-            onStart={(i) => void start(i)}
+            onStart={(i, build) => void start(i, build)}
           />
         </>
       )}
@@ -267,7 +273,7 @@ function IdeaCard({
   busy: boolean;
   trouble: Trouble;
   onShow: (i: api.Idea) => void;
-  onStart: (i: api.Idea) => void;
+  onStart: (i: api.Idea, build: boolean) => void;
   onPick: (i: api.Idea, workflow: string) => void;
   onDiscard: (i: api.Idea) => void;
   className?: string;
@@ -319,74 +325,80 @@ function IdeaCard({
             )}
           </div>
         )}
-      </div>
-      {trouble && <Note trouble={trouble} className="mx-4 mb-2" />}
-      <div className="flex h-12 shrink-0 items-center gap-1.5 text-[12.5px]" style={{ paddingInline: PAD, borderTop: `1px solid ${HAIRLINE}` }}>
-        {idea.task ? (
-          <span className="flex items-center gap-1.5 text-nb-ink-soft">
-            <FiLayout size={13} aria-hidden />
-            {nameOf(workflows, idea.workflow)}
-          </span>
-        ) : (
-          <Menu
-            trigger={({ open, onClick }) => (
-              <button
-                type="button"
-                onClick={onClick}
-                aria-expanded={open}
-                aria-label={T.workflow}
-                className={cn("-ml-2 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2 font-[600] hover:bg-nb-ink/[0.06]", open && "bg-nb-ink/[0.06]")}
-              >
-                <FiLayout size={13} className="text-nb-ink-soft" aria-hidden />
-                {nameOf(workflows, idea.workflow)}
-                <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
-              </button>
-            )}
-            items={workflows.map((w) => ({
-              key: w.id,
-              onSelect: () => w.id !== idea.workflow && onPick(idea, w.id),
-              body: (
-                <>
-                  <span className="min-w-0 flex-1 truncate">{workflowName(w)}</span>
-                  {w.id === idea.workflow && <FiCheck size={12} aria-hidden />}
-                </>
-              ),
-            }))}
-          />
-        )}
-        <span className="-mr-1.5 ml-auto flex items-center">
+        {trouble && <Note trouble={trouble} className="mt-4" />}
+        <div className={cn("flex items-center gap-2 text-[12.5px]", idea.task ? "mt-3" : "mt-5 pt-4")} style={idea.task ? undefined : { borderTop: `1px solid ${HAIRLINE}` }}>
           {idea.task ? (
-            <Started task={idea.task} />
+            <span className="flex items-center gap-1.5 text-nb-ink-soft">
+              <FiLayout size={13} aria-hidden />
+              {nameOf(workflows, idea.workflow)}
+            </span>
           ) : (
-            <Button size="xs" disabled={busy} onClick={() => onStart(idea)}>
-              {T.idea.start}
-            </Button>
+            <Menu
+              trigger={({ open, onClick }) => (
+                <button
+                  type="button"
+                  onClick={onClick}
+                  aria-expanded={open}
+                  aria-label={T.workflow}
+                  className={cn("-ml-2 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2 font-[600] hover:bg-nb-ink/[0.06]", open && "bg-nb-ink/[0.06]")}
+                >
+                  <FiLayout size={13} className="text-nb-ink-soft" aria-hidden />
+                  {nameOf(workflows, idea.workflow)}
+                  <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
+                </button>
+              )}
+              items={workflows.map((w) => ({
+                key: w.id,
+                onSelect: () => w.id !== idea.workflow && onPick(idea, w.id),
+                body: (
+                  <>
+                    <span className="min-w-0 flex-1 truncate">{workflowName(w)}</span>
+                    {w.id === idea.workflow && <FiCheck size={12} aria-hidden />}
+                  </>
+                ),
+              }))}
+            />
           )}
-        </span>
+          <span className="ml-auto flex items-center gap-2.5">
+            {idea.task ? (
+              <span className="-mr-1.5">
+                <Started task={idea.task} />
+              </span>
+            ) : (
+              <Next idea={idea} busy={busy} size="sm" onStart={onStart} />
+            )}
+          </span>
+        </div>
       </div>
     </section>
   );
 }
 
-/** At phone width, folded: a row per idea over the box, each with its own Start. */
-function Rows({ ideas, busy, onOpen, onStart }: { ideas: api.Idea[]; busy: boolean; onOpen: (i: api.Idea) => void; onStart: (i: api.Idea) => void }) {
+/** What to do with an idea: build it straight away, or make its task and review the plan first. */
+function Next({ idea, busy, size, onStart }: { idea: api.Idea; busy: boolean; size: "sm" | "xs"; onStart: (i: api.Idea, build: boolean) => void }) {
+  return (
+    <>
+      <Button variant="ghost" size={size} disabled={busy} onClick={() => onStart(idea, true)}>
+        {T.idea.build}
+      </Button>
+      <Button size={size} disabled={busy} onClick={() => onStart(idea, false)}>
+        {T.idea.plan}
+      </Button>
+    </>
+  );
+}
+
+/** At phone width, folded: a row per idea over the box, each with both next steps. */
+function Rows({ ideas, busy, onOpen, onStart }: { ideas: api.Idea[]; busy: boolean; onOpen: (i: api.Idea) => void; onStart: (i: api.Idea, build: boolean) => void }) {
   return (
     <div className="flex max-h-[30dvh] flex-col overflow-y-auto">
       {ideas.map((i) => (
-        <div key={i.id} className="flex h-9 min-w-0 shrink-0 items-center gap-2 px-1">
+        <div key={i.id} className="flex h-10 min-w-0 shrink-0 items-center gap-2 px-1">
           <button type="button" onClick={() => onOpen(i)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left">
             <FiFileText size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
             <span className="min-w-0 truncate text-[12.5px] font-[600]">{i.title}</span>
           </button>
-          <span className="flex shrink-0 items-center">
-            {i.task ? (
-              <Started task={i.task} />
-            ) : (
-              <Button size="xs" disabled={busy} onClick={() => onStart(i)}>
-                {T.idea.start}
-              </Button>
-            )}
-          </span>
+          <span className="flex shrink-0 items-center gap-2">{i.task ? <Started task={i.task} /> : <Next idea={i} busy={busy} size="xs" onStart={onStart} />}</span>
         </div>
       ))}
     </div>

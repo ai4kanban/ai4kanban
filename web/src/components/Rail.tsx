@@ -13,6 +13,7 @@ import { cn } from "@review/lib/utils";
 import { closeChat, HOST_NAMES, type ChatRow, type Task } from "../api";
 import { T } from "../i18n";
 import { numberOf } from "../lib/card";
+import { forgetChat } from "../lib/chat-images";
 import { Link, navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { useDismiss } from "./Header";
@@ -203,6 +204,7 @@ function CloseChat({ chat, big, open, onOpen, onClosed }: { chat: ChatRow; big?:
     setFailed(false);
     try {
       await closeChat(chat);
+      if (chat.discussion) void forgetChat(chat.discussion);
       onOpen(false);
       onClosed();
     } catch {

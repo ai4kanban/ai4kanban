@@ -425,7 +425,7 @@ export const installWorkflow = (ws: string, id: string) => json<MarketplaceWorkf
 export const uninstallWorkflow = (ws: string, id: string) => json<MarketplaceWorkflow>(call(`/v1/marketplace/workflows/${enc(id)}/uninstall`, post({ workspace: ws })));
 export const readStats = (ws: string, from: string, to: string, tz: string) =>
   json<{ data: StatsDay[] }>(call(`/v1/workspaces/${enc(ws)}/stats?from=${from}&to=${to}&tz=${enc(tz)}`)).then((r) => r.data);
-export const listChats = (ws: string) => json<Page<ChatRow>>(call(`/v1/chats?workspace=${enc(ws)}&limit=50&external=1`)).then((p) => p.data);
+export const listChats = (ws: string) => json<Page<ChatRow>>(call(`/v1/chats?workspace=${enc(ws)}&limit=50&external=1`));
 
 export const readTask = (idOrKey: string) => json<Task>(call(`/v1/tasks/${enc(idOrKey)}`));
 export const readCard = (task: string) => json<Card>(call(`/v1/tasks/${enc(task)}/card`));
@@ -499,8 +499,13 @@ export const readDiscussion = (id: string) => json<Discussion>(call(`/v1/discuss
 export const deleteIdea = (id: string, idea: string) => json<Discussion>(call(`/v1/discussions/${enc(id)}/ideas/${enc(idea)}`, { method: "DELETE" }));
 export const setIdeaWorkflow = (id: string, idea: string, workflow: string) =>
   json<Discussion>(call(`/v1/discussions/${enc(id)}/ideas/${enc(idea)}`, { method: "PATCH", body: JSON.stringify({ workflow }) }));
-export const startIdea = (id: string, idea: string, project?: string, expectedVersion?: number) =>
-  json<Task>(call(`/v1/discussions/${enc(id)}/ideas/${enc(idea)}/start`, post({ ...(project ? { project } : {}), ...(expectedVersion != null ? { expectedVersion } : {}) })));
+export const startIdea = (id: string, idea: string, project?: string, expectedVersion?: number, skipPlan?: boolean) =>
+  json<Task>(
+    call(
+      `/v1/discussions/${enc(id)}/ideas/${enc(idea)}/start`,
+      post({ ...(project ? { project } : {}), ...(expectedVersion != null ? { expectedVersion } : {}), ...(skipPlan ? { skip_plan: true } : {}) }),
+    ),
+  );
 type ChatImage = import("@review/api").ChatImage;
 const chatBody = (body: string, runtime: string, images: ChatImage[]) => post({ body, runtime, ...(images.length ? { images } : {}) });
 

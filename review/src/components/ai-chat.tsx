@@ -2,8 +2,8 @@
 // kanban-ui/components/Chat.tsx and composer.tsx. No title row: the page's corner bubble opens
 // and closes it, and it grows with the conversation. The agent picker, the context ring and an
 // icon-only clear sit on the message box's bottom row. At phone width it covers the page.
-// Pictures go with a message, a reply stops part way, and each reply has its usage and a copy
-// button (#2133).
+// Pictures go with a message, a reply stops part way, and each reply has its time, cost and a
+// copy button (#2133).
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { FiCheck, FiChevronDown, FiCopy, FiImage, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
@@ -14,6 +14,7 @@ import { cn } from "../lib/utils";
 import { AgentMark, type Harness } from "./agent-mark";
 import { Button } from "./button";
 import { Copied, useCopyText } from "./copy";
+import { ImagePreview } from "./image-preview";
 import { Markdown } from "./Markdown";
 import { IMAGE_TYPES, StagedThumbs, useStagedImages } from "./staged-images";
 
@@ -38,8 +39,11 @@ const working = (chat: Chat | null) => chat?.status === "queued" || chat?.status
 export type ChatApi = {
   read: () => Promise<Chat>;
   send: (body: string, runtime: string, images: ChatImage[]) => Promise<Chat>;
-  clear: () => Promise<Chat>;
+  /** Left out, the box offers no clear. */
+  clear?: () => Promise<Chat>;
   stop: () => Promise<Chat>;
+  /** A sent picture this browser kept; its name is shown in its place without one. */
+  image?: (message: string, name: string) => Promise<Blob | undefined>;
   /** Shows what a replying job is doing now, null while it calls no tool; returns the stop. */
   watch?: (job: string, show: (doing: string | null) => void) => () => void;
 };
@@ -169,6 +173,7 @@ export function AiChat({
     }
   };
   const clear = async () => {
+    if (!io.clear) return;
     setProblem(null);
     try {
       take(await io.clear());
@@ -263,7 +268,7 @@ export function AiChat({
               e.target.value = "";
             }}
           />
-          {!empty && <Clear c={c} disabled={busy} onClear={clear} />}
+          {!empty && io.clear && <Clear c={c} disabled={busy} onClear={clear} />}
           {working(chat) ? (
             <Button size="xs" onClick={() => void stop()} aria-label={c.stop} title={c.stop}>
               <FiSquare className="text-[13px]" aria-hidden />
@@ -316,12 +321,9 @@ export function AiChat({
                 <div key={m.id} className={cn("ml-16 mt-3 flex flex-col items-end first:mt-0", arrived(m.id) && "nb-rise")}>
                   <div className="max-w-full rounded-[10px] bg-nb-ink/5 p-2.5">
                     {!!m.image_names?.length && (
-                      <div className="flex flex-wrap justify-end gap-[5px]">
+                      <div className="flex flex-wrap justify-end gap-[6px]">
                         {m.image_names.map((f, i) => (
-                          <span key={i} className="inline-flex max-w-[180px] items-center gap-1 rounded-[6px] bg-nb-paper px-1.5 py-0.5 text-[11.5px] text-nb-ink-soft">
-                            <FiImage className="shrink-0 text-[12px]" aria-hidden />
-                            <span className="truncate">{f}</span>
-                          </span>
+                          <Sent key={i} c={c} name={f} load={io.image && (() => io.image!(m.id, f))} />
                         ))}
                       </div>
                     )}
@@ -353,8 +355,6 @@ export function AiChat({
 
 const kilo = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
-const count = (n: number) => n.toLocaleString("en-US");
-
 /** As the task's run record writes it: web/src/components/RunLog.tsx's formatDuration and formatCost. */
 function duration(c: AiCopy, ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));
@@ -368,17 +368,52 @@ const ACTION = "inline-flex size-6 cursor-pointer items-center justify-center ro
 /** Shown while the reply is hovered or focused, and always on a touch screen. */
 const ON_HOVER = "opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100";
 
-/** An agent's reply: its words, then one line of 已停止 · time · tokens · cost and its copy button. */
+/** A sent picture, as a thumbnail that opens full size, or its name when this browser has none. */
+function Sent({ c, name, load }: { c: AiCopy; name: string; load?: () => Promise<Blob | undefined> }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    if (!load) return;
+    let made: string | null = null;
+    let live = true;
+    void load().then((blob) => {
+      if (!blob || !live) return;
+      made = URL.createObjectURL(blob);
+      setUrl(made);
+    });
+    return () => {
+      live = false;
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, []);
+  if (!url)
+    return (
+      <span className="inline-flex max-w-[180px] items-center gap-1 rounded-[6px] bg-nb-paper px-1.5 py-0.5 text-[11.5px] text-nb-ink-soft">
+        <FiImage className="shrink-0 text-[12px]" aria-hidden />
+        <span className="truncate">{name}</span>
+      </span>
+    );
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setFull(true)}
+        aria-label={c.openImage}
+        title={name}
+        className="block h-[88px] w-[132px] cursor-zoom-in overflow-hidden rounded-[8px] bg-nb-paper shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_14%,transparent)]"
+      >
+        <img src={url} alt={name} className="size-full object-cover" />
+      </button>
+      {full && <ImagePreview src={url} alt={name} onClose={() => setFull(false)} />}
+    </>
+  );
+}
+
+/** An agent's reply: its words, then one line of 已停止 · time · cost and its copy button. */
 function Reply({ c, m, phone, rise }: { c: AiCopy; m: ChatMessage; phone?: boolean; rise?: boolean }) {
   const { copied, copy } = useCopyText();
-  const u = m.usage;
   const parts: ReactNode[] = [
     m.duration_ms != null && duration(c, m.duration_ms),
-    u && (
-      <span title={c.tokensHint(count(u.input), count(u.cacheCreation), count(u.cacheRead), count(u.output))}>
-        {c.tokens(count(u.input + u.cacheCreation + u.cacheRead + u.output))}
-      </span>
-    ),
     m.cost_usd != null && <span title={c.costHint}>{m.cost_usd < 0.005 ? c.costTiny : c.cost(m.cost_usd.toFixed(2))}</span>,
   ].filter(Boolean);
   return (

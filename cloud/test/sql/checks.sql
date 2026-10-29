@@ -4219,9 +4219,11 @@ begin
 
   -- Another connector or model: a new session, with the transcript.
   update cloud.discussions set session_runtime = 'codex' where id = v_dsc;
-  v_other := api.v1_start_idea(A, v_dsc, api.v1_discussion(A, v_dsc) -> 'ideas' -> 1 ->> 'id', null, CODING, BUDGET, 10) ->> 'id';
+  v_other := api.v1_start_idea(A, v_dsc, api.v1_discussion(A, v_dsc) -> 'ideas' -> 1 ->> 'id', null, CODING, BUDGET, 10, null, true) ->> 'id';
   v_job := cloud.v1_flow_job(v_other);
   assert v_job.resume is null and not v_job.fork and v_job.transcript_of = v_dsc, 'another connector''s session was carried';
+  assert (select skip_plan from cloud.tasks where id = v_other) and not (select skip_plan from cloud.tasks where id = v_task),
+    'Build now on an idea did not skip planning';
 
   -- A task from no discussion carries nothing.
   v_other := api.v1_create_task(A, jsonb_build_object('title', 'Plain', 'workspace', v_ws, 'run', true), CODING, BUDGET) ->> 'id';

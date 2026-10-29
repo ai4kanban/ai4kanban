@@ -217,9 +217,6 @@ const zh = {
     seconds: (s: number) => `${s} 秒`,
     minutes: (m: number, s: number) => `${m} 分 ${s} 秒`,
     hours: (h: number, m: number) => `${h} 时 ${m} 分`,
-    tokens: (n: string) => `${n} token`,
-    tokensHint: (input: string, cacheWrite: string, cacheRead: string, output: string) =>
-      `token · 输入 ${input} · 缓存写入 ${cacheWrite} · 缓存读取 ${cacheRead} · 输出 ${output}`,
     cost: (usd: string) => `约 $${usd}`,
     costTiny: "约 <$0.01",
     costHint: "按标价和本次回复的 token 数折算，表示按量购买的价格，而非实际扣费；订阅套餐下不单独计费。",
@@ -463,8 +460,6 @@ const en: Copy = {
     seconds: (s) => `${s}s`,
     minutes: (m, s) => `${m}m ${s}s`,
     hours: (h, m) => `${h}h ${m}m`,
-    tokens: (n) => `${n} tokens`,
-    tokensHint: (input, cacheWrite, cacheRead, output) => `tokens · ${input} input · ${cacheWrite} cache write · ${cacheRead} cache read · ${output} output`,
     cost: (usd) => `est. $${usd}`,
     costTiny: "est. <$0.01",
     costHint: "Worked out from this reply's tokens at list prices — not what you were billed; on a subscription plan it isn't charged on its own.",

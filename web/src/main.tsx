@@ -7,6 +7,7 @@ import { finishGitHub, onSession, pendingGitHubBack, readSession, signOut } from
 import { Failed, Loading, SIGN_IN_FAILED, SignIn } from "@review/components/Notice";
 import { Logo } from "@review/components/Logo";
 import * as api from "./api";
+import { forgetAll } from "./lib/chat-images";
 import { LANG, T } from "./i18n";
 import { navigate, useLocation } from "./router";
 import { StoreProvider, useStore } from "./store";
@@ -62,7 +63,10 @@ type Boot = { kind: "loading" } | { kind: "sign-in" } | { kind: "refused" } | { 
 function App() {
   const [boot, setBoot] = useState<Boot>({ kind: "loading" });
   const start = useCallback(async () => {
-    if (!readSession()) return setBoot({ kind: "sign-in" });
+    if (!readSession()) {
+      void forgetAll();
+      return setBoot({ kind: "sign-in" });
+    }
     try {
       const me = await api.readMe();
       if (!me.admitted) return setBoot({ kind: "refused" });

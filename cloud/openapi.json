@@ -3883,6 +3883,10 @@
                   "expectedVersion": {
                     "type": "integer",
                     "description": "Required for a Claude Code discussion: the `version` its ideas were shown at."
+                  },
+                  "skip_plan": {
+                    "type": "boolean",
+                    "description": "When true, the task builds straight after its card is written, with no plan to review."
                   }
                 }
               }

@@ -14,6 +14,7 @@ import { ITEM, Menu, POPUP_PANEL } from "@review/components/menu";
 import { StagedThumbs, useStagedImages } from "@review/components/staged-images";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
+import { keepImages } from "../lib/chat-images";
 import { REVIEW, T, workflowName } from "../i18n";
 import { navigate, useLocation } from "../router";
 import { useStore } from "../store";
@@ -110,6 +111,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
     try {
       if (pick.kind === "auto") {
         const d = await api.createDiscussion({ workspace: store.ws.id, body: request, ...(current ? { project: current.id } : {}), ...(runtime ? { runtime } : {}), images: pics.images });
+        await keepImages(d.id, d.workspace, d.messages, pics.images);
         store.reload();
         navigate(`/discussions/${encodeURIComponent(d.id)}`);
         return;
