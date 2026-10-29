@@ -471,7 +471,6 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const info: Info = {
     ...(meta ?? { modules: [], priority: null, todos: null, source: [], blockedBy: [], related: [] }),
     workflow: workflowName(task.workflow),
-    project: project?.name ?? "—",
     chipLink: (s, chip) => {
       const key = keyOf(task.key, s);
       return TASK_KEY.test(key) ? (
