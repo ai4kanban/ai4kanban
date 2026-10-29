@@ -3,7 +3,7 @@
 // strip, and the body with the previews it does not name. Each page brings its own shell, AI
 // bubble and comments rail.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FiFeather, FiLock, FiPlay, FiXCircle } from "react-icons/fi";
 import { COPY } from "../i18n";
 import type { Previews } from "../lib/artifacts";
@@ -225,6 +225,19 @@ export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRe
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useDraft(draftKey);
   const box = useRef<HTMLSpanElement>(null);
+  // On a phone the anchored 320px panel can run off the left edge; span the screen instead.
+  const [wide, setWide] = useState<{ left: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const r = box.current?.getBoundingClientRect();
+      const w = document.documentElement.clientWidth;
+      setWide(r && matchMedia("(max-width: 767px)").matches ? { left: 12 - r.left, width: w - 24 } : null);
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
@@ -250,7 +263,11 @@ export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRe
         <FiXCircle className="text-[14px]" aria-hidden />
       </button>
       {open && (
-        <div role="dialog" className="nb-panel nb-pop origin-top-right absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] max-w-[calc(100vw-24px)] bg-nb-paper p-3">
+        <div
+          role="dialog"
+          className="nb-panel nb-pop origin-top-right absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] max-w-[calc(100vw-24px)] bg-nb-paper p-3"
+          style={wide ? { left: wide.left, right: "auto", width: wide.width, maxWidth: "none" } : undefined}
+        >
           <p className="text-[13px] font-[700]">{a.removeAsk}</p>
           <textarea
             rows={3}
