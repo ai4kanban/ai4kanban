@@ -82,6 +82,7 @@ Run these from `cloud/`.
 | `npm run check:closed` | Check the project answers nobody but the Worker. |
 | `npm run check:live` | Compare the live service with HEAD: migrations to apply, Worker commits not live, and whether the component host still reaches the Worker. Exits 1 when behind or the host does not open. |
 | `npm run deploy` / `npm run rollback` | Deploy the Worker, its route and schedule, stamped with HEAD's commit; return to an earlier version. |
+| `-- --env staging` | Run `migrate`, `deploy`, `check:live`, `check:closed` or `redirects` against [staging](#staging). |
 | `npm run invite` | List, approve and track invite requests (below). |
 | `npm run seed` | List and grant seed partners' Pro (below). |
 | `npm run redirects` | Show the sign-in return addresses; `-- --set` writes them. |
@@ -106,13 +107,31 @@ ever a throwaway project, never one a workspace is using.**
 
 ## Deploy
 
-1. `npm run migrate` — the schema goes first, so the Worker always has the tables it expects.
-2. `npm run deploy`.
-3. `npm run check:live` reports `up to date`.
-4. `curl https://api.ai4kanban.dev/health`, then `POST /v1/self-check` with an **admitted**
+Staging first, production only once staging passes. Every command takes `-- --env staging`,
+which reads `cloud/.env.staging` alone (production's values in the shell never reach it).
+
+1. **Staging**: `npm run migrate -- --env staging`, then `npm run deploy -- --env staging`.
+2. **Verify staging**: `npm run check:live -- --env staging` reports `up to date`, and
+   `npm run check:closed -- --env staging` passes. Then the change itself, by hand: sign in on
+   `https://staging.wildcrane-app.pages.dev` (`../web/README.md`), and walk the flow it touches.
+3. **Production**: `npm run migrate`, then `npm run deploy` — the schema goes first, so the
+   Worker always has the tables it expects.
+4. **Verify production**: `npm run check:live` reports `up to date`;
+   `curl https://api.ai4kanban.dev/health`, then `POST /v1/self-check` with an **admitted**
    account's token. `not_admitted` means the account is not on the list, not a failed deploy.
 
 `npm run rollback` returns the Worker, **not the schema**.
+
+## Staging
+
+- **Worker**: `ai4kanban-cloud-staging` at
+  `https://ai4kanban-cloud-staging.wutao-as-neverchanje.workers.dev`, from `env.staging` in
+  `wrangler.jsonc` — its own R2 buckets, no component host. Secrets:
+  `npx wrangler secret put <NAME> --env staging`.
+- **Supabase**: its own project, stood up like production (below, steps 2, 4, 7 and 8, with
+  `--env staging`). Holds test data only.
+- **`cloud/.env.staging`**: `CLOUD_URL` (the Worker above), `SUPABASE_PROJECT_REF`,
+  `SUPABASE_ACCESS_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 
 ## Rotate a secret
 
@@ -233,8 +252,8 @@ The same by hand: `select cloud.grant_seed('<handle>');` and
 
 Only needed once, and again if the project is ever recreated.
 
-1. **Supabase project**: one project, region `eu-central-1`, holding nothing else. No staging
-   copy — test in a throwaway workspace.
+1. **Supabase project**: one project, region `eu-central-1`, holding nothing else. Staging
+   has its own ([Staging](#staging)).
 2. **Asymmetric sign-in keys**: in JWT settings, move to an asymmetric key so
    `/auth/v1/.well-known/jwks.json` publishes one.
 3. **GitHub OAuth app**: callback `https://<project-ref>.supabase.co/auth/v1/callback`; its id

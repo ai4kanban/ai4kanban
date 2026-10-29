@@ -23,6 +23,7 @@ output/
 
 researches/
 .env
+.env.*
 social-posts/
 screenshots/
 .DS_Store

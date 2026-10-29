@@ -7,17 +7,17 @@
 //   exit 1  behind — lists the migrations to apply and the commits not live
 //   exit 2  cannot check, with the reason
 //
-// Credentials as for `npm run migrate`; when neither the shell nor this checkout's cloud/.env
-// has them, the main checkout's cloud/.env is read, so it runs from a worktree.
+// Credentials as for `npm run migrate`; when neither the shell nor this checkout's env file
+// has them, the main checkout's is read, so it runs from a worktree. `--env staging` checks
+// cloud/.env.staging's CLOUD_URL, and no component host: staging has none.
 
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { WORKER_FILES, git } from './commit.mjs'
-import { loadEnv, requireEnv } from './env.mjs'
+import { envFile, loadEnv, requireEnv, staging } from './env.mjs'
 import { pendingMigrations, query, readMigrations } from './migrations.mjs'
 
-const HEALTH = 'https://api.ai4kanban.dev/health'
 const CREDENTIALS = ['SUPABASE_PROJECT_REF', 'SUPABASE_ACCESS_TOKEN']
 // The all-zero hash names no component, so a healthy host answers with serveComponent's 404.
 const COMPONENT_PROBE = 'https://00000000000000000000000000000000.wildcraneusercontent.com/'
@@ -27,11 +27,14 @@ const CERT_ERROR = /CERT|SELF_SIGNED|SSL|TLS/
  * The verdict, from what `source` reads: `commit()` the live commit or undefined,
  * `applied()` the applied versions and checksums, `migrations()` the files, `known(sha)`
  * whether git has the commit, `unshipped(sha)` the Worker commits since it,
- * `componentHost()` why the component host does not open, or undefined. A read that
- * fails throws fixed text: it becomes the reason, and triage matches items by their words.
+ * `componentHost()`, when given, why the component host does not open, or undefined. A
+ * read that fails throws fixed text: it becomes the reason, and triage matches items by their words.
  */
 export async function check(source) {
-  const host = source.componentHost().then((reason) => (reason ? `Component host does not open: ${reason}` : undefined))
+  // No `componentHost` (staging): nothing to check, and nothing said about it.
+  const host = (source.componentHost?.() ?? Promise.resolve(null)).then((reason) =>
+    reason ? `Component host does not open: ${reason}` : reason,
+  )
   let commit, applied, pending
   try {
     ;[commit, applied] = await Promise.all([source.commit(), source.applied()])
@@ -53,7 +56,7 @@ export async function check(source) {
   if (pending.length > 0) behind.push('Migrations to apply:', ...pending.map((m) => `  ${m.file}`))
   const hostFailure = await host
   if (hostFailure) behind.push(hostFailure)
-  else lines.push('Component host opens.')
+  else if (hostFailure !== null) lines.push('Component host opens.')
 
   return behind.length === 0
     ? { code: 0, lines: [...lines, 'up to date'] }
@@ -64,7 +67,7 @@ async function credentials() {
   const env = await loadEnv()
   if (CREDENTIALS.every((name) => env[name])) return env
   const main = dirname(git('rev-parse', '--path-format=absolute', '--git-common-dir'))
-  return { ...(await loadEnv(join(main, 'cloud', '.env'))), ...env }
+  return { ...(await loadEnv(join(main, 'cloud', envFile))), ...env }
 }
 
 async function componentHost() {
@@ -85,6 +88,8 @@ async function componentHost() {
 }
 
 async function main() {
+  const api = staging ? requireEnv(await credentials(), 'CLOUD_URL')[0].replace(/\/+$/, '') : 'https://api.ai4kanban.dev'
+  const HEALTH = `${api}/health`
   const { code, lines } = await check({
     async commit() {
       let body
@@ -117,7 +122,7 @@ async function main() {
       }
     },
     unshipped: (sha) => git('log', '--oneline', `${sha}..HEAD`, '--', ...WORKER_FILES).split('\n').filter(Boolean),
-    componentHost,
+    componentHost: staging ? undefined : componentHost,
   })
   console.log(lines.join('\n'))
   process.exit(code)

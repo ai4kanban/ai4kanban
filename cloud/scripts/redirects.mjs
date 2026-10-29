@@ -10,11 +10,11 @@
 // Credentials come from the environment, or from cloud/.env, which is not in git — the same
 // two `npm run migrate` uses.
 
-import { loadEnv, requireEnv } from './env.mjs'
+import { loadEnv, requireEnv, staging } from './env.mjs'
 
 /** Every sign-in: the desktop app (#326), the browser (#322), the review page, WildCrane Web,
  *  the Runner's loopback and the pricing page's checkout. */
-const RETURN_TO = [
+const PRODUCTION = [
   'ai4kanban://cloud/signed-in',
   'https://cloud.ai4kanban.dev/signin/callback',
   'https://review.wildcrane.ai/auth/callback',
@@ -23,7 +23,15 @@ const RETURN_TO = [
   'https://api.ai4kanban.dev/',
 ]
 
-const SITE_URL = 'https://ai4kanban.dev'
+/** `--env staging`: its web app, the Runner's loopback and its Worker's pricing page. */
+const STAGING = [
+  'https://staging.wildcrane-app.pages.dev/auth/callback',
+  'http://127.0.0.1:*/**',
+  'https://ai4kanban-cloud-staging.wutao-as-neverchanje.workers.dev/',
+]
+
+const RETURN_TO = staging ? STAGING : PRODUCTION
+const SITE_URL = staging ? 'https://staging.wildcrane-app.pages.dev' : 'https://ai4kanban.dev'
 
 main().catch((error) => {
   console.error(`redirects: ${error.message}`)

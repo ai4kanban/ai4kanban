@@ -37,6 +37,13 @@ describe('check', () => {
     assert.deepEqual(lines, ['Live: commit abc1234, 2 migrations applied.', 'Component host does not open: its name does not resolve.'])
   })
 
+  it('says nothing of a component host when there is none to check (staging)', async () => {
+    assert.deepEqual(await check(source({ componentHost: undefined })), {
+      code: 0,
+      lines: ['Live: commit abc1234, 2 migrations applied.', 'up to date'],
+    })
+  })
+
   it('reports the component host beside a read that failed', async () => {
     const failing = source({
       applied: async () => { throw new Error('Could not read the applied migrations from Supabase.') },

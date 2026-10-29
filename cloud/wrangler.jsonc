@@ -68,5 +68,36 @@
     { "tag": "v6", "new_sqlite_classes": ["RunnerPresence"] }
   ],
 
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+
+  // `--env staging` (#2198): its own Worker, Supabase project (secrets), buckets and
+  // workers.dev address. No component host: that zone route belongs to production.
+  // Bindings and vars are not inherited, so they are repeated here.
+  "env": {
+    "staging": {
+      "name": "ai4kanban-cloud-staging",
+      "workers_dev": true,
+      "routes": [],
+      "vars": {
+        "CREEM_PRODUCT_MONTHLY": "prod_2rdebOfw9mpmDHjblBV2MM",
+        "CREEM_PRODUCT_YEARLY": "prod_ucjlzfwJe6sIRlbPH6JDT",
+        "CREEM_PRODUCT_STORAGE": "prod_45rfVsAyO5e4wG11wOB7cT",
+        "APP_URL": "https://staging.wildcrane-app.pages.dev"
+      },
+      "r2_buckets": [
+        { "binding": "TEMPLATES", "bucket_name": "ai4kanban-templates-staging" },
+        { "binding": "ARTIFACTS", "bucket_name": "ai4kanban-artifacts-staging" }
+      ],
+      "durable_objects": {
+        "bindings": [
+          { "name": "MUSIC_CALLS", "class_name": "MusicCall" },
+          { "name": "EVENT_HUBS", "class_name": "EventHub" },
+          { "name": "BOARDS", "class_name": "Board" },
+          { "name": "RUN_LOGS", "class_name": "RunLog" },
+          { "name": "DIFF_CALLS", "class_name": "DiffCall" },
+          { "name": "RUNNER_PRESENCE", "class_name": "RunnerPresence" }
+        ]
+      }
+    }
+  }
 }
