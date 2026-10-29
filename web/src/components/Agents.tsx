@@ -143,7 +143,6 @@ function WorkflowsPanel({ flows, of, page, flowPage }: { flows: Flow[]; of: (id:
   const [picking, setPicking] = useState(false);
   if (!flow) return <p className="text-[13px] text-nb-ink-soft">{c.noWorkflows}</p>;
   const row = (id: string) => <StageRow key={id} agent={of(id)} held={id === held} onPick={() => pick(id)} />;
-  const preview = (id: string) => <StageRow key={id} agent={of(id)} held={id === held} onPick={() => pick(id)} preview />;
   return (
     <div className="flex min-h-full flex-col gap-5">
       <div className="flex flex-1 items-stretch gap-6 max-sm:flex-col max-sm:gap-4">
@@ -172,7 +171,7 @@ function WorkflowsPanel({ flows, of, page, flowPage }: { flows: Flow[]; of: (id:
                   {i > 0 && <Down />}
                   <section className="relative min-w-0 shrink-0 rounded-[12px] border border-nb-ink/10 px-1 pb-2.5 pt-5">
                     <Legend icon={<FiEye aria-hidden className="text-[11px]" />} label={c.approval(i + 1)} />
-                    {stage.map(preview)}
+                    {stage.map(row)}
                   </section>
                 </Fragment>
               ))}
@@ -228,7 +227,7 @@ function Rule({ label }: { label: string }) {
 
 const offOf = (a: Item) => !!a.schedule && !a.schedule.on;
 
-function StageRow({ agent, held, onPick, preview }: { agent: Item; held: boolean; onPick: () => void; preview?: boolean }) {
+function StageRow({ agent, held, onPick }: { agent: Item; held: boolean; onPick: () => void }) {
   const off = offOf(agent);
   return (
     <div className={`relative flex w-full items-center gap-2 rounded-[9px] px-2.5 py-[5px] transition-colors duration-100 ${held ? "" : "hover:bg-nb-sheet"}`}>
@@ -239,7 +238,6 @@ function StageRow({ agent, held, onPick, preview }: { agent: Item; held: boolean
         </span>
         <span className="min-w-0 flex-1">
           <span className={`block truncate text-[12.5px] font-[700] leading-[16px] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}>{titleOf(agent)}</span>
-          {preview && <span className="block truncate text-[11px] leading-[15px] text-nb-ink-soft">{whenOf(agent) || T.agents.everyCard}</span>}
         </span>
       </button>
     </div>
