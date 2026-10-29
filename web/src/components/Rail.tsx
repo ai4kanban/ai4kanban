@@ -2,6 +2,7 @@
 // Enter opens), then 看板 (the current project's board), 工作流, 统计 and the current project's conversations newest first: 对话 (idea
 // conversations), then 任务 (task chats, numbered); one in no project counts as general's, the archive at the foot. The rail has no surface: it sits on the window's cream.
 // 收起左栏 sits beside the archive; collapsed, a narrow bar of icons keeps 展开左栏 in that spot.
+// Its right edge drags to resize, double-click resets; the width is kept across reloads.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -21,6 +22,11 @@ import { useDismiss } from "./Header";
 
 const ROW = "flex h-[34px] items-center gap-2 rounded-[8px] px-2.5 text-[13px] text-nb-ink no-underline hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]";
 const ACTIVE = "border-[1.5px] border-nb-ink bg-nb-paper font-[700] hover:bg-nb-paper";
+const WIDTH_KEY = "wildcrane.web.rail.width";
+const WIDTH = { min: 180, base: 244, max: 420 };
+/** Never so wide that the page loses more than 40% of the window. */
+const fit = (w: number) => Math.round(Math.max(WIDTH.min, Math.min(w, WIDTH.max, innerWidth * 0.4)));
+
 const ICON = "nb-tip inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink";
 
 export function matchTasks(tasks: Task[], query: string): Task[] {
@@ -44,6 +50,16 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
   const toggle = () => {
     setMoved(true);
     onToggle();
+  };
+  const [width, setWidth] = useState(() => {
+    const saved = Number(localStorage.getItem(WIDTH_KEY));
+    return saved ? fit(saved) : WIDTH.base;
+  });
+  const [drag, setDrag] = useState<{ x: number; w: number } | null>(null);
+  const endDrag = () => {
+    if (!drag) return;
+    setDrag(null);
+    localStorage.setItem(WIDTH_KEY, String(width));
   };
   if (!open) {
     return (
@@ -75,7 +91,32 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
     );
   }
   return (
-    <aside className={cn("nb-glide flex h-full w-[244px] shrink-0 flex-col gap-0.5 px-3 pb-3 pt-1", moved && "animate-[nbEnter_220ms_ease-out]")}>
+    <aside
+      style={{ width: fit(width) }}
+      className={cn("relative flex h-full shrink-0 flex-col gap-0.5 px-3 pb-3 pt-1", drag ? "select-none" : "nb-glide", moved && "animate-[nbEnter_220ms_ease-out]")}
+    >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={T.resizeRail}
+        onPointerDown={(e) => {
+          if (e.button) return;
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setDrag({ x: e.clientX, w: fit(width) });
+        }}
+        onPointerMove={(e) => drag && setWidth(fit(drag.w + e.clientX - drag.x))}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onDoubleClick={() => {
+          setWidth(WIDTH.base);
+          localStorage.removeItem(WIDTH_KEY);
+        }}
+        className={cn(
+          "absolute inset-y-0 -right-[3px] z-10 w-[6px] cursor-col-resize touch-none after:absolute after:inset-y-0 after:left-[2px] after:w-[2px] after:bg-[color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] after:opacity-0 after:transition-opacity hover:after:opacity-100",
+          drag && "after:opacity-100",
+        )}
+      />
       <FindBox
         autoFocus={findNow}
         value={query}
