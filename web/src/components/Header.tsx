@@ -3,7 +3,7 @@
 // avatar is review/'s TopBar: 24px, the account on hover; its menu holds the account,
 // 账单, 语言 and 退出登录, all from what the page already has.
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { FiCheck, FiChevronDown, FiCreditCard, FiFolder, FiGlobe, FiInbox, FiLogOut, FiPlus, FiSettings, FiWifiOff } from "react-icons/fi";
 import { signOut } from "@review/auth";
 import { Button } from "@review/components/button";
@@ -93,11 +93,12 @@ export function OfflineBadge({ phone }: { phone?: boolean }) {
 }
 
 /** Closes what `open` showed on Esc or a click outside the returned box. */
-export function useDismiss<E extends HTMLElement>(open: boolean, close: () => void) {
+/** `also` is a popup drawn elsewhere (a portal) that still counts as inside. */
+export function useDismiss<E extends HTMLElement>(open: boolean, close: () => void, also?: RefObject<HTMLElement | null>) {
   const box = useRef<E>(null);
   useEffect(() => {
     if (!open) return;
-    const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && close();
+    const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && !also?.current?.contains(e.target as Node) && close();
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.preventDefault();
@@ -109,7 +110,7 @@ export function useDismiss<E extends HTMLElement>(open: boolean, close: () => vo
       window.removeEventListener("pointerdown", away);
       window.removeEventListener("keydown", key);
     };
-  }, [open, close]);
+  }, [open, close, also]);
   return box;
 }
 

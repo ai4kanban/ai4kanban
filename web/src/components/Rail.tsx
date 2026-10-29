@@ -3,7 +3,8 @@
 // chat or an idea conversation; one in no project counts as general's), the archive at the foot. The rail has no surface: it sits on the window's cream.
 // 收起左栏 sits beside the archive; collapsed, a narrow bar of icons keeps 展开左栏 in that spot.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { FiArchive, FiBarChart2, FiGrid, FiLoader, FiSearch, FiSidebar, FiTerminal, FiX } from "react-icons/fi";
 import { LuSquareKanban } from "react-icons/lu";
 import { Button } from "@review/components/button";
@@ -198,7 +199,9 @@ function CloseChat({ chat, big, open, onOpen, onClosed }: { chat: ChatRow; big?:
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const dismiss = useCallback(() => !busy && onOpen(false), [busy, onOpen]);
-  const box = useDismiss<HTMLDivElement>(open, dismiss);
+  const panel = useRef<HTMLDivElement>(null);
+  const box = useDismiss<HTMLSpanElement>(open, dismiss, panel);
+  const at = useAnchored(open, box, panel, failed);
   useEffect(() => setFailed(false), [open]);
   const close = async () => {
     setBusy(true);
@@ -215,8 +218,8 @@ function CloseChat({ chat, big, open, onOpen, onClosed }: { chat: ChatRow; big?:
     }
   };
   return (
-    <div ref={box} className="contents">
-      <span className={cn("absolute inset-y-0 right-1 flex items-center", big && "right-2", !big && !open && "hidden group-hover:flex")}>
+    <>
+      <span ref={box} className={cn("absolute inset-y-0 right-1 flex items-center", big && "right-2", !big && !open && "hidden group-hover:flex")}>
         <button
           type="button"
           onClick={() => onOpen(!open)}
@@ -227,23 +230,54 @@ function CloseChat({ chat, big, open, onOpen, onClosed }: { chat: ChatRow; big?:
           <FiX size={big ? 15 : 13} aria-hidden />
         </button>
       </span>
-      {open && (
-        <div ref={(el) => el?.scrollIntoView({ block: "nearest" })} role="dialog" className={cn("nb-panel nb-pop absolute top-[calc(100%+6px)] z-20 bg-nb-paper p-3", big ? "right-3 w-[260px]" : "inset-x-0")}>
-          <p className="text-[13px] font-[700] text-nb-ink">{T.closeAsk}</p>
-          <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{chat.discussion ? T.closeIdeaBody : T.closeTaskBody}</p>
-          {failed && <p className="mt-1 text-[12px] leading-snug text-nb-peach-ink">{T.closeFailed}</p>}
-          <div className="mt-3 flex justify-end gap-2">
-            <Button variant="ghost" size="xs" disabled={busy} onClick={() => onOpen(false)}>
-              {T.cancel}
-            </Button>
-            <Button size="xs" disabled={busy} onClick={() => void close()}>
-              {T.closeYes}
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+      {open &&
+        createPortal(
+          <div
+            ref={panel}
+            role="dialog"
+            style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }}
+            className={cn("nb-panel nb-pop fixed left-0 top-0 z-50 w-[260px] bg-nb-paper p-3", at?.up ? "origin-bottom-right" : "origin-top-right")}
+          >
+            <p className="text-[13px] font-[700] text-nb-ink">{T.closeAsk}</p>
+            <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{chat.discussion ? T.closeIdeaBody : T.closeTaskBody}</p>
+            {failed && <p className="mt-1 text-[12px] leading-snug text-nb-peach-ink">{T.closeFailed}</p>}
+            <div className="mt-3 flex justify-end gap-2">
+              <Button variant="ghost" size="xs" disabled={busy} onClick={() => onOpen(false)}>
+                {T.cancel}
+              </Button>
+              <Button size="xs" disabled={busy} onClick={() => void close()}>
+                {T.closeYes}
+              </Button>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
+}
+
+/** Where a fixed popup sits: under its trigger's right edge, above it when the window's foot is too near, always inside the window. */
+function useAnchored(open: boolean, trigger: RefObject<HTMLElement | null>, panel: RefObject<HTMLElement | null>, resized: unknown) {
+  const [at, setAt] = useState<{ top: number; left: number; up: boolean } | null>(null);
+  useLayoutEffect(() => {
+    if (!open) return setAt(null);
+    const place = () => {
+      const b = trigger.current?.getBoundingClientRect();
+      const p = panel.current;
+      if (!b || !p) return;
+      const { offsetWidth: w, offsetHeight: h } = p;
+      const up = b.bottom + 6 + h > innerHeight - 8 && b.top - 6 - h >= 8;
+      setAt({ top: up ? b.top - 6 - h : b.bottom + 6, left: Math.max(8, Math.min(b.right - w, innerWidth - w - 8)), up });
+    };
+    place();
+    addEventListener("resize", place);
+    addEventListener("scroll", place, true);
+    return () => {
+      removeEventListener("resize", place);
+      removeEventListener("scroll", place, true);
+    };
+  }, [open, trigger, panel, resized]);
+  return at;
 }
 
 /** A rail row you type in; `/` from anywhere not taking text focuses it, Esc clears it. */
