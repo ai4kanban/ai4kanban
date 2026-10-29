@@ -9161,7 +9161,7 @@
                     "number",
                     "null"
                   ],
-                  "description": "Its list-price estimate."
+                  "description": "Its list-price estimate, for this reply alone; null when unknown."
                 },
                 "duration_ms": {
                   "type": [
@@ -9545,7 +9545,7 @@
                     "number",
                     "null"
                   ],
-                  "description": "Its list-price estimate."
+                  "description": "Its list-price estimate, for this reply alone; null when unknown."
                 },
                 "duration_ms": {
                   "type": [

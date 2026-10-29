@@ -5701,4 +5701,61 @@ begin
 end
 $machine_tasks$;
 
+-- #35: a reply's cost is its own turn's, not its session's running total.
+do $turn_cost$
+declare
+  A constant uuid := 'a0a0a0a0-0035-4035-8035-000000000001';
+  HOME constant uuid := 'cccccccc-0035-4035-8035-000000000003';
+  BUDGET constant integer := 100000;
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  v_ws text;
+  v_prj text;
+  v_task text;
+  v_dsc text;
+  v_job cloud.runner_jobs;
+  v_day date := (now() at time zone 'UTC')::date;
+begin
+  insert into cloud.accounts (id, handle) values (A, 'tc-a');
+  perform api.register_runner(A, HOME, 'home-mac', 8, '0.5.0', '[{"name": "claude-code", "installed": true}]', false, 900, BUDGET);
+  v_ws := api.v1_create_workspace(A, '{"name": "Turn cost"}', BUDGET) ->> 'id';
+  v_prj := api.v1_create_project(A, jsonb_build_object('name', 'Site', 'workspace', v_ws), BUDGET) ->> 'id';
+  v_task := api.v1_create_task(A, jsonb_build_object('title', 'Pricing', 'project', v_prj), CODING, BUDGET) ->> 'id';
+
+  -- A first turn is all its own; the next is its total less the first's.
+  perform api.v1_task_chat_send(A, v_task, 'One', null, BUDGET);
+  v_job := (select j from cloud.runner_jobs j where j.id = (select job_id from cloud.task_chats where task_id = v_task));
+  assert v_job.runtime = 'claude-code' and v_job.resume is null, format('the first turn misread: %s', v_job);
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  perform api.finish_runner_job(A, HOME, v_job.id, 'done', '', BUDGET, '{"reply": "1", "session": "s-35", "costUsd": 1}');
+  perform api.v1_task_chat_send(A, v_task, 'Two', null, BUDGET);
+  v_job := (select j from cloud.runner_jobs j where j.id = (select job_id from cloud.task_chats where task_id = v_task));
+  assert v_job.resume = 's-35', format('the second turn did not carry the session on: %s', v_job);
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  perform api.finish_runner_job(A, HOME, v_job.id, 'done', '', BUDGET, '{"reply": "2", "session": "s-35", "costUsd": 3.5}');
+  assert (select cost_usd = 2.5 and session_cost_usd = 3.5 from cloud.runner_jobs where id = v_job.id), 'the second turn kept the total';
+  assert api.v1_task_chat(A, v_task) -> 'messages' -> -1 -> 'cost_usd' = '2.5', 'the reply showed the total';
+  assert (api.v1_workspace_stats(A, v_ws, v_day, v_day, 'UTC') -> 'data' -> 0 ->> 'costUsd')::numeric = 3.5,
+    'the day counted a turn twice';
+
+  -- A total lower than the last is a new session's; one carrying on a session with no total shows none.
+  assert cloud.runner_turn_cost(v_job, 0.3) = 0.3, 'a new session''s total was cut';
+  v_job.resume := 's-unknown';
+  assert cloud.runner_turn_cost(v_job, 9) is null, 'a session with no total before showed the history';
+
+  -- A discussion's session forked into a task starts from the discussion's total.
+  v_dsc := api.v1_create_discussion(A, jsonb_build_object('project', v_prj, 'body', 'Ideas?'), BUDGET) ->> 'id';
+  v_job := (select j from cloud.runner_jobs j where j.id = (select job_id from cloud.discussions where id = v_dsc));
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  perform api.finish_runner_job(A, HOME, v_job.id, 'done', '', BUDGET, '{"reply": "Hi", "session": "d-35", "costUsd": 4}');
+  v_job.id := gen_random_uuid();
+  v_job.resume := 'd-35';
+  v_job.fork := true;
+  v_job.finished_at := null;
+  assert cloud.runner_turn_cost(v_job, 5.5) = 1.5, 'a forked session counted the discussion''s cost';
+
+  raise notice 'sql checks: #35 turn cost checks passed';
+end
+$turn_cost$;
+
 rollback;
