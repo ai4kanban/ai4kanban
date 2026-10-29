@@ -8,12 +8,16 @@
 - [在新项目里安装看板](skill/install-board/case.md)
 - [让编码代理能驱动看板](skill/install-agent-skill/case.md)
 - [用一句话建卡](skill/create-card/case.md)
+- [让代理用中文回复和写卡](skill/reply-in-my-language/case.md)
+- [构建一张卡并跟随到落地](skill/follow-delivery-until-landed/case.md)
 
 ## cloud
 
 - [查看价格并选择方案](cloud/view-pricing/case.md)
 - [未登录调用公开 API](cloud/call-api-signed-out/case.md)
 - [打开分享出来的卡片链接](cloud/open-card-link/case.md)
+- [在任务对话里看每条回复花了多少钱](cloud/reply-cost/case.md)
+- [按模型查看工作区的用量和费用](cloud/usage-by-model/case.md)
 
 ## review
 
@@ -21,6 +25,15 @@
 - [受邀审核人登录并评论](review/sign-in-invited-link/case.md)
 - [确认或移除等审核的任务](review/decide-review/case.md)
 - [打开不完整或失效的审核链接](review/open-broken-link/case.md)
+- [按段阅读任务的预览](review/read-previews/case.md)
+- [在审核页和 AI 讨论任务](review/chat-with-ai/case.md)
+- [评论写到一半刷新页面](review/draft-comment/case.md)
+
+## web
+
+- [第一次打开 WildCrane Web](web/first-visit/case.md)
+- [从首页一句话开始一个任务](web/start-from-home/case.md)
+- [在看板上找到待审核的任务并开始执行](web/review-on-board/case.md)
 
 ## marketing
 
@@ -28,7 +41,6 @@
 
 ## 待覆盖
 
-- **web**
 - **runner**
 - **site**
 
@@ -47,3 +59,9 @@
   `wrangler dev --local` 指向替身，`review/` 用 `VITE_API_URL`/`VITE_SUPABASE_URL` 跑 vite。
   没有 Runner 时，用 SQL 把任务置为 `waiting_review`、`review_status='ready'`、`review_phase=1`
   造出待审核；登录态写进 `localStorage['wildcrane.review.session']`（`expires_at` 用毫秒）。
+- **web**：同 review 的本地云端栈，`web/` 用同样的 `VITE_*` 跑 vite。用一台假 Runner 代替真电脑：
+  `POST /v1/runner`（`machineId` 须是 UUID，protocol 11，`claude-code` 已登录，15 分钟内续一次）、
+  `POST /v1/runner/folders` 放一个项目；Agent 的回复用 `/v1/runner/jobs/<id>/claim` 和 `/finish`
+  写入，卡片正文用 `PUT /v1/tasks/{id}/card`（`base_version`、`assets: {}`）。跳过导览要写
+  `wc.usageNoticeShown`、`wc.welcomeTourShown`。叠放的导览卡片里有隐藏的同名按钮，点击要选
+  `elementFromPoint` 命中的那个；手机宽度的整段流程放在同一个 CDP 连接里，重连会丢掉视口模拟。
