@@ -537,7 +537,6 @@ export function CardPage({ taskKey }: { taskKey: string }) {
                   ) : (
                     task.status === "stopped" && task.resume && <Line tone="grey" icon={<FiPauseCircle size={14} aria-hidden />}>{T.stoppedLine(task.resume.machine)}</Line>
                   )}
-                  {task.status === "done" && task.result && !built && <Line tone="mint" icon={<FiCheckCircle size={14} aria-hidden />}>{task.result}</Line>}
                   {landing && <LandedDiff task={task.id} landing={landing} />}
                   {!project?.general && <Subtasks task={task} />}
                 </>
