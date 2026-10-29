@@ -6,7 +6,7 @@
 // copy button (#2133).
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { FiCheck, FiChevronDown, FiCopy, FiImage, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiCopy, FiImage, FiLoader, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
 import { ApiError, clearChat, readChat, sendChat, stopChat, type Chat, type ChatImage, type ChatMessage, type ChatRuntime, type Connector } from "../api";
 import type { Copy } from "../i18n";
 import { useDraft } from "../lib/draft";
@@ -98,6 +98,8 @@ export function AiChat({
   const [picked, setPicked] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  /** The job a stop was asked for, until the chat stops working or moves to another job. */
+  const [stopping, setStopping] = useState<{ job: string | null } | null>(null);
   const pics = useStagedImages(c, setProblem);
   const { staged, dragging } = pics;
   const input = useRef<HTMLTextAreaElement>(null);
@@ -109,6 +111,7 @@ export function AiChat({
   const take = useCallback(
     (next: Chat) => {
       setChat(next);
+      setStopping((s) => (s && working(next) && next.job === s.job ? s : null));
       if (was.current && !working(next)) onReplied();
       was.current = working(next);
     },
@@ -185,11 +188,14 @@ export function AiChat({
     }
   };
   const stop = async () => {
+    if (stopping) return;
     setProblem(null);
+    setStopping({ job: chat.job });
     try {
       take(await io.stop());
     } catch (e) {
-      fail(e);
+      setStopping(null);
+      setProblem(e instanceof ApiError && e.code === "offline" ? c.network : c.stopFailed);
     }
   };
   /** ↑ in an empty box brings back the last message you sent, the caret after it. */
@@ -257,7 +263,11 @@ export function AiChat({
             className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] text-[14px] text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink max-md:size-9 max-md:text-[17px]"
           />
           {!empty && io.clear && <Clear c={c} disabled={busy} onClear={clear} />}
-          {working(chat) ? (
+          {stopping ? (
+            <Button size="xs" disabled aria-label={c.stopping} title={c.stopping}>
+              <FiLoader className="animate-spin text-[13px]" aria-hidden />
+            </Button>
+          ) : working(chat) ? (
             <Button size="xs" onClick={() => void stop()} aria-label={c.stop} title={c.stop}>
               <FiSquare className="text-[13px]" aria-hidden />
             </Button>
@@ -322,7 +332,7 @@ export function AiChat({
                 <Reply key={m.id} c={c} m={m} phone={phone} rise={arrived(m.id)} />
               ),
             )}
-            {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{chat.status === "queued" ? c.queued : (doing ?? c.replying)}</p>}
+            {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{stopping ? c.stopping : chat.status === "queued" ? c.queued : (doing ?? c.replying)}</p>}
           </div>
         </div>
       )}
