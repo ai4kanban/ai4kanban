@@ -4254,6 +4254,14 @@ begin
   v_other := api.v1_create_task(A, jsonb_build_object('title', 'Plain', 'workspace', v_ws, 'run', true), CODING, BUDGET) ->> 'id';
   v_job := cloud.v1_flow_job(v_other);
   assert v_job.resume is null and not v_job.fork and v_job.transcript_of is null, 'a plain task carried a session';
+  assert api.v1_list_chats(A, v_ws, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_other)),
+    'a planned task''s chat was not on the rail';
+
+  -- The Triage page's Build now keeps its chat off the rail too.
+  v_other := api.v1_create_task(A, jsonb_build_object('title', 'Triaged', 'workspace', v_ws, 'run', true, 'skip_plan', true,
+                                                      'source', 'web'), CODING, BUDGET) ->> 'id';
+  assert not api.v1_list_chats(A, v_ws, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_other)),
+    'Build now''s chat from Triage was on the rail';
 
   raise notice 'sql checks: #2146 discussion session checks passed';
 end
