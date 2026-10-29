@@ -6,7 +6,7 @@
 // Workflow builder task names the workflow it saved and starts a task with it (#2004); a done
 // build names its commit and shows its diff (#2109).
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
 import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX } from "react-icons/fi";
 import type { Artifact, Comment, Decision, Shared } from "@review/api";
@@ -86,7 +86,12 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const [missing, setMissing] = useState(false);
   const task = fromList && own && fromList.id === own.id ? (fromList.updated_at >= own.updated_at ? { ...own, ...fromList } : own) : (fromList ?? own);
   const [railOpen, setRailOpen] = useState(false);
-  const [card, setCard] = useState<api.Card | null>(null);
+  // The card as last read, and for which task: another task's never shows, and none read yet is loading.
+  const [read, setRead] = useState<{ task: string; card: api.Card | null } | null>(null);
+  const card = read && read.task === task?.id ? read.card : null;
+  const loadingBody = task?.card_version != null && read?.task !== task.id;
+  const shownId = useRef(task?.id);
+  shownId.current = task?.id;
   // A decision or a revision moves the review without the task's `updated_at`, so the list's
   // copy never stands in for it: its own events, else the task as last read here.
   const [heard, setHeard] = useState<api.Review | null>(null);
@@ -155,8 +160,11 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   }, [task?.id, alerts.of(task?.id ?? "")?.alerts.length]);
 
   const loadCard = useCallback(() => {
-    if (!task || task.card_version == null) return setCard(null);
-    api.readCard(task.id).then(setCard, () => setCard(null));
+    if (!task) return;
+    const id = task.id;
+    const settle = (c: api.Card | null) => shownId.current === id && setRead({ task: id, card: c });
+    if (task.card_version == null) return void settle(null);
+    api.readCard(id).then(settle, () => settle(null));
   }, [task?.id, task?.card_version]);
   useEffect(loadCard, [loadCard]);
 
@@ -546,7 +554,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
               body={card ? withoutTitle(card.body) : null}
               previews={previews}
               cardLink={cardLink}
-              empty={<p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-nb-ink">{task.request || task.title}</p>}
+              empty={loadingBody ? <Skeleton /> : <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-nb-ink">{task.request || task.title}</p>}
             />
           </div>
           <AiCorner c={REVIEW.ai} open={chat} phone={narrow} count={questions.length} onToggle={toggleChat}>
