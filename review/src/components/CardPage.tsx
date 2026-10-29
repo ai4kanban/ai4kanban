@@ -212,6 +212,8 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
       phone={narrow}
       card={{ question: asking, comments: (shared.comments ?? []).length > 0, previews: shared.artifacts.length > 0 }}
       onReplied={replied}
+      ended={over}
+      onEnded={replied}
       ask={questions.length ? c.ai.askPending : undefined}
       aboveBox={
         questions.length > 0 && (

@@ -406,6 +406,8 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       onManage={() => openSettings("runtimes")}
       gone={gone}
       reload={chatSeen}
+      ended={task.status === "done" || task.status === "failed" || task.status === "cancelled"}
+      onEnded={loadTask}
       ask={questions.length ? REVIEW.ai.askPending : undefined}
       aboveBox={
         questions.length > 0 && (

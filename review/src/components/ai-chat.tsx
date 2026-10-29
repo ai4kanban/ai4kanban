@@ -59,7 +59,8 @@ const linkChat = (token: string): ChatApi => ({
 
 /** `onManage` adds 管理运行时 to the pick; `gone`: runtimes whose Runner was removed. A change of `reload` reads the chat again. `page`: the
  *  chat is the whole page, its column centred, with no suggestions; `aboveBox` sits over the box
- *  in place of the suggestions, `ask` is the box's placeholder, and `over` covers the thread. */
+ *  in place of the suggestions, `ask` is the box's placeholder, and `over` covers the thread.
+ *  `ended`: the task is over, so the box is greyed out; a send Cloud refuses for that calls `onEnded`. */
 export function AiChat({
   c,
   token,
@@ -75,6 +76,8 @@ export function AiChat({
   ask,
   over,
   draftKey,
+  ended,
+  onEnded,
 }: {
   c: AiCopy;
   token: string;
@@ -90,6 +93,8 @@ export function AiChat({
   ask?: string;
   over?: ReactNode;
   draftKey?: string;
+  ended?: boolean;
+  onEnded?: () => void;
 }) {
   const io = api ?? linkChat(token);
   const [chat, setChat] = useState<Chat | null>(null);
@@ -98,6 +103,8 @@ export function AiChat({
   const [picked, setPicked] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [refused, setRefused] = useState(false);
+  const closed = ended || refused;
   /** The job a stop was asked for, until the chat stops working or moves to another job. */
   const [stopping, setStopping] = useState<{ job: string | null } | null>(null);
   const pics = useStagedImages(c, setProblem);
@@ -120,6 +127,12 @@ export function AiChat({
 
   const fail = (e: unknown) => {
     const code = e instanceof ApiError ? e.code : "";
+    if (code === "conflict") {
+      setRefused(true);
+      setDraft("");
+      pics.clear();
+      return onEnded?.();
+    }
     if (code === "runtime_unavailable") {
       const { connector, reason } = (e as ApiError).info as { connector?: Connector; reason?: string };
       const name = (connector && LABEL[connector]) ?? connector ?? "";
@@ -164,7 +177,7 @@ export function AiChat({
 
   const send = async () => {
     const body = draft.trim();
-    if ((!body && !staged.length) || busy || blocked) return;
+    if ((!body && !staged.length) || busy || blocked || closed) return;
     setSending(true);
     setProblem(null);
     try {
@@ -208,12 +221,27 @@ export function AiChat({
   };
 
   const status = chat.status === "failed" ? c.failed : chat.status === "conflict" ? c.conflict : null;
-  const notes = [!chat.runner.connected && c.offline, blocked && c.runnerGone, problem ?? status].filter((x): x is string => !!x);
+  const notes = closed ? [] : [!chat.runner.connected && c.offline, blocked && c.runnerGone, problem ?? status].filter((x): x is string => !!x);
   const asks = [card.question && c.asks.question, card.comments && c.asks.comments, card.previews && c.asks.previews, c.asks.skip].filter(
     (x): x is string => !!x,
   );
 
-  const box = (
+  const box = closed ? (
+    <div aria-disabled className="nb-field relative cursor-not-allowed rounded-[12px] bg-nb-ink/[0.04] p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]">
+      <textarea
+        disabled
+        rows={3}
+        placeholder={c.ended}
+        aria-label={c.ended}
+        className="w-full cursor-not-allowed resize-none bg-transparent px-2.5 pb-2 pt-1 text-[13px] leading-[1.5] placeholder:text-nb-ink-soft/70 focus:outline-none max-md:text-[16px]"
+      />
+      <div className="flex h-7 items-center justify-end px-1 max-md:h-9">
+        <Button size="xs" disabled aria-label={c.ended} title={c.ended}>
+          <FiSend className="text-[13px]" aria-hidden />
+        </Button>
+      </div>
+    </div>
+  ) : (
     <div
       className={cn(
         "nb-field relative rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]",
@@ -294,7 +322,7 @@ export function AiChat({
     >
       {over ? (
         <div className="relative min-h-0 flex-1">{over}</div>
-      ) : empty && !page && aboveBox ? null : empty && !page ? (
+      ) : empty && !page && (aboveBox || closed) ? null : empty && !page ? (
         <div className="flex flex-col items-start gap-1.5 px-3 pt-3">
           <p className="px-1 pb-0.5 text-[12px] text-nb-ink-soft">{c.tryAsking}</p>
           {asks.map((a) => (
@@ -338,7 +366,7 @@ export function AiChat({
       )}
       <div className={cn("shrink-0", page && !phone ? "px-8 pb-5" : "px-3 pb-3", empty ? "pt-3" : "pt-1")}>
         <div className={cn(page && "mx-auto max-w-[600px]")}>
-          {aboveBox}
+          {!closed && aboveBox}
           {notes.map((n) => (
             <p key={n} role="status" className="mb-1.5 rounded-[8px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] leading-snug text-nb-peach-ink">
               {n}
