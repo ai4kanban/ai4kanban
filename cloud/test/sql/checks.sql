@@ -4238,6 +4238,11 @@ begin
   assert v_job.resume is null and not v_job.fork and v_job.transcript_of = v_dsc, 'another connector''s session was carried';
   assert (select skip_plan from cloud.tasks where id = v_other) and not (select skip_plan from cloud.tasks where id = v_task),
     'Build now on an idea did not skip planning';
+  v_json := api.v1_list_chats(A, v_ws, null, 20) -> 'data';
+  assert v_json @> jsonb_build_array(jsonb_build_object('task', v_task))
+    and not v_json @> jsonb_build_array(jsonb_build_object('task', v_other))
+    and api.v1_task_chat(A, v_other) -> 'messages' -> 0 ->> 'role' = 'user',
+    format('Build now''s chat was on the rail, or a planned one was not: %s', v_json);
 
   -- A task from no discussion carries nothing.
   v_other := api.v1_create_task(A, jsonb_build_object('title', 'Plain', 'workspace', v_ws, 'run', true), CODING, BUDGET) ->> 'id';
