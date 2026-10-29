@@ -5,9 +5,9 @@ akb:
   after: [blog-planner, blog-illustrator]
   i18n:
     en:
-      title: Blog writer
+      title: Article
     zh:
-      title: 博客写作
+      title: 文章
       description: 按确认的大纲写出带配图、内链和外链的完整文章，并为每个发布去处交付一份。
 ---
 

@@ -5,6 +5,8 @@ akb:
   when: A card adds a new capability for users, reworks a core flow, or asks for research on named competitors; not a minor change to an existing feature, a copy or styling tweak, a bug fix or an internal refactor.
   memory: [competitors]
   i18n:
+    en:
+      title: Competitor research
     zh:
       title: 竞品调研
       description: 对比竞品是否有同类功能、如何设计，并与我们的方案并列成表；也可对点名的竞品做整产品对比。

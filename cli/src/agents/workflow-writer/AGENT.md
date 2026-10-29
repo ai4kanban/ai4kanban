@@ -4,9 +4,9 @@ description: Writes a new workflow, or changes one of the user's own, as a `WORK
 akb:
   i18n:
     en:
-      title: Workflow writer
+      title: Workflow
     zh:
-      title: 搭建工作流
+      title: 工作流
       description: 按你的描述写出一个工作流及其 agent，或修改你已有的工作流。
 ---
 

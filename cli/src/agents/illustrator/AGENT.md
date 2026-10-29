@@ -5,9 +5,9 @@ akb:
   when: A card needs an image or animation made, such as a diagram, illustration, GIF, real product screenshot, icon or share card; not a screen mockup.
   i18n:
     en:
-      title: Illustrator
+      title: Images
     zh:
-      title: 产品配图
+      title: 配图
       description: 制作卡片需要的各类图片和动图，如示意图、插图、GIF、真实产品截图、图标和分享卡片。
       when: 卡片需要制作图片或动图时，如示意图、插图、GIF、真实产品截图、图标或分享卡片；不含界面 mockup。
 ---

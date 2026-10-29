@@ -4,8 +4,10 @@ description: Compares the outside libraries, tools or services a card could pick
 akb:
   when: A card makes a new pick of an outside library, tool or service.
   i18n:
+    en:
+      title: Tech choices
     zh:
-      title: 技术选型顾问
+      title: 技术选型
       description: 为卡片选用或替换外部的库、工具和服务。
       when: 卡片要新选用外部的库、工具或服务时。
 ---

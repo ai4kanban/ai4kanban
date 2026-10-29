@@ -5,8 +5,10 @@ akb:
   memoryFiles:
     workspace: [feedback.md, feedback/]
   i18n:
+    en:
+      title: Script
     zh:
-      title: 脚本作者
+      title: 脚本
       description: 写产品视频的脚本，成片和封面都按它制作。
 ---
 

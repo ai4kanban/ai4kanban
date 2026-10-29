@@ -7,9 +7,9 @@ akb:
   session: new
   i18n:
     en:
-      title: Video cloner
+      title: Clone storyboard
     zh:
-      title: 视频克隆
+      title: 复刻分镜
       description: 逐镜拆解用代码制作的视频，并用你的内容写出复刻分镜。
 ---
 

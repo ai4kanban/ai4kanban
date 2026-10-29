@@ -4,8 +4,10 @@ description: Previews the database schema change a card makes.
 akb:
   when: A card adds, removes or alters tables, columns, indexes or constraints, Supabase migrations included. Not a change that only reads or writes rows.
   i18n:
+    en:
+      title: Schema changes
     zh:
-      title: 数据库设计师
+      title: 数据库变更
       description: 预览卡片带来的数据库结构变更。
       when: 卡片新增、删除或修改表、列、索引或约束时，含 Supabase 迁移。不含只读写数据行的改动。
 ---

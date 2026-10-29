@@ -5,9 +5,9 @@ akb:
   after: [carousel-planner]
   i18n:
     en:
-      title: Social post illustrator
+      title: Images
     zh:
-      title: 社媒帖配图
+      title: 配图
       description: 按确认的文案为社媒帖新做配图：图文轮播按各页大纲的图位出图，纯文字帖为最需要配图的一段出一张图。
 ---
 

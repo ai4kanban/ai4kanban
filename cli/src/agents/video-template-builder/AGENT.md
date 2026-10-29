@@ -6,9 +6,9 @@ akb:
   session: new
   i18n:
     en:
-      title: Video template builder
+      title: Video template
     zh:
-      title: 视频模板制作
+      title: 视频模板
       description: 按确认的复刻分镜做成保留拍法、可换内容的 beat 表模板，渲染一支并与原片逐镜对比。
 ---
 

@@ -75,7 +75,7 @@ import { sortTriage } from '../triage-sort.ts'
 import { cardItem, createItem, dismissItem, heldIn, listTriage as listTriageItems, markLearned, openItem, restoreItem, unlearnedIn } from '../triage.ts'
 import type { NewItem } from '../triage.ts'
 import { ofTriageId } from '../triage-files.ts'
-import { listAgents, runAgent, updateAgent, updateWorkflowRule } from './agents.ts'
+import { listAgents, previewNamesOf, runAgent, updateAgent, updateWorkflowRule } from './agents.ts'
 import { readTaskDiff } from '../diff.ts'
 import {
   commitBoard,
@@ -768,11 +768,14 @@ interface SharedArtifact {
 }
 
 async function getShared(c: SharedCall): Promise<Response> {
-  const review = await call<{ artifacts: SharedArtifact[]; card: Record<string, unknown> | null }>(c.env, 'v1_shared', await shared(c))
+  const review = await call<{ artifacts: SharedArtifact[]; card: Record<string, unknown> | null; names?: Record<string, unknown> }>(c.env, 'v1_shared', await shared(c))
+  review.names = {}
   if (review.card) {
     const { project, path, ...card } = review.card as { project: string; path: string }
     const [row] = await (await boardFor(c.env, project)).read([path])
-    review.card = { ...card, body: row?.content ?? '' }
+    const body = row?.content ?? ''
+    review.card = { ...card, body }
+    review.names = await previewNamesOf(c.env, project, body)
   }
   for (const artifact of review.artifacts) {
     for (const v of artifact.versions) if (v.file) v.file.url = sharedFileUrl(c.token, artifact.id, v.version)

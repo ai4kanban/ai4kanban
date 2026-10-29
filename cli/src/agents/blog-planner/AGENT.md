@@ -6,9 +6,9 @@ akb:
     workspace: [general.md]
   i18n:
     en:
-      title: Blog planner
+      title: "Brief & outline"
     zh:
-      title: 博客策划
+      title: 简报与大纲
       description: 写博客文章的简报和大纲，正文按它来写。
 ---
 

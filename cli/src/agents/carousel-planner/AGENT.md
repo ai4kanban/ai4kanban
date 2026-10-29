@@ -6,9 +6,9 @@ akb:
     workspace: [general.md, format-*.md]
   i18n:
     en:
-      title: Social post planner
+      title: "Copy & outline"
     zh:
-      title: 社媒帖策划
+      title: 文案与大纲
       description: 写社媒帖的简报和文案，图文轮播还要定模板和逐页大纲。
 ---
 

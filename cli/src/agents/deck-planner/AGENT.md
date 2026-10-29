@@ -6,9 +6,9 @@ akb:
     workspace: [feedback.md]
   i18n:
     en:
-      title: Deck planner
+      title: "Wireframes & samples"
     zh:
-      title: 演示文稿策划
+      title: 线框稿与样张
       description: 为演示文稿出线框稿和样张，定下每页内容和最终样式。
 ---
 

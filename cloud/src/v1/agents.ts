@@ -146,6 +146,25 @@ async function agentsOf(env: Env, account: string, project: string) {
   }
 }
 
+const SECTION = /^##[ \t]+By[ \t]+`?([^`\s]+)`?[ \t]+agent[ \t]*$/gm
+
+/** The name of each preview a card's body draws (#34), by language; one with no name of its
+ *  own is left out. */
+export async function previewNamesOf(env: Env, project: string, body: string): Promise<Record<string, { en?: string; zh?: string }>> {
+  const wanted = new Set([...body.matchAll(SECTION)].map((m) => m[1]!))
+  if (!wanted.size) return {}
+  const flows = flowsOf(await (await boardFor(env, project)).list('workflows/'), BUILTIN_WORKFLOWS.map((w) => w.id))
+  const names: Record<string, { en?: string; zh?: string }> = {}
+  for (const { agents } of flows) {
+    for (const [agent, read] of agents) {
+      if (!wanted.has(agent) || names[agent] || !('agent' in read)) continue
+      const title = said(read.agent.i18n, 'title')
+      if (title.en || title.zh) names[agent] = title
+    }
+  }
+  return names
+}
+
 export async function listAgents(env: Env, account: string, project: string): Promise<Response> {
   const { flows: _flows, ...out } = await agentsOf(env, account, project)
   return json(out)

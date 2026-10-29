@@ -893,6 +893,16 @@ describe('the agents page (#2106)', () => {
     assert.equal(by['memory-pruner'].schedule.last_success, '2026-10-20T08:00:00.000Z')
   })
 
+  it('names the previews a shared card draws, by language: a built-in’s even before install, a project’s own, none for a nameless one (#34)', async () => {
+    board().commit([
+      { path: 'workflows/wf-0190ab/agents/brief/AGENT.md', content: '---\nname: brief\ndescription: Briefs.\nakb:\n  i18n:\n    zh:\n      title: 简报\n---\nBrief.', base_seq: 0 },
+      { path: 'todo/7-a.md', content: '---\ntitle: A\n---\n\n## By `ui-designer` agent\n\nx\n\n## By `brief` agent\n\ny\n\n## By `stranger` agent\n\nz\n', base_seq: 0 },
+    ])
+    db.v1_shared = () => ({ artifacts: [], card: { project: 'prj_1', path: 'todo/7-a.md', version: 1 } })
+    const res = await worker.fetch(new Request('https://api.ai4kanban.dev/v1/shared/tok_abcdefghijklmnopqrstuvwxyz0123456789'), env, ctx)
+    assert.deepEqual((await res.json()).names, { 'ui-designer': { en: 'UI design', zh: '界面设计' }, brief: { zh: '简报' } })
+  })
+
   it('lists an installed built-in before a task writes its folder, and saves its rules (#2170)', async () => {
     board().commit([{ path: 'workflows/wf-builtin-coding/WORKFLOW.md', content: null, base_seq: 1 }])
     db.v1_project = ({ p_id }) => ({ id: p_id, object: 'project', workspace: 'ws_team' })

@@ -177,7 +177,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     if (task?.discussion) api.readDiscussion(task.discussion).then(setFrom, () => {});
   }, [task?.discussion]);
 
-  // The approvals the card makes (#2154), each named by its agents.
+  // The approvals the card makes (#2154) and its preview sections (#34), named by their agents.
   const [flow, setFlow] = useState<Awaited<ReturnType<typeof api.readTaskWorkflow>> | null>(null);
   const [titles, setTitles] = useState<Map<string, string>>(new Map());
   useEffect(() => {
@@ -185,9 +185,9 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     if (task) api.readTaskWorkflow(task.id).then(setFlow, () => {});
   }, [task?.id, task?.status]);
   useEffect(() => {
-    if (!task?.project || !flow || flow.rounds < 2) return;
+    if (!task?.project) return;
     api.readProjectAgents(task.project).then((d) => setTitles(new Map(d.data.map((a) => [a.agent, titleOf(a)]))), () => {});
-  }, [task?.project, flow?.rounds]);
+  }, [task?.project]);
 
   const saved = task?.workflow.id === api.BUILDER && task.status === "done" ? task.context?.workflow : undefined;
   useEffect(() => {
@@ -297,8 +297,9 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const unavailable = !task.run && (task.resume ? task.resume.available === false : task.status === "stopped");
   const target = pick ?? computers.def?.machine;
   const staged = !!flow && flow.rounds > 1;
+  const nameOf = (a: string) => titles.get(a) ?? titleOf({ agent: a, title: {} });
   const stageNames = flow && staged
-    ? Array.from({ length: flow.rounds }, (_, i) => flow.stages[i]?.map((a) => titles.get(a) ?? titleOf({ agent: a, title: {} })).join(T.stage.join) || T.agents.approval(i + 1))
+    ? Array.from({ length: flow.rounds }, (_, i) => flow.stages[i]?.map(nameOf).join(T.stage.join) || T.agents.approval(i + 1))
     : [];
   const stageState: StageState =
     questions.length > 0
@@ -553,6 +554,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
               }
               body={card ? withoutTitle(card.body) : null}
               previews={previews}
+              nameOf={nameOf}
               cardLink={cardLink}
               empty={loadingBody ? <Skeleton /> : <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-nb-ink">{task.request || task.title}</p>}
             />

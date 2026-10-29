@@ -5,9 +5,9 @@ akb:
   after: [scriptwriter, demo-rehearser]
   i18n:
     en:
-      title: Video editor
+      title: Video
     zh:
-      title: 视频剪辑
+      title: 成片
       description: 按确认的脚本制作并检查产品视频，交付可播放的成片。
 ---
 

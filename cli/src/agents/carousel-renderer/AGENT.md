@@ -5,9 +5,9 @@ akb:
   after: [carousel-planner, social-illustrator]
   i18n:
     en:
-      title: Social post renderer
+      title: "Pages & captions"
     zh:
-      title: 社媒帖出图
+      title: 成图与配文
       description: 按确认的文案渲染图文轮播的逐页图片，并写好各平台配文。
 ---
 

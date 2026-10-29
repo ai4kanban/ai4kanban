@@ -7,9 +7,9 @@ akb:
     workspace: [style.md]
   i18n:
     en:
-      title: Blog illustrator
+      title: Images
     zh:
-      title: 博客配图
+      title: 配图
       description: 按确认的大纲为博客文章新做封面和正文配图，并写好替代文字。
 ---
 

@@ -5,9 +5,9 @@ akb:
   after: [deck-planner]
   i18n:
     en:
-      title: Deck builder
+      title: Slides
     zh:
-      title: 演示文稿制作
+      title: 演示文稿
       description: 按确认的线框稿和样张做出全部正式页面，并导出图片版 PPT（每页一张图）。
 ---
 

@@ -8909,6 +8909,21 @@
               }
             }
           },
+          "names": {
+            "type": "object",
+            "description": "The name of each preview the card's body draws, by agent id; one with no name of its own is absent.",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "en": {
+                  "type": "string"
+                },
+                "zh": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "artifacts": {
             "type": "array",
             "items": {

@@ -7,9 +7,9 @@ akb:
     workspace: [feedback.md]
   i18n:
     en:
-      title: Demo rehearser
+      title: Demo shots
     zh:
-      title: 演示排练
+      title: 演示截图
       description: 真实排练产品视频的演示，交回成片要用的关键截图。
       when: 视频需要展示真实的产品输出或界面操作，或用户要求演示时。
 ---

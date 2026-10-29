@@ -6,8 +6,10 @@ akb:
   memoryFiles:
     workspace: [style.md]
   i18n:
+    en:
+      title: Email
     zh:
-      title: 邮件策划
+      title: 邮件
       description: 撰写邮件内容并制作预览，包括 newsletter 和公告。
       when: 卡片新增或修改任何邮件时，包括 newsletter 和公告；它代替界面设计师写邮件。只改邮件发送方式的卡片不算。
 ---

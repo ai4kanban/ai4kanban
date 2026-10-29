@@ -6,8 +6,10 @@ akb:
   memoryFiles:
     workspace: [style.md]
   i18n:
+    en:
+      title: Prompts
     zh:
-      title: 提示词撰写
+      title: 提示词
       description: 撰写和修改 Skill、Agent 提示词等交给 AI 模型执行的指令。
       when: 卡片新增或修改 Skill、Agent 提示词或其他交给 AI 模型执行的指令时；卡片已有详细方案也一样。
 ---

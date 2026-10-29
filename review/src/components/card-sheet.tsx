@@ -133,6 +133,7 @@ export function CardSheet({
   below,
   body,
   previews,
+  nameOf,
   cardLink,
   empty,
 }: {
@@ -148,6 +149,8 @@ export function CardSheet({
   /** The card's markdown with its title taken off; null before there is a card. */
   body: string | null;
   previews: Previews;
+  /** A preview section's name, from its agent id. */
+  nameOf?: (agent: string) => string;
   /** Where a `#12` in the body goes; without it every one stays text. */
   cardLink?: CardLink;
   /** Drawn in place of a missing body. */
@@ -178,7 +181,7 @@ export function CardSheet({
         <InfoBar info={info} />
         {below}
         {body !== null ? (
-          <CardBody body={body} previews={previews} cardLink={cardLink} afterBody={more} />
+          <CardBody body={body} previews={previews} nameOf={nameOf} cardLink={cardLink} afterBody={more} />
         ) : (
           <>
             {empty}

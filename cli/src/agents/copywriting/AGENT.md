@@ -7,9 +7,9 @@ akb:
     workspace: [style.md]
   i18n:
     en:
-      title: Copy & docs
+      title: Copy
     zh:
-      title: 文案与文档
+      title: 文案
       description: 撰写和修改宣传文案与用户文档，包括官网、README、版本说明、上架简介和帮助文档。
       when: 卡片修改官网页面、README、版本说明、上架简介或用户文档，且措辞需要你决定时；不含界面文字、内部文档、邮件、社交媒体帖子和博客。
 ---

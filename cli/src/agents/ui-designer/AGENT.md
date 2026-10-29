@@ -7,8 +7,10 @@ akb:
   memoryFiles:
     workspace: [style.md]
   i18n:
+    en:
+      title: UI design
     zh:
-      title: 界面设计师
+      title: 界面设计
       description: 设计面向用户的功能，包括页面、布局、交互和流程。
       when: 卡片设计或修改面向用户的功能时，包括页面、布局、交互、流程及其中的文字；卡片已有详细方案或现成组件也一样。不含错别字、无需设计决定的单个间距调整和已有的配图。
 ---

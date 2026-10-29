@@ -10,12 +10,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiAlertCircle, FiGlobe, FiLogOut } from "react-icons/fi";
 import { ApiError, cancelTask, postComment, postDecision, readChat, readComponent, readTaskWorkflow, type Shared } from "../api";
 import { signOut } from "../auth";
-import { useCopy } from "../i18n";
+import { LANG, useCopy } from "../i18n";
 import { Previews } from "../lib/artifacts";
 import { cardMeta, openQuestions, withoutTitle } from "../lib/card-info";
 import { cn } from "../lib/utils";
 import { AiChat } from "./ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "./ai-corner";
+import { humanise } from "./CardBody";
 import { CardSheet, refining, RemoveButton, RunButton, type Info } from "./card-sheet";
 import { Avatar, ChatButton, ChatPane, useEscape } from "./chat";
 import { HAIRLINE } from "./chrome";
@@ -298,6 +299,7 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
                   </>
                 }
                 body={card ? withoutTitle(card.body) : null}
+                nameOf={(a) => shared.names?.[a]?.[LANG] || shared.names?.[a]?.en || humanise(a)}
                 previews={previews}
                 empty={
                   <div className="nb-section bg-nb-sheet px-5 py-6 max-md:px-4">

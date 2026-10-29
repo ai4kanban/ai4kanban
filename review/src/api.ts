@@ -102,6 +102,8 @@ export interface Shared {
     metadata: Record<string, unknown>;
     assets: Record<string, { artifact: string; version?: number }>;
   } | null;
+  /** Each preview the body draws, named by agent id. */
+  names?: Record<string, { en?: string; zh?: string }>;
   artifacts: Artifact[];
   decisions?: Decision[];
   comments?: Comment[];
