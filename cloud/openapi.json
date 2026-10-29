@@ -862,6 +862,72 @@
         "description": "Needs a signed-in session. Takes effect at once."
       }
     },
+    "/v1/language": {
+      "put": {
+        "summary": "Set your interface language",
+        "tags": [
+          "Account"
+        ],
+        "description": "Agent replies follow it in every job that no request language started, such as a plan's next step.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "lang"
+                ],
+                "properties": {
+                  "lang": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "zh"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "lang"
+                  ],
+                  "properties": {
+                    "lang": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "zh"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/projects": {
       "get": {
         "summary": "List projects",

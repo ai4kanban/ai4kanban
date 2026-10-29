@@ -13,6 +13,7 @@ import { runnerHome, useRunnerHome } from '../src/home'
 import { mcpArgs } from '../src/flow'
 import { createAcpClient, createStreamRenderer } from '../../cli/src/lib/agent/wire'
 import { toWire, type Deps } from '../src/jobs'
+import { akbEnv } from '../src/akb'
 import { agentDue } from '../src/agents'
 import { sharedMemory } from '../src/memory-files'
 import { openTaskFolder } from '../src/task-folder'
@@ -232,14 +233,15 @@ describe('the Runner', () => {
     assert.deepEqual(job.report, { reply: 'Two tiers.', session: 'th_1', context: { used: 38_000, limit: 200_000 } })
   })
 
-  it('ends the prompt in the language of the message that started it (#11)', async () => {
-    const zh = cloud.dispatch({ id: 'j1', resume: 'th_1', lang: 'zh' })
+  it("passes Cloud's prompt and language line on as they are (#47)", async () => {
+    const job = cloud.dispatch({ id: 'j1', prompt: 'go\n\n请用中文回复和写作。', languageLine: '请用中文回复和写作。' })
     start()
-    await until(() => zh.state === 'finished')
-    assert.ok(planned[0]!.prompt.endsWith('\n\n请用中文回复和写作。'), planned[0]!.prompt)
-    const en = cloud.dispatch({ id: 'j2', lang: 'en' })
-    await until(() => en.state === 'finished')
-    assert.doesNotMatch(planned[1]!.prompt, /请用中文/)
+    await until(() => job.state === 'finished')
+    assert.equal(planned[0]!.prompt, 'go\n\n请用中文回复和写作。')
+    const akb = { command: 'akb', args: [] }
+    assert.equal(akbEnv(akb, 'b', undefined, 'Reply and write in English.').AI4KANBAN_LANGUAGE_LINE, 'Reply and write in English.')
+    // Even empty, Cloud's line stands over this machine's language setting.
+    assert.equal(akbEnv(akb, 'b', undefined, '').AI4KANBAN_LANGUAGE_LINE, '')
   })
 
   it('copies a discussion task\'s session, and falls back to a new one reading the discussion (#2146)', async () => {

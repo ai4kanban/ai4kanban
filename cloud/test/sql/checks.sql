@@ -5656,7 +5656,7 @@ begin
   v_task := api.v1_create_task(P, jsonb_build_object('title', 'T', 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id';
   v_job := cloud.v1_flow_job(v_task);
   assert v_job.lang = 'zh', format('a job did not take the request''s language: %s', v_job.lang);
-  assert cloud.runner_job_json(v_job) ->> 'lang' = 'zh', 'the Runner was not told the language';
+  assert cloud.runner_job_json(v_job) ->> 'languageLine' = '请用中文回复和写作。', 'the Runner was not told the language';
 
   perform set_config('request.headers', '', true);
   insert into cloud.runner_jobs (owner_id, runtime, prompt, task_id) values (P, 'codex', 'Next', v_task) returning * into v_job;
@@ -5773,5 +5773,51 @@ begin
   raise notice 'sql checks: #35 turn cost checks passed';
 end
 $turn_cost$;
+
+-- The web's language is kept on the account, and a job made with none takes it (#47). Cloud ends a
+-- prompt in its line; a flow's runs get it as `languageLine`.
+do $account_lang$
+declare
+  P constant uuid := 'a0a0a0a0-0047-4047-8047-000000000001';
+  MAC constant uuid := 'd0d0d0d0-0047-4047-8047-000000000001';
+  BUDGET constant integer := 100000;
+  RUNTIMES constant jsonb := '[{"name": "codex", "installed": true}]';
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  v_ws text;
+  v_task text;
+  v_job cloud.runner_jobs;
+  v_json json;
+begin
+  insert into cloud.accounts (id, handle) values (P, 'account-lang-p');
+  v_ws := api.v1_create_workspace(P, '{"name": "Lang"}', BUDGET) ->> 'id';
+  perform api.register_runner(P, MAC, 'Mac', 10, '0.5.0', RUNTIMES, false, 900, BUDGET);
+
+  perform set_config('request.headers', '{"x-akb-lang": "en"}', true);
+  v_task := api.v1_create_task(P, jsonb_build_object('title', 'T', 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id';
+  v_json := cloud.runner_job_json(cloud.v1_flow_job(v_task));
+  assert v_json ->> 'languageLine' = 'Reply and write in English.', format('a flow was not told English: %s', v_json);
+  perform set_config('request.headers', '', true);
+
+  perform api.v1_set_language(P, 'zh', BUDGET);
+  assert (select lang from cloud.accounts where id = P) = 'zh', 'the account did not keep its language';
+  insert into cloud.runner_jobs (owner_id, runtime, prompt, task_id) values (P, 'codex', 'Next', v_task) returning * into v_job;
+  assert v_job.lang = 'zh', 'a job made with no language did not take the account''s';
+  v_json := cloud.runner_job_json(v_job);
+  assert v_json ->> 'prompt' = E'Next\n\n请用中文回复和写作。', format('the prompt did not end in the language: %s', v_json ->> 'prompt');
+
+  insert into cloud.runner_jobs (owner_id, runtime, prompt, test) values (P, 'codex', 'Hi', true) returning * into v_job;
+  assert cloud.runner_job_json(v_job) ->> 'prompt' = 'Hi', 'a connection test was given the language';
+
+  begin
+    perform api.v1_set_language(P, 'fr', BUDGET);
+    assert false, 'an unknown language was kept';
+  exception when others then
+    if sqlerrm like '%unknown language was kept%' then raise; end if;
+  end;
+
+  raise notice 'sql checks: #47 account language checks passed';
+end
+$account_lang$;
 
 rollback;

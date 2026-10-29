@@ -5,7 +5,6 @@
 
 import { cloudEndpoints } from '../../cli/src/lib/cloud/config'
 import { accessToken } from '../../cli/src/lib/cloud/session'
-import type { Language } from '../../cli/src/lib/machine/types'
 import { secretsSet } from './secrets'
 
 export type Call<T> = { ok: true; value: T } | { ok: false; error: string; code?: string; project?: string }
@@ -55,8 +54,9 @@ export interface Job {
   /** One of the project's periodic agents (#2068), on no task. */
   agent?: AgentJob | null
   prompt: string
-  /** The interface language of the message that started it (#11); null when none said. */
-  lang?: Language | null
+  /** Cloud's language line (#47), which every prompt of the runs akb makes ends with. `prompt`
+   *  already ends with it. */
+  languageLine?: string
   attachments: { name: string; content: string }[]
   state: 'waiting' | 'claimed' | 'interrupted' | 'finished'
 }

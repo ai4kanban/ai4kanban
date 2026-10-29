@@ -197,3 +197,6 @@ export const saveVersion = (artifact: string, content: unknown) =>
 
 /** A version's file, read with the sign-in — never with a token in the address. */
 export const readFile = (url: string) => call(url).then((r) => r.blob());
+
+/** Kept on the account, so agent replies follow it even where no page asked (#47). */
+export const saveLang = (lang: Lang) => call("/v1/language", { method: "PUT", body: JSON.stringify({ lang }) });

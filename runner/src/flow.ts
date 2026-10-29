@@ -193,7 +193,7 @@ function boardAkb(job: Job, ws: TaskFolder, deps: FlowDeps, io: FlowIo, task?: s
     const at = args.includes('--') ? args.indexOf('--') : args.length
     const full = [...args.slice(0, at), '--board', ws.board, ...args.slice(at)]
     const log = show ? logLines(io.show, io.event) : undefined
-    const ran = await runAkb(deps.akb, full, { cwd: ws.cwd, board: ws.board, task, lang: job.lang, show: log?.push, track: io.track })
+    const ran = await runAkb(deps.akb, full, { cwd: ws.cwd, board: ws.board, task, line: job.languageLine ?? '', show: log?.push, track: io.track })
     log?.end()
     return ran
   }

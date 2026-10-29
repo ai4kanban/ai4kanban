@@ -7,8 +7,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { RUN_LANGUAGE_ENV } from '../../cli/src/lib/agent/language'
-import type { Language } from '../../cli/src/lib/machine/types'
+import { LANGUAGE_LINE_ENV } from '../../cli/src/lib/agent/language'
 import { runnerHome } from './home'
 
 export interface Akb {
@@ -42,18 +41,18 @@ function shimDir(akb: Akb): string {
 
 /** This environment without the marks of a board run it may have been started inside. `board`
  *  is named to every `akb` an agent types, which would otherwise find no board, or the project's own.
- *  `task` is the Cloud task it works for, where a task akb makes goes to Cloud (#2063). `lang`,
- *  the language its runs write in (#11). */
-export function akbEnv(akb: Akb, board?: string, task?: string, lang?: Language | null): NodeJS.ProcessEnv {
+ *  `task` is the Cloud task it works for, where a task akb makes goes to Cloud (#2063). `line`,
+ *  Cloud's language line, which its runs end every prompt with (#47). */
+export function akbEnv(akb: Akb, board?: string, task?: string, line?: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {}
-  const dropped = ['AI4KANBAN_BOARD', 'AI4KANBAN_TASK', RUN_LANGUAGE_ENV]
+  const dropped = ['AI4KANBAN_BOARD', 'AI4KANBAN_TASK', LANGUAGE_LINE_ENV]
   for (const [k, v] of Object.entries(process.env)) if (!k.startsWith('KANBAN_') && !dropped.includes(k)) env[k] = v
   const key = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH'
   env[key] = [shimDir(akb), env[key]].filter(Boolean).join(path.delimiter)
   env.AI4KANBAN_COMMAND = 'akb'
   if (board) env.AI4KANBAN_BOARD = board
   if (task) env.AI4KANBAN_TASK = task
-  if (lang) env[RUN_LANGUAGE_ENV] = lang
+  if (line !== undefined) env[LANGUAGE_LINE_ENV] = line
   return env
 }
 
@@ -71,7 +70,7 @@ const KEEP = 256 * 1024
 export function runAkb(
   akb: Akb,
   args: string[],
-  opts: { cwd: string; board?: string; task?: string; lang?: Language | null; show?: (text: string) => void; track?: (child: ChildProcess) => void },
+  opts: { cwd: string; board?: string; task?: string; line?: string; show?: (text: string) => void; track?: (child: ChildProcess) => void },
 ): Promise<Ran> {
   return new Promise((resolve) => {
     let out = ''
@@ -82,7 +81,7 @@ export function runAkb(
     }
     let child: ChildProcess
     try {
-      child = spawn(akb.command, [...akb.args, ...args], { cwd: opts.cwd, env: akbEnv(akb, opts.board, opts.task, opts.lang), stdio: ['ignore', 'pipe', 'pipe'] })
+      child = spawn(akb.command, [...akb.args, ...args], { cwd: opts.cwd, env: akbEnv(akb, opts.board, opts.task, opts.line), stdio: ['ignore', 'pipe', 'pipe'] })
     } catch (e) {
       return resolve({ code: null, out: '', last: e instanceof Error ? e.message : String(e) })
     }

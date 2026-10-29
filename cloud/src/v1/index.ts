@@ -856,6 +856,12 @@ export const ROUTES: [string, string, Handler][] = [
   ['DELETE', '/v1/workspaces/{id}/runners/{machine}/share', (c) =>
     stopJob(c, 'v1_share_runner', { p_workspace: workspaceId(c), p_machine: uuid(c.params[1], 'machine'), p_shared: false })],
 
+  ['PUT', '/v1/language', async (c) => {
+    const { lang } = objectOf(await bodyOf(c.request))
+    if (lang !== 'en' && lang !== 'zh') throw badRequest('lang must be en or zh.')
+    return json(await mutate(c.env, 'v1_set_language', { p_account: c.caller.accountId, p_lang: lang }))
+  }],
+
   ['GET', '/v1/api-keys', (c) => read(c, 'v1_list_api_keys', pageOf(c.url.searchParams, 'key'))],
   ['POST', '/v1/api-keys', createApiKey],
   ['DELETE', '/v1/api-keys/{id}', (c) => {

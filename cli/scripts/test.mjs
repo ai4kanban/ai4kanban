@@ -49,10 +49,12 @@ const bundles = tests.map((f) => path.join(OUT_DIR, f.replace(/\.ts$/, '.mjs')))
 // `~/.ai4kanban/`. One throwaway home for the whole run keeps that off the machine; a test
 // that wants its own still sets `AI4KANBAN_HOME` for itself. Nor do the tests run inside
 // the board run that may have started this script: a test that wants one sets `KANBAN_RUN`, and none reads the terminal agent's session.
+// Nor Cloud's language line, which even empty stands over the machine's setting.
 const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-test-home-'))
+const { AI4KANBAN_LANGUAGE_LINE: _line, ...env } = process.env
 const run = spawnSync(process.execPath, ['--test', ...bundles], {
   stdio: 'inherit',
-  env: { ...process.env, AI4KANBAN_HOME: HOME, KANBAN_RUN: '', CLAUDE_CODE_SESSION_ID: '', CODEX_THREAD_ID: '' },
+  env: { ...env, AI4KANBAN_HOME: HOME, KANBAN_RUN: '', CLAUDE_CODE_SESSION_ID: '', CODEX_THREAD_ID: '' },
 })
 fs.rmSync(OUT_DIR, { recursive: true, force: true })
 fs.rmSync(HOME, { recursive: true, force: true })

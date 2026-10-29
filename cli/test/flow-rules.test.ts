@@ -23,7 +23,7 @@ import { readRule, ruleFor, setAgentRule } from '../src/lib/agent/rules.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { findSpecAgent } from '../src/lib/agents/index.ts'
 import { setLanguage } from '../src/lib/machine/settings.ts'
-import { inLanguage, RUN_LANGUAGE_ENV } from '../src/lib/agent/language.ts'
+import { inLanguage, LANGUAGE_LINE_ENV, translating } from '../src/lib/agent/language.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
@@ -558,9 +558,9 @@ describe('a delivery', () => {
   })
 })
 
-// The language a run writes in (#337, #11): one short line in that language, at the very end,
-// and nothing on an English machine. `AI4KANBAN_HOME` is the machine here, as in
-// `machine-settings.test.ts`.
+// The language a run writes in (#337, #11, #47): one short line at the very end — Cloud's for a
+// Cloud run, else this machine's, and nothing on an English machine. `AI4KANBAN_HOME` is the
+// machine here, as in `machine-settings.test.ts`.
 describe("the board's language", () => {
   it('ends a printed flow and the setup line with one short line, and the ask holds none', () => {
     setLanguage('zh')
@@ -575,15 +575,18 @@ describe("the board's language", () => {
     assert.equal(sink.out.join('\n').trimEnd().split('\n').at(-1), '请用中文回复和写作。')
   })
 
-  it("follows the Runner's language over this machine's", () => {
-    setLanguage('en')
-    process.env[RUN_LANGUAGE_ENV] = 'zh'
+  it("ends with Cloud's line as it is, over this machine's setting (#47)", () => {
+    setLanguage('zh')
     try {
-      assert.equal(inLanguage('ask'), 'ask\n\n请用中文回复和写作。')
+      process.env[LANGUAGE_LINE_ENV] = 'Reply and write in English.'
+      assert.equal(inLanguage('ask'), 'ask\n\nReply and write in English.')
+      assert.equal(translating(), false)
+      process.env[LANGUAGE_LINE_ENV] = ''
+      assert.equal(inLanguage('ask'), 'ask')
     } finally {
-      delete process.env[RUN_LANGUAGE_ENV]
+      delete process.env[LANGUAGE_LINE_ENV]
     }
-    assert.equal(inLanguage('ask'), 'ask')
+    assert.equal(inLanguage('ask'), 'ask\n\n请用中文回复和写作。')
   })
 
   it('says nothing at all on an English machine', () => {
