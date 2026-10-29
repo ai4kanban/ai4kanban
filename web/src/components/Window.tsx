@@ -3,7 +3,7 @@
 // room for window controls. At phone width there is no rail: the top row holds find and 新想法,
 // and a bottom bar switches 看板 / 对话 / 更多.
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
 import { FiArchive, FiBarChart2, FiCheck, FiChevronRight, FiCreditCard, FiFolder, FiGlobe, FiGrid, FiInbox, FiLogOut, FiMessageSquare, FiMoreHorizontal, FiSettings, FiUsers } from "react-icons/fi";
 import { LuSquareKanban } from "react-icons/lu";
@@ -73,6 +73,17 @@ export function Window({
   }, [project?.id]);
   const current = store.current;
   const archiveHref = current ? `/archive?project=${encodeURIComponent(current.id)}` : "/archive";
+  const boardHref = current ? `/projects/${encodeURIComponent(current.id)}` : "/";
+  const page = useRef<HTMLDivElement>(null);
+  // 看板 always lands on the board; tapped on the board itself, it scrolls back to the top.
+  const toBoard = () => {
+    if (path !== boardHref) return navigate(boardHref);
+    if (tab !== "board") {
+      setTabbed(true);
+      return setTab("board");
+    }
+    page.current?.querySelectorAll<HTMLElement>("*").forEach((el) => el.scrollTop > 0 && el.scrollTo({ top: 0, behavior: "smooth" }));
+  };
 
   // `N` opens 新想法.
   useEffect(() => {
@@ -111,7 +122,7 @@ export function Window({
           {newIdea}
           {phoneTop}
         </div>
-        <div key={tab} className={cn("relative min-h-0 flex-1 overflow-hidden", tabbed && "a4k-reveal")}>
+        <div key={tab} ref={page} className={cn("relative min-h-0 flex-1 overflow-hidden", tabbed && "a4k-reveal")}>
           {tab === "chats" ? (
             <div className="flex h-full flex-col overflow-y-auto py-1">
               <ChatList chats={store.chats} active={activeChat} big />
@@ -135,7 +146,7 @@ export function Window({
                 key={k}
                 type="button"
                 onClick={() => {
-                  if (k === "board" && tab === "board" && !project && path !== "/") navigate("/");
+                  if (k === "board") return toBoard();
                   setTabbed(k !== tab);
                   setTab(k);
                 }}
