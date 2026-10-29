@@ -1,6 +1,6 @@
 {
   "name": "wildcrane",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Shape ideas with Claude and start them as WildCrane tasks, run on this computer.",
   "author": { "name": "WildCrane" },
   "homepage": "https://wildcrane.ai/",
