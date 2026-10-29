@@ -1,12 +1,12 @@
 // 设置 (#2074, #2080, #2106), after legacy kanban-ui/components/Configuration.tsx and Runtimes.tsx: a
-// dialog of sections, each mounted only while shown: the account's 通用 (#2132), 运行时 and 账单, the
-// workspace's own page (#2191), then 工作流 and 看板 under the project they edit, headed by a project switcher. The runtime list is the
+// dialog of the account's sections, each mounted only while shown: 通用 (#2132), 运行时 and 账单; the
+// workspace and the project have their own settings pages (#2201). The runtime list is the
 // account's own, Global default first. Each runtime is bound to one Runner (#2135); an open row is
 // a list of settings — Runner, connector, model, then what that connector declares. The API key
 // lives only on the Runner: the page can replace or clear it, never read it.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiCreditCard, FiEdit3, FiFolder, FiGitCommit, FiKey, FiPlus, FiRefreshCw, FiSettings, FiSliders, FiTerminal, FiTool, FiTrash2, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiCreditCard, FiEdit3, FiKey, FiPlus, FiRefreshCw, FiSettings, FiSliders, FiTerminal, FiTrash2, FiX, FiZap } from "react-icons/fi";
 import { AgentMark, type Harness } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { Menu, POPUP_PANEL, type MenuEntry } from "@review/components/menu";
@@ -15,32 +15,21 @@ import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { F } from "../first-run-i18n";
 import { settingText, T } from "../i18n";
-import { useStore } from "../store";
-import { ProjectAgents } from "./Agents";
 import { BillingPanel } from "./Billing";
-import { SwitcherMenu } from "./Switcher";
 import { GeneralPanel, replayTour } from "./Welcome";
-import { WorkspacePanel } from "./Workspace";
 
 const OPEN = "wc:settings";
 /** Sent whenever the list changes, so a runtime pick reads it again. */
 export const RUNTIMES_CHANGED = "wc:runtimes";
 
-export type Section = "general" | "runtimes" | "billing" | "workspace" | "workflows" | "board";
+export type Section = "general" | "runtimes" | "billing";
 const ACCOUNT = [
   { id: "general" as const, label: () => F.general.section, icon: FiSliders },
   { id: "runtimes" as const, label: () => T.runtimes.section, icon: FiTerminal },
   { id: "billing" as const, label: () => T.billing.section, icon: FiCreditCard },
 ];
-const WORKSPACE = { id: "workspace" as const, label: () => T.ws.section, icon: FiUsers };
-const PROJECT = [
-  { id: "workflows" as const, label: () => T.agents.workflows, icon: FiGitCommit },
-  { id: "board" as const, label: () => T.agents.board, icon: FiTool },
-];
-type Open = { section: Section; at?: "runners" };
 
-/** `at` scrolls the section to that part. */
-export const openSettings = (section: Section = "general", at?: Open["at"]) => window.dispatchEvent(new CustomEvent<Open>(OPEN, { detail: { section, at } }));
+export const openSettings = (section: Section = "general") => window.dispatchEvent(new CustomEvent<Section>(OPEN, { detail: section }));
 const changed = () => window.dispatchEvent(new Event(RUNTIMES_CHANGED));
 
 export const MARK: Record<api.Connector, Harness> = { "claude-code": "claude", codex: "codex", cursor: "cursor", opencode: "opencode", kimi: "kimi", dsh: "dsh", zcode: "zcode", grok: "grok" };
@@ -96,27 +85,19 @@ export function SettingsButton() {
 
 /** Mounted once, in the window: shows the dialog whenever something opens it. */
 export function SettingsHost() {
-  const [open, setOpen] = useState<Open | null>(null);
+  const [open, setOpen] = useState<Section | null>(null);
   useEffect(() => {
-    const show = (e: Event) => setOpen((e as CustomEvent<Open>).detail);
+    const show = (e: Event) => setOpen((e as CustomEvent<Section>).detail);
     window.addEventListener(OPEN, show);
     return () => window.removeEventListener(OPEN, show);
   }, []);
-  const [last, setLast] = useState<Open>({ section: "general" });
+  const [last, setLast] = useState<Section>("general");
   if (open && open !== last) setLast(open);
   const shown = useShown(!!open, 150);
-  const at = open ?? last;
-  return shown ? <SettingsDialog section={at.section} at={at.at} closing={!open} onPick={(section) => setOpen({ section })} onClose={() => setOpen(null)} /> : null;
+  return shown ? <SettingsDialog section={open ?? last} closing={!open} onPick={setOpen} onClose={() => setOpen(null)} /> : null;
 }
 
-function SettingsDialog({ section, at, closing, onPick, onClose }: { section: Section; at?: Open["at"]; closing: boolean; onPick: (s: Section) => void; onClose: () => void }) {
-  const store = useStore();
-  const [projectId, setProjectId] = useState(store.current?.id ?? null);
-  // A workspace switched under the dialog takes its project list with it.
-  const project = store.projects.find((p) => p.id === projectId) ?? store.current;
-  const [switching, setSwitching] = useState(false);
-  const switcher = useRef<HTMLDivElement>(null);
-  const closeSwitcher = useCallback(() => setSwitching(false), []);
+function SettingsDialog({ section, closing, onPick, onClose }: { section: Section; closing: boolean; onPick: (s: Section) => void; onClose: () => void }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
@@ -127,26 +108,6 @@ function SettingsDialog({ section, at, closing, onPick, onClose }: { section: Se
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [onClose]);
-  const entry = ({ id, label, icon: Icon }: { id: Section; label: () => string; icon: typeof FiX }) => {
-    const on = id === section;
-    return (
-      <button
-        key={id}
-        type="button"
-        aria-current={on || undefined}
-        onClick={() => onPick(id)}
-        className={cn(
-          "relative flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] nb-focus max-md:w-auto max-md:shrink-0 max-md:whitespace-nowrap max-md:rounded-none max-md:px-0 max-md:py-2.5",
-          on ? "bg-nb-accent-soft text-nb-accent-deep max-md:bg-transparent max-md:text-nb-ink" : "text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink max-md:hover:bg-transparent",
-        )}
-      >
-        <Icon className="shrink-0 text-[15px] max-md:hidden" aria-hidden />
-        {label()}
-        {on && <span aria-hidden className="absolute inset-x-0 bottom-[-1px] hidden h-[2px] rounded-full bg-nb-ink max-md:block" />}
-      </button>
-    );
-  };
-  const projectSection = section === "workflows" || section === "board";
   return (
     <div className="nb-scrim z-50" data-closing={closing || undefined} style={{ alignItems: "center" }} onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal aria-label={T.settings} className="nb-panel nb-pop relative flex flex-col" style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}>
@@ -157,57 +118,28 @@ function SettingsDialog({ section, at, closing, onPick, onClose }: { section: Se
           </button>
         </div>
         <div className="flex min-h-0 flex-1 overflow-hidden rounded-b-[14px] max-md:flex-col">
-          <nav aria-label={T.settings} className="flex w-[200px] shrink-0 flex-col gap-5 border-r border-nb-ink/10 bg-nb-cream p-3 max-md:w-auto max-md:flex-row max-md:items-center max-md:gap-[10px] max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:bg-transparent max-md:px-4 max-md:py-0">
-            <div role="group" className="flex flex-col gap-1 max-md:shrink-0 max-md:flex-row max-md:gap-[10px]">
-              {ACCOUNT.map(entry)}
-            </div>
-            <div role="group" className="flex flex-col gap-1 max-md:shrink-0 max-md:flex-row max-md:gap-[10px]">
-              {entry(WORKSPACE)}
-            </div>
-            <div ref={switcher} role="group" aria-label={project?.name ?? T.pickProject} className="relative flex flex-col gap-1 max-md:shrink-0 max-md:flex-row max-md:items-center max-md:gap-[10px]">
-              <button
-                type="button"
-                aria-expanded={switching}
-                onClick={() => setSwitching((v) => !v)}
-                className={cn(
-                  "mb-0.5 flex min-w-0 cursor-pointer items-center gap-1 self-start rounded-[6px] px-3 py-0.5 text-[12px] font-[700] leading-[18px] text-nb-ink-soft hover:text-nb-ink nb-focus",
-                  "max-md:mb-0 max-md:ml-1 max-md:h-[26px] max-md:self-center max-md:bg-nb-wash max-md:px-2 max-md:text-nb-ink",
-                  switching && "bg-nb-ink/5 text-nb-ink",
-                )}
-              >
-                <span className="truncate">{project?.name ?? T.pickProject}</span>
-                <FiChevronDown size={12} aria-hidden className={cn("shrink-0 opacity-70", switching && "rotate-180")} />
-              </button>
-              {switching && (
-                <SwitcherMenu
-                  box={switcher}
-                  label={T.pickProject}
-                  className="origin-top-left absolute left-1 top-[26px] z-30 w-[240px]"
-                  current={project?.id ?? null}
-                  items={store.projects.map((p) => ({
-                    id: p.id,
-                    name: p.name,
-                    mark: (renaming) => (
-                      <span aria-hidden className={cn("inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px] text-nb-ink-soft", renaming ? "bg-nb-paper" : "bg-nb-wash")}>
-                        <FiFolder size={11} />
-                      </span>
-                    ),
-                    renamable: !p.general,
-                  }))}
-                  empty={<p className="px-2.5 py-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{T.noProjects}</p>}
-                  onPick={(id) => {
-                    setProjectId(id);
-                    setSwitching(false);
-                    if (!projectSection) onPick("workflows");
-                  }}
-                  onRename={async (id, name) => (await api.renameProject(id, name), store.reload())}
-                  onClose={closeSwitcher}
-                />
-              )}
-              {PROJECT.map(entry)}
-            </div>
+          <nav aria-label={T.settings} className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-nb-ink/10 bg-nb-cream p-3 max-md:w-auto max-md:flex-row max-md:items-center max-md:gap-5 max-md:border-b max-md:border-r-0 max-md:bg-transparent max-md:px-4 max-md:py-0">
+            {ACCOUNT.map(({ id, label, icon: Icon }) => {
+              const on = id === section;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-current={on || undefined}
+                  onClick={() => onPick(id)}
+                  className={cn(
+                    "relative flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] nb-focus max-md:w-auto max-md:shrink-0 max-md:whitespace-nowrap max-md:rounded-none max-md:px-0 max-md:py-2.5",
+                    on ? "bg-nb-accent-soft text-nb-accent-deep max-md:bg-transparent max-md:text-nb-ink" : "text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink max-md:hover:bg-transparent",
+                  )}
+                >
+                  <Icon className="shrink-0 text-[15px] max-md:hidden" aria-hidden />
+                  {label()}
+                  {on && <span aria-hidden className="absolute inset-x-0 bottom-[-1px] hidden h-[2px] rounded-full bg-nb-ink max-md:block" />}
+                </button>
+              );
+            })}
           </nav>
-          <div key={`${section}:${section === "workspace" ? store.ws.id : project?.id}`} className="a4k-reveal min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-md:px-4 max-md:pt-5">
+          <div key={section} className="a4k-reveal min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-md:px-4 max-md:pt-5">
             {section === "general" && (
               <GeneralPanel
                 onReplay={() => {
@@ -218,9 +150,6 @@ function SettingsDialog({ section, at, closing, onPick, onClose }: { section: Se
             )}
             {section === "runtimes" && <RuntimesPanel />}
             {section === "billing" && <BillingPanel />}
-            {section === "workspace" && <WorkspacePanel at={at} />}
-            {projectSection &&
-              (project ? <ProjectAgents key={project.id} project={project.id} section={section} /> : <p className="text-[13px] text-nb-ink-soft">{T.agents.pickFirst}</p>)}
           </div>
         </div>
       </div>

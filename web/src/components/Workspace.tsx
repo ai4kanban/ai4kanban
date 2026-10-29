@@ -1,4 +1,4 @@
-// 设置's 工作空间 (#2045, #2191): a switcher on top, the members, a team workspace's Runners with their
+// 工作空间设置 (#2045, #2201): the name, the members, a team workspace's Runners with their
 // owners (#2134), and for an owner inviting by email, roles, removing and deleting the workspace;
 // a member reads and may leave. A personal workspace takes no members. A refusal is one line
 // where it happened.
@@ -15,8 +15,7 @@ import { T } from "../i18n";
 import { navigate } from "../router";
 import { useStore } from "../store";
 import { useAway } from "./Agents";
-import { WsMark, wsName } from "./Header";
-import { SwitcherMenu } from "./Switcher";
+import { wsName } from "./Header";
 
 const RUNNER_SETUP = "https://github.com/ai4kanban/ai4kanban/tree/main/runner#readme";
 const FIELD = "nb-field flex h-9 rounded-[8px] border bg-nb-paper px-3 text-[14px] focus:outline-none max-md:text-[16px]";
@@ -32,6 +31,7 @@ export function WorkspacePanel({ at }: { at?: "runners" }) {
   const store = useStore();
   const ws = store.ws;
   const owner = ws.role === "owner";
+  const team = !ws.personal;
   const [members, setMembers] = useState<api.Member[]>([]);
   const [email, setEmail] = useState("");
   const [problem, setProblem] = useState<{ at: string; text: string } | null>(null);
@@ -93,10 +93,9 @@ export function WorkspacePanel({ at }: { at?: "runners" }) {
   );
 
   const meId = store.me.accountId;
-  const team = !ws.personal;
   return (
     <div className="flex flex-col gap-6">
-      <WorkspacePick />
+      <NameRow value={wsName(ws)} readOnly={!team || !owner} onSave={async (name) => (await api.renameWorkspace(ws.id, name), await store.reloadWorkspaces())} />
 
       <div className="nb-section flex flex-col bg-nb-sheet px-4 py-3.5">
         <div className="mb-2 flex min-h-9 items-center gap-2">
@@ -190,49 +189,48 @@ export function WorkspacePanel({ at }: { at?: "runners" }) {
   );
 }
 
-/** The page's title: the current workspace, switched as from the top bar. */
-function WorkspacePick() {
-  const store = useStore();
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLSpanElement>(null);
-  const close = useCallback(() => setOpen(false), []);
+/** Both settings pages open with the name: a field and 保存, live once it changes and is not empty; plain text where it can't be renamed. */
+export function NameRow({ value, readOnly, onSave }: { value: string; readOnly?: boolean; onSave: (name: string) => Promise<unknown> }) {
+  const [typed, setTyped] = useState(value);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  useEffect(() => setTyped(value), [value]);
+  const name = typed.trim();
+  const save = async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await onSave(name);
+    } catch (e) {
+      setProblem(say(e));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <span ref={box} className="relative flex self-start">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className={cn("-ml-2 flex h-9 min-w-0 cursor-pointer items-center gap-2 rounded-[9px] px-2 text-[16px] font-[800] tracking-[-0.02em] text-nb-ink hover:bg-nb-wash nb-focus", open && "bg-nb-wash")}
-      >
-        <WsMark ws={store.ws} size={24} />
-        <span className="truncate">{wsName(store.ws)}</span>
-        <FiChevronDown size={14} aria-hidden className={cn("shrink-0 opacity-60", open && "rotate-180")} />
-      </button>
-      {open && (
-        <SwitcherMenu
-          box={box}
-          label={T.ws.pick}
-          className="origin-top-left absolute left-[-8px] top-[calc(100%+6px)] z-30 w-[260px]"
-          row="h-10 gap-2.5"
-          current={store.ws.id}
-          items={store.workspaces.map((w) => ({
-            id: w.id,
-            name: wsName(w),
-            mark: () => <WsMark ws={w} size={20} />,
-            side: <span className="text-[11px] font-[500] text-nb-ink-soft">{T.ws.roles[w.role]}</span>,
-            renamable: w.role === "owner" && !w.personal,
-          }))}
-          onPick={(id) => {
-            close();
-            if (id === store.ws.id) return;
-            store.setWorkspace(id);
-            navigate("/");
-          }}
-          onRename={async (id, name) => (await api.renameWorkspace(id, name), await store.reloadWorkspaces())}
-          onClose={close}
-        />
+    <div className="flex flex-col gap-2">
+      <span className="text-[13px] font-[700]">{T.ws.name}</span>
+      {readOnly ? (
+        <span className="flex h-9 items-center text-[14px]">{value}</span>
+      ) : (
+        <span className="flex items-center gap-2">
+          <input
+            type="text"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            aria-label={T.ws.name}
+            maxLength={80}
+            spellCheck={false}
+            className={cn(FIELD, "w-[320px] min-w-0 max-w-full max-md:flex-1")}
+            style={{ borderColor: HAIRLINE }}
+          />
+          <Button size="sm" className="shrink-0" disabled={busy || !name || name === value} onClick={() => void save()}>
+            {T.save}
+          </Button>
+        </span>
       )}
-    </span>
+      {problem && <p className="text-[12px] text-nb-peach-ink">{problem}</p>}
+    </div>
   );
 }
 
@@ -256,7 +254,7 @@ function Runners({ owner, at }: { owner: boolean; at?: "runners" }) {
   useEffect(() => void api.listRuntimes().then((l) => setMine(new Set(l.runners.map((r) => r.id))), () => {}), []);
   useEffect(() => {
     const el = section.current;
-    // Only the panel's own scroller moves; scrollIntoView would shift the dialog around it too.
+    // Only the page's own scroller moves; scrollIntoView would shift the window around it too.
     if (runners && el && at === "runners") el.closest(".overflow-y-auto")?.scrollTo({ top: el.offsetTop - 16 });
   }, [runners !== null, at]);
 

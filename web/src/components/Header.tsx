@@ -19,6 +19,7 @@ import { LANG, T } from "../i18n";
 import { isOpen } from "../lib/card";
 import { navigate, useLocation } from "../router";
 import { useStore } from "../store";
+import { projectSectionOf, projectSettingsHref } from "../lib/settings";
 import { openSettings } from "./Settings";
 
 export const meName = (me: api.Me) => me.email || (me.handle ? `@${me.handle}` : "");
@@ -77,7 +78,7 @@ export function OfflineBadge({ phone }: { phone?: boolean }) {
   return (
     <button
       type="button"
-      onClick={() => openSettings("workspace", "runners")}
+      onClick={() => navigate("/settings/workspace#runners")}
       aria-label={T.offline(name)}
       className={cn(
         "nb-tip nb-tip-below inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-peach-soft text-[12px] font-[700] text-nb-peach-ink",
@@ -217,7 +218,7 @@ export function WorkspaceSwitch() {
             type="button"
             onClick={() => {
               close();
-              openSettings("workspace");
+              navigate("/settings/workspace");
             }}
             className={cn(ROW, "text-nb-ink-soft")}
           >
@@ -243,10 +244,13 @@ export function NeedsCount({ project, needs }: { project: string; needs: Map<str
 export function ProjectChip() {
   const store = useStore();
   const needs = useNeedsByProject();
+  const { path, query } = useLocation();
   const [open, setOpen] = useState(false);
   const shown = useShown(open);
   const box = useDismiss<HTMLSpanElement>(open, () => setOpen(false));
   const current = store.current;
+  // On a project's settings page, another project opens at the same section.
+  const section = projectSectionOf(path, query);
   const elsewhere = [...needs.keys()].some((id) => id !== current?.id && store.projects.some((p) => p.id === id));
   return (
     <span ref={box} className="relative flex min-w-0">
@@ -281,7 +285,7 @@ export function ProjectChip() {
                 onClick={() => {
                   setOpen(false);
                   store.setCurrent(p.id);
-                  navigate(`/projects/${p.id}`);
+                  navigate(section ? projectSettingsHref(p.id, section) : `/projects/${p.id}`);
                 }}
                 className={cn(ROW, p.id === current?.id && "bg-nb-wash font-[700]")}
               >
@@ -292,6 +296,23 @@ export function ProjectChip() {
               </button>
           ))}
           {!store.projects.length && <p className="px-2.5 py-2 text-[12.5px] text-nb-ink-soft">{T.noProjects}</p>}
+          {current && (
+            <>
+              <span aria-hidden className="mx-2.5 my-1 h-px" style={{ background: HAIRLINE }} />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  navigate(projectSettingsHref(current.id));
+                }}
+                className={cn(ROW, "text-nb-ink-soft")}
+              >
+                <FiSettings size={13} aria-hidden />
+                {T.projectSettings}
+              </button>
+            </>
+          )}
         </div>
       )}
     </span>

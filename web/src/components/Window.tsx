@@ -22,6 +22,7 @@ import { Link, navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { Me, meName, NeedsCount, OfflineBadge, openTriage, ProjectChip, Slash, TopRight, triageHref, TriageButton, WorkspaceSwitch, wsName } from "./Header";
 import { ChatList, chatsHere, FindBox, matchTasks, Rail } from "./Rail";
+import { projectSettingsHref } from "../lib/settings";
 import { openSettings, SettingsButton } from "./Settings";
 
 const RAIL_KEY = "wildcrane.web.rail";
@@ -205,7 +206,7 @@ function PhoneFind() {
   );
 }
 
-/** Phone.tsx's 更多: the account, the projects, 工作流, 待筛选, 统计, the archive, the workspace's settings, and signing out. */
+/** Phone.tsx's 更多: the account, the projects and the current one's settings, 工作流, 待筛选, 统计, the archive, the workspace's settings, and signing out. */
 function PhoneMore({ current, archiveHref, needs }: { current?: string; archiveHref: string; needs: Map<string, number> }) {
   const store = useStore();
   const row = "flex h-11 w-full cursor-pointer items-center gap-2.5 px-4 text-left text-[14px] text-nb-ink no-underline";
@@ -231,6 +232,13 @@ function PhoneMore({ current, archiveHref, needs }: { current?: string; archiveH
           {p.id === current && <FiCheck size={14} aria-hidden />}
         </Link>
       ))}
+      {current && (
+        <Link href={projectSettingsHref(current)} className={row}>
+          <FiSettings size={15} className="text-nb-ink-soft" aria-hidden />
+          <span className="min-w-0 flex-1 truncate">{T.projectSettings}</span>
+          <FiChevronRight size={14} className="text-nb-ink-soft" aria-hidden />
+        </Link>
+      )}
       {rule}
       <Link href="/workflows" className={row}>
         <FiGrid size={15} className="text-nb-ink-soft" aria-hidden />
@@ -251,12 +259,12 @@ function PhoneMore({ current, archiveHref, needs }: { current?: string; archiveH
         <FiArchive size={15} className="text-nb-ink-soft" aria-hidden />
         {T.archive}
       </Link>
-      <button type="button" onClick={() => openSettings("workspace")} className={row}>
+      <Link href="/settings/workspace" className={row}>
         <FiUsers size={15} className="text-nb-ink-soft" aria-hidden />
         <span className="min-w-0 flex-1 truncate">{T.ws.settings}</span>
         <span className="truncate text-[12px] text-nb-ink-soft">{wsName(store.ws)}</span>
         <FiChevronRight size={14} className="text-nb-ink-soft" aria-hidden />
-      </button>
+      </Link>
       {rule}
       <span className={group}>{T.account}</span>
       <button type="button" onClick={() => openSettings()} className={row}>

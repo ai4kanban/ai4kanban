@@ -11,7 +11,7 @@ import { LANG, T } from "./i18n";
 import { navigate, useLocation } from "./router";
 import { StoreProvider, useStore } from "./store";
 import { AlertsProvider } from "./alerts";
-import { openSettings, SettingsHost } from "./components/Settings";
+import { SettingsHost } from "./components/Settings";
 import { FirstRun } from "./components/Welcome";
 import { Archive } from "./pages/Archive";
 import { Board } from "./pages/Board";
@@ -19,6 +19,7 @@ import { CardPage } from "./pages/CardPage";
 import { DiscussionPage } from "./pages/Discussion";
 import { Home } from "./pages/Home";
 import { NewIdea } from "./pages/NewIdea";
+import { ProjectSettings, WorkspaceSettings } from "./pages/Settings";
 import { Stats } from "./pages/Stats";
 import { TriagePage } from "./pages/Triage";
 import { Workflows } from "./pages/Workflows";
@@ -30,14 +31,16 @@ function Routes() {
   const task = /^\/tasks\/([^/]+)\/?$/.exec(path);
   const project = /^\/projects\/([^/]+)\/?$/.exec(path);
   const triage = /^\/projects\/([^/]+)\/triage\/?$/.exec(path);
+  const settings = /^\/projects\/([^/]+)\/settings\/?$/.exec(path);
   const discussion = /^\/discussions\/([^/]+)\/?$/.exec(path);
   if (task) return <CardPage key={task[1]} taskKey={decodeURIComponent(task[1]!)} />;
   if (discussion) return <DiscussionPage key={discussion[1]} id={decodeURIComponent(discussion[1]!)} />;
   if (project) return <Board key={project[1]} projectId={decodeURIComponent(project[1]!)} />;
   if (triage) return <TriagePage key={triage[1]} projectId={decodeURIComponent(triage[1]!)} />;
+  if (settings) return <ProjectSettings projectId={decodeURIComponent(settings[1]!)} />;
   if (path === "/new") return <NewIdea />;
   if (path === "/archive") return <Archive />;
-  if (path === "/settings/workspace") return <OldWorkspaceSettings />;
+  if (path === "/settings/workspace") return <WorkspaceSettings />;
   if (path === "/workflows") return <Workflows />;
   if (path === "/stats") return <Stats />;
   if (path === "/triage") return <OldTriage />;
@@ -51,16 +54,6 @@ function OldTriage() {
   useEffect(() => {
     if (to) navigate(to, true);
   }, [to]);
-  return null;
-}
-
-/** The workspace's own page moved into 设置 (#2191): its address opens it over Home. */
-function OldWorkspaceSettings() {
-  useEffect(() => {
-    const runners = location.hash === "#runners";
-    navigate("/", true);
-    openSettings("workspace", runners ? "runners" : undefined);
-  }, []);
   return null;
 }
 
