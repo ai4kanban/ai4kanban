@@ -6,7 +6,7 @@
 // user back to it.
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { FiArrowUpRight, FiCheck, FiChevronDown, FiFileText, FiLayout, FiTerminal, FiTrash2 } from "react-icons/fi";
+import { FiArrowUpRight, FiCheck, FiChevronDown, FiFileText, FiTerminal, FiTrash2 } from "react-icons/fi";
 import type { Chat } from "@review/api";
 import { AiChat, type ChatApi } from "@review/components/ai-chat";
 import { Button } from "@review/components/button";
@@ -25,6 +25,7 @@ import { useStore } from "../store";
 import { watchDoing } from "../components/RunLog";
 import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/Settings";
 import { Window } from "../components/Window";
+import { workflowIcon } from "../components/workflow-icon";
 import { Gone } from "./Gone";
 import { keepImages, readImage } from "../lib/chat-images";
 
@@ -328,7 +329,7 @@ function IdeaCard({
         <div className={cn("flex items-center gap-2 text-[12.5px]", idea.task ? "mt-3" : "mt-5 pt-4")} style={idea.task ? undefined : { borderTop: `1px solid ${HAIRLINE}` }}>
           {idea.task ? (
             <span className="flex items-center gap-1.5 text-nb-ink-soft">
-              <FiLayout size={13} aria-hidden />
+              {workflowIcon(idea.workflow, { size: 13 })}
               {nameOf(workflows, idea.workflow)}
             </span>
           ) : (
@@ -341,7 +342,7 @@ function IdeaCard({
                   aria-label={T.workflow}
                   className={cn("-ml-2 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2 font-[600] hover:bg-nb-ink/[0.06]", open && "bg-nb-ink/[0.06]")}
                 >
-                  <FiLayout size={13} className="text-nb-ink-soft" aria-hidden />
+                  {workflowIcon(idea.workflow, { size: 13, className: "text-nb-ink-soft" })}
                   {nameOf(workflows, idea.workflow)}
                   <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
                 </button>
@@ -351,6 +352,7 @@ function IdeaCard({
                 onSelect: () => w.id !== idea.workflow && onPick(idea, w.id),
                 body: (
                   <>
+                    {workflowIcon(w.id, { size: 13, className: "shrink-0 text-nb-ink-soft" })}
                     <span className="min-w-0 flex-1 truncate">{workflowName(w)}</span>
                     {w.id === idea.workflow && <FiCheck size={12} aria-hidden />}
                   </>
