@@ -21,6 +21,7 @@ import { navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { useDismiss } from "../components/Header";
 import { Window } from "../components/Window";
+import { workflowIcon } from "../components/workflow-icon";
 import { quotaText, quotaTrouble, type Trouble } from "../components/Notice";
 import { LABEL, MARK, notReady, openSettings, runnerGone, RUNTIMES_CHANGED, runtimeName } from "../components/Settings";
 
@@ -315,11 +316,11 @@ function WorkflowPick({ workflows, pick, flowsOnly, onPick, onDeleted }: { workf
       setBusy(false);
     }
   };
-  const icon = pick.kind === "new" ? <FiPlus size={14} className="text-nb-ink-soft" aria-hidden /> : pick.kind === "edit" ? <FiEdit2 size={13} className="text-nb-ink-soft" aria-hidden /> : <FiLayout size={14} className="text-nb-ink-soft" aria-hidden />;
+  const icon = pick.kind === "new" ? <FiPlus size={14} className="text-nb-ink-soft" aria-hidden /> : pick.kind === "edit" ? <FiEdit2 size={13} className="text-nb-ink-soft" aria-hidden /> : workflowIcon(pick.kind === "flow" ? pick.id : undefined, { size: 14, className: "text-nb-ink-soft" });
   const label = pick.kind === "new" ? T.builder.newWorkflow : pick.kind === "edit" ? T.builder.editing(named ? workflowName(named) : "") : named ? workflowName(named) : flowsOnly ? T.triage.pickWorkflow : T.builder.auto;
   const row = (key: string, label: string, on: boolean, next: Pick) => (
     <button key={key} type="button" role="menuitem" className={cn(ITEM, "py-1 leading-6")} onClick={() => choose(next)}>
-      <PickRow icon={<FiLayout size={13} aria-hidden />} label={label} on={on} />
+      <PickRow icon={workflowIcon("id" in next ? next.id : undefined, { size: 13 })} label={label} on={on} />
     </button>
   );
   return (

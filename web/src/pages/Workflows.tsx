@@ -1,8 +1,8 @@
 // `/workflows` (#2030): the official workflows under 已安装 / 全部 and a find box. An owner
 // installs and uninstalls (asked first); a member only reads.
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { FiCode, FiCopy, FiFileText, FiFilm, FiLayout, FiMonitor, FiPlus, FiSearch, FiShare2, FiTrash2 } from "react-icons/fi";
+import { useEffect, useRef, useState } from "react";
+import { FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
 import { Button } from "@review/components/button";
 import { HAIRLINE } from "@review/components/chrome";
 import { cn } from "@review/lib/utils";
@@ -11,16 +11,7 @@ import { T, workflowDescription, workflowName } from "../i18n";
 import { useStore } from "../store";
 import { WsMark } from "../components/Header";
 import { Window } from "../components/Window";
-
-const ICON = { size: 15, "aria-hidden": true } as const;
-const ICONS: Record<string, ReactNode> = {
-  wf_builtin_coding: <FiCode {...ICON} />,
-  wf_builtin_hyperframes_video: <FiFilm {...ICON} />,
-  wf_builtin_carousel_post: <FiShare2 {...ICON} />,
-  wf_builtin_blog_post: <FiFileText {...ICON} />,
-  wf_builtin_slide_deck: <FiMonitor {...ICON} />,
-  wf_builtin_video_clone: <FiCopy {...ICON} />,
-};
+import { workflowIcon } from "../components/workflow-icon";
 
 type Tab = "installed" | "all";
 
@@ -116,7 +107,7 @@ export function Workflows() {
                 return (
                   <div key={w.id} className="nb-section relative flex min-h-[150px] flex-col gap-3 bg-nb-sheet p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-nb-wash text-nb-ink">{ICONS[w.id] ?? <FiLayout {...ICON} />}</span>
+                      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-nb-wash text-nb-ink">{workflowIcon(w.id, { size: 15 })}</span>
                       {owner && w.installed && (
                         <div className="relative">
                           <button

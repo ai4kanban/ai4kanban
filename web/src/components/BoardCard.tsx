@@ -44,7 +44,7 @@ export function BoardCard({ task, staleDays }: { task: Task; staleDays?: number 
       </div>
       <p className="mb-2.5 break-words text-[13px] font-[700] leading-snug tracking-[-0.01em]">{task.title}</p>
       <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        {info?.priority ? <PriorityChip value={info.priority} /> : <WorkflowTag name={workflowName(task.workflow)} />}
+        {info?.priority ? <PriorityChip value={info.priority} /> : <WorkflowTag id={task.workflow.id} name={workflowName(task.workflow)} />}
         {!!staleDays && !!info?.modules.length && <span className="text-[10px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">· {info.modules[0]}</span>}
         {!!who.length && (
           <span className="nb-tip ml-auto flex shrink-0 items-center" data-tip={T.commentTip(who.join(T.sep))} aria-label={T.commentTip(who.join(T.sep))}>

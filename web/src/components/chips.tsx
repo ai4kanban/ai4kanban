@@ -1,9 +1,10 @@
 // Copied from legacy kanban-ui/components/chips.tsx: the status pill, priority, todo progress
 // and blocked marks. Read only; ROI is gone.
 
-import { FiAlertCircle, FiCheckCircle, FiClock, FiEye, FiFlag, FiLayout, FiLock, FiPauseCircle, FiPlayCircle, FiXCircle } from "react-icons/fi";
+import { FiAlertCircle, FiCheckCircle, FiClock, FiEye, FiFlag, FiLock, FiPauseCircle, FiPlayCircle, FiXCircle } from "react-icons/fi";
 import { T } from "../i18n";
 import type { Level, Status } from "../lib/card";
+import { workflowIcon } from "./workflow-icon";
 
 const ELASTIC_CHIP = { minWidth: 0, maxWidth: "100%" } as const;
 
@@ -31,10 +32,10 @@ export function StatusPill({ status, label = T.status[status] }: { status: PillS
   );
 }
 
-export function WorkflowTag({ name }: { name: string }) {
+export function WorkflowTag({ id, name }: { id: string; name: string }) {
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
-      <FiLayout aria-hidden style={{ width: 10, height: 10 }} />
+      {workflowIcon(id, { style: { width: 10, height: 10 } })}
       {name}
     </span>
   );
