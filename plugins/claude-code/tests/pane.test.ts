@@ -297,3 +297,49 @@ test('a running Runner shows no update notice', async ($, on) => {
   expect(await ui.find({ text: /out of date/ })).toBeUndefined()
   await ui.unmount()
 })
+
+const TASKS = { tasks: [
+  { task: 'task_1', title: 'Fix sign-in', project: 'ai4kanban', agent: 'Claude Code', state: 'running', minutes: 12, stop: 'task', url: 'https://app.wildcrane.ai/tasks/AKB-1' },
+  { task: 'task_2', title: 'Release notes', project: 'billing', agent: 'Cursor', state: 'queued', minutes: 2, stop: null, url: 'https://app.wildcrane.ai/tasks/AKB-2' },
+] }
+
+test("Tasks lists this computer's tasks; Stop shows Stopping until the task leaves the list", async ($, on) => {
+  const answers: Record<string, unknown> = { state: SIGNED_IN, discussion: EMPTY, tasks: TASKS, stopTask: { stopped: true } }
+  const fake = host(on, answers, 'zh')
+  await $.command.run({ command: 'wildcrane', args: '' } as never)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ key: 'tab-tasks' }))?.text).toContain('任务')
+  await ui.press({ key: 'tab-tasks' })
+  expect(await ui.find({ text: /^Fix sign-in$/ })).toBeDefined()
+  expect(await ui.find({ text: /运行中 · 12 分钟/ })).toBeDefined()
+  expect(await ui.find({ text: /排队中 · 2 分钟/ })).toBeDefined()
+  expect(await ui.find({ key: 'stop-task_2' })).toBeUndefined()
+  expect(await ui.find({ type: 'Link', text: /打开/ })).toBeDefined()
+
+  await ui.press({ key: 'stop-task_1' })
+  expect(fake.calls.find((c) => c.action === 'stopTask')).toMatchObject({ task: 'task_1', stop: 'task' })
+  expect(await ui.find({ text: /正在停止/ })).toBeDefined()
+  expect(await ui.find({ key: 'stop-task_1' })).toBeUndefined()
+
+  answers.tasks = { tasks: [] }
+  await ui.press({ key: 'tab-tasks' })
+  expect(await ui.find({ text: /这台电脑上没有任务在运行/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a refused Stop says so in its row, and offline keeps the last list', async ($, on) => {
+  const answers: Record<string, unknown> = { state: SIGNED_IN, discussion: EMPTY, tasks: TASKS, stopTask: { error: 'forbidden' } }
+  host(on, answers)
+  await $.command.run({ command: 'wildcrane', args: '' } as never)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'tab-tasks' })
+  await ui.press({ key: 'stop-task_1' })
+  expect(await ui.find({ text: /Couldn't stop/ })).toBeDefined()
+  expect(await ui.find({ key: 'stop-task_1' })).toBeDefined()
+
+  answers.tasks = { error: 'offline' }
+  await ui.press({ key: 'tab-tasks' })
+  expect(await ui.find({ text: /^Fix sign-in$/ })).toBeDefined()
+  expect(await ui.find({ text: /Not synced/ })).toBeDefined()
+  await ui.unmount()
+})

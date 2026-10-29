@@ -247,6 +247,25 @@ async function chats() {
   }
 }
 
+/** This computer's running and queued tasks, from Cloud: whichever process holds the lock runs them. */
+async function tasks() {
+  const list = await api.listMachineTasks(machineId())
+  if (!list.ok) return failure(list)
+  const now = Date.now()
+  return {
+    tasks: list.value.tasks.map((t) => ({
+      task: t.task,
+      title: t.title,
+      project: t.project ?? '',
+      agent: LABELS[t.runtime] ?? t.runtime,
+      state: t.state,
+      minutes: Math.max(0, Math.floor((now - Date.parse(t.since)) / 60_000)),
+      stop: t.stop,
+      url: taskUrl(t.key || t.task),
+    })),
+  }
+}
+
 async function connections() {
   const found = await detectRuntimes(true)
   return {
@@ -278,7 +297,7 @@ async function sessionDraft(session: string, cwd: string) {
 
 const PanelArgs = {
   key: z.string(),
-  action: z.enum(['state', 'signIn', 'signOut', 'addFolder', 'removeFolder', 'discussion', 'workflow', 'discard', 'start', 'connections']),
+  action: z.enum(['state', 'signIn', 'signOut', 'addFolder', 'removeFolder', 'discussion', 'workflow', 'discard', 'start', 'connections', 'tasks', 'stopTask']),
   session: z.string().optional(),
   cwd: z.string().optional(),
   discussion: z.string().optional(),
@@ -287,6 +306,8 @@ const PanelArgs = {
   version: z.number().int().optional(),
   project: z.string().optional(),
   path: z.string().optional(),
+  task: z.string().optional(),
+  stop: z.enum(['task', 'chat']).optional(),
 }
 
 type Panel = { [K in keyof typeof PanelArgs]: z.infer<(typeof PanelArgs)[K]> }
@@ -324,6 +345,13 @@ export async function panel(args: Panel): Promise<unknown> {
     }
     case 'connections':
       return connections()
+    case 'tasks':
+      return tasks()
+    case 'stopTask': {
+      if (!args.task || !args.stop) return { error: 'bad_request' }
+      const stopped = await api.stopTask(args.task, args.stop)
+      return stopped.ok ? { stopped: true } : failure(stopped)
+    }
   }
 }
 

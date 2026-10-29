@@ -3,7 +3,7 @@
 
 import type { ElementTable, RenderElement } from 'claude-code'
 
-import type { Adding, Connection, Draft, Idea, Removing, Status, Tab } from '../types'
+import type { Adding, Connection, Draft, Idea, Removing, Status, Tab, TaskRow } from '../types'
 import { UPDATE_COMMANDS, copyFor } from './copy'
 import { LOGO_MARK, markOf } from './logo'
 
@@ -17,6 +17,9 @@ export interface View {
   busy: boolean
   banner: string | null
   connections: Connection[] | null
+  tasks: TaskRow[] | null
+  stopping: string[]
+  stopFailed: string[]
   synced: boolean
   removing: Removing
   adding: Adding
@@ -46,6 +49,7 @@ export interface Handlers {
   /** Opens or closes the folder field: `null` for a new project, else binding that one. */
   adding(project: string | null): void
   add(path: string): void
+  stopTask(row: TaskRow): void
 }
 
 export type Surface =
@@ -54,7 +58,7 @@ export type Surface =
   | { surface: 'vscode'; ui: ElementTable<'vscode'> }
   | { surface: 'mobile'; ui: ElementTable<'mobile'> }
 
-const TABS: Tab[] = ['ideas', 'projects', 'agents']
+const TABS: Tab[] = ['ideas', 'projects', 'tasks', 'agents']
 
 /** The CLIs a connection always lists; any other shows once installed. */
 const MAIN = ['claude-code', 'codex', 'cursor', 'opencode']
@@ -376,7 +380,42 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     )
   }
 
-  const body = v.tab === 'ideas' ? ideas() : v.tab === 'projects' ? projects() : agents()
+  const tasks = () => {
+    if (!v.tasks) return <Text dimColor>{c.checking}</Text>
+    if (!v.tasks.length) return <Text dimColor>{c.tasksEmpty}</Text>
+    return (
+      <Box flexDirection="column" gap={1}>
+        <Text dimColor>{c.tasksIntro}</Text>
+        {v.tasks.map((t) => {
+          const stopping = t.state === 'running' && v.stopping.includes(t.task)
+          return (
+            <Box key={`task-${t.task}`} flexDirection="column">
+              <Box flexDirection="row" gap={2}>
+                <Box flexDirection="column" flexGrow={1}>
+                  <Text bold>{t.title}</Text>
+                  <Text dimColor>{[t.project, t.agent].filter(Boolean).join(' · ')}</Text>
+                </Box>
+                {stopping ? (
+                  <Text color="warning">{c.stopping}</Text>
+                ) : t.state === 'running' ? (
+                  <Text color="success">{c.running(t.minutes)}</Text>
+                ) : (
+                  <Text dimColor>{c.queued(t.minutes)}</Text>
+                )}
+                {t.state === 'running' && t.stop && !stopping ? (
+                  <Button key={`stop-${t.task}`} plain dimColor label={c.stop} onPress={() => act.stopTask(t)} />
+                ) : null}
+                <Link href={t.url} label={c.open} />
+              </Box>
+              {v.stopFailed.includes(t.task) ? <Text color="warning">{c.stopFailed}</Text> : null}
+            </Box>
+          )
+        })}
+      </Box>
+    )
+  }
+
+  const body = v.tab === 'ideas' ? ideas() : v.tab === 'projects' ? projects() : v.tab === 'tasks' ? tasks() : agents()
   return (
     <Box flexDirection="column" gap={1}>
       {header}

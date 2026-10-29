@@ -5,7 +5,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
-import type { Adding, Connection, Draft, Removing, Status, Tab } from '../types'
+import type { Adding, Connection, Draft, Removing, Status, Tab, TaskRow } from '../types'
 import { copyFor, langOf } from './copy'
 import { Pane, type Handlers, type View } from './pane'
 
@@ -21,6 +21,9 @@ const openState = atom({ plugin: 'wildcrane', key: 'open' } as const, 0)
 const busyState = atom({ plugin: 'wildcrane', key: 'busy' } as const, false)
 const bannerState = atom({ plugin: 'wildcrane', key: 'banner' } as const, null as string | null)
 const connectionsState = atom({ plugin: 'wildcrane', key: 'connections' } as const, null as Connection[] | null)
+const tasksState = atom({ plugin: 'wildcrane', key: 'tasks' } as const, null as TaskRow[] | null)
+const stoppingState = atom({ plugin: 'wildcrane', key: 'stopping' } as const, [] as string[])
+const stopFailedState = atom({ plugin: 'wildcrane', key: 'stopFailed' } as const, [] as string[])
 const syncedState = atom({ plugin: 'wildcrane', key: 'synced' } as const, true)
 const removingState = atom({ plugin: 'wildcrane', key: 'removing' } as const, null as Removing)
 const addingState = atom({ plugin: 'wildcrane', key: 'adding' } as const, null as Adding)
@@ -39,6 +42,10 @@ const START_REFUSALS: Record<string, string> = {
 let server: string | null = null
 let key: string | null = null
 let polling: Timer | null = null
+let taskPolling: Timer | null = null
+
+/** The Tasks tab reads again this often while it is open. */
+const TASKS_EVERY_MS = 3_000
 
 /** The panel's one tool on the plugin's server, which answers JSON. */
 async function ask($: EngineInterface, action: string, args: Record<string, unknown> = {}): Promise<Answer> {
@@ -85,6 +92,42 @@ async function checkConnections($: EngineInterface): Promise<void> {
   if (!answer.error) await update($, connectionsState, () => answer.connections as Connection[])
 }
 
+/** Offline keeps the last list; a Stop pressed stays pressed until its task leaves the list. */
+async function loadTasks($: EngineInterface): Promise<void> {
+  const answer = await ask($, 'tasks')
+  if (answer.error) return void (await update($, syncedState, () => false))
+  const rows = answer.tasks as TaskRow[]
+  const running = new Set(rows.filter((r) => r.state === 'running').map((r) => r.task))
+  await update($, tasksState, () => rows)
+  await update($, syncedState, () => true)
+  await update($, stoppingState, (s) => s.filter((t) => running.has(t)))
+  await update($, stopFailedState, (s) => s.filter((t) => running.has(t)))
+}
+
+/** Polls only while the Tasks tab is open. */
+function watchTasks($: EngineInterface, on: boolean): void {
+  if (on && !taskPolling) {
+    taskPolling = $.clock.every(TASKS_EVERY_MS, async () => {
+      if ((await read($, tabState)) === 'tasks' && (await read($, statusState))?.signedIn) await loadTasks($)
+      else watchTasks($, false)
+    })
+  }
+  if (!on && taskPolling) {
+    taskPolling.cancel()
+    taskPolling = null
+  }
+}
+
+async function stopTask($: EngineInterface, row: TaskRow): Promise<void> {
+  if (!row.stop) return
+  await update($, stopFailedState, (s) => s.filter((t) => t !== row.task))
+  await update($, stoppingState, (s) => [...s.filter((t) => t !== row.task), row.task])
+  const answer = await ask($, 'stopTask', { task: row.task, stop: row.stop })
+  if (!answer.error) return
+  await update($, stoppingState, (s) => s.filter((t) => t !== row.task))
+  await update($, stopFailedState, (s) => [...s, row.task])
+}
+
 /** Everything the open tab shows, read again. */
 async function refresh($: EngineInterface): Promise<void> {
   const status = (await ask($, 'state')) as unknown as Status
@@ -100,9 +143,11 @@ async function refresh($: EngineInterface): Promise<void> {
     polling = null
   }
   if ((await read($, bannerState)) === 'offline') await update($, bannerState, () => null)
-  if (!status.signedIn) return
   const tab = await read($, tabState)
+  watchTasks($, status.signedIn && tab === 'tasks')
+  if (!status.signedIn) return
   if (tab === 'ideas') await loadDraft($)
+  if (tab === 'tasks') await loadTasks($)
   if (tab === 'agents' && !(await read($, connectionsState))) await checkConnections($)
 }
 
@@ -139,7 +184,9 @@ async function signOut($: EngineInterface): Promise<void> {
   await update($, tabState, () => 'ideas')
   await update($, draftState, () => null)
   await update($, connectionsState, () => null)
+  await update($, tasksState, () => null)
   await update($, bannerState, () => null)
+  watchTasks($, false)
 }
 
 /** Closes the Projects tab's open question or folder field. */
@@ -230,6 +277,9 @@ async function view($: EngineInterface): Promise<View> {
     busy: await read($, busyState),
     banner: await read($, bannerState),
     connections: await read($, connectionsState),
+    tasks: await read($, tasksState),
+    stopping: await read($, stoppingState),
+    stopFailed: await read($, stopFailedState),
     synced: await read($, syncedState),
     removing: await read($, removingState),
     adding: await read($, addingState),
@@ -313,6 +363,7 @@ export const register: Register = (on) => {
       cancel: () => void cancel($),
       adding: (project) => void toggleAdding($, project),
       add: (path) => void add($, path),
+      stopTask: (row) => void stopTask($, row),
     }
     if (e.surface === 'terminal') return Pane({ surface: 'terminal', ui: $.ui.resolve(e) }, v, act)
     if (e.surface === 'desktop') return Pane({ surface: 'desktop', ui: $.ui.resolve(e) }, v, act)

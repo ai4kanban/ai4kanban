@@ -1,6 +1,6 @@
 // The WildCrane panel's values, held by the host for the session.
 
-export type Tab = 'ideas' | 'projects' | 'agents'
+export type Tab = 'ideas' | 'projects' | 'tasks' | 'agents'
 
 export type Idea = {
   id: string
@@ -44,6 +44,18 @@ export type Status = {
 
 export type Connection = { name: string; label: string; state: 'ready' | 'signedOut' | 'notInstalled'; command: string | null }
 
+/** A task this computer runs or holds queued; `stop` the route that stops it, null while queued. */
+export type TaskRow = {
+  task: string
+  title: string
+  project: string
+  agent: string
+  state: 'running' | 'queued'
+  minutes: number
+  stop: 'task' | 'chat' | null
+  url: string
+}
+
 /** A failure the panel shows over the ideas: `offline`, `conflict`, `limit`, `startFailed`, `notReady`. */
 export type Banner = string | null
 
@@ -60,6 +72,10 @@ declare module 'claude-code' {
       busy: boolean
       banner: Banner
       connections: Connection[] | null
+      tasks: TaskRow[] | null
+      /** Tasks whose Stop was pressed, until they leave the list; `stopFailed` those Cloud refused. */
+      stopping: string[]
+      stopFailed: string[]
       synced: boolean
       removing: Removing
       adding: Adding

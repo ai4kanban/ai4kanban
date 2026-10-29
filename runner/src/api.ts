@@ -406,6 +406,23 @@ export const listFolders = (machineId: string) => request<{ folders: Folder[] }>
 export const listElsewhere = (machineId: string) =>
   request<{ projects: Elsewhere[] }>('GET', `/v1/runner/folders?machine=${q(machineId)}&elsewhere=1`)
 
+/** A task this computer runs or holds waiting (#18); `stop` the route that stops it. */
+export interface MachineTask {
+  task: string
+  key: string | null
+  title: string
+  project: string | null
+  runtime: Job['runtime']
+  state: 'running' | 'queued'
+  since: string
+  stop: 'task' | 'chat' | null
+}
+
+export const listMachineTasks = (machineId: string) => request<{ tasks: MachineTask[] }>('GET', `/v1/runner/tasks?machine=${q(machineId)}`)
+
+export const stopTask = (task: string, how: 'task' | 'chat') =>
+  request<unknown>('POST', how === 'chat' ? `/v1/tasks/${q(task)}/chat/stop` : `/v1/tasks/${q(task)}/stop`, {})
+
 /** A new project from the folder, or with `project` that project placed there. */
 export const addFolder = (machineId: string, name: string, path: string, project?: string) =>
   request<{ folder: Folder }>('POST', '/v1/runner/folders', { machineId, name, path, ...(project ? { project } : {}) })

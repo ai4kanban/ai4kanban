@@ -116,6 +116,9 @@ export class FakeCloud {
   /** Claude Code and Codex sessions' discussions, by the session they were opened for. */
   discussions: { id: string; request: string; project: string | null }[] = []
   inbox: { review: unknown[]; running: unknown[] } = { review: [], running: [] }
+  /** This computer's running and queued tasks (#18), and every stop asked for. */
+  machineTasks: Record<string, unknown>[] = []
+  stops: string[] = []
   /** The archived tasks whose chat this computer answered last (#2065). */
   chats: { task: string; project: string }[] = []
   /** Each task's chat as Cloud keeps it (#2110); a task with none answers 404. */
@@ -258,6 +261,12 @@ export class FakeCloud {
     const refuse = (status: number, code: string, message: string) => send(status, { error: { code, message } })
     const route = url.pathname
 
+    const stop = /^\/v1\/tasks\/([^/]+)\/(stop|chat\/stop)$/.exec(route)
+    if (stop && req.method === 'POST') {
+      if (stop[1] === 'refused') return refuse(403, 'forbidden', 'Not yours to stop.')
+      this.stops.push(`${stop[2]} ${stop[1]}`)
+      return send(200, {})
+    }
     if (/^\/v1\/(tasks|projects|artifacts|uploads)\b|^\/v1\/workflows\/[^/]+$/.test(route)) return this.handleTask(req.method!, url, body, raw, send, refuse)
     if (route === '/v1/rejections') return send(200, this.rejections)
     if (route === '/v1/rejections/reviewed') {
@@ -334,6 +343,7 @@ export class FakeCloud {
       return send(200, { released: true })
     }
     const mine = (machine: string) => this.runner?.live && this.runner.machineId === machine
+    if (route === '/v1/runner/tasks') return send(200, { tasks: this.machineTasks })
     if (route === '/v1/runner/chats') return send(200, { chats: mine(url.searchParams.get('machine')!) ? this.chats : [] })
     if (route === '/v1/runner/reviews') {
       this.reviews.push({ project: body.project, tasks: body.tasks, runtime: body.runtime, model: body.model })

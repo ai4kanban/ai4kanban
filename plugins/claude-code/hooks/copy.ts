@@ -1,7 +1,7 @@
 // The panel's words, zh and en side by side. Idea and agent words are web/src/i18n.ts's own.
 
 const ZH = {
-  nav: { ideas: '想法', projects: '项目', agents: 'Agent' },
+  nav: { ideas: '想法', projects: '项目', tasks: '任务', agents: 'Agent' },
   unsynced: '未同步',
   acceptance: '验收',
   discard: '丢弃',
@@ -62,6 +62,14 @@ const ZH = {
   notInstalledHint: (h: string) => `${h} 未安装。在这台电脑上执行：`,
   recheck: '重新检测',
   checking: '正在检测…',
+  tasksIntro: '这台电脑上运行和排队的任务。',
+  tasksEmpty: '这台电脑上没有任务在运行。',
+  running: (m: number) => `运行中 · ${m} 分钟`,
+  queued: (m: number) => `排队中 · ${m} 分钟`,
+  stopping: '正在停止…',
+  stop: '停止',
+  open: '打开 ↗',
+  stopFailed: '没能停止，请重试。',
   opened: 'WildCrane 面板已打开。',
   notHere: '请在终端或 Claude Desktop 中使用 WildCrane 面板。',
   outdated: '插件版本过旧，任务暂停在这台电脑上运行。在终端执行以下命令更新，再运行 /reload-plugins：',
@@ -70,7 +78,7 @@ const ZH = {
 export type Copy = typeof ZH
 
 const EN: Copy = {
-  nav: { ideas: 'Ideas', projects: 'Projects', agents: 'Agents' },
+  nav: { ideas: 'Ideas', projects: 'Projects', tasks: 'Tasks', agents: 'Agents' },
   unsynced: 'Not synced',
   acceptance: 'Done when',
   discard: 'Discard',
@@ -131,6 +139,14 @@ const EN: Copy = {
   notInstalledHint: (h) => `${h} isn't installed. On this computer, run:`,
   recheck: 'Check again',
   checking: 'Checking…',
+  tasksIntro: 'Tasks running or queued on this computer.',
+  tasksEmpty: 'Nothing is running on this computer.',
+  running: (m) => `Running · ${m} min`,
+  queued: (m) => `Queued · ${m} min`,
+  stopping: 'Stopping…',
+  stop: 'Stop',
+  open: 'Open ↗',
+  stopFailed: "Couldn't stop. Try again.",
   opened: 'The WildCrane panel is open.',
   notHere: 'Use the WildCrane panel in a terminal or Claude Desktop.',
   outdated: 'The plugin is out of date, so tasks no longer run on this computer. Update it in a terminal, then run /reload-plugins:',

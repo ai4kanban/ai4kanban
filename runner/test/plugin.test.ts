@@ -243,6 +243,24 @@ describe('the plugin component', () => {
       assert.equal((await panel({ action: 'discussion', session: 'sess-1' })).discussion, 'dsc_1')
       assert.equal(cloud.discussions.length, 1)
 
+      // This computer's tasks (#18): read from Cloud, stopped by the route each names.
+      const since = new Date(Date.now() - 12 * 60_000 - 5_000).toISOString()
+      cloud.machineTasks = [
+        { task: 'task_1', key: 'AKB-1', title: 'Fix sign-in', project: 'ai4kanban', runtime: 'claude-code', state: 'running', since, stop: 'task' },
+        { task: 'task_2', key: null, title: 'Release notes', project: null, runtime: 'codex', state: 'queued', since, stop: null },
+      ]
+      const listed = (await panel({ action: 'tasks' })).tasks as Record<string, unknown>[]
+      assert.deepEqual(listed.map((t) => [t.title, t.project, t.agent, t.state, t.minutes, t.stop]), [
+        ['Fix sign-in', 'ai4kanban', 'Claude Code', 'running', 12, 'task'],
+        ['Release notes', '', 'Codex', 'queued', 12, null],
+      ])
+      assert.match(String(listed[0]!.url), /\/tasks\/AKB-1$/)
+      assert.match(String(listed[1]!.url), /\/tasks\/task_2$/)
+      assert.deepEqual(await panel({ action: 'stopTask', task: 'task_1', stop: 'task' }), { stopped: true })
+      assert.deepEqual(await panel({ action: 'stopTask', task: 'task_3', stop: 'chat' }), { stopped: true })
+      assert.deepEqual(cloud.stops, ['stop task_1', 'chat/stop task_3'])
+      assert.equal((await panel({ action: 'stopTask', task: 'refused', stop: 'task' })).error, 'forbidden')
+
       const out = await panel({ action: 'signOut' })
       assert.equal(out.signedIn, false)
       assert.equal(out.runner, 'off')

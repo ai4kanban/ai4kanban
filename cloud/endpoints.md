@@ -603,6 +603,9 @@ The account's one Runner (`runner/`). Every job route takes `machineId`, the com
   message a chat's job answers; `review: { tasks }` a review of those tasks' chats (#2065).
 - `GET /v1/runner/chats?machine=<id>` — `{ chats: [{ task, project }] }`: the archived tasks whose
   chat this computer answered last, within the 30 days chats are kept.
+- `GET /v1/runner/tasks?machine=<id>` — `{ tasks: [{ task, key, title, project, runtime, state,
+  since, stop }] }`: one row per task this computer runs for the caller (`running`) or holds
+  waiting (`queued`). `stop` is `task` or `chat`, the stop route that applies, null while queued.
 - `POST /v1/runner/reviews` — `{ machineId, project, tasks, runtime, model? }`: a review job of
   those tasks' chats, run by this computer alone; one still going on the project is answered instead.
 - `GET /v1/runner/jobs/<id>?after=<seq>` — a job and, once it has ended, its events after `seq`,

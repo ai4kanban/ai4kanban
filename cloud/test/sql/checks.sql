@@ -5655,4 +5655,50 @@ begin
 end
 $job_lang$;
 
+-- A computer's tasks, one row each, for the plugin's Tasks tab (#18).
+do $machine_tasks$
+declare
+  P constant uuid := 'a0a0a0a0-0018-4018-8018-000000000001';
+  MAC constant uuid := 'd0d0d0d0-0018-4018-8018-000000000001';
+  OTHER constant uuid := 'd0d0d0d0-0018-4018-8018-000000000002';
+  BUDGET constant integer := 100000;
+  RUNTIMES constant jsonb := '[{"name": "claude-code", "installed": true}]';
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  v_ws text;
+  v_run text;
+  v_wait text;
+  v_job cloud.runner_jobs;
+  v_list json;
+begin
+  insert into cloud.accounts (id, handle) values (P, 'tasks-p');
+  v_ws := api.v1_create_workspace(P, '{"name": "Tasks"}', BUDGET) ->> 'id';
+  perform api.register_runner(P, MAC, 'Mac', 11, '0.6.0', RUNTIMES, false, 900, BUDGET);
+
+  v_run := api.v1_create_task(P, jsonb_build_object('title', 'Run', 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id';
+  v_wait := api.v1_create_task(P, jsonb_build_object('title', 'Wait', 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id';
+  v_job := cloud.v1_flow_job(v_run);
+  perform api.claim_runner_job(P, MAC, v_job.id, 900, BUDGET);
+  assert (select claimed_at from cloud.runner_jobs where id = v_job.id) is not null, 'a claim kept no time';
+  -- A second job of the running task still makes one row.
+  insert into cloud.runner_jobs (owner_id, runtime, prompt, task_id) values (P, 'claude-code', 'More', v_run);
+  -- A job with no task is no row.
+  insert into cloud.runner_jobs (owner_id, runtime, prompt, machine_id) values (P, 'claude-code', 'Test', MAC);
+
+  v_list := api.list_machine_tasks(P, MAC);
+  assert json_array_length(v_list) = 2, format('a computer''s tasks misread: %s', v_list);
+  assert v_list -> 0 ->> 'task' = v_run and v_list -> 0 ->> 'state' = 'running' and v_list -> 0 ->> 'stop' = 'task'
+    and v_list -> 0 ->> 'title' = 'Run' and v_list -> 0 ->> 'runtime' = 'claude-code', format('the running task misread: %s', v_list -> 0);
+  assert v_list -> 1 ->> 'task' = v_wait and v_list -> 1 ->> 'state' = 'queued' and v_list -> 1 ->> 'stop' is null
+    and v_list -> 1 ->> 'since' is not null, format('the queued task misread: %s', v_list -> 1);
+  assert json_array_length(api.list_machine_tasks(P, OTHER)) = 0, 'another computer saw this one''s tasks';
+
+  perform api.finish_runner_job(P, MAC, v_job.id, 'done', '', BUDGET);
+  assert not exists (select 1 from json_array_elements(api.list_machine_tasks(P, MAC)) x
+                     where x ->> 'task' = v_run and x ->> 'state' = 'running'), 'a finished step still ran';
+
+  raise notice 'sql checks: #18 machine tasks checks passed';
+end
+$machine_tasks$;
+
 rollback;

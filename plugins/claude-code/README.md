@@ -5,8 +5,8 @@ computer. No separate Runner to install: the plugin's local component runs the j
 Code is open.
 
 - **Needs**: Claude Code 2.1.287 or later with plugin mods on, and Node 22 or later on the PATH.
-- **Panel**: `/wildcrane` — Ideas, Projects and Agents, with your account and Sign out on top.
-  Cards and boards open on the web.
+- **Panel**: `/wildcrane` — Ideas, Projects, Tasks and Agents, with your account and Sign out on
+  top. Cards, boards and tasks open on the web.
 - **Clarifying**: tell Claude what needs doing in the conversation; it shapes the ideas, and the
   panel shows this session's. Only the panel's **Start** makes a task.
 

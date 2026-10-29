@@ -150,6 +150,12 @@ export async function routeRunner(request: Request, env: Env, url: URL, rest: st
     const args = { p_subject: owner.accountId, p_machine: uuid(url.searchParams.get('machine'), 'machine'), p_days: CHAT_KEEP_DAYS }
     return json({ chats: (await call<unknown[] | null>(env, 'runner_chats', args)) ?? [] })
   }
+  // This computer's running and queued tasks, for the plugin's Tasks tab (#18).
+  if (rest === 'tasks') {
+    requireMethod(request, 'GET')
+    const args = { p_subject: owner.accountId, p_machine: uuid(url.searchParams.get('machine'), 'machine') }
+    return json({ tasks: (await call<unknown[] | null>(env, 'list_machine_tasks', args)) ?? [] })
+  }
   if (rest === 'reviews') {
     requireMethod(request, 'POST')
     return json({ job: await dispatchReview(env, owner, await bodyOf(request)) })
