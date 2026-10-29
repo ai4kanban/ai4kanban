@@ -203,8 +203,9 @@ export function DiscussionPage({ id }: { id: string }) {
       {narrow ? (
         chat
       ) : (
-        <div className="flex h-full">
-          <div className="min-w-0 flex-1">{chat}</div>
+        // With a card, the chat column holds just AiChat's 600px thread and its 32px padding, and the pair is centred.
+        <div className={cn("flex h-full", card && "justify-center")}>
+          <div className={cn("min-w-0", card ? "w-[664px]" : "flex-1")}>{chat}</div>
           {card}
         </div>
       )}
