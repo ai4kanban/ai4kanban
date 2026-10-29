@@ -4244,6 +4244,11 @@ begin
     and not v_json @> jsonb_build_array(jsonb_build_object('task', v_other))
     and api.v1_task_chat(A, v_other) -> 'messages' -> 0 ->> 'role' = 'user',
     format('Build now''s chat was on the rail, or a planned one was not: %s', v_json);
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  update cloud.runner_jobs set lease_expires_at = now() - interval '1 second' where id = v_job.id;
+  perform api.v1_task_chat_send(A, v_other, 'Any news?', null, BUDGET);
+  assert api.v1_list_chats(A, v_ws, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_other)),
+    'Build now''s chat did not come back to the rail once the user wrote';
 
   -- A task from no discussion carries nothing.
   v_other := api.v1_create_task(A, jsonb_build_object('title', 'Plain', 'workspace', v_ws, 'run', true), CODING, BUDGET) ->> 'id';
