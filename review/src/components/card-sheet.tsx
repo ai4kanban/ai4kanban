@@ -8,6 +8,7 @@ import { FiFeather, FiLock, FiPlay, FiXCircle } from "react-icons/fi";
 import { COPY } from "../i18n";
 import type { Previews } from "../lib/artifacts";
 import type { CardMeta } from "../lib/card-info";
+import { useDraft } from "../lib/draft";
 import { bodySources } from "../lib/mockup-tag";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
@@ -216,10 +217,10 @@ export const refining = (at: { round?: number | null; rounds?: number } | null |
   !!at?.rounds && Math.max(at.round || 1, 1) < at.rounds;
 
 /** 移除: an icon, then a confirm under it with an optional reason. */
-export function RemoveButton({ busy, onRemove }: { busy: boolean; onRemove: (reason?: string) => void }) {
+export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRemove: (reason?: string) => void; draftKey?: string }) {
   const a = COPY.act;
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useDraft(draftKey);
   const box = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -237,10 +238,7 @@ export function RemoveButton({ busy, onRemove }: { busy: boolean; onRemove: (rea
       <button
         type="button"
         disabled={busy}
-        onClick={() => {
-          setReason("");
-          setOpen((v) => !v);
-        }}
+        onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={a.remove}
         title={a.remove}
@@ -271,6 +269,7 @@ export function RemoveButton({ busy, onRemove }: { busy: boolean; onRemove: (rea
               onClick={() => {
                 setOpen(false);
                 onRemove(reason.trim() || undefined);
+                setReason("");
               }}
             >
               {a.remove}

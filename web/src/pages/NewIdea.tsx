@@ -12,6 +12,7 @@ import { AgentMark } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { ITEM, Menu, POPUP_PANEL } from "@review/components/menu";
 import { StagedThumbs, useStagedImages } from "@review/components/staged-images";
+import { keptDraft, useDraft } from "@review/lib/draft";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { keepImages } from "../lib/chat-images";
@@ -34,19 +35,20 @@ const AUTO: Pick = { kind: "auto" };
 export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
   const store = useStore();
   const { query } = useLocation();
-  const [text, setText] = useState("");
+  const wantedTriage = query.get("triage");
+  const draftKey = `${store.ws.id}.new${wantedTriage ? `.triage.${wantedTriage}` : ""}`;
+  const [text, setText] = useDraft(draftKey);
   const asked = query.get("project");
   useEffect(() => {
     if (asked && store.projects.some((p) => p.id === asked)) store.setCurrent(asked);
   }, [asked, store.projects.length]);
   // The item stays the one asked for, even once it is carded and leaves the open list.
   const [triage, setTriage] = useState<api.TriageItem | null>(null);
-  const wantedTriage = query.get("triage");
   useEffect(() => {
     const item = store.triage?.find((i) => i.id === wantedTriage && i.state === "open");
     if (!item || triage?.id === item.id) return;
     setTriage(item);
-    setText(item.text.trim() ? `${item.title}\n\n${item.text.trim()}` : item.title);
+    if (keptDraft(draftKey) === null) setText(item.text.trim() ? `${item.title}\n\n${item.text.trim()}` : item.title);
     if (store.projects.some((p) => p.id === item.project)) store.setCurrent(item.project);
   }, [wantedTriage, store.triage, store.projects.length]);
   const current = store.current;
@@ -113,6 +115,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
       if (pick.kind === "auto") {
         const d = await api.createDiscussion({ workspace: store.ws.id, body: request, ...(current ? { project: current.id } : {}), ...(runtime ? { runtime } : {}), images: pics.images });
         await keepImages(d.id, d.workspace, d.messages, pics.images);
+        setText("");
         store.reload();
         navigate(`/discussions/${encodeURIComponent(d.id)}`);
         return;
@@ -133,6 +136,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
       if (triage) store.patchTriage({ ...triage, state: "carded", task: task.id, updated_at: new Date().toISOString() });
       store.patchTask(task);
       store.markSeen(task.id);
+      setText("");
       navigate(`/tasks/${encodeURIComponent(task.key)}?chat=1`);
     } catch (e) {
       setTrouble((await quotaTrouble(e)) ?? { text: refusal(e) ?? T.idea.sendFailed });

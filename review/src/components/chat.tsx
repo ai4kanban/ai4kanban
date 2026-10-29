@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FiArrowUp, FiCornerUpLeft, FiEdit3, FiMessageSquare, FiX } from "react-icons/fi";
 import type { Copy } from "../i18n";
+import { useDraft } from "../lib/draft";
 import { useArrived } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
@@ -40,6 +41,7 @@ export function ChatPane({
   canWrite,
   onSend,
   onClose,
+  draftKey,
 }: {
   c: Copy["comments"];
   thread: Entry[];
@@ -47,6 +49,7 @@ export function ChatPane({
   canWrite: boolean;
   onSend: (body: string) => Promise<boolean>;
   onClose: () => void;
+  draftKey?: string;
 }) {
   const list = useRef<HTMLDivElement>(null);
   const firstFresh = thread.findIndex((e) => e.fresh);
@@ -89,13 +92,13 @@ export function ChatPane({
           </ol>
         )}
       </div>
-      {canWrite && <Composer c={c} onSend={onSend} />}
+      {canWrite && <Composer c={c} onSend={onSend} draftKey={draftKey} />}
     </section>
   );
 }
 
-function Composer({ c, onSend }: { c: Copy["comments"]; onSend: (body: string) => Promise<boolean> }) {
-  const [draft, setDraft] = useState("");
+function Composer({ c, onSend, draftKey }: { c: Copy["comments"]; onSend: (body: string) => Promise<boolean>; draftKey?: string }) {
+  const [draft, setDraft] = useDraft(draftKey);
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);

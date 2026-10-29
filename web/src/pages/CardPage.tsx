@@ -387,6 +387,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       key={task.id}
       c={REVIEW.ai}
       token={task.id}
+      draftKey={`${store.ws.id}.task.${task.id}.chat`}
       api={{ ...api.taskChat(task.id), watch: watchDoing }}
       phone={narrow}
       card={{ question: asked, comments: comments.length > 0, previews: artifacts.length > 0 }}
@@ -402,13 +403,13 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       }
     />
   );
-  const rail = reviewed && <ChatPane c={REVIEW.comments} thread={thread} phone={narrow} canWrite onSend={comment} onClose={() => setRailOpen(false)} />;
+  const rail = reviewed && <ChatPane c={REVIEW.comments} thread={thread} phone={narrow} canWrite onSend={comment} draftKey={`${store.ws.id}.task.${task.id}.comment`} onClose={() => setRailOpen(false)} />;
 
   const actions = (
     <>
       {reviewed && <ChatButton quiet label={REVIEW.comments.heading} count={thread.length} open={railOpen} unread={unread && !railOpen} onClick={toggleRail} />}
       {owner && reviewed && <ShareSlot task={task.id} />}
-      {(task.status === "queued" || task.status === "waiting_review") && <RemoveButton busy={busy} onRemove={(reason) => void remove(reason)} />}
+      {(task.status === "queued" || task.status === "waiting_review") && <RemoveButton busy={busy} draftKey={`${store.ws.id}.task.${task.id}.remove`} onRemove={(reason) => void remove(reason)} />}
       {waiting && approve >= 0 && !asked && !staged && <RunButton refine={refining(flow)} busy={busy} onClick={() => void run()} />}
       {built && (
         <Button size="xs" className="ml-2" onClick={() => navigate(`/new?workflow=${encodeURIComponent(built.id)}`)}>

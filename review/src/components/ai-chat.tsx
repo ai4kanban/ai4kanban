@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { FiCheck, FiChevronDown, FiCopy, FiImage, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
 import { ApiError, clearChat, readChat, sendChat, stopChat, type Chat, type ChatImage, type ChatMessage, type ChatRuntime, type Connector } from "../api";
 import type { Copy } from "../i18n";
+import { useDraft } from "../lib/draft";
 import { useArrived } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { AgentMark, type Harness } from "./agent-mark";
@@ -72,6 +73,7 @@ export function AiChat({
   aboveBox,
   ask,
   over,
+  draftKey,
 }: {
   c: AiCopy;
   token: string;
@@ -86,11 +88,12 @@ export function AiChat({
   aboveBox?: ReactNode;
   ask?: string;
   over?: ReactNode;
+  draftKey?: string;
 }) {
   const io = api ?? linkChat(token);
   const [chat, setChat] = useState<Chat | null>(null);
   const arrived = useArrived(chat && chat.messages.map((m) => m.id));
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useDraft(draftKey);
   const [picked, setPicked] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [sending, setSending] = useState(false);

@@ -184,6 +184,7 @@ export function DiscussionPage({ id }: { id: string }) {
       key={id}
       c={COPY}
       token={id}
+      draftKey={`${store.ws.id}.discussion.${id}`}
       api={io}
       phone={narrow}
       page
