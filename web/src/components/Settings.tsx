@@ -451,7 +451,7 @@ const LINK = "shrink-0 cursor-pointer text-[12.5px] font-[700] text-nb-accent-de
 const LINE = "flex min-h-[46px] w-full items-center gap-4 px-4";
 const LINE_LABEL = "shrink-0 text-[13.5px] font-[600] text-nb-ink";
 /** A setting row's menu: under the row, on its right. */
-const ROW_MENU = "left-auto right-2 w-[280px] max-w-[calc(100vw-4rem)]";
+const ROW_MENU = "w-[280px] max-w-[calc(100vw-4rem)]";
 const Picked = ({ on }: { on: boolean }) => <FiCheck className={cn("ml-auto shrink-0 text-[14px]", on ? "text-nb-accent-deep" : "invisible")} aria-hidden />;
 const Dot = ({ on }: { on: boolean }) => <span className={cn("size-[7px] shrink-0 rounded-full", on ? "bg-nb-mint-ink" : "bg-nb-ink-soft/40")} aria-hidden />;
 
@@ -564,6 +564,7 @@ function SettingList({ row, list, runner, onChange }: { row: api.Runtime; list: 
     <div className="ml-[21px] divide-y divide-nb-ink/8 rounded-[12px] bg-nb-paper max-md:ml-0 [&>*:first-child>button]:rounded-t-[12px] [&>button:last-child]:rounded-b-[12px]">
       <Menu
         full
+        align="end"
         panel={ROW_MENU}
         trigger={({ onClick }) => (
           <Setting label={c.runner} onClick={onClick}>
@@ -583,6 +584,7 @@ function SettingList({ row, list, runner, onChange }: { row: api.Runtime; list: 
       {!runner && <p className="px-4 py-2.5 text-[12px] text-nb-peach-ink">{list.runners.length ? c.runnerGone : c.noRunner}</p>}
       <Menu
         full
+        align="end"
         panel={ROW_MENU}
         trigger={({ onClick }) => (
           <Setting label={c.connector} onClick={onClick}>
@@ -594,6 +596,7 @@ function SettingList({ row, list, runner, onChange }: { row: api.Runtime; list: 
       />
       <Menu
         full
+        align="end"
         panel={ROW_MENU}
         trigger={({ onClick }) => (
           <Setting label={c.model} onClick={onClick}>

@@ -1,7 +1,8 @@
 // Stands in for legacy ui/dropdown-menu.tsx (Radix): a trigger and a list that closes on a
 // pick, Esc or a click outside. The panel wears legacy ui/popover.tsx's POPUP_PANEL.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { closing, useShown } from "../lib/motion";
 import { cn } from "../lib/utils";
 
@@ -31,6 +32,7 @@ export function Menu({
   const [open, setOpen] = useState(false);
   const shown = useShown(open);
   const box = useRef<HTMLSpanElement>(null);
+  const list = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
@@ -42,28 +44,87 @@ export function Menu({
       window.removeEventListener("keydown", key);
     };
   }, [open]);
+  // The list sits on `body` so no scrolling or clipped ancestor cuts it; it opens upward when there is more room above.
+  useLayoutEffect(() => {
+    if (!shown) return;
+    const place = () => {
+      const el = list.current;
+      const r = box.current?.getBoundingClientRect();
+      if (!el || !r) return;
+      const vw = document.documentElement.clientWidth;
+      const vh = window.innerHeight;
+      el.style.setProperty("--menu-w", `${r.width}px`);
+      el.style.maxHeight = "360px";
+      const below = vh - r.bottom - 12;
+      const above = r.top - 12;
+      const up = el.offsetHeight > below && above > below;
+      el.style.maxHeight = `${Math.min(360, up ? above : below)}px`;
+      el.style.top = up ? "auto" : `${r.bottom + 4}px`;
+      el.style.bottom = up ? `${vh - r.top + 4}px` : "auto";
+      const w = el.offsetWidth;
+      el.style.left = `${Math.max(8, Math.min(align === "end" ? r.right - w : r.left, vw - 8 - w))}px`;
+      el.style.transformOrigin = `${up ? "bottom" : "top"} ${align === "end" ? "right" : "left"}`;
+    };
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [shown, align]);
+  // Keep Tab moving trigger → items → what follows the trigger, as if the list sat right after it.
+  const focusables = () => [...(list.current?.querySelectorAll<HTMLElement>("button, input, select, textarea, [tabindex]") ?? [])];
+  const opener = () => box.current?.querySelector<HTMLElement>("button, [tabindex]");
   return (
-    <span ref={box} className={cn("relative min-w-0", full ? "flex w-full" : "inline-flex")}>
+    <span
+      ref={box}
+      className={cn("relative min-w-0", full ? "flex w-full" : "inline-flex")}
+      onKeyDown={(e) => {
+        if (!open || e.key !== "Tab" || e.shiftKey || list.current?.contains(e.target as Node)) return;
+        const first = focusables()[0];
+        if (!first) return;
+        e.preventDefault();
+        first.focus();
+      }}
+    >
       {trigger({ open, onClick: () => setOpen((v) => !v) })}
-      {shown && (
-        <span role="menu" data-closing={closing(open)} className={cn(POPUP_PANEL, "nb-pop absolute top-[calc(100%+4px)] z-30 flex max-h-[min(360px,50vh)] min-w-[160px] flex-col overflow-y-auto p-1", full && "w-full", align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left", panel)}>
-          {head}
-          {items.map((it) => (
-            <button
-              key={it.key}
-              type="button"
-              role="menuitem"
-              className={cn(ITEM, it.className)}
-              onClick={() => {
-                setOpen(false);
-                it.onSelect();
-              }}
-            >
-              {it.body}
-            </button>
-          ))}
-        </span>
-      )}
+      {shown &&
+        createPortal(
+          <span
+            ref={list}
+            role="menu"
+            data-closing={closing(open)}
+            // Stops a dialog or popover around the trigger from reading a click here as one outside it.
+            onPointerDown={(e) => e.nativeEvent.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key !== "Tab") return;
+              const all = focusables();
+              if (e.shiftKey ? e.target === all[0] : e.target === all[all.length - 1]) {
+                if (e.shiftKey) e.preventDefault();
+                opener()?.focus();
+              }
+            }}
+            className={cn(POPUP_PANEL, "nb-pop fixed z-[70] flex min-w-[160px] flex-col overflow-y-auto p-1", full && "w-[var(--menu-w)]", panel)}
+          >
+            {head}
+            {items.map((it) => (
+              <button
+                key={it.key}
+                type="button"
+                role="menuitem"
+                className={cn(ITEM, it.className)}
+                onClick={() => {
+                  setOpen(false);
+                  it.onSelect();
+                }}
+              >
+                {it.body}
+              </button>
+            ))}
+          </span>,
+          document.body,
+        )}
     </span>
   );
 }

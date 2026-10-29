@@ -371,7 +371,7 @@ function IdeaCard({
               }))}
             />
           )}
-          {!idea.task && <ComputerMenu c={computers} value={machine} onPick={onMachine} up />}
+          {!idea.task && <ComputerMenu c={computers} value={machine} onPick={onMachine} />}
           <span className="ml-auto flex items-center gap-2.5">
             {idea.task ? (
               <span className="-mr-1.5">

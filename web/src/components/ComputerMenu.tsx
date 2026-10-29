@@ -26,14 +26,14 @@ export function useComputers(project: string | undefined) {
   return { list: shared.length ? list : [], def, me };
 }
 
-export function ComputerMenu({ c, value, onPick, up }: { c: ReturnType<typeof useComputers>; value: string | null; onPick: (machine: string) => void; up?: boolean }) {
+export function ComputerMenu({ c, value, onPick }: { c: ReturnType<typeof useComputers>; value: string | null; onPick: (machine: string) => void }) {
   const { list, def, me } = c;
   if (!list.length) return null;
   const now = list.find((r) => r.machine === value) ?? def;
   const name = (r: api.WorkspaceRunner) => r.name || T.runners.unnamed;
   return (
     <Menu
-      panel={cn("w-[260px]", up && "top-auto bottom-[calc(100%+4px)]")}
+      panel="w-[260px]"
       trigger={({ open, onClick }) => (
         <button
           type="button"
