@@ -12,7 +12,6 @@ import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
 import { askJev } from './judge.ts'
 import type { Answer } from './judge.ts'
-import { limitsOf } from './quota.ts'
 import { cardItem, heldIn, heldOf, itemsJson, openItem, rewriteItem } from './triage.ts'
 import { cloudWorkflowOf, itemPath, ofTriageId, stampItem, stampOf, triageId } from './triage-files.ts'
 import { placeWorkflow } from './v1/board.ts'
@@ -294,7 +293,6 @@ export async function sortTriage(env: Env, id: string, ctx?: ExecutionContext): 
           p_account: item.owner,
           p_fields: { title: item.title, request: item.text, run: true, project: at.project },
           p_workflow: workflowFor(end.workflow!),
-          p_max_tasks: limitsOf(billing).tasks,
         })
       } catch (e) {
         console.error('cloud: triage no task made', { id, error: e instanceof Error ? e.message : String(e) })

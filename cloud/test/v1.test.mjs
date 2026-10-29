@@ -496,23 +496,10 @@ describe('artifact files', () => {
 })
 
 describe('plan quotas (#2017)', () => {
-  it('starts a task under the plan’s limit, and names the quota when it is used up', async () => {
-        db.v1_create_task = () => quotaRefusal('tasks', 3)
-    const res = await send('/v1/tasks', { method: 'POST', body: { title: 'One more', workflow: 'wf_own' } })
-    assert.equal(res.status, 403)
-    const { error } = await res.json()
-    assert.equal(error.code, 'quota_exceeded')
-    assert.equal(error.quota, 'tasks')
-    assert.equal(error.limit, 3)
-    assert.match(error.message, /3 tasks at once/)
-    assert.equal(callsTo('v1_create_task')[0].body.p_max_tasks, 3)
-  })
-
-  it('gives Pro its own limits', async () => {
-    db.subscriptions_for = () => [{ id: 's', customer_id: 'c', period: 'monthly', status: 'active', current_period_end: null }]
-        db.v1_create_task = () => ({ id: 'task_1' })
-    await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_own' } })
-    assert.equal(callsTo('v1_create_task')[0].body.p_max_tasks, 10)
+  it('makes a task whatever the plan’s running limit (#2209)', async () => {
+    db.v1_create_task = () => ({ id: 'task_1' })
+    assert.equal((await send('/v1/tasks', { method: 'POST', body: { title: 'One more', workflow: 'wf_own' } })).status, 201)
+    assert.equal('p_max_tasks' in callsTo('v1_create_task')[0].body, false)
   })
 
   it('refuses a declared file over the plan’s limit before anything is written', async () => {
@@ -629,16 +616,6 @@ describe('workspaces (#2045)', () => {
     await send('/v1/projects')
     assert.deepEqual(callsTo('v1_list_projects').map((c) => c.body.p_workspace), ['ws_1', null])
     assert.equal((await send('/v1/projects?workspace=nope')).status, 400)
-  })
-
-  it('counts a task against the plan of the workspace’s creator', async () => {
-    db.v1_payer = () => OWNER
-    db.subscriptions_for = ({ p_user_id }) =>
-      p_user_id === OWNER ? [{ id: 's', customer_id: 'c', period: 'monthly', status: 'active', current_period_end: null }] : []
-    db.v1_create_task = () => ({ id: 'task_1' })
-    await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_own', project: 'prj_1' } })
-    assert.deepEqual(callsTo('v1_payer')[0].body, { p_account: USER, p_kind: 'project', p_id: 'prj_1' })
-    assert.equal(callsTo('v1_create_task')[0].body.p_max_tasks, 10)
   })
 
   it('wakes the streams of everyone the write concerns', async () => {
@@ -1131,15 +1108,15 @@ describe('discussions (#2073)', () => {
     assert.equal((await send('/v1/discussions/dsc_1/ideas/idea_1', { method: 'DELETE' })).status, 409)
   })
 
-  it('starts an idea on its workflow, against the workspace’s plan', async () => {
+  it('starts an idea on its workflow', async () => {
     BUILTIN_WORKFLOWS.push(coding)
     db.v1_discussion = () => discussion
-    db.v1_start_idea = ({ p_discussion, p_idea, p_project, p_workflow, p_max_tasks, p_skip_plan }) =>
-      ({ id: 'task_1', p_discussion, p_idea, p_project, workflow: p_workflow.id, builtin: p_workflow.builtin, p_max_tasks, p_skip_plan })
+    db.v1_start_idea = ({ p_discussion, p_idea, p_project, p_workflow, p_skip_plan }) =>
+      ({ id: 'task_1', p_discussion, p_idea, p_project, workflow: p_workflow.id, builtin: p_workflow.builtin, p_skip_plan })
     db.v1_task_workflow = () => json({ code: 'AKB20', message: 'No task has this id.' }, 400)
     const started = await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST', body: { project: 'prj_2' } })
     assert.equal(started.status, 201)
-    assert.deepEqual(await started.json(), { id: 'task_1', p_discussion: 'dsc_1', p_idea: 'idea_1', p_project: 'prj_2', workflow: 'wf_builtin_coding', builtin: true, p_max_tasks: 3, p_skip_plan: false })
+    assert.deepEqual(await started.json(), { id: 'task_1', p_discussion: 'dsc_1', p_idea: 'idea_1', p_project: 'prj_2', workflow: 'wf_builtin_coding', builtin: true, p_skip_plan: false })
     const built = await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST', body: { skip_plan: true } })
     assert.equal((await built.json()).p_skip_plan, true)
     assert.equal((await send('/v1/discussions/dsc_1/ideas/idea_1/start', { method: 'POST', body: { skip_plan: 'yes' } })).status, 400)
@@ -1162,7 +1139,7 @@ describe('discussions (#2073)', () => {
     const machine = '44444444-4444-4444-8444-444444444444'
     db.finish_runner_job = () => ({ finished: true, job: { id: 'j' }, retry: null, discussion: 'dsc_1', start: ['idea_1', 'idea_2'] })
     db.v1_discussion = () => ({ ...discussion, ideas: [discussion.ideas[0], { id: 'idea_2', workflow: 'wf_builtin_coding', task: null }] })
-    db.v1_start_idea = ({ p_idea }) => (p_idea === 'idea_1' ? json({ code: 'AKB23', message: 'x', details: 'tasks', hint: '3' }, 400) : { id: 'task_2' })
+    db.v1_start_idea = ({ p_idea }) => (p_idea === 'idea_1' ? json({ code: 'AKB23', message: 'x', details: 'storage', hint: '3' }, 400) : { id: 'task_2' })
     db.v1_task_workflow = () => json({ code: 'AKB20', message: 'No task has this id.' }, 400)
     const res = await send('/v1/runner/jobs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/finish', {
       method: 'POST', body: { machineId: machine, outcome: 'done', report: { reply: 'Go.', ideas: [{ id: 'idea_1', title: 'A', start: true }] } },

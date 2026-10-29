@@ -12,7 +12,7 @@ const MB = 1024 * 1024
 const GB = 1024 * MB
 
 export interface Limits {
-  /** Tasks not yet finished, across every Runner and surface. */
+  /** Tasks running at once, across every Runner (#2209). More wait queued. */
   tasks: number
   storage: number
   file: number

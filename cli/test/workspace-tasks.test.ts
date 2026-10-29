@@ -153,8 +153,8 @@ describe('in a Runner workspace', () => {
   })
 
   it('a refusal writes nothing', async () => {
-    serve({ status: 403, code: 'quota_exceeded', message: 'Your plan allows 3 tasks at once.' })
-    await refuses(root, ['create', '--title', 'Annual plan'], /Cloud did not make the task: Your plan allows 3 tasks at once\./)
+    serve({ status: 403, code: 'forbidden', message: 'Only members may make tasks here.' })
+    await refuses(root, ['create', '--title', 'Annual plan'], /Cloud did not make the task: Only members may make tasks here\./)
     assert.ok(!fs.readdirSync(todo).some((f) => /^\d+-/.test(f)))
   })
 

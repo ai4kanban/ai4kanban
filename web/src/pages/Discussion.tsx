@@ -6,7 +6,7 @@
 // user back to it.
 
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { FiAlertCircle, FiArrowUpRight, FiCheck, FiChevronDown, FiFileText, FiLayout, FiTerminal, FiTrash2 } from "react-icons/fi";
+import { FiArrowUpRight, FiCheck, FiChevronDown, FiFileText, FiLayout, FiTerminal, FiTrash2 } from "react-icons/fi";
 import type { Chat } from "@review/api";
 import { AiChat, type ChatApi } from "@review/components/ai-chat";
 import { Button } from "@review/components/button";
@@ -16,6 +16,7 @@ import { Menu } from "@review/components/menu";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { ComputerMenu, useComputers } from "../components/ComputerMenu";
+import { Notice, quotaTrouble, type Trouble } from "../components/Notice";
 import { REVIEW, T, workflowName } from "../i18n";
 import { useNarrow } from "../lib/narrow";
 import { numberOf } from "../lib/card";
@@ -38,7 +39,6 @@ const COPY = {
   signedOutHere: T.idea.signedOutHere,
 };
 
-type Trouble = { text: string; upgrade?: boolean } | null;
 
 export function DiscussionPage({ id }: { id: string }) {
   const store = useStore();
@@ -116,10 +116,8 @@ export function DiscussionPage({ id }: { id: string }) {
       await work();
     } catch (e) {
       const code = e instanceof api.ApiError ? e.code : "";
-      if (code === "quota_exceeded") {
-        const pro = await api.readBilling().then((r) => r.billing.plan === "pro", () => false);
-        setTrouble({ text: pro ? T.limitPro : T.limit, upgrade: !pro });
-      } else setTrouble({ text: code === "offline" ? T.errors.offline : code === "runner_unavailable" ? T.unavailable : T.errors.generic });
+      if (code === "quota_exceeded") setTrouble(await quotaTrouble(e));
+      else setTrouble({ text: code === "offline" ? T.errors.offline : code === "runner_unavailable" ? T.unavailable : T.errors.generic });
       if (code === "conflict" || code === "not_found") setReload((n) => n + 1);
     } finally {
       setBusy(false);
@@ -161,7 +159,7 @@ export function DiscussionPage({ id }: { id: string }) {
         </button>
       ) : (
         <>
-          {trouble && <Note trouble={trouble} className="mb-1" />}
+          {trouble && <Notice trouble={trouble} className="mb-1" />}
           <Rows
             ideas={ideas}
             busy={busy}
@@ -228,20 +226,6 @@ function Elsewhere({ host, below, over }: { host: string; below?: ReactNode; ove
       {below && <div className="shrink-0 px-3">{below}</div>}
       {over}
     </div>
-  );
-}
-
-function Note({ trouble, className }: { trouble: NonNullable<Trouble>; className?: string }) {
-  return (
-    <p role="status" className={cn("flex items-center gap-2 rounded-[8px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] leading-snug text-nb-peach-ink", className)}>
-      <FiAlertCircle size={13} className="shrink-0" aria-hidden />
-      <span className="flex-1">{trouble.text}</span>
-      {trouble.upgrade && (
-        <a href={api.PRICING_URL} target="_blank" rel="noreferrer" className="shrink-0 font-[700] underline underline-offset-2">
-          {T.upgrade}
-        </a>
-      )}
-    </p>
   );
 }
 
@@ -338,7 +322,7 @@ function IdeaCard({
             )}
           </div>
         )}
-        {trouble && <Note trouble={trouble} className="mt-4" />}
+        {trouble && <Notice trouble={trouble} className="mt-4" />}
         <div className={cn("flex items-center gap-2 text-[12.5px]", idea.task ? "mt-3" : "mt-5 pt-4")} style={idea.task ? undefined : { borderTop: `1px solid ${HAIRLINE}` }}>
           {idea.task ? (
             <span className="flex items-center gap-1.5 text-nb-ink-soft">

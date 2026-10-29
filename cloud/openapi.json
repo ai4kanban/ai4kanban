@@ -2398,7 +2398,7 @@
             }
           }
         },
-        "description": "Copies the workflow. Refused with `quota_exceeded` once the plan's tasks at once are all unfinished. Without a project it goes to its workspace's `general`. Open tasks count against the plan of the workspace's creator."
+        "description": "Copies the workflow. With `run`, the task is made even when the plan's running tasks are all in use: it waits `queued` and starts once one stops running. Without a project it goes to its workspace's `general`. Running tasks count against the plan of the workspace's creator."
       }
     },
     "/v1/tasks/{id}": {
@@ -3959,7 +3959,7 @@
             }
           }
         },
-        "description": "Creates a task as `POST /v1/tasks` with `run: true` does: the idea's title, its outcome and `## Done when` checks as the request, its workflow, and the discussion's runtime. Refused with `quota_exceeded` as that is, and `conflict` once started. A Claude Code discussion's start is `version_conflict` when `expectedVersion` moved, and a retry answers the task already made."
+        "description": "Creates a task as `POST /v1/tasks` with `run: true` does: the idea's title, its outcome and `## Done when` checks as the request, its workflow, and the discussion's runtime. At a full plan it waits `queued` as that does; `conflict` once started. A Claude Code discussion's start is `version_conflict` when `expectedVersion` moved, and a retry answers the task already made."
       }
     },
     "/v1/tasks/{id}/artifacts": {
@@ -7360,7 +7360,6 @@
               },
               "quota": {
                 "enum": [
-                  "tasks",
                   "storage",
                   "file_size"
                 ],
@@ -7368,7 +7367,7 @@
               },
               "limit": {
                 "type": "integer",
-                "description": "With `quota_exceeded`: that limit — tasks at once, or bytes."
+                "description": "With `quota_exceeded`: that limit, in bytes."
               }
             },
             "required": [
@@ -7762,6 +7761,10 @@
           },
           "status": {
             "$ref": "#/components/schemas/TaskStatus"
+          },
+          "waiting_for_slot": {
+            "type": "boolean",
+            "description": "True while a queued `run` task waits only because its plan's running tasks are all in use. It starts on its own once one stops running."
           },
           "created_at": {
             "type": "string",

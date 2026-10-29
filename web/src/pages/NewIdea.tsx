@@ -20,6 +20,7 @@ import { navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { useDismiss } from "../components/Header";
 import { Window } from "../components/Window";
+import { quotaText, quotaTrouble, type Trouble } from "../components/Notice";
 import { LABEL, MARK, notReady, openSettings, runnerGone, RUNTIMES_CHANGED, runtimeName } from "../components/Settings";
 
 // Menu has no separator: the item draws a hairline above itself.
@@ -54,8 +55,8 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
   const [runtimes, setRuntimes] = useState<api.RuntimeList | null>(null);
   const [runtime, setRuntime] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [trouble, setTrouble] = useState<string | null>(null);
-  const pics = useStagedImages(REVIEW.ai, setTrouble);
+  const [trouble, setTrouble] = useState<Trouble>(null);
+  const pics = useStagedImages(REVIEW.ai, (text) => setTrouble(text ? { text } : null));
   const box = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -134,7 +135,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
       store.markSeen(task.id);
       navigate(`/tasks/${encodeURIComponent(task.key)}?chat=1`);
     } catch (e) {
-      setTrouble(refusal(e) ?? T.idea.sendFailed);
+      setTrouble((await quotaTrouble(e)) ?? { text: refusal(e) ?? T.idea.sendFailed });
       setBusy(false);
     }
   };
@@ -155,7 +156,12 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
           <div className="mt-7 w-full">
             {trouble ? (
               <Note icon={<FiAlertCircle size={13} className="shrink-0" aria-hidden />}>
-                <span className="flex-1">{trouble}</span>
+                <span className="flex-1">{trouble.text}</span>
+                {trouble.upgrade && (
+                  <a href={api.PRICING_URL} target="_blank" rel="noreferrer" className="shrink-0 font-[700] underline underline-offset-2">
+                    {T.upgrade}
+                  </a>
+                )}
               </Note>
             ) : offline ? (
               <Note icon={<FiWifiOff size={13} className="shrink-0" aria-hidden />}>
@@ -254,7 +260,7 @@ export function refusal(e: unknown): string | null {
   }
   if (code === "runner_offline") return T.idea.offline;
   if (code === "runner_removed") return REVIEW.ai.removed;
-  if (code === "quota_exceeded") return T.limitPro;
+  if (code === "quota_exceeded") return quotaText(e);
   if (code === "chat_busy") return REVIEW.ai.busy;
   if (code === "offline") return T.errors.offline;
   return null;

@@ -6,7 +6,6 @@
 import { call, mutate } from '../db.ts'
 import type { Env } from '../env.ts'
 import { badRequest, conflict, notFound } from '../errors.ts'
-import { readLimits } from '../quota.ts'
 import { placeWorkflow } from './board.ts'
 import { idOf } from './http.ts'
 import { chatInput } from './input.ts'
@@ -75,14 +74,12 @@ export async function startIdea(
   if (found.task && held.external) return call<{ id: string }>(env, 'v1_task', { p_account: account, p_id: found.task.id })
   if (found.task) throw conflict('This idea has already been started.')
   const definition = workflowFor(found.workflow)
-  const limits = await readLimits(env, await call<string>(env, 'v1_payer', { p_account: account, p_kind: 'target', p_id: held.workspace }))
   const task = await mutate<{ id: string }>(env, 'v1_start_idea', {
     p_account: account,
     p_discussion: discussion,
     p_idea: idea,
     p_project: project,
     p_workflow: definition,
-    p_max_tasks: limits.tasks,
     p_expected_version: expectedVersion,
     p_skip_plan: skipPlan,
     p_machine: machine,

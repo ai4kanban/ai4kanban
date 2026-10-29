@@ -202,7 +202,7 @@ test('over the plan limit, the start is refused in words and nothing is retried'
   await $.command.run({ command: 'wildcrane', args: '' } as never)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await ui.press({ key: 'start-idea_1' })
-  expect(await ui.find({ text: /limit on tasks in progress/ })).toBeDefined()
+  expect(await ui.find({ text: /storage is at your plan's limit/ })).toBeDefined()
   expect((await ui.find({ key: 'start-idea_1' }))?.props.dimColor).toBe(true)
   await ui.unmount()
   expect(fake.calls.filter((c) => c.action === 'start').length).toBe(1)

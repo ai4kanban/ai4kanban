@@ -430,10 +430,9 @@ export function storageLimitReached(): Refusal {
   )
 }
 
-export type Quota = 'tasks' | 'storage' | 'file_size'
+export type Quota = 'storage' | 'file_size'
 
 const QUOTA_MESSAGES: Record<Quota, (limit: number) => string> = {
-  tasks: (n) => `Your plan runs ${n} tasks at once. Finish or cancel one, or upgrade, to start another.`,
   storage: (n) => `Your plan holds ${sizeOf(n)} of files, and this would go over. Free up space, or upgrade.`,
   file_size: (n) => `Your plan takes files up to ${sizeOf(n)}.`,
 }

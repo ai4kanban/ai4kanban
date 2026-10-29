@@ -39,6 +39,8 @@ export interface Task {
   /** Set while a stopped or failed task can resume on the computer holding its work (#2128). */
   /** `available` is false once the computer it ran on is no longer shared (#2196): resuming then names another. */
   resume?: { machine: string; available: boolean } | null;
+  /** Queued only because the plan's running tasks are all in use (#2209). */
+  waiting_for_slot?: boolean;
 }
 
 /** A landed commit's changes, read from the computer it landed on; `truncated` leaves out every `patch`. */

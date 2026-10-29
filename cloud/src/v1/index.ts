@@ -293,9 +293,6 @@ async function createTask(c: Call): Promise<Response> {
   const definition = workflowFor(workflow)
   const changes = (fields.context as { workflow?: string } | undefined)?.workflow
   if (changes && isBuiltin(changes)) throw builtinWorkflow(changes) ? readOnly() : notFound('No workflow has this id.')
-  const limits = fields.project
-    ? await limitsFor(c, 'project', fields.project as string)
-    : await limitsFor(c, 'target', (fields.workspace as string | undefined) ?? null)
   return idempotent(c.env, c.caller, c.request, body, async () => {
     if (item) {
       await openItem(c.env, triage!)
@@ -303,7 +300,7 @@ async function createTask(c: Call): Promise<Response> {
         throw notFound('No triage item has this id.')
       }
     }
-    const task = await write(c, 'v1_create_task', { p_fields: fields, p_workflow: definition, p_max_tasks: limits.tasks }) as { id: string; key: string }
+    const task = await write(c, 'v1_create_task', { p_fields: fields, p_workflow: definition }) as { id: string; key: string }
     if (triage) await cardItem(c.env, c.ctx, triage, task)
     await placeWorkflow(c.env, c.caller.accountId, task.id)
     return { status: 201, body: task }

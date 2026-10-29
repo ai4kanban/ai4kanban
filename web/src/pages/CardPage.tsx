@@ -39,6 +39,7 @@ import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/S
 import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
 import { ComputerMenu, useComputers } from "../components/ComputerMenu";
+import { Notice, quotaText } from "../components/Notice";
 import { Gone } from "./Gone";
 
 /** A task's key, as a card's `source` names the task it came from (#2063). */
@@ -62,7 +63,7 @@ function sayError(e: unknown): string {
   if (code === "conflict") return T.agentBusy;
   if (code === "review_outdated") return REVIEW.errors.outdated;
   if (code === "task_running") return T.cancelRunning;
-  if (code === "quota_exceeded") return T.limitPro;
+  if (code === "quota_exceeded") return quotaText(e)!;
   if (code === "chat_busy") return REVIEW.ai.busy;
   if (code === "runner_offline") return REVIEW.ai.offline;
   if (code === "runner_removed") return REVIEW.ai.removed;
@@ -114,6 +115,12 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const [trouble, setTrouble] = useState<string | null>(null);
   const [from, setFrom] = useState<api.Discussion | null>(null);
   const [built, setBuilt] = useState<api.Workflow | null>(null);
+  // Queued only by the plan's running limit (#2209): its notice names the limit, and offers Free Pro.
+  const slot = task?.status === "queued" && !!task.waiting_for_slot;
+  const [plan, setPlan] = useState<api.BillingRead | null>(null);
+  useEffect(() => {
+    if (slot && !plan) api.readBilling().then(setPlan, () => {});
+  }, [slot]);
 
   useEffect(() => {
     setChat(query.get("chat") === "1");
@@ -506,7 +513,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
             <CardSheet
               number={numberOf(task.key)}
               title={task.title}
-              status={<StatusPill status={pill} />}
+              status={<StatusPill status={pill} label={slot ? T.waitingForSlot : undefined} />}
               actions={actions}
               info={info}
               above={
@@ -516,6 +523,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
                   )}
                   {built && <Line tone="mint" icon={<FiCheckCircle size={14} aria-hidden />}>{task.context?.created ? T.builder.created(built.name) : T.builder.updated(built.name)}</Line>}
                   {task.run?.runner_removed && <Line tone="peach" icon={<FiAlertCircle size={14} aria-hidden />}>{T.removedLine(task.run.machine ?? "")}</Line>}
+                  {slot && plan && <Notice trouble={{ text: T.slotsFull(plan.quota.limits.tasks), upgrade: plan.billing.plan !== "pro" }} />}
                   <RunLog task={task} failure={task.status === "failed" && !reason ? task.failure : null} />
                 </>
               }

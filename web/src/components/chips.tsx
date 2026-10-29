@@ -19,10 +19,10 @@ const SKIN: Record<PillStatus, { icon: typeof FiEye; soft: string; ink: string }
   cancelled: { icon: FiXCircle, soft: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)", ink: "var(--color-nb-ink-soft)" },
 };
 
-export function StatusPill({ status }: { status: PillStatus }) {
+/** `label`: another name for the status, such as 等待运行 for a queued task held by the plan (#2209). */
+export function StatusPill({ status, label = T.status[status] }: { status: PillStatus; label?: string }) {
   const c = SKIN[status];
   const Icon = c.icon;
-  const label = T.status[status];
   return (
     <span className="nb-chip" title={label} style={{ ...ELASTIC_CHIP, background: c.soft, color: c.ink }}>
       <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />

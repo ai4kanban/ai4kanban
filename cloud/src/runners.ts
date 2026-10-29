@@ -15,6 +15,7 @@ import { badRequest, notFound, runnerOutdated, serviceUnavailable } from './erro
 import { bodyOf, json, requireMethod } from './http.ts'
 import { shortName, uuid } from './input.ts'
 import { requireOwner, type Owner } from './owner.ts'
+import { readLimits } from './quota.ts'
 import { idOf, taskIdOf } from './v1/http.ts'
 import { poke } from './v1/stream.ts'
 import { settleEndings } from './v1/endings.ts'
@@ -168,10 +169,8 @@ export async function routeRunner(request: Request, env: Env, url: URL, rest: st
   }
   if (rest === 'jobs') {
     if (request.method === 'GET') {
-      const jobs = await call<unknown[] | null>(env, 'list_runner_jobs', {
-        p_subject: owner.accountId,
-        p_machine: uuid(url.searchParams.get('machine'), 'machine'),
-      })
+      const args = { p_subject: owner.accountId, p_machine: uuid(url.searchParams.get('machine'), 'machine') }
+      const jobs = await call<unknown[] | null>(env, 'list_runner_jobs', { ...args, p_running_limits: await runningLimits(env, args) })
       return json({ jobs: jobs ?? [] })
     }
     requireMethod(request, 'POST')
@@ -329,10 +328,20 @@ export async function requestAgent(env: Env, owner: Owner, body: unknown): Promi
   })
 }
 
+/** Each plan's running limit for the queued tasks this Runner may be handed (#2209). */
+async function runningLimits(env: Env, args: { p_subject: string; p_machine: string; p_job?: string }): Promise<Record<string, number>> {
+  const payers = (await call<string[] | null>(env, 'runner_job_payers', args)) ?? []
+  return Object.fromEntries(await Promise.all(payers.map(async (p) => [p, (await readLimits(env, p)).tasks] as const)))
+}
+
 export async function moveJob(env: Env, owner: Owner, job: string, move: string, body: Record<string, unknown>): Promise<unknown> {
   const args = { p_subject: owner.accountId, p_machine: uuid(body.machineId, 'machine'), p_job: job }
   if (move === 'claim') {
-    const claimed = await mutate<{ claimed?: boolean; job?: { secret?: boolean } }>(env, 'claim_runner_job', { ...args, p_lease_seconds: RUNNER_LEASE_SECONDS })
+    const claimed = await mutate<{ claimed?: boolean; job?: { secret?: boolean } }>(env, 'claim_runner_job', {
+      ...args,
+      p_lease_seconds: RUNNER_LEASE_SECONDS,
+      p_running_limits: await runningLimits(env, args),
+    })
     // A key job's keys go to the Runner that claimed it, once (#2135).
     if (!claimed.claimed || !claimed.job?.secret) return claimed
     return { ...claimed, job: { ...claimed.job, secrets: await call(env, 'take_runner_secrets', args) } }

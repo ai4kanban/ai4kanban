@@ -2048,23 +2048,24 @@ declare
   v_t2 text;
   v_art text;
   v_up text;
+  v_open bigint;
   v_json jsonb;
 begin
   insert into cloud.accounts (id, handle) values (A, 'plan-a'), (B, 'plan-b');
   insert into cloud.admitted_accounts (handle) values ('plan-a'), ('plan-b');
 
-  -- Tasks at once: open ones count, finished ones free a place, another account's never.
-  v_t1 := api.v1_create_task(A, '{"title": "One", "run": true}', WF, BUDGET, 2) ->> 'id';
-  v_t2 := api.v1_create_task(A, '{"title": "Two", "run": true}', WF, BUDGET, 2) ->> 'id';
-  perform api.v1_create_task(B, '{"title": "Theirs", "run": true}', WF, BUDGET, 2);
-  perform pg_temp.refuses(format('select api.v1_create_task(%L, %L, %L, %s, 2)', A, '{"title": "Three", "run": true}', WF, BUDGET),
-    'AKB23', 'a third task past a limit of two');
-  -- #2063: a task that does not run is made at a full quota and takes no place in it.
-  assert api.v1_create_task(A, '{"title": "Follow-up"}', WF, BUDGET, 2) ->> 'status' = 'queued', 'a follow-up was refused at a full quota';
-  assert (api.v1_usage(A) ->> 'tasks')::integer = 2, 'open tasks were miscounted';
+  -- Tasks at once (#2209): only running ones count, and a task past the limit is still made.
+  v_t1 := api.v1_create_task(A, '{"title": "One", "run": true}', WF, BUDGET) ->> 'id';
+  v_t2 := api.v1_create_task(A, '{"title": "Two", "run": true}', WF, BUDGET) ->> 'id';
+  perform api.v1_create_task(B, '{"title": "Theirs", "run": true}', WF, BUDGET);
+  assert (api.v1_usage(A) ->> 'tasks')::integer = 0, 'queued tasks took a running place';
+  update cloud.tasks set status = 'running' where id in (v_t1, v_t2);
+  assert (api.v1_usage(A) ->> 'tasks')::integer = 2, 'running tasks were miscounted';
+  update cloud.tasks set status = 'waiting_review' where id = v_t2;
+  assert (api.v1_usage(A) ->> 'tasks')::integer = 1, 'a task waiting for review took a running place';
+  assert api.v1_create_task(A, '{"title": "Three", "run": true}', WF, BUDGET) ->> 'status' = 'queued', 'a task past the limit was refused';
+  assert api.v1_create_task(A, '{"title": "Follow-up"}', WF, BUDGET) ->> 'status' = 'queued', 'a follow-up was refused';
   perform api.v1_cancel_task(A, v_t2, BUDGET);
-  perform api.v1_create_task(A, '{"title": "Three", "run": true}', WF, BUDGET, 2);
-  assert api.v1_create_task(A, '{"title": "Unlimited", "run": true}', WF, BUDGET) ->> 'id' is not null, 'no limit refused a task';
 
   -- Storage: version files and unused uploads count, and the limit holds at both ends.
   v_art := api.v1_create_artifact(A, v_t1, '{"type": "web-page"}', BUDGET) ->> 'id';
@@ -2088,6 +2089,7 @@ begin
 
   -- Expiry: a finished task past its keep goes with its files and events; an open one stays.
   perform api.v1_update_task(A, v_t1, '{"status": "failed"}', BUDGET);
+  v_open := (select count(*) from cloud.tasks where account_id = A and status not in ('done', 'failed', 'cancelled'));
   update cloud.tasks set updated_at = now() - interval '8 days' where id in (v_t1, v_t2);
   assert api.v1_expiring_accounts(7, 50) ? A::text, 'an account with an expired task was not found';
   v_json := api.v1_expired(A, 30, 100);
@@ -2101,7 +2103,7 @@ begin
   assert not exists (select 1 from cloud.api_events where workspace_id = cloud.v1_personal(A) and (data ->> 'id' = v_t1 or data ->> 'task' = v_t1)),
     'events naming an expired task were kept';
   assert (api.v1_usage(A) ->> 'storage')::bigint = 0, 'expired files still counted';
-  assert (api.v1_usage(A) ->> 'tasks')::integer = 2, 'expiry touched open tasks';
+  assert (select count(*) from cloud.tasks where account_id = A) = v_open, 'expiry touched open tasks';
 
   -- Abandoned uploads are named for R2, then dropped.
   update cloud.artifact_uploads set expires_at = now() - interval '2 days' where account_id = B;
@@ -4090,12 +4092,12 @@ begin
   v_blog := api.v1_discussion(A, v_dsc) -> 'ideas' -> 1 ->> 'id';
 
   -- Start: a run task as POST /v1/tasks makes, in the discussion's project, linked both ways.
-  v_json := api.v1_start_idea(A, v_dsc, v_idea, null, CODING, BUDGET, 10);
+  v_json := api.v1_start_idea(A, v_dsc, v_idea, null, CODING, BUDGET);
   v_task := v_json ->> 'id';
   assert v_json ->> 'title' = 'Pricing page' and v_json ->> 'request' = E'A page with tiers.\n\n## Done when\n- Shows tiers'
     and v_json ->> 'project' = v_prj and v_json ->> 'discussion' = v_dsc and v_json -> 'run' ->> 'state' = 'queued'
     and v_json ->> 'runtime' = (cloud.v1_default_runtime(A)).id, format('the started task misread: %s', v_json);
-  assert cloud.v1_open_tasks(A) = v_open + 1, 'a started idea did not count as a task';
+  assert cloud.v1_open_tasks(A) = v_open, 'a queued task took a running place';
   assert api.v1_discussion(A, v_dsc) -> 'ideas' -> 0 -> 'task' = jsonb_build_object('id', v_task, 'key', v_json ->> 'key'),
     'the idea did not name its task';
   perform pg_temp.refuses(format('select api.v1_start_idea(%L, %L, %L, null, %L, %s)', A, v_dsc, v_idea, CODING, BUDGET),
@@ -4106,10 +4108,6 @@ begin
     'AKB20', 'an idea took a workflow the workspace lacks');
   assert api.v1_update_idea(A, v_dsc, v_blog, 'wf_builtin_x', BUDGET) -> 'ideas' -> 1 ->> 'workflow' = 'wf_builtin_x',
     'an idea did not take an installed workflow';
-  perform pg_temp.refuses(format('select api.v1_start_idea(%L, %L, %L, null, %L, %s, 0)', A, v_dsc, v_blog,
-    '{"id": "wf_builtin_x", "builtin": true, "name": "X", "lands": true, "hash": "x1", "files": {}}', BUDGET),
-    'AKB23', 'an idea started past the quota');
-  assert api.v1_discussion(A, v_dsc) -> 'ideas' -> 1 -> 'task' = 'null', 'a refused start was kept';
 
   -- Dropping the last open idea takes the discussion off the list; the ideas outlive a clear.
   perform pg_temp.refuses(format('select api.v1_drop_idea(%L, %L, %L, %s)', A, v_dsc, v_idea, BUDGET),
@@ -4137,7 +4135,7 @@ begin
     'a delete misread';
   assert api.v1_task(A, v_task) -> 'discussion' = 'null', 'a started task still named its deleted discussion';
   perform pg_temp.refuses(format('select api.v1_discussion(%L, %L)', A, v_dsc), 'AKB20', 'a deleted discussion was read');
-  assert cloud.v1_open_tasks(A) = v_open + 1, 'open tasks moved with a discussion';
+  assert cloud.v1_open_tasks(A) = v_open, 'open tasks moved with a discussion';
 
   raise notice 'sql checks: #2073 discussion checks passed';
 end
@@ -4174,7 +4172,7 @@ begin
     jsonb_build_object('reply', 'Two ideas.', 'session', 'ds1', 'ideas', v_ideas));
 
   -- Started, its first step forks the discussion's session and carries the whole discussion.
-  v_task := api.v1_start_idea(A, v_dsc, api.v1_discussion(A, v_dsc) -> 'ideas' -> 0 ->> 'id', null, CODING, BUDGET, 10) ->> 'id';
+  v_task := api.v1_start_idea(A, v_dsc, api.v1_discussion(A, v_dsc) -> 'ideas' -> 0 ->> 'id', null, CODING, BUDGET) ->> 'id';
   v_job := cloud.v1_flow_job(v_task);
   assert v_job.resume = 'ds1' and v_job.fork and v_job.transcript_of = v_dsc, 'the first step did not fork the discussion';
   perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
@@ -4219,7 +4217,7 @@ begin
 
   -- Another connector or model: a new session, with the transcript.
   update cloud.discussions set session_runtime = 'codex' where id = v_dsc;
-  v_other := api.v1_start_idea(A, v_dsc, api.v1_discussion(A, v_dsc) -> 'ideas' -> 1 ->> 'id', null, CODING, BUDGET, 10, null, true) ->> 'id';
+  v_other := api.v1_start_idea(A, v_dsc, api.v1_discussion(A, v_dsc) -> 'ideas' -> 1 ->> 'id', null, CODING, BUDGET, null, true) ->> 'id';
   v_job := cloud.v1_flow_job(v_other);
   assert v_job.resume is null and not v_job.fork and v_job.transcript_of = v_dsc, 'another connector''s session was carried';
   assert (select skip_plan from cloud.tasks where id = v_other) and not (select skip_plan from cloud.tasks where id = v_task),
@@ -5346,14 +5344,14 @@ begin
   assert api.v1_list_chats(A, v_ws, v_dsc, 20, true) -> 'data' = '[]', 'the list did not page past an external discussion';
 
   -- Start names the version; a retry answers the same task.
-  perform pg_temp.refuses(format('select api.v1_start_idea(%L, %L, %L, null, %L, %s, 10, %s)', A, v_dsc, v_idea, CODING, BUDGET, v_version - 1),
+  perform pg_temp.refuses(format('select api.v1_start_idea(%L, %L, %L, null, %L, %s, %s)', A, v_dsc, v_idea, CODING, BUDGET, v_version - 1),
     'AKB27', 'a start on a moved version went');
-  perform pg_temp.refuses(format('select api.v1_start_idea(%L, %L, %L, null, %L, %s, 10)', A, v_dsc, v_idea, CODING, BUDGET),
+  perform pg_temp.refuses(format('select api.v1_start_idea(%L, %L, %L, null, %L, %s)', A, v_dsc, v_idea, CODING, BUDGET),
     'AKB27', 'a start named no version');
-  v_task := api.v1_start_idea(A, v_dsc, v_idea, null, CODING, BUDGET, 10, v_version);
+  v_task := api.v1_start_idea(A, v_dsc, v_idea, null, CODING, BUDGET, v_version);
   assert v_task ->> 'project' = v_prj and v_task ->> 'discussion' = v_dsc and v_task ->> 'request' = E'Three tiers.\n\n## Done when\n- Shows tiers',
     format('an external start misread: %s', v_task);
-  assert api.v1_start_idea(A, v_dsc, v_idea, null, CODING, BUDGET, 10, v_version) ->> 'id' = v_task ->> 'id'
+  assert api.v1_start_idea(A, v_dsc, v_idea, null, CODING, BUDGET, v_version) ->> 'id' = v_task ->> 'id'
     and (select count(*) from cloud.tasks where discussion_id = v_dsc) = 1, 'a retried start made a second task';
   v_json := api.v1_discussion(A, v_dsc);
   assert v_json -> 'ideas' -> 0 -> 'task' ->> 'id' = v_task ->> 'id', format('the started idea did not name its task: %s', v_json);
@@ -5551,5 +5549,73 @@ begin
   raise notice 'sql checks: #2196 shared runner checks passed';
 end
 $shared_runners$;
+
+
+-- #2209: a plan's limit counts running tasks only. A queued task's step reaches a Runner while its
+-- payer has a running place left, earliest task first, and says when it waits for one.
+do $running_limit$
+declare
+  P constant uuid := 'a0a0a0a0-2209-4209-8209-000000000001';
+  M constant uuid := 'b0b0b0b0-2209-4209-8209-000000000002';
+  MAC constant uuid := 'd0d0d0d0-2209-4209-8209-000000000003';
+  MAC2 constant uuid := 'd0d0d0d0-2209-4209-8209-000000000004';
+  BUDGET constant integer := 100000;
+  RUNTIMES constant jsonb := '[{"name": "codex", "installed": true}]';
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  L constant jsonb := jsonb_build_object('a0a0a0a0-2209-4209-8209-000000000001', 2);
+  v_ws text;
+  v_t text[] := '{}';
+  v_ids text;
+begin
+  insert into cloud.accounts (id, handle) values (P, 'rl-p'), (M, 'rl-m');
+  v_ws := api.v1_create_workspace(P, '{"name": "Team"}', BUDGET) ->> 'id';
+  insert into cloud.v1_workspace_members (workspace_id, account_id, role) values (v_ws, M, 'member');
+  perform api.register_runner(P, MAC, 'Mac', 10, '0.5.0', RUNTIMES, false, 900, BUDGET);
+  perform api.register_runner(M, MAC2, 'Mia''s Mac', 10, '0.5.0', RUNTIMES, false, 900, BUDGET);
+  v_t := v_t || (api.v1_create_task(P, jsonb_build_object('title', 'T1', 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id');
+  for i in 2..3 loop
+    v_t := v_t || (api.v1_create_task(M, jsonb_build_object('title', 'T' || i, 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id');
+  end loop;
+
+  -- The payer's places are shared by every member's Runner, earliest task first; no limit holds none back.
+  select string_agg(x ->> 'id', ',') into v_ids
+    from json_array_elements(api.list_runner_jobs(M, MAC2, jsonb_build_object(P::text, 1))) x;
+  assert v_ids = (cloud.v1_flow_job(v_t[2])).id::text, format('the earliest was not listed alone: %s', v_ids);
+  assert json_array_length(api.list_runner_jobs(M, MAC2)) = 2, 'no limit held a step back';
+
+  -- Two Runners fill both places; a third claim waits, and the task says so.
+  assert not (api.v1_task(M, v_t[3]) ->> 'waiting_for_slot')::boolean, 'a task waited with places left';
+  assert (api.claim_runner_job(P, MAC, (cloud.v1_flow_job(v_t[1])).id, 900, BUDGET, L) ->> 'claimed')::boolean, 'a free place was refused';
+  assert (api.claim_runner_job(M, MAC2, (cloud.v1_flow_job(v_t[2])).id, 900, BUDGET, L) ->> 'claimed')::boolean, 'the last place was refused';
+  assert not (api.claim_runner_job(M, MAC2, (cloud.v1_flow_job(v_t[3])).id, 900, BUDGET, L) ->> 'claimed')::boolean,
+    'a Runner claimed past the limit';
+  assert (select status from cloud.tasks where id = v_t[3]) = 'queued', 'a refused claim started its task';
+  assert json_array_length(api.list_runner_jobs(M, MAC2, L)) = 1, 'a full plan still handed a queued step over';
+  assert cloud.v1_open_tasks(P) = 2 and cloud.v1_open_tasks(M) = 0, 'running places were not the payer''s';
+  assert (api.v1_task(M, v_t[3]) ->> 'waiting_for_slot')::boolean, 'a task held by the limit did not say so';
+  assert not (api.v1_task(M, v_t[2]) ->> 'waiting_for_slot')::boolean, 'a running task said it waits';
+
+  -- Up for review frees a place; the waiting task is retold and handed over.
+  perform api.finish_runner_job(P, MAC, (cloud.v1_flow_job(v_t[1])).id, 'done', '', BUDGET);
+  assert (select status from cloud.tasks where id = v_t[1]) = 'waiting_review', 'the step did not go up for review';
+  assert cloud.v1_open_tasks(P) = 1, 'a task waiting for review took a running place';
+  assert exists (select 1 from cloud.api_events where type = 'task.updated' and data ->> 'id' = v_t[3]
+                   and not (data ->> 'waiting_for_slot')::boolean), 'a freed place did not retell the waiting task';
+  assert (api.claim_runner_job(M, MAC2, (cloud.v1_flow_job(v_t[3])).id, 900, BUDGET, L) ->> 'claimed')::boolean, 'a freed place was refused';
+
+  -- Full again, two more wait; the next place goes to the earlier.
+  for i in 4..5 loop
+    v_t := v_t || (api.v1_create_task(M, jsonb_build_object('title', 'T' || i, 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id');
+  end loop;
+  assert (api.v1_task(M, v_t[5]) ->> 'waiting_for_slot')::boolean, 'a task made at a full plan did not say it waits';
+  perform api.finish_runner_job(M, MAC2, (cloud.v1_flow_job(v_t[2])).id, 'done', '', BUDGET);
+  select string_agg(x ->> 'id', ',') into v_ids from json_array_elements(api.list_runner_jobs(M, MAC2, L)) x;
+  assert v_ids = (cloud.v1_flow_job(v_t[3])).id || ',' || (cloud.v1_flow_job(v_t[4])).id,
+    format('the earlier waiting task was not next: %s', v_ids);
+
+  raise notice 'sql checks: #2209 running limit checks passed';
+end
+$running_limit$;
 
 rollback;

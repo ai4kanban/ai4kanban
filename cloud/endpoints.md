@@ -341,9 +341,10 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   /v1/artifacts/{id}/uploads` with its `size`, `PUT` up to 50 MB to its `url` within an hour —
   or, larger, each 50 MB part to `parts.url` within a day and then `POST` its `url` — then
   submit a version naming the upload. Versions and decisions never change.
-- **Plans**: a task past the plan's tasks at once, or a file past its file size or storage, is
-  `quota_exceeded`. Open tasks are counted per plan, across every Runner and every workspace it
-  pays for; a task made without `run` is neither checked nor counted while it waits. A finished task,
+- **Plans**: a file past the plan's file size or storage is `quota_exceeded`. The task limit counts
+  running tasks only, per plan, across every Runner and every workspace it pays for (#2209): a
+  task is always made, and while the plan's running tasks are all in use it waits `queued` with
+  `waiting_for_slot`, its step handed to a Runner once one stops running, earliest first. A finished task,
   its history and its previews are deleted together once the plan's keep (`retentionDays`
   since it finished) runs out, by the hourly run.
 - **Deleting a project** is an owner's (`owner_only`) and deletes its tasks with it, stopping
@@ -714,7 +715,7 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `runtime_unavailable` | A chat message on a connector not installed or signed in on the task's Runner: `connector`, and `reason` `not_installed` or `signed_out`. |
 | `read_only` | A built-in workflow cannot be changed or deleted. |
 | `payload_too_large` | A field, inline artifact (256 KB), board file (256 KB), single PUT (50 MB) or part over its limit. |
-| `quota_exceeded` | A plan limit is reached. Carries `quota` (`tasks`, `storage`, `file_size`) and its `limit`. |
+| `quota_exceeded` | A plan limit is reached. Carries `quota` (`storage`, `file_size`) and its `limit`. |
 | `idempotency_key_reused` | One `Idempotency-Key`, two different requests. |
 | `idempotency_in_progress` | The first request under this key is still running. Carries `retry-after`. |
 | `session_required` | API keys are created and revoked with a sign-in, not with a key. |

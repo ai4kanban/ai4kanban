@@ -33,7 +33,7 @@ export function BoardCard({ task, staleDays }: { task: Task; staleDays?: number 
         </span>
         <span className="flex min-w-0 items-center gap-1.5">
           {!!info?.blockedBy.length && <BlockedChip by={info.blockedBy.join(", ")} />}
-          <StatusPill status={status} />
+          <StatusPill status={status} label={status === "queued" && task.waiting_for_slot ? T.waitingForSlot : undefined} />
           {!!info?.questions.length && (
             <span className="nb-tip inline-flex shrink-0" data-tip={T.questionsTip(info.questions.length)} style={{ color: userQs ? "var(--color-nb-accent)" : "var(--color-nb-ink-soft)" }}>
               <FiHelpCircle aria-hidden style={{ width: 13, height: 13 }} />

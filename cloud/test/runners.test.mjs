@@ -16,7 +16,8 @@ function fakeDatabase(answer) {
   const calls = []
   mock.method(globalThis, 'fetch', async (url, init) => {
     calls.push({ fn: String(url).split('/rpc/')[1], args: JSON.parse(init.body) })
-    return new Response(JSON.stringify(answer), { status: 200, headers: { 'content-type': 'application/json' } })
+    const fn = String(url).split('/rpc/')[1]
+    return new Response(JSON.stringify(typeof answer === 'function' ? answer(fn) : answer), { status: 200, headers: { 'content-type': 'application/json' } })
   })
   return calls
 }
@@ -84,13 +85,21 @@ describe('registering a Runner', () => {
   })
 
   it('hands a key job\'s keys to the Runner that claimed it, and nothing else (#2135)', async () => {
-    const calls = fakeDatabase({ claimed: true, job: { id: 'j', secret: true } })
+    const calls = fakeDatabase((fn) => (fn === 'runner_job_payers' ? [] : { claimed: true, job: { id: 'j', secret: true } }))
     const claimed = await moveJob(ENV, OWNER, 'j', 'claim', { machineId: MACHINE })
-    assert.deepEqual(calls.map((c) => c.fn), ['claim_runner_job', 'take_runner_secrets'])
+    assert.deepEqual(calls.map((c) => c.fn), ['runner_job_payers', 'claim_runner_job', 'take_runner_secrets'])
     assert.equal(claimed.job.secret, true)
-    const plain = fakeDatabase({ claimed: true, job: { id: 'j', secret: false } })
+    const plain = fakeDatabase((fn) => (fn === 'runner_job_payers' ? [] : { claimed: true, job: { id: 'j', secret: false } }))
     await moveJob(ENV, OWNER, 'j', 'claim', { machineId: MACHINE })
-    assert.deepEqual(plain.map((c) => c.fn), ['claim_runner_job'])
+    assert.deepEqual(plain.map((c) => c.fn), ['runner_job_payers', 'claim_runner_job'])
+  })
+
+  it('claims with the running limit of the plan paying for the job (#2209)', async () => {
+    const payer = '55555555-5555-4555-8555-555555555555'
+    const calls = fakeDatabase((fn) => (fn === 'runner_job_payers' ? [payer] : fn === 'subscriptions_for' ? [] : fn === 'claim_runner_job' ? { claimed: false } : null))
+    await moveJob(ENV, OWNER, 'j', 'claim', { machineId: MACHINE })
+    assert.equal(calls[0].args.p_job, 'j')
+    assert.deepEqual(calls.find((c) => c.fn === 'claim_runner_job').args.p_running_limits, { [payer]: 3 })
   })
 
   it('says whether this computer shows notifications', async () => {
