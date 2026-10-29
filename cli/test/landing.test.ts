@@ -12,6 +12,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
+import { follow, followRun } from '../src/commands/run.ts'
 import { activeDelivery, adoptDirectCard, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding, blockLanding, repairLanding } from '../src/lib/agent/landing.ts'
@@ -22,6 +23,7 @@ import { withStore } from '../src/lib/agent/store.ts'
 import { rebaseInProgress, worktreeDir } from '../src/lib/agent/worktree.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
+import { tryLock } from '../src/lib/lock.ts'
 import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
@@ -477,7 +479,7 @@ describe('a target branch that moved', () => {
     assert.equal(landingOf(second.deliveryId)?.status, 'landing')
     assert.equal(stageOf(second.deliveryId), 'conflict')
     await fit(2, 'card two')
-    assert.equal(await advanceLanding(), null)
+    // The pass that folds the check in lands it too, without waiting for another close.
     assert.equal(await advanceLanding(), null)
     const landing = landingOf(second.deliveryId)!
     assert.equal(landing.status, 'landed')
@@ -590,12 +592,10 @@ describe('a target branch that moved', () => {
     // After the run, the target has moved again: it replays once more and asks for another
     // run, keeping the base it was first built on.
     await fit(1, 'card one')
-    assert.equal(await advanceLanding(), null)
     assert.equal((await advanceLanding())?.action, 'conflict')
     assert.equal(landingOf(delivery.deliveryId)?.attempts, 2)
     assert.equal(landingOf(delivery.deliveryId)?.originalBase, original)
     await fit(1, 'card one')
-    assert.equal(await advanceLanding(), null)
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
   })
@@ -659,7 +659,6 @@ describe('queued behind the slot', () => {
     fs.writeFileSync(path.join(dir, 'shared.txt'), 'someone else\ncard one\n')
     git(['add', 'shared.txt'], dir)
     await end(session)
-    assert.equal(await advanceLanding(), null)
     assert.equal((await advanceLanding())?.action, 'conflict')
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
     assert.doesNotMatch(landingOf(second.deliveryId)?.why ?? '', /^in line behind/)
@@ -738,13 +737,11 @@ describe('a conflict', () => {
     git(['add', 'shared.txt'], dir)
     await end(session)
 
-    // The board finishes the rebase, holding the slot, and the next pass lands the composed
-    // tree — nothing reviews it first (#1203).
+    // The board finishes the rebase and lands the composed tree in the same pass — nothing
+    // reviews it first (#1203).
     assert.equal(await advanceLanding(), null)
     assert.equal(rebaseInProgress(dir), false)
     assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'conflict')
-    assert.equal(landingOf(second.deliveryId)?.status, 'landing')
-    assert.equal(await advanceLanding(), null)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
     assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\ntwo\n')
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
@@ -1043,11 +1040,9 @@ describe('fitting onto a moved target', () => {
     assert.equal((await advanceLanding())?.action, 'conflict')
 
     await fit(1, 'card one', () => someoneElse('third.txt', 'and again\n'))
-    assert.equal(await advanceLanding(), null)
     assert.equal((await advanceLanding())?.action, 'conflict')
     assert.equal(landingOf(delivery.deliveryId)?.attempts, 2)
     await fit(1, 'card one')
-    assert.equal(await advanceLanding(), null)
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
     assert.deepEqual(log(), ['card one (#1)', 'someone else', 'someone else', 'start'])
@@ -1170,5 +1165,41 @@ describe('work that is already on the target branch', () => {
     assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
     assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\n')
     assert.equal(log()[0], 'card one (#1)', 'a squash commit really landed')
+  })
+})
+
+describe('followed until it lands', () => {
+  const was = { ...follow }
+  beforeEach(() => Object.assign(follow, { pollMs: 5, idleMs: 1000 }))
+  afterEach(() => Object.assign(follow, was))
+
+  const quietly = async <T>(work: () => Promise<T>): Promise<T> => {
+    startCollecting()
+    try {
+      return await work()
+    } finally {
+      stopCollecting()
+    }
+  }
+
+  it('lands a delivery whose build ended with no landing pass, and reports no failure', async () => {
+    const delivery = await builtCard(1, 'card one', 'one\n')
+    assert.equal(stageOf(delivery.deliveryId), 'landing')
+    const followed = await quietly(() => followRun(delivery.sessions[0]!))
+    assert.equal(followed.failed, undefined)
+    assert.equal((followed.delivery as { status?: string } | undefined)?.status, 'finished')
+    assert.equal(log()[0], 'card one (#1)')
+  })
+
+  it('gives up on a delivery nothing moves, naming where it stands', async () => {
+    const delivery = await builtCard(1, 'card one', 'one\n')
+    const release = tryLock(path.join(SESSIONS_DIR, '.landing.lock'))!
+    try {
+      const followed = await quietly(() => followRun(delivery.sessions[0]!))
+      assert.match(String(followed.failed), /did not land — nothing moved it for 1s: Landing on `main`/)
+      assert.equal(statusOf(delivery.deliveryId), 'active')
+    } finally {
+      release()
+    }
   })
 })

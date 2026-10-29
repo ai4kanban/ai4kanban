@@ -367,9 +367,8 @@ function noteQueue(held: Set<string>): void {
 /** Move the landing queue on by one step, and hand back the run it wants started — the
  *  agent that resolves a conflict.
  *
- *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
- *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
- *  throws: a caller on a timer must survive an unreadable repository and try again. */
+ *  Called by the watcher of every run that closes, by a followed delivery while it waits,
+ *  and once as a board comes up. It never throws: a caller on a timer must survive an unreadable repository and try again. */
 export async function advanceLanding(): Promise<AgentRequest | null> {
   let release: (() => void) | undefined
   try {
@@ -671,7 +670,8 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
   if (done.ok && !rebaseInProgress(dir)) {
     // Always `conflict`, and never a comparison of its own: a conflicted file is one both
     // sides changed, so a resolved conflict is an overlap by definition.
-    return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!, 'conflict')
+    const after = await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!, 'conflict')
+    return after.done ? after : await landNow(delivery)
   }
   return failAttempt(
     delivery,
@@ -682,7 +682,7 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
 }
 
 // The fit run on a clean rebase has closed: what it staged goes into the delivery's one
-// commit, and the next pass lands it. A run that never finished is an attempt that failed.
+// commit, and it lands in the same pass. A run that never finished is an attempt that failed.
 async function finishFit(delivery: DeliveryRecord, dir: string): Promise<Step> {
   const asked = delivery.landing!.fitAt!
   const ran = readStore()
@@ -702,7 +702,15 @@ async function finishFit(delivery: DeliveryRecord, dir: string): Promise<Step> {
     landing.conflictFails = undefined
     landing.why = undefined
   })
-  return {}
+  return await landNow(delivery)
+}
+
+// The check is in, so land now rather than wait for the next run to close. A target that
+// moved during the check is replayed onto, which asks for another run and so cannot loop.
+async function landNow(delivery: DeliveryRecord): Promise<Step> {
+  const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+  if (!live || live.status !== 'active') return { done: true }
+  return await landStep(live)
 }
 
 // An attempt that did not go through. The delivery keeps its worktree as it is, gives the

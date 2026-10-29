@@ -638,15 +638,16 @@ export async function followRun(sessionId: string, already = '', program = 'akb'
   let current: RunView = first
   let last: RunView = first
   let printed = already.length
+  const idle: Idle = { mark: '', since: Date.now() }
   for (;;) {
     last = await followOne(current, printed, events)
     seen.add(current.sessionId)
     printed = 0
     const deliveryId = last.deliveryId ?? first.deliveryId
-    const next = nextInFlow(first, current.sessionId, seen) ?? (deliveryId ? await moveDelivery(deliveryId) : undefined)
+    const next = nextInFlow(first, current.sessionId, seen) ?? (deliveryId ? await moveDelivery(deliveryId, idle) : undefined)
     if (next === undefined) break
     if (next === null) {
-      await pause(LANDING_POLL_MS)
+      await pause(follow.pollMs)
       continue
     }
     current = next
@@ -670,7 +671,7 @@ export async function followRun(sessionId: string, already = '', program = 'akb'
     last.status !== 'done'
       ? `run ${short(last.sessionId)} ended ${last.status}${last.error ? `: ${last.error}` : ''}`
       : delivery && delivery.status !== 'finished'
-        ? `delivery ${delivery.id} did not land: ${delivery.line}`
+        ? `delivery ${delivery.id} did not land${idle.timedOut ? ` — nothing moved it for ${ago(follow.idleMs)}` : ''}: ${delivery.line}`
         : undefined
   // The agent's own session, for a Cloud task to carry on (#2146).
   const held = peekRun(last.sessionId)
@@ -694,7 +695,9 @@ export async function followStarted(sessionId: string, program: string, events =
   return { sessionId, ...res }
 }
 
-const LANDING_POLL_MS = 2000
+/** How often a followed delivery is looked at, and how long it may sit with no run and no
+ *  change before the follow gives up on it. Mutable for tests. */
+export const follow = { pollMs: 2000, idleMs: 10 * 60_000 }
 
 // Async on purpose: the watcher is this process's child, and a blocked event loop never reaps
 // it, so it would read as alive for good.
@@ -751,14 +754,27 @@ function nextInFlow(first: RunView, after: string, seen: Set<string>): RunView |
   return next ? { ...next } : undefined
 }
 
+type Idle = { mark: string; since: number; timedOut?: boolean }
+
 // A delivery whose runs are over and which still has the board's own landing work left:
 // moved on here, as a board tick would. The run that landing wants started, null to look
-// again shortly, or undefined when it is settled or waits on the user.
-async function moveDelivery(deliveryId: string): Promise<RunView | null | undefined> {
+// again shortly, or undefined when it is settled, waits on the user, or has sat idle too long.
+async function moveDelivery(deliveryId: string, idle: Idle): Promise<RunView | null | undefined> {
   const delivery = findDelivery(deliveryId)
   if (!delivery || delivery.status !== 'active') return undefined
   const state = deliveryState(delivery, delivery.cardId === null ? 0 : openQuestions(delivery.cardId))
   if (state.paused || state.stage === 'working') return undefined
+  // Idle means nothing can move it: no delivery's run in flight, no wait scheduled, no
+  // change to its record. A queue or a conflict being worked on is not idle.
+  const mark = JSON.stringify(delivery)
+  const busy = !!state.retryIn || readRuns().some((r) => !!r.deliveryId && r.status === 'running')
+  if (busy || mark !== idle.mark) {
+    idle.mark = mark
+    idle.since = Date.now()
+  } else if (Date.now() - idle.since >= follow.idleMs) {
+    idle.timedOut = true
+    return undefined
+  }
   const ask = await advanceLanding()
   if (!ask) return null
   const started = await startRun(ask)

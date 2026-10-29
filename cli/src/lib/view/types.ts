@@ -152,6 +152,7 @@ export type CardDeliveryStage =
   | 'conflict'
   | 'retry'
   | 'queued'
+  | 'landing'
   | 'landed'
 
 /** The delivery's state, as the title band draws it: the pill's words, the one line under
@@ -195,6 +196,7 @@ export type CardDeliveryLineKind =
   | 'conflict'
   | 'target-moved'
   | 'queued'
+  | 'landing'
   | 'worktree-gone'
   | 'no-base'
   | 'target-gone'

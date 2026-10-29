@@ -92,6 +92,8 @@ describe("a delivery line's kind and values", () => {
       "Can't land yet",
       'It has no base commit to land against.',
     ])
+    assert.deepEqual(text(landing({})), ['Landing', 'Landing on `main` — nothing is asked of you.'])
+    assert.deepEqual(text(landing({ status: 'landing' })), ['Landing', 'Landing on `main` — nothing is asked of you.'])
     assert.deepEqual(text(base), [
       'In progress',
       'Building this card as it was approved when work started, to land on `main`.',

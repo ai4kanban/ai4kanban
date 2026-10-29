@@ -36,6 +36,8 @@ export type DeliveryStage =
   /** Queued behind the card that holds the landing slot. Nothing is asked of
    *  the user: it moves the moment the one in front of it lands. */
   | 'queued'
+  /** The build is over and the board is moving it onto the target branch. */
+  | 'landing'
   /** Its commit is on the target branch, and the board is completing the card. */
   | 'landed'
 
@@ -52,6 +54,7 @@ export type DeliveryLineKind =
   | 'conflict'
   | 'target-moved'
   | 'queued'
+  | 'landing'
   | 'worktree-gone'
   | 'no-base'
   | 'target-gone'
@@ -274,6 +277,17 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
       ...(reason
         ? { kind: reason.kind, files: reason.files, branch: delivery.targetBranch, worktree: delivery.worktree }
         : { kind: 'refused' as const, raw: line }),
+    }
+  }
+  // The build is over and nothing above holds it: the board is landing it.
+  if (landing?.status === 'landing' || landing?.status === 'waiting') {
+    return {
+      stage: 'landing',
+      label: 'Landing',
+      line: `Landing on \`${delivery.targetBranch ?? 'the target branch'}\` — nothing is asked of you.`,
+      paused: false,
+      kind: 'landing',
+      branch: delivery.targetBranch,
     }
   }
   const branch = delivery.commitMode === 'auto' ? delivery.targetBranch : undefined

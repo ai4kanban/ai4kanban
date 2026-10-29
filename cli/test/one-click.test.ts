@@ -656,7 +656,7 @@ describe('where a delivery stands', () => {
     assert.equal(deliveryState(base, 3).stage, 'working') // no landing yet — nothing to hold
 
     const queued = { ...base, landing: { status: 'waiting' as const, attempts: 0, at: 1 } }
-    assert.equal(deliveryState(queued, 0).stage, 'working')
+    assert.equal(deliveryState(queued, 0).stage, 'landing')
     assert.equal(deliveryState(queued, 1).stage, 'held')
 
     const landed = { ...base, landing: { status: 'landed' as const, attempts: 0, at: 1, commit: 'abc1234def' } }
@@ -691,7 +691,7 @@ describe('where a delivery stands', () => {
     // And the hold's own `why` outlives the hold. Answering leaves it on the record until
     // the next pass, and it must not read back as a refusal.
     const answered = { ...queued, landing: { ...queued.landing, why: 'held on an open question: #1 has 1 of them' } }
-    assert.equal(deliveryState(answered, 0).stage, 'working')
+    assert.equal(deliveryState(answered, 0).stage, 'landing')
   })
 })
 
