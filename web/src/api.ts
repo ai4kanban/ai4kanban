@@ -243,7 +243,7 @@ export interface Usage {
 export interface JobEvent {
   seq: number;
   text: string;
-  kind?: "message" | "tool_call" | "tool_call_update" | "plan" | "error" | "log";
+  kind?: "message" | "tool_call" | "tool_call_update" | "plan" | "error" | "log" | "context";
   data?: Record<string, unknown> | null;
   at?: string;
 }

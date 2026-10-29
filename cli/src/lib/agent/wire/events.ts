@@ -4,7 +4,7 @@
 
 import { obj, str, type Json } from './json'
 
-export const EVENT_KINDS = ['message', 'tool_call', 'tool_call_update', 'plan', 'error', 'log'] as const
+export const EVENT_KINDS = ['message', 'tool_call', 'tool_call_update', 'plan', 'error', 'log', 'context'] as const
 export type EventKind = (typeof EVENT_KINDS)[number]
 
 export const TOOL_KINDS = ['read', 'edit', 'delete', 'move', 'search', 'execute', 'fetch', 'other'] as const
@@ -23,6 +23,7 @@ export type RunEvent =
   | { kind: 'plan'; data: { entries: PlanEntry[] } }
   | { kind: 'error'; data: { text: string } }
   | { kind: 'log'; data: { text: string } }
+  | { kind: 'context'; data: { used: number; limit: number } }
 
 export type EventCollector = ReturnType<typeof createEventCollector>
 

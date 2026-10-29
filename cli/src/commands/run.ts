@@ -710,6 +710,7 @@ async function followOne(view: RunView, already: number, events: boolean): Promi
   let known = view
   // A close clears the record's pid, so the watcher is remembered from before it.
   let watcher = view.pid
+  let context = ''
   const drain = (logPath: string) => {
     if (events) {
       // Whole lines only: the watcher may be halfway through one.
@@ -718,6 +719,12 @@ async function followOne(view: RunView, already: number, events: boolean): Promi
       if (upTo > seen) {
         process.stdout.write(text.slice(seen, upTo))
         seen = upTo
+      }
+      // The watcher keeps the context reading on the record, not in the events file.
+      const { used, limit } = known.context ?? {}
+      if (used && limit && `${used}/${limit}` !== context) {
+        context = `${used}/${limit}`
+        process.stdout.write(`${JSON.stringify({ kind: 'context', data: { used, limit } })}\n`)
       }
       return
     }

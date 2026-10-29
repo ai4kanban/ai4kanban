@@ -338,8 +338,14 @@ describe('a run\'s events (#2059)', () => {
     ])
   })
 
-  it('refuses a kind it does not know and data that is not an object', () => {
-    assert.throws(() => jobEvents([{ seq: 0, kind: 'thought', data: {} }]), /one of message/)
+  it('keeps a context reading and skips a kind it does not know', () => {
+    assert.deepEqual(jobEvents([
+      { seq: 0, kind: 'thought', data: {} },
+      { seq: 1, kind: 'context', data: { used: 1200, limit: 200000 } },
+    ]), [{ seq: 1, text: '', kind: 'context', data: { used: 1200, limit: 200000 } }])
+  })
+
+  it('refuses data that is not an object', () => {
     assert.throws(() => jobEvents([{ seq: 0, kind: 'plan', data: [] }]), /data is an object/)
   })
 })

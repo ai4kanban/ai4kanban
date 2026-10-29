@@ -636,8 +636,9 @@ The account's one Runner (`runner/`). Every job route takes `machineId`, the com
   is then started as `POST …/ideas/{idea}/start` would (a refusal leaves it unstarted); a step
   reports its akb `card`, and the card's first open `[user]` question with its 1–8 options and
   its 1-based place in `questions:`; a failed step's `reason` is shown as the task's failure.
-  An event's `kind` is `message`, `tool_call`, `tool_call_update`, `plan`, `error` or `log`
-  (the default), with `log` in `text` and the rest in `data`, ACP's session-update fields.
+  An event's `kind` is `message`, `tool_call`, `tool_call_update`, `plan`, `error`, `context`
+  (`{ used, limit }`, the run's context so far) or `log` (the default), with `log` in `text` and
+  the rest in `data`, ACP's session-update fields; an event of another kind is dropped.
   `report.stopped: true` marks a chat reply stopped part way (#2133). `renew` answers `stop: true`
   once its chat asked to stop, also sent over the log as `{ type: "stop" }`; a Runner before
   protocol 8 gets `renewed: false` instead and the job ends there.

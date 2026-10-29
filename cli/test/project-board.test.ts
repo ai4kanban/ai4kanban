@@ -175,4 +175,18 @@ describe('--follow', () => {
     assert.equal(done.status, 'done')
     assert.deepEqual(printed, ['{"kind":"message","data":{"text":"a"}}\n', '{"kind":"plan","data":{"entries":[]}}\n'])
   })
+
+  it('prints a session\'s context reading with --events once its window is known', async () => {
+    const first = flow('done')
+    withStore((store) => {
+      store.runs[0]!.context = { used: 1200, limit: 200000 }
+      store.runs[1]!.context = { used: 900 }
+    })
+    const printed: string[] = []
+    await quietly(async () => {
+      process.stdout.write = ((chunk: string) => printed.push(chunk) > 0) as typeof process.stdout.write
+      return followRun(first, '', 'akb', true)
+    })
+    assert.deepEqual(printed.filter((l) => l.includes('"context"')), ['{"kind":"context","data":{"used":1200,"limit":200000}}\n'])
+  })
 })

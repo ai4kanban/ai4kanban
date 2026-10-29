@@ -41,7 +41,7 @@ const MAX_EVENTS_PER_BATCH = 500
 const MAX_EVENT_TEXT = 64 * 1024
 // The text a Runner cuts to, escaped, with room for the rest of the event around it.
 const MAX_EVENT_DATA = 160 * 1024
-const EVENT_KINDS = ['message', 'tool_call', 'tool_call_update', 'plan', 'error', 'log'] as const
+const EVENT_KINDS = ['message', 'tool_call', 'tool_call_update', 'plan', 'error', 'log', 'context'] as const
 const MAX_REPLY = 60_000
 const MAX_QUESTION = 4000
 const MAX_OPTIONS = 8
@@ -582,16 +582,17 @@ export function jobEvents(value: unknown): { seq: number; text: string; kind: st
   if (!Array.isArray(value) || value.length > MAX_EVENTS_PER_BATCH) {
     throw badRequest(`Send at most ${MAX_EVENTS_PER_BATCH} events at once.`)
   }
-  return value.map((item) => {
+  return value.flatMap((item) => {
     const held = input(item)
     const seq = Number(held.seq)
     if (!Number.isInteger(seq) || seq < 0) throw badRequest('An event needs its sequence number.')
     const kind = held.kind ?? 'log'
-    if (!EVENT_KINDS.includes(kind as never)) throw badRequest(`An event is one of ${EVENT_KINDS.join(', ')}.`)
+    // A newer Runner's kind is dropped, not the whole batch.
+    if (!EVENT_KINDS.includes(kind as never)) return []
     const text = typeof held.text === 'string' ? held.text.slice(0, MAX_EVENT_TEXT) : ''
-    if (held.data === undefined || held.data === null) return { seq, text, kind: kind as string }
+    if (held.data === undefined || held.data === null) return [{ seq, text, kind: kind as string }]
     if (typeof held.data !== 'object' || Array.isArray(held.data)) throw badRequest("An event's data is an object.")
     if (JSON.stringify(held.data).length > MAX_EVENT_DATA) throw badRequest('That event is too large.')
-    return { seq, text, kind: kind as string, data: held.data as Record<string, unknown> }
+    return [{ seq, text, kind: kind as string, data: held.data as Record<string, unknown> }]
   })
 }

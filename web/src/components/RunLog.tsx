@@ -79,13 +79,15 @@ export interface Progress {
   /** The kind of call still in flight, last first. */
   doing: ToolKind | null;
   text: string;
+  /** The run's last context reading, while it runs. */
+  context: { used: number; limit: number } | null;
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const settled = (status: string) => status === "completed" || status === "failed";
 
 export function progressOf(events: api.JobEvent[]): Progress {
-  const out: Progress = { structured: false, plan: null, items: [], errors: [], doing: null, text: "" };
+  const out: Progress = { structured: false, plan: null, items: [], errors: [], doing: null, text: "", context: null };
   const calls = new Map<string, Call>();
   const group = (key: number) => {
     const last = out.items[out.items.length - 1];
@@ -101,6 +103,10 @@ export function progressOf(events: api.JobEvent[]): Progress {
       const text = e.text || str(d.text);
       out.text += text;
       if (text.trim()) group(e.seq).push({ log: text.trimEnd() });
+      continue;
+    }
+    if (kind === "context") {
+      if (typeof d.used === "number" && typeof d.limit === "number") out.context = { used: d.used, limit: d.limit };
       continue;
     }
     out.structured = true;
@@ -445,7 +451,7 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
               </span>
             </>
           )}
-          <ContextRing context={info?.context} tip={T.log.context} />
+          <ContextRing context={info?.context ?? p.context} tip={T.log.context} />
           {job && <FiChevronDown size={13} aria-hidden className={open ? "rotate-180" : ""} />}
         </span>
       </button>
