@@ -77,6 +77,16 @@ export interface Project {
   placed?: boolean;
 }
 
+/** What deleting a project takes along; `others_tasks` of its tasks were made by `others` other people. */
+export interface ProjectCounts {
+  tasks: number;
+  others_tasks: number;
+  others: number;
+  triage: number;
+  scheduled_agents: number;
+  folders: number;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -392,6 +402,8 @@ export const listWorkspaces = () => all<Workspace>("/v1/workspaces");
 export const createWorkspace = (name: string) => json<Workspace>(call("/v1/workspaces", post({ name })));
 export const renameWorkspace = (id: string, name: string) => json<Workspace>(call(`/v1/workspaces/${enc(id)}`, { method: "PATCH", body: JSON.stringify({ name }) }));
 export const renameProject = (id: string, name: string) => json<Project>(call(`/v1/projects/${enc(id)}`, { method: "PATCH", body: JSON.stringify({ name }) }));
+export const readProject = (id: string) => json<Project & { counts: ProjectCounts }>(call(`/v1/projects/${enc(id)}`));
+export const deleteProject = (id: string) => call(`/v1/projects/${enc(id)}`, { method: "DELETE" });
 export const deleteWorkspace = (id: string) => call(`/v1/workspaces/${enc(id)}`, { method: "DELETE" });
 export const listMembers = (ws: string) => all<Member>(`/v1/workspaces/${enc(ws)}/members`);
 export const addMember = (ws: string, email: string) => json<Member>(call(`/v1/workspaces/${enc(ws)}/members`, post({ email })));

@@ -313,6 +313,17 @@ const zh = {
   save: "保存",
   back: "返回",
   projectSettings: "项目设置",
+  deleteProject: {
+    body: "项目的任务和其他内容一起删除，无法恢复。",
+    open: "删除项目…",
+    ask: (name: string) => `删除「${name}」？`,
+    tasks: (n: number, others: number, people: number) => `${n} 个任务会被删除` + (others ? `，含 ${people} 位成员的 ${others} 个` : ""),
+    triage: (n: number) => `${n} 条待处理会被删除`,
+    agents: (n: number) => `${n} 个定期运行的 agent 会被删除`,
+    folders: (n: number) => `${n} 台电脑上的文件夹不再连到这个项目，文件不动`,
+    type: ["无法恢复。输入 ", " 确认"] as [string, string],
+    confirm: "删除",
+  },
   runtimeLabel: "运行时",
   manageRuntimes: "管理运行时",
   billing: {
@@ -813,6 +824,19 @@ const en: Copy = {
   save: "Save",
   back: "Back",
   projectSettings: "Project settings",
+  deleteProject: {
+    body: "Its tasks and everything else in it are deleted too. This can't be undone.",
+    open: "Delete project…",
+    ask: (name) => `Delete “${name}”?`,
+    tasks: (n, others, people) =>
+      (n === 1 ? "1 task will be deleted" : `${n} tasks will be deleted`) +
+      (others ? `, including ${others} from ${people === 1 ? "1 other member" : `${people} other members`}` : ""),
+    triage: (n) => (n === 1 ? "1 triage item will be deleted" : `${n} triage items will be deleted`),
+    agents: (n) => (n === 1 ? "1 scheduled agent will be deleted" : `${n} scheduled agents will be deleted`),
+    folders: (n) => `Folders on ${n === 1 ? "1 computer" : `${n} computers`} will no longer be linked to this project. The files stay.`,
+    type: ["This can't be undone. Type ", " to confirm."],
+    confirm: "Delete",
+  },
   runtimeLabel: "Runtime",
   manageRuntimes: "Manage runtimes",
   billing: {

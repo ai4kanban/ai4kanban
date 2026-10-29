@@ -332,14 +332,16 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   pays for; a task made without `run` is neither checked nor counted while it waits. A finished task,
   its history and its previews are deleted together once the plan's keep (`retentionDays`
   since it finished) runs out, by the hourly run.
-- **Deleting a project** deletes its board files; in a personal workspace its tasks move to
-  `general`, numbered anew, and elsewhere a project still holding tasks is `conflict`.
-  `general` cannot be deleted.
+- **Deleting a project** is an owner's (`owner_only`) and deletes its tasks with it, stopping
+  their runs, each a `task.deleted`, then its board files. `general` cannot be deleted. `GET
+  /v1/projects/{id}` carries `counts: { tasks, others_tasks, others, triage, scheduled_agents,
+  folders }` — `others_tasks` of its tasks made by `others` other people, `triage` open items,
+  `folders` computers it is linked on — what deleting it takes along.
 - **Events**: each change writes one, kept 30 days, read across every workspace the caller is in
   while they are in it, in order; an `alert.*` reaches only its account: `workspace.created`,
   `.updated`; `member.added`, `.updated`, `.removed`; `project.created`,
   `.updated`, `.deleted`; `workflow.created`, `.updated`, `.deleted`, `.installed`, `.uninstalled`; `task.created`,
-  `.updated`, `.cancelled`; `triage.created`, `.updated`; `card.updated`; `chat.updated` and `discussion.updated` (its member alone); `review.updated`, `.ready`, `.approved`,
+  `.updated`, `.cancelled`, `.deleted`; `triage.created`, `.updated`; `card.updated`; `chat.updated` and `discussion.updated` (its member alone); `review.updated`, `.ready`, `.approved`,
   `.changes_requested` (`{ object: review, task, ...review }`); `comment.created`; `share_link.created`, `.updated`, `.revoked`; `guest.added`, `.removed`;
   `artifact.created`, `artifact.version_created`; `decision.created`; `alert.created`, `.read`. `data` is the resource after the change. Page them with `GET /v1/events?after=`,
   or hold `GET /v1/events/stream` (SSE) and resume with `Last-Event-ID`. A sign-in reading the

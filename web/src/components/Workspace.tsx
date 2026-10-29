@@ -4,7 +4,7 @@
 // where it happened.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiBookOpen, FiChevronDown, FiExternalLink, FiMonitor, FiUserPlus, FiUsers } from "react-icons/fi";
+import { FiBookOpen, FiChevronDown, FiClock, FiExternalLink, FiInbox, FiMonitor, FiTrash2, FiUserPlus, FiUsers } from "react-icons/fi";
 import { Button } from "@review/components/button";
 import { Avatar } from "@review/components/chat";
 import { HAIRLINE } from "@review/components/chrome";
@@ -230,6 +230,111 @@ export function NameRow({ value, readOnly, onSave }: { value: string; readOnly?:
         </span>
       )}
       {problem && <p className="text-[12px] text-nb-peach-ink">{problem}</p>}
+    </div>
+  );
+}
+
+/** A project's danger zone (#2192): its owner deletes it after reading what goes with it and typing its name. */
+export function DeleteProject({ project }: { project: api.Project }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-3 rounded-[12px] border px-4 py-3.5" style={{ borderColor: "color-mix(in srgb, var(--color-nb-accent-deep) 35%, transparent)" }}>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="min-w-[200px] flex-1 text-[12.5px] leading-[1.6] text-nb-ink-soft">{T.deleteProject.body}</span>
+        <Button variant="ghost" size="sm" style={DANGER} onClick={() => setOpen(true)}>
+          {T.deleteProject.open}
+        </Button>
+      </div>
+      {open && <ConfirmDelete project={project} onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
+
+function ConfirmDelete({ project, onClose }: { project: api.Project; onClose: () => void }) {
+  const store = useStore();
+  const [counts, setCounts] = useState<api.ProjectCounts | null>(null);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  useEffect(() => void api.readProject(project.id).then((p) => setCounts(p.counts), (e) => setProblem(say(e))), [project.id]);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [busy, onClose]);
+
+  const named = typed.trim() === project.name;
+  const remove = async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await api.deleteProject(project.id);
+      navigate("/");
+      store.reload();
+    } catch (e) {
+      setProblem(say(e));
+      setBusy(false);
+    }
+  };
+  const D = T.deleteProject;
+  const loss = counts
+    ? [
+        { n: counts.tasks, icon: FiTrash2, text: D.tasks(counts.tasks, counts.others_tasks, counts.others) },
+        { n: counts.triage, icon: FiInbox, text: D.triage(counts.triage) },
+        { n: counts.scheduled_agents, icon: FiClock, text: D.agents(counts.scheduled_agents) },
+        { n: counts.folders, icon: FiMonitor, text: D.folders(counts.folders) },
+      ].filter((l) => l.n > 0)
+    : [];
+  return (
+    <div className="nb-scrim z-50" style={{ alignItems: "center" }} onPointerDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
+      <form
+        role="dialog"
+        aria-modal
+        aria-label={D.open}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (named && !busy) void remove();
+        }}
+        className="nb-panel nb-pop flex w-[420px] max-w-[calc(100%-2rem)] flex-col gap-4 p-5 max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:w-full max-md:max-w-none max-md:rounded-b-none max-md:px-5 max-md:pb-[max(2rem,env(safe-area-inset-bottom))]"
+      >
+        <p className="text-[15px] font-[800] leading-[1.5] tracking-[-0.01em] [overflow-wrap:anywhere]">{D.ask(project.name)}</p>
+        {loss.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {loss.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-start gap-2 text-[13px] leading-[1.5] text-nb-ink-soft">
+                <Icon size={13} aria-hidden className="mt-[3px] shrink-0" />
+                {text}
+              </li>
+            ))}
+          </ul>
+        )}
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] leading-[1.5] text-nb-ink-soft [overflow-wrap:anywhere]">
+            {D.type[0]}
+            <b className="font-[700] text-nb-ink">{project.name}</b>
+            {D.type[1]}
+          </span>
+          <input
+            type="text"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            autoFocus
+            autoComplete="off"
+            spellCheck={false}
+            className={FIELD}
+            style={{ borderColor: HAIRLINE }}
+          />
+        </label>
+        {problem && <p className="text-[12px] text-nb-peach-ink">{problem}</p>}
+        <div className="flex justify-end gap-2 max-md:flex-col-reverse">
+          <Button variant="ghost" size="sm" type="button" disabled={busy} onClick={onClose}>
+            {T.ws.cancel}
+          </Button>
+          <Button variant="ghost" size="sm" type="submit" disabled={!named || busy} style={DANGER}>
+            {D.confirm}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

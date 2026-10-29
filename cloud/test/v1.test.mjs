@@ -792,17 +792,27 @@ describe('board files (#2081, #2114)', () => {
     assert.equal((await send('/v1/memories', { method: 'POST', body: { scope: 'workspace', name: 'a.md', body: 'x' } })).status, 404)
   })
 
-  it('moves a deleted project’s cards to the tasks with no project, then drops its files and nothing else', async () => {
+  it('counts a project’s open triage items from its board', async () => {
+    boards.project('prj_1').commit([{ path: 'triage/a.md', content: '---\ntitle: A\n---\n', base_seq: 0 },
+      { path: 'triage/dismissed/b.md', content: '---\ntitle: B\n---\n', base_seq: 0 }])
+    db.v1_project = ({ p_id }) => ({ id: p_id, object: 'project', workspace: 'ws_1', counts: { tasks: 2 } })
+    assert.deepEqual((await (await send('/v1/projects/prj_1')).json()).counts, { tasks: 2, triage: 1 })
+  })
+
+  it('deletes a project’s files and nothing else, and stops its tasks’ runs', async () => {
     boards.project('prj_1').commit([{ path: CARD, content: 'A', base_seq: 0 }, { path: 'assets/task_aa.json', content: '{}', base_seq: 0 },
       { path: 'memory/readme.md', content: 'M', base_seq: 0 }])
     boards.project('prj_2').commit([{ path: 'todo/2-other.md', content: 'B', base_seq: 0 }])
     boards.of('ws_1').commit([{ path: 'memory/tone.md', content: 'Plain', base_seq: 0 }])
-    db.v1_delete_project = () => ({ id: 'prj_1', object: 'project', deleted: true, moved: [{ task: 'task_aa', path: CARD, number: 4 }], general: 'prj_un' })
+    const stopped = []
+    env.RUN_LOGS = { idFromName: (name) => name, get: (name) => ({ fetch: async (url) => (stopped.push([name, String(url)]), new Response(null, { status: 204 })) }) }
+    db.v1_delete_project = () => ({ id: 'prj_1', object: 'project', deleted: true, stop: ['job_1'] })
     const done = await send('/v1/projects/prj_1', { method: 'DELETE' })
     assert.deepEqual(await done.json(), { id: 'prj_1', object: 'project', deleted: true })
-    assert.deepEqual(boards.of('ws_1').diff(null).files.map((f) => f.path),
-      ['memory/tone.md', 'projects/prj_2/todo/2-other.md', 'projects/prj_un/assets/task_aa.json', 'projects/prj_un/todo/4-pricing.md'])
-    assert.equal(callsTo('v1_index_cards').at(-1).body.p_project, 'prj_un')
+    assert.deepEqual(boards.of('ws_1').diff(null).files.map((f) => f.path), ['memory/tone.md', 'projects/prj_2/todo/2-other.md'])
+    await idle()
+    assert.deepEqual(stopped, [['job_1', 'https://run-log/stop']])
+    delete env.RUN_LOGS
   })
 
   it('moves a task’s card to its new project in one write, under the number it has there', async () => {

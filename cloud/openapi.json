@@ -968,7 +968,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Project"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Project"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "counts": {
+                          "type": "object",
+                          "description": "`others_tasks`: its tasks made by `others` other people. `triage`: open items. `folders`: computers it is linked on.",
+                          "properties": {
+                            "tasks": {
+                              "type": "integer"
+                            },
+                            "others_tasks": {
+                              "type": "integer"
+                            },
+                            "others": {
+                              "type": "integer"
+                            },
+                            "triage": {
+                              "type": "integer"
+                            },
+                            "scheduled_agents": {
+                              "type": "integer"
+                            },
+                            "folders": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -993,7 +1026,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": "With `counts`: what deleting it takes along."
       },
       "patch": {
         "summary": "Update a project",
@@ -1094,7 +1128,7 @@
             }
           }
         ],
-        "description": "Deletes its board files. In a personal workspace its tasks move to `general` with their cards, numbered anew; elsewhere a project with tasks is refused until they are moved. `general` cannot be deleted."
+        "description": "Owners only (`owner_only`). Deletes its tasks with it, stopping their runs, then its board files. `general` cannot be deleted."
       }
     },
     "/v1/projects/{id}/board": {
@@ -8088,6 +8122,7 @@
               "task.created",
               "task.updated",
               "task.cancelled",
+              "task.deleted",
               "triage.created",
               "triage.updated",
               "review.ready",

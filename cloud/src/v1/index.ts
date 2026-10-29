@@ -72,7 +72,7 @@ import type { Invite } from './guest-mail.ts'
 import { sendMail } from '../mail.ts'
 import { boardFor, boardOf, projectRoot, workspaceOfProject } from '../board.ts'
 import { sortTriage } from '../triage-sort.ts'
-import { cardItem, createItem, dismissItem, listTriage as listTriageItems, markLearned, openItem, restoreItem, unlearnedIn } from '../triage.ts'
+import { cardItem, createItem, dismissItem, heldIn, listTriage as listTriageItems, markLearned, openItem, restoreItem, unlearnedIn } from '../triage.ts'
 import type { NewItem } from '../triage.ts'
 import { ofTriageId } from '../triage-files.ts'
 import { listAgents, runAgent, updateAgent, updateWorkflowRule } from './agents.ts'
@@ -201,13 +201,20 @@ async function deleteWorkspace(c: Call): Promise<Response> {
   return done
 }
 
-/** Its cards move to the workspace's tasks with no project, then its files go. */
+/** Its open triage items are counted from its board. */
+async function readProject(c: Call): Promise<Response> {
+  const project = id(c, 'prj', 'project')
+  const read = await call<{ workspace: string; counts: Record<string, number> }>(c.env, 'v1_project', { p_account: c.caller.accountId, p_id: project })
+  const triage = (await heldIn(boardOf(c.env, read.workspace), project)).filter((h) => h.state === 'open').length
+  return json({ ...read, counts: { ...read.counts, triage } })
+}
+
+/** Its tasks go with it, their runs stopped, then its files. */
 async function deleteProject(c: Call): Promise<Response> {
   const project = id(c, 'prj', 'project')
   const workspace = await workspaceOfProject(c.env, project)
-  const { moved, general, ...done } = await write(c, 'v1_delete_project', { p_id: project }) as
-    { moved: { task: string; path: string; number: number }[]; general: string | null; [key: string]: unknown }
-  if (general && moved.length) await moveCards(c.env, c.caller.accountId, project, general, moved)
+  const { stop, ...done } = await write(c, 'v1_delete_project', { p_id: project }) as { stop: string[]; [key: string]: unknown }
+  for (const job of stop) c.ctx.waitUntil(stopRun(c.env, job))
   await boardOf(c.env, workspace).drop(projectRoot(project))
   return json(done)
 }
@@ -844,7 +851,7 @@ export const ROUTES: [string, string, Handler][] = [
 
   ['GET', '/v1/projects', (c) => read(c, 'v1_list_projects', { ...pageOf(c.url.searchParams, 'prj'), p_workspace: workspaceParam(c) })],
   ['POST', '/v1/projects', (c) => create(c, 'v1_create_project', (b) => ({ p_fields: projectInput(b) }))],
-  ['GET', '/v1/projects/{id}', (c) => read(c, 'v1_project', { p_id: id(c, 'prj', 'project') })],
+  ['GET', '/v1/projects/{id}', readProject],
   ['PATCH', '/v1/projects/{id}', async (c) =>
     change(c, 'v1_update_project', { p_id: id(c, 'prj', 'project'), p_fields: projectInput(objectOf(await bodyOf(c.request)), true) })],
   ['DELETE', '/v1/projects/{id}', deleteProject],

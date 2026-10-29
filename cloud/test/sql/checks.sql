@@ -1818,10 +1818,10 @@ begin
   perform pg_temp.refuses(format('update cloud.decisions set comment = %L where task_id = %L', 'x', v_task),
     'AKB21', 'a decision was rewritten');
 
-  -- Deleting a project moves its tasks to the workspace's tasks with no project.
+  -- Deleting a project deletes its tasks.
   perform api.v1_delete_project(A, v_prj, BUDGET);
-  assert (select p.general from cloud.tasks t join cloud.projects p on p.id = t.project_id where t.id = v_task),
-    'a deleted project took its task';
+  assert not exists (select 1 from cloud.tasks where id = v_task), 'a deleted project left its task';
+  assert exists (select 1 from cloud.api_events where type = 'task.deleted' and data ->> 'id' = v_task), 'a task went with no event';
 
   -- Every write is an event, in order.
   assert (select count(*) from cloud.api_events where workspace_id = cloud.v1_personal(A) and type = 'review.ready') = 2,
@@ -2186,18 +2186,19 @@ begin
   perform pg_temp.refuses(format('select api.v1_update_project(%L, %L, %L, %s)', A, v_other, '{"prefix": "CRANE"}', BUDGET),
     'AKB21', 'a prefix was taken twice by a rename');
 
-  -- Deleting a project moves its tasks to the project for none, which is never deleted.
-  perform api.v1_delete_project(A, v_wc ->> 'id', BUDGET);
-  assert api.v1_task(A, v_t2 ->> 'id') ->> 'key' = 'TASK-3', 'a deleted project''s task was not renumbered with no project';
-  assert api.v1_task_id(A, 'CRANE', 2) = v_t2 ->> 'id' and api.v1_task_id(A, 'WC', 2) = v_t2 ->> 'id',
-    'a deleted project''s keys stopped answering';
-  perform pg_temp.refuses(format('select api.v1_delete_project(%L, %L, %s)', A, v_loose ->> 'project', BUDGET),
-    'AKB21', 'the project for tasks with none was deleted');
-
   -- A current key wins over an alias.
   perform api.v1_update_project(A, v_other, '{"prefix": "WC"}', BUDGET);
   assert api.v1_task_id(A, 'WC', 1) = v_t1 ->> 'id', 'a current key lost to an alias';
   assert api.v1_task_id(A, 'WC', 2) = v_t2 ->> 'id', 'an alias stopped answering under a reused prefix';
+
+  -- Deleting a project deletes its tasks; the project for none is never deleted.
+  assert api.v1_project(A, v_wc ->> 'id') -> 'counts' = '{"tasks": 2, "others_tasks": 0, "others": 0,
+    "scheduled_agents": 0, "folders": 0}', 'a project''s counts misread';
+  perform api.v1_delete_project(A, v_wc ->> 'id', BUDGET);
+  assert not exists (select 1 from cloud.tasks where id = v_t2 ->> 'id'), 'a deleted project left its task';
+  assert exists (select 1 from cloud.tasks where id = v_t1 ->> 'id'), 'a deleted project took a task it no longer had';
+  perform pg_temp.refuses(format('select api.v1_delete_project(%L, %L, %s)', A, v_loose ->> 'project', BUDGET),
+    'AKB21', 'the project for tasks with none was deleted');
 
   -- Closing an account takes its projects, tasks and aliases together.
   delete from cloud.accounts where id = A;
@@ -2920,8 +2921,12 @@ begin
   update cloud.tasks set status = 'running' where id = v_task;
   assert cloud.v1_open_tasks(O) = 1 and cloud.v1_open_tasks(M) = 0, 'a member''s task counted against their own plan';
   assert api.v1_payer(M, 'task', v_task) = O and api.v1_payer(M, 'target', null) = M, 'the plan was not the creator''s';
-  perform pg_temp.refuses(format('select api.v1_delete_project(%L, %L, %s)', O, v_prj, BUDGET),
-    'AKB21', 'a shared project with tasks was deleted');
+  v_json := api.v1_project(O, v_prj) -> 'counts';
+  assert v_json ->> 'tasks' = '1' and v_json ->> 'others_tasks' = '1' and v_json ->> 'others' = '1',
+    'an owner''s counts missed a member''s task';
+  assert api.v1_project(M, v_prj) -> 'counts' ->> 'others_tasks' = '0', 'a member''s own task counted as another''s';
+  perform pg_temp.refuses(format('select api.v1_delete_project(%L, %L, %s)', M, v_prj, BUDGET),
+    'AKB14', 'a member deleted a shared project');
 
   -- Owners alone invite guests, open a link to anyone, and change links; members make invited ones.
   perform pg_temp.refuses(format('select api.v1_add_guest(%L, %L, %L, %s)', M, v_task, 'ana@x.co', BUDGET), 'AKB14', 'a member invited a guest');
@@ -2977,6 +2982,10 @@ begin
   perform api.v1_add_member(O, v_ws, 'mia@studio.co', BUDGET);
   perform api.v1_remove_member(M, v_ws, M, BUDGET);
   assert not cloud.v1_in(M, v_ws), 'a member could not leave';
+
+  -- An owner deletes a project with a member's task in it.
+  perform api.v1_delete_project(O, v_prj, BUDGET);
+  assert not exists (select 1 from cloud.tasks where id = v_task), 'an owner''s delete left a member''s task';
 
   -- Deleting takes everything in it.
   perform api.v1_add_member(O, v_ws, 'mia@studio.co', BUDGET);

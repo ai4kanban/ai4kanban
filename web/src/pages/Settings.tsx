@@ -16,7 +16,7 @@ import { useStore } from "../store";
 import { ProjectAgents } from "../components/Agents";
 import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
-import { NameRow, WorkspacePanel } from "../components/Workspace";
+import { DeleteProject, NameRow, WorkspacePanel } from "../components/Workspace";
 import { Gone } from "./Gone";
 
 const SECTIONS = [
@@ -120,7 +120,10 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
   );
   const body =
     section === "general" ? (
-      <NameRow value={project.name} readOnly={project.general} onSave={async (name) => (await api.renameProject(project.id, name), store.reload())} />
+      <>
+        <NameRow value={project.name} readOnly={project.general} onSave={async (name) => (await api.renameProject(project.id, name), store.reload())} />
+        {!project.general && store.ws.role === "owner" && <DeleteProject project={project} />}
+      </>
     ) : (
       <ProjectAgents key={project.id} project={project.id} section={section} />
     );
