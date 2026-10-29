@@ -1901,11 +1901,12 @@ begin
   assert (api.renew_runner_job(A, HOME, v_job, 900, BUDGET) ->> 'renewed')::boolean, 'the holder could not renew';
 
   v_json := api.finish_runner_job(A, HOME, v_job, 'done', '', BUDGET,
-    '{"reply":"Built.","usage":{"input":1,"cacheCreation":2,"cacheRead":3,"output":4},"costUsd":0.5}');
+    '{"reply":"Built.","usage":{"input":1,"cacheCreation":2,"cacheRead":3,"output":4},"costUsd":0.5,"context":{"used":120000,"limit":200000}}');
   assert v_json -> 'job' ->> 'outcome' = 'done', 'the job did not finish done';
   v_json := api.read_runner_job(A, v_job) -> 'job';
   assert v_json ->> 'reply' = 'Built.' and (v_json -> 'usage' ->> 'cacheRead')::int = 3
     and (v_json ->> 'costUsd')::numeric = 0.5, 'a finished job did not read back what it said and spent';
+  assert (v_json -> 'context')::jsonb = '{"used": 120000, "limit": 200000}', 'a finished job did not read back its context window';
   assert not (api.finish_runner_job(A, HOME, v_job, 'failed', 'x', BUDGET) ->> 'finished')::boolean,
     'a finished job was finished again';
   assert not api.runner_job_held(A, HOME, v_job), 'a finished job was still held';

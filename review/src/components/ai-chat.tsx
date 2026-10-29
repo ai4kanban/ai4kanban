@@ -14,6 +14,7 @@ import { useArrived } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { AgentMark, type Harness } from "./agent-mark";
 import { Button } from "./button";
+import { ContextRing } from "./context-ring";
 import { Copied, useCopyText } from "./copy";
 import { ImagePreview } from "./image-preview";
 import { Markdown } from "./Markdown";
@@ -247,7 +248,7 @@ export function AiChat({
             onManage={onManage}
             gone={gone}
           />
-          {chat.context && <ContextRing label={c.context(kilo(chat.context.used), kilo(chat.context.limit))} filled={chat.context.used / chat.context.limit} />}
+          <ContextRing context={chat.context} tip={c.context} />
         </span>
         <span className="flex h-full items-center gap-1">
           <AddImages
@@ -340,8 +341,6 @@ export function AiChat({
   );
 }
 
-const kilo = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
-
 /** As the task's run record writes it: web/src/components/RunLog.tsx's formatDuration and formatCost. */
 function duration(c: AiCopy, ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));
@@ -424,29 +423,6 @@ function Reply({ c, m, phone, rise }: { c: AiCopy; m: ChatMessage; phone?: boole
         <Copied on={copied} />
       </div>
     </div>
-  );
-}
-
-/** Legacy kanban-ui context-ring.tsx: how full the session's context window is. */
-const R = 5.25;
-const CIRCUMFERENCE = 2 * Math.PI * R;
-function ContextRing({ label, filled }: { label: string; filled: number }) {
-  return (
-    <span className="nb-tip inline-flex shrink-0 rounded-full p-0.5" data-tip={label} aria-label={label} role="img" tabIndex={0}>
-      <svg viewBox="0 0 14 14" className="size-[14px] -rotate-90" aria-hidden>
-        <circle cx="7" cy="7" r={R} fill="none" className="stroke-nb-ink/12" strokeWidth="2.5" />
-        <circle
-          cx="7"
-          cy="7"
-          r={R}
-          fill="none"
-          className="stroke-nb-ink-soft"
-          strokeWidth="2.5"
-          strokeDasharray={CIRCUMFERENCE}
-          strokeDashoffset={CIRCUMFERENCE * (1 - Math.min(1, Math.max(0, filled)))}
-        />
-      </svg>
-    </span>
   );
 }
 

@@ -120,6 +120,7 @@ const zh = {
     tokens: (input: string, cacheWrite: string, cacheRead: string, output: string) =>
       `token · 输入 ${input} · 缓存写入 ${cacheWrite} · 缓存读取 ${cacheRead} · 输出 ${output}`,
     tokensHint: "本次运行的 token 数，由 Agent 自行报告：新增输入、提示缓存的写入与读取，以及输出。",
+    context: (used: string, limit: string) => `上下文窗口 ${used}/${limit}`,
     callFailed: "失败",
     joiner: "，",
     verb: { read: "查看", edit: "修改", delete: "删除", move: "移动", search: "搜索", execute: "运行命令", fetch: "查阅网页", other: "其他操作" } as Record<ToolKind, string>,
@@ -648,6 +649,7 @@ const en: Copy = {
     tokens: (input, cacheWrite, cacheRead, output) =>
       `tokens · ${input} input · ${cacheWrite} cache write · ${cacheRead} cache read · ${output} output`,
     tokensHint: "This run's token counts, as the agent reported them: fresh input, prompt-cache writes and reads, and output.",
+    context: (used, limit) => `Context window ${used}/${limit}`,
     callFailed: "failed",
     joiner: ", ",
     verb: { read: "Read", edit: "Edited", delete: "Deleted", move: "Moved", search: "Searched", execute: "Ran", fetch: "Fetched", other: "Other action" },

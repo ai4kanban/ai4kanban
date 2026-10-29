@@ -1017,6 +1017,14 @@ describe('flow jobs (#2020)', () => {
     assert.equal(job.report?.costUsd, 0.5)
   })
 
+  it('reports the context window the latest run counting one left (#52)', async () => {
+    process.env.FAKE_AKB = JSON.stringify({ refine: { spent: { context: { used: 90000, limit: 200000 } } } })
+    assert.deepEqual((await flowJob('j1', { verb: 'create' })).report?.context, { used: 90000, limit: 200000 })
+    process.env.FAKE_AKB = JSON.stringify({ implement: { spent: { context: { used: 120000 } } } })
+    await new Promise((r) => setTimeout(r, 5))
+    assert.equal((await flowJob('j2', { verb: 'implement', card: 2 })).report?.context, undefined)
+  })
+
   it('learns the workspace\'s rejections before planning, and marks them learned once sent back (#2067)', async () => {
     const at = '2026-10-20T09:00:00.000Z'
     cloud.rejections = {

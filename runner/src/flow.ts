@@ -55,16 +55,22 @@ interface Run {
   startedAt?: number
   usage?: api.Usage
   costUsd?: number
+  context?: { used?: number; limit?: number }
 }
 
-/** What the runs this job started spent, summed; each part left out when none reported it. */
-export function spentBy(runs: Run[]): Pick<JobReport, 'usage' | 'costUsd'> {
+/** What the runs this job started spent, summed, and the context window the latest one counting it
+ *  left (#52); each part left out when none reported it. */
+export function spentBy(runs: Run[]): Pick<JobReport, 'usage' | 'costUsd' | 'context'> {
   const used = runs.filter((r) => r.usage)
   const costed = runs.filter((r) => typeof r.costUsd === 'number')
   const sum = (key: keyof api.Usage) => used.reduce((n, r) => n + (r.usage![key] || 0), 0)
+  const context = runs
+    .filter((r) => r.context?.used !== undefined && r.context.limit)
+    .reduce<Run | undefined>((last, r) => (!last || (r.startedAt ?? 0) >= (last.startedAt ?? 0) ? r : last), undefined)?.context
   return {
     ...(used.length ? { usage: { input: sum('input'), cacheCreation: sum('cacheCreation'), cacheRead: sum('cacheRead'), output: sum('output') } } : {}),
     ...(costed.length ? { costUsd: costed.reduce((n, r) => n + r.costUsd!, 0) } : {}),
+    ...(context ? { context: { used: context.used!, limit: context.limit! } } : {}),
   }
 }
 

@@ -613,8 +613,8 @@ The account's one Runner (`runner/`). Every job route takes `machineId`, the com
   those tasks' chats, run by this computer alone; one still going on the project is answered instead.
 - `GET /v1/runner/jobs/<id>?after=<seq>` — a job and, once it has ended, its events after `seq`,
   each `{ seq, kind, text, data, at }`; a running job reads `events: []`. A run task's step is
-  readable by every member of its workspace. A finished job also reads `reply`, `usage` and
-  `costUsd`, null when the Runner sent none. Logs are kept as long as their job.
+  readable by every member of its workspace. A finished job also reads `reply`, `usage`,
+  `costUsd` and `context` (`{ used, limit }`), null when the Runner sent none. Logs are kept as long as their job.
 - `GET /v1/runner/jobs/<id>/stream` — a WebSocket carrying a running job's log. The access token
   goes as the subprotocols `bearer, <token>`. With `?machine=<id>` it is the holding Runner's: the
   service sends `{ type: "hello", after, watched }`, the Runner sends `{ type: "events", events }`

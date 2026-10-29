@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiClock } from "react-icons/fi";
+import { ContextRing } from "@review/components/context-ring";
 import { Markdown } from "@review/components/Markdown";
 import * as api from "../api";
 import { T, type ToolKind } from "../i18n";
@@ -444,6 +445,7 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
               </span>
             </>
           )}
+          <ContextRing context={info?.context} tip={T.log.context} />
           {job && <FiChevronDown size={13} aria-hidden className={open ? "rotate-180" : ""} />}
         </span>
       </button>

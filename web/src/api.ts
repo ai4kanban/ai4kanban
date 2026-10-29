@@ -258,6 +258,7 @@ export interface JobLog {
     reply?: string | null;
     usage?: Usage | null;
     costUsd?: number | null;
+    context?: { used: number; limit: number } | null;
   } | null;
 }
 
