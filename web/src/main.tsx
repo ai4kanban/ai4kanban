@@ -11,6 +11,7 @@ import { LANG, T } from "./i18n";
 import { navigate, useLocation } from "./router";
 import { StoreProvider, useStore } from "./store";
 import { AlertsProvider } from "./alerts";
+import { openSettings, SettingsHost } from "./components/Settings";
 import { FirstRun } from "./components/Welcome";
 import { Archive } from "./pages/Archive";
 import { Board } from "./pages/Board";
@@ -21,7 +22,6 @@ import { NewIdea } from "./pages/NewIdea";
 import { Stats } from "./pages/Stats";
 import { TriagePage } from "./pages/Triage";
 import { Workflows } from "./pages/Workflows";
-import { WorkspaceSettings } from "./pages/WorkspaceSettings";
 import "./globals.css";
 import "@review/markdown.css";
 
@@ -37,7 +37,7 @@ function Routes() {
   if (triage) return <TriagePage key={triage[1]} projectId={decodeURIComponent(triage[1]!)} />;
   if (path === "/new") return <NewIdea />;
   if (path === "/archive") return <Archive />;
-  if (path === "/settings/workspace") return <WorkspaceSettings />;
+  if (path === "/settings/workspace") return <OldWorkspaceSettings />;
   if (path === "/workflows") return <Workflows />;
   if (path === "/stats") return <Stats />;
   if (path === "/triage") return <OldTriage />;
@@ -51,6 +51,16 @@ function OldTriage() {
   useEffect(() => {
     if (to) navigate(to, true);
   }, [to]);
+  return null;
+}
+
+/** The workspace's own page moved into 设置 (#2191): its address opens it over Home. */
+function OldWorkspaceSettings() {
+  useEffect(() => {
+    const runners = location.hash === "#runners";
+    navigate("/", true);
+    openSettings("workspace", runners ? "runners" : undefined);
+  }, []);
   return null;
 }
 
@@ -101,6 +111,7 @@ function App() {
         <StoreProvider key={boot.me.accountId} me={boot.me} workspaces={boot.workspaces}>
           <FirstRun account={boot.me.accountId}>
             <AlertsProvider>
+              <SettingsHost />
               <Routes />
             </AlertsProvider>
           </FirstRun>

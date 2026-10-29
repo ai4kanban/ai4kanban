@@ -391,6 +391,7 @@ export const readMe = () => json<{ session: Me }>(call("/v1/session")).then((r) 
 export const listWorkspaces = () => all<Workspace>("/v1/workspaces");
 export const createWorkspace = (name: string) => json<Workspace>(call("/v1/workspaces", post({ name })));
 export const renameWorkspace = (id: string, name: string) => json<Workspace>(call(`/v1/workspaces/${enc(id)}`, { method: "PATCH", body: JSON.stringify({ name }) }));
+export const renameProject = (id: string, name: string) => json<Project>(call(`/v1/projects/${enc(id)}`, { method: "PATCH", body: JSON.stringify({ name }) }));
 export const deleteWorkspace = (id: string) => call(`/v1/workspaces/${enc(id)}`, { method: "DELETE" });
 export const listMembers = (ws: string) => all<Member>(`/v1/workspaces/${enc(ws)}/members`);
 export const addMember = (ws: string, email: string) => json<Member>(call(`/v1/workspaces/${enc(ws)}/members`, post({ email })));
@@ -398,7 +399,8 @@ export const setMemberRole = (ws: string, account: string, role: Member["role"])
   json<Member>(call(`/v1/workspaces/${enc(ws)}/members/${enc(account)}`, { method: "PATCH", body: JSON.stringify({ role }) }));
 export const removeMember = (ws: string, account: string) => call(`/v1/workspaces/${enc(ws)}/members/${enc(account)}`, { method: "DELETE" });
 
-export type WorkspaceRunner = { machine: string; name: string; connected: boolean; last_active: string | null };
+/** `owner` is its member's display name. */
+export type WorkspaceRunner = { machine: string; name: string; owner: string; connected: boolean; last_active: string | null };
 export const listRunners = (ws: string) => json<{ runners: WorkspaceRunner[] }>(call(`/v1/workspaces/${enc(ws)}/runners`)).then((r) => r.runners);
 export const removeRunner = (ws: string, machine: string) => call(`/v1/workspaces/${enc(ws)}/runners/${enc(machine)}`, { method: "DELETE" });
 

@@ -224,8 +224,9 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
     that address as a `member` (none: `conflict`). `PATCH …/members/{account}` `{ role:
     "owner" | "member" }`; `DELETE` removes one, or the caller themself, which is leaving.
     Owners manage members; the creator stays an owner and cannot leave (`last_owner`).
-  - `GET /v1/workspaces/{id}/runners` — `{ runners: [{ machine, name, connected, last_active }] }`:
-    every member's computer holding a folder of one of its projects. `DELETE …/runners/{machine}`
+  - `GET /v1/workspaces/{id}/runners` — `{ runners: [{ machine, name, owner, connected, last_active }] }`:
+    every member's computer holding a folder of one of its projects; `owner` is its member's
+    display name. `DELETE …/runners/{machine}`
     (`owner_only`) removes the workspace's folders there, and that computer claims none of its
     jobs until its owner places one of its projects there again.
   - `GET /v1/workspaces/{id}/stats?from=YYYY-MM-DD&to=YYYY-MM-DD&tz=<IANA>` — per day, in `tz`

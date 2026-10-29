@@ -589,6 +589,10 @@
                           "name": {
                             "type": "string"
                           },
+                          "owner": {
+                            "type": "string",
+                            "description": "Its member's display name"
+                          },
                           "connected": {
                             "type": "boolean"
                           },
@@ -603,6 +607,7 @@
                         "required": [
                           "machine",
                           "name",
+                          "owner",
                           "connected",
                           "last_active"
                         ]

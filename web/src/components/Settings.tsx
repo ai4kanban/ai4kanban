@@ -1,12 +1,12 @@
 // 设置 (#2074, #2080, #2106), after legacy kanban-ui/components/Configuration.tsx and Runtimes.tsx: a
-// dialog of sections, each mounted only while shown: the account's 通用 (#2132), 运行时 and 账单, then 工作流 and
-// 看板 under the project they edit, headed by a project switcher. The runtime list is the
+// dialog of sections, each mounted only while shown: the account's 通用 (#2132), 运行时 and 账单, the
+// workspace's own page (#2191), then 工作流 and 看板 under the project they edit, headed by a project switcher. The runtime list is the
 // account's own, Global default first. Each runtime is bound to one Runner (#2135); an open row is
 // a list of settings — Runner, connector, model, then what that connector declares. The API key
 // lives only on the Runner: the page can replace or clear it, never read it.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiCreditCard, FiEdit3, FiFolder, FiGitCommit, FiKey, FiPlus, FiRefreshCw, FiSettings, FiSliders, FiTerminal, FiTool, FiTrash2, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiCreditCard, FiEdit3, FiFolder, FiGitCommit, FiKey, FiPlus, FiRefreshCw, FiSettings, FiSliders, FiTerminal, FiTool, FiTrash2, FiUsers, FiX, FiZap } from "react-icons/fi";
 import { AgentMark, type Harness } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { Menu, POPUP_PANEL, type MenuEntry } from "@review/components/menu";
@@ -16,27 +16,31 @@ import * as api from "../api";
 import { F } from "../first-run-i18n";
 import { settingText, T } from "../i18n";
 import { useStore } from "../store";
-import { ProjectAgents, useAway } from "./Agents";
+import { ProjectAgents } from "./Agents";
 import { BillingPanel } from "./Billing";
+import { SwitcherMenu } from "./Switcher";
 import { GeneralPanel, replayTour } from "./Welcome";
+import { WorkspacePanel } from "./Workspace";
 
 const OPEN = "wc:settings";
 /** Sent whenever the list changes, so a runtime pick reads it again. */
 export const RUNTIMES_CHANGED = "wc:runtimes";
 
-export type Section = "general" | "runtimes" | "billing" | "workflows" | "board";
+export type Section = "general" | "runtimes" | "billing" | "workspace" | "workflows" | "board";
 const ACCOUNT = [
   { id: "general" as const, label: () => F.general.section, icon: FiSliders },
   { id: "runtimes" as const, label: () => T.runtimes.section, icon: FiTerminal },
   { id: "billing" as const, label: () => T.billing.section, icon: FiCreditCard },
 ];
+const WORKSPACE = { id: "workspace" as const, label: () => T.ws.section, icon: FiUsers };
 const PROJECT = [
   { id: "workflows" as const, label: () => T.agents.workflows, icon: FiGitCommit },
   { id: "board" as const, label: () => T.agents.board, icon: FiTool },
 ];
-const POPUP_ROW = "relative flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-1.5 pr-8 text-left text-[13px] font-[600] text-nb-ink hover:bg-nb-wash";
+type Open = { section: Section; at?: "runners" };
 
-export const openSettings = (section: Section = "general") => window.dispatchEvent(new CustomEvent<Section>(OPEN, { detail: section }));
+/** `at` scrolls the section to that part. */
+export const openSettings = (section: Section = "general", at?: Open["at"]) => window.dispatchEvent(new CustomEvent<Open>(OPEN, { detail: { section, at } }));
 const changed = () => window.dispatchEvent(new Event(RUNTIMES_CHANGED));
 
 export const MARK: Record<api.Connector, Harness> = { "claude-code": "claude", codex: "codex", cursor: "cursor", opencode: "opencode", kimi: "kimi", dsh: "dsh", zcode: "zcode", grok: "grok" };
@@ -92,26 +96,27 @@ export function SettingsButton() {
 
 /** Mounted once, in the window: shows the dialog whenever something opens it. */
 export function SettingsHost() {
-  const [open, setOpen] = useState<Section | null>(null);
+  const [open, setOpen] = useState<Open | null>(null);
   useEffect(() => {
-    const show = (e: Event) => setOpen((e as CustomEvent<Section>).detail);
+    const show = (e: Event) => setOpen((e as CustomEvent<Open>).detail);
     window.addEventListener(OPEN, show);
     return () => window.removeEventListener(OPEN, show);
   }, []);
-  const [last, setLast] = useState<Section>("general");
+  const [last, setLast] = useState<Open>({ section: "general" });
   if (open && open !== last) setLast(open);
   const shown = useShown(!!open, 150);
-  return shown ? <SettingsDialog section={open ?? last} closing={!open} onPick={setOpen} onClose={() => setOpen(null)} /> : null;
+  const at = open ?? last;
+  return shown ? <SettingsDialog section={at.section} at={at.at} closing={!open} onPick={(section) => setOpen({ section })} onClose={() => setOpen(null)} /> : null;
 }
 
-function SettingsDialog({ section, closing, onPick, onClose }: { section: Section; closing: boolean; onPick: (s: Section) => void; onClose: () => void }) {
+function SettingsDialog({ section, at, closing, onPick, onClose }: { section: Section; at?: Open["at"]; closing: boolean; onPick: (s: Section) => void; onClose: () => void }) {
   const store = useStore();
   const [projectId, setProjectId] = useState(store.current?.id ?? null);
-  const project = store.projects.find((p) => p.id === projectId) ?? null;
+  // A workspace switched under the dialog takes its project list with it.
+  const project = store.projects.find((p) => p.id === projectId) ?? store.current;
   const [switching, setSwitching] = useState(false);
   const switcher = useRef<HTMLDivElement>(null);
   const closeSwitcher = useCallback(() => setSwitching(false), []);
-  useAway(switcher, switching, closeSwitcher);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
@@ -156,6 +161,9 @@ function SettingsDialog({ section, closing, onPick, onClose }: { section: Sectio
             <div role="group" className="flex flex-col gap-1 max-md:shrink-0 max-md:flex-row max-md:gap-[10px]">
               {ACCOUNT.map(entry)}
             </div>
+            <div role="group" className="flex flex-col gap-1 max-md:shrink-0 max-md:flex-row max-md:gap-[10px]">
+              {entry(WORKSPACE)}
+            </div>
             <div ref={switcher} role="group" aria-label={project?.name ?? T.pickProject} className="relative flex flex-col gap-1 max-md:shrink-0 max-md:flex-row max-md:items-center max-md:gap-[10px]">
               <button
                 type="button"
@@ -171,38 +179,35 @@ function SettingsDialog({ section, closing, onPick, onClose }: { section: Sectio
                 <FiChevronDown size={12} aria-hidden className={cn("shrink-0 opacity-70", switching && "rotate-180")} />
               </button>
               {switching && (
-                <div role="listbox" aria-label={T.pickProject} className={cn(POPUP_PANEL, "nb-pop origin-top-left absolute left-1 top-[26px] z-30 flex max-h-[min(360px,50vh)] w-[220px] flex-col overflow-y-auto p-1")}>
-                  {store.projects.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      role="option"
-                      aria-selected={p.id === project?.id}
-                      onClick={() => {
-                        setProjectId(p.id);
-                        setSwitching(false);
-                        if (!projectSection) onPick("workflows");
-                      }}
-                      className={POPUP_ROW}
-                    >
-                      <span aria-hidden className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px] bg-nb-wash text-nb-ink-soft">
+                <SwitcherMenu
+                  box={switcher}
+                  label={T.pickProject}
+                  className="origin-top-left absolute left-1 top-[26px] z-30 w-[240px]"
+                  current={project?.id ?? null}
+                  items={store.projects.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    mark: (renaming) => (
+                      <span aria-hidden className={cn("inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px] text-nb-ink-soft", renaming ? "bg-nb-paper" : "bg-nb-wash")}>
                         <FiFolder size={11} />
                       </span>
-                      <span className="truncate">{p.name}</span>
-                      {p.id === project?.id && (
-                        <span className="absolute right-2.5 flex items-center text-nb-accent-deep">
-                          <FiCheck size={13} aria-hidden />
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                  {store.projects.length === 0 && <p className="px-2.5 py-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{T.noProjects}</p>}
-                </div>
+                    ),
+                    renamable: !p.general,
+                  }))}
+                  empty={<p className="px-2.5 py-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{T.noProjects}</p>}
+                  onPick={(id) => {
+                    setProjectId(id);
+                    setSwitching(false);
+                    if (!projectSection) onPick("workflows");
+                  }}
+                  onRename={async (id, name) => (await api.renameProject(id, name), store.reload())}
+                  onClose={closeSwitcher}
+                />
               )}
               {PROJECT.map(entry)}
             </div>
           </nav>
-          <div key={`${section}:${projectId}`} className="a4k-reveal min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-md:px-4 max-md:pt-5">
+          <div key={`${section}:${section === "workspace" ? store.ws.id : project?.id}`} className="a4k-reveal min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-md:px-4 max-md:pt-5">
             {section === "general" && (
               <GeneralPanel
                 onReplay={() => {
@@ -213,6 +218,7 @@ function SettingsDialog({ section, closing, onPick, onClose }: { section: Sectio
             )}
             {section === "runtimes" && <RuntimesPanel />}
             {section === "billing" && <BillingPanel />}
+            {section === "workspace" && <WorkspacePanel at={at} />}
             {projectSection &&
               (project ? <ProjectAgents key={project.id} project={project.id} section={section} /> : <p className="text-[13px] text-nb-ink-soft">{T.agents.pickFirst}</p>)}
           </div>

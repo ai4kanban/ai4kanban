@@ -5014,6 +5014,7 @@ begin
   assert jsonb_array_length(v_json -> 'runners') = 1
     and v_json -> 'runners' -> 0 ->> 'machine' = MAC::text
     and v_json -> 'runners' -> 0 ->> 'name' = 'Mia''s Mac'
+    and v_json -> 'runners' -> 0 ->> 'owner' = (select coalesce(nullif(name, ''), handle) from cloud.accounts where id = M)
     and (v_json -> 'runners' -> 0 ->> 'connected')::boolean
     and v_json -> 'runners' -> 0 ->> 'last_active' is not null, format('the Runners misread: %s', v_json);
 

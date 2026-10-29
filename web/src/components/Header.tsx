@@ -17,7 +17,7 @@ import * as api from "../api";
 import { useNeedsByProject } from "../alerts";
 import { LANG, T } from "../i18n";
 import { isOpen } from "../lib/card";
-import { Link, navigate, useLocation } from "../router";
+import { navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { openSettings } from "./Settings";
 
@@ -71,22 +71,23 @@ export function Me() {
   );
 }
 
-/** Links to the workspace's Runners. At phone width only the icon shows. */
+/** Opens the workspace's Runners. At phone width only the icon shows. */
 export function OfflineBadge({ phone }: { phone?: boolean }) {
   const name = useStore().runnerName;
   return (
-    <Link
-      href="/settings/workspace#runners"
+    <button
+      type="button"
+      onClick={() => openSettings("workspace", "runners")}
       aria-label={T.offline(name)}
       className={cn(
-        "nb-tip nb-tip-below inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[8px] bg-nb-peach-soft text-[12px] font-[700] text-nb-peach-ink no-underline",
+        "nb-tip nb-tip-below inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-peach-soft text-[12px] font-[700] text-nb-peach-ink",
         phone ? "w-8 justify-center" : "px-2.5",
       )}
       data-tip={T.offlineTip(name)}
     >
       <FiWifiOff size={phone ? 13 : 12} aria-hidden />
       {!phone && <span className="max-lg:hidden">{T.offline(name)}</span>}
-    </Link>
+    </button>
   );
 }
 
@@ -216,7 +217,7 @@ export function WorkspaceSwitch() {
             type="button"
             onClick={() => {
               close();
-              navigate("/settings/workspace");
+              openSettings("workspace");
             }}
             className={cn(ROW, "text-nb-ink-soft")}
           >

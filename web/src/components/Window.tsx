@@ -22,7 +22,7 @@ import { Link, navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { Me, meName, NeedsCount, OfflineBadge, openTriage, ProjectChip, Slash, TopRight, triageHref, TriageButton, WorkspaceSwitch, wsName } from "./Header";
 import { ChatList, chatsHere, FindBox, matchTasks, Rail } from "./Rail";
-import { openSettings, SettingsButton, SettingsHost } from "./Settings";
+import { openSettings, SettingsButton } from "./Settings";
 
 const RAIL_KEY = "wildcrane.web.rail";
 
@@ -150,7 +150,6 @@ export function Window({
             ))}
           </nav>
         )}
-        <SettingsHost />
       </div>
     );
   }
@@ -180,7 +179,6 @@ export function Window({
         <div className={cn("relative min-w-0 flex-1 overflow-hidden bg-nb-paper", side ? "rounded-t-[14px]" : "rounded-tl-[14px]")}>{children}</div>
         {side && <div className={cn("w-[360px] shrink-0 px-3", sideMoved && "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]")}>{side}</div>}
       </div>
-      <SettingsHost />
     </div>
   );
 }
@@ -253,12 +251,12 @@ function PhoneMore({ current, archiveHref, needs }: { current?: string; archiveH
         <FiArchive size={15} className="text-nb-ink-soft" aria-hidden />
         {T.archive}
       </Link>
-      <Link href="/settings/workspace" className={row}>
+      <button type="button" onClick={() => openSettings("workspace")} className={row}>
         <FiUsers size={15} className="text-nb-ink-soft" aria-hidden />
         <span className="min-w-0 flex-1 truncate">{T.ws.settings}</span>
         <span className="truncate text-[12px] text-nb-ink-soft">{wsName(store.ws)}</span>
         <FiChevronRight size={14} className="text-nb-ink-soft" aria-hidden />
-      </Link>
+      </button>
       {rule}
       <span className={group}>{T.account}</span>
       <button type="button" onClick={() => openSettings()} className={row}>
