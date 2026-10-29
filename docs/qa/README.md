@@ -28,12 +28,22 @@
 - [按段阅读任务的预览](review/read-previews/case.md)
 - [在审核页和 AI 讨论任务](review/chat-with-ai/case.md)
 - [评论写到一半刷新页面](review/draft-comment/case.md)
+- [打开带待答问题的审核链接](review/open-question-link/case.md)
+- [切换审核页的语言](review/switch-language/case.md)
 
 ## web
 
 - [第一次打开 WildCrane Web](web/first-visit/case.md)
 - [从首页一句话开始一个任务](web/start-from-home/case.md)
 - [在看板上找到待审核的任务并开始执行](web/review-on-board/case.md)
+- [跳过方案直接构建一个想法](web/build-now/case.md)
+- [查看工作流里有哪些角色](web/workflow-roles/case.md)
+
+## runner
+
+- [第一次启动 Runner 并登录](runner/sign-in-and-connect/case.md)
+- [在第二台电脑上启动 Runner](runner/second-computer/case.md)
+- [让 Runner 在本机项目文件夹里干活](runner/run-in-project-folder/case.md)
 
 ## marketing
 
@@ -41,7 +51,6 @@
 
 ## 待覆盖
 
-- **runner**
 - **site**
 
 ## 如何运行取证
@@ -65,3 +74,9 @@
   写入，卡片正文用 `PUT /v1/tasks/{id}/card`（`base_version`、`assets: {}`）。跳过导览要写
   `wc.usageNoticeShown`、`wc.welcomeTourShown`。叠放的导览卡片里有隐藏的同名按钮，点击要选
   `elementFromPoint` 命中的那个；手机宽度的整段流程放在同一个 CDP 连接里，重连会丢掉视口模拟。
+- **runner**：同 web 的本地云端栈，但用真 Runner：`runner/` 里 `node scripts/build.mjs`，再以
+  `WILDCRANE_HOME=<临时目录>`、`AI4KANBAN_CLOUD_URL`/`AI4KANBAN_SUPABASE_URL`/`AI4KANBAN_SUPABASE_ANON_KEY`
+  指向本地栈、`WILDCRANE_POLL_MS=2000` 运行 `bin/wildcrane-runner.mjs`（替身没有 Realtime，靠轮询领作业）。
+  替身加一个 `/auth/v1/token` 代答 GitHub 登录；PATH 前放一个假的 `open` 记下登录地址，浏览器直接打开
+  其中的 `redirect_to?code=任意`。作业用 `POST /v1/runner/jobs` 派发，由本机已登录的 `claude` 真跑。
+  证据里把电脑名换成 `QA-Mac`。
