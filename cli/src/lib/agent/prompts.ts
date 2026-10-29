@@ -25,7 +25,6 @@ import { field } from './facts'
 import { recordedOutputs } from './outputs'
 import { readArchive } from '../view/archive'
 import { DELIVERY_FLOWS } from './flows'
-import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
 import {
@@ -103,7 +102,6 @@ export function contractRepairPrompt(req: AgentRequest, errors: string): string 
     'The task ended with invalid card formatting. Fix only the errors below in the listed files. Preserve planned behavior and completed work; do not repeat the task or request other agents.',
     errors,
     `Run \`${command} raw validate <id>\` for every affected card and fix every error before finishing.`,
-    languageNote(),
     ruleBlock(req, frozenRules(req)),
   ].filter(Boolean).join('\n\n'))
 }
@@ -162,11 +160,7 @@ const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, do
  *  it copies out of a flow is a poor place to find that out.
  *
  *  Split out from `buildPrompt` for the one caller that needs the ask alone: a printed flow
- *  puts the rule at the very end, after the flows themselves (`flow.ts`).
- *
- *  The language the board is read in rides here rather than in `buildPrompt` (#337): a
- *  printed flow is built from the ask alone, and `--print` is how the work is done in the
- *  user's own session. */
+ *  puts the rule at the very end, after the flows themselves (`flow.ts`). */
 export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   const req = withWorkflow(rawReq)
   // A delivery's runs work in that delivery's own worktree, so their board commands
@@ -176,7 +170,7 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   const ask = [actionPrompt(req, command, notes), pictureNote(req), commandNote(command)].filter(Boolean).join(' ')
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
-  return realPaths(boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n')), req)
+  return realPaths(boardText([ask, roster(req)].filter(Boolean).join('\n\n')), req)
 }
 
 // A scheduled or sub run's folder holds no board (#1352), so it is given the real places. Filled in

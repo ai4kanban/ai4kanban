@@ -188,12 +188,12 @@ function logLines(show: (text: string) => void, event: (event: RunEvent) => void
 }
 
 /** akb, run on the task's board and followed to its end; with `task`, for that Cloud task. */
-function boardAkb(ws: TaskFolder, deps: FlowDeps, io: FlowIo, task?: string) {
+function boardAkb(job: Job, ws: TaskFolder, deps: FlowDeps, io: FlowIo, task?: string) {
   return async (args: string[], show = false) => {
     const at = args.includes('--') ? args.indexOf('--') : args.length
     const full = [...args.slice(0, at), '--board', ws.board, ...args.slice(at)]
     const log = show ? logLines(io.show, io.event) : undefined
-    const ran = await runAkb(deps.akb, full, { cwd: ws.cwd, board: ws.board, task, show: log?.push, track: io.track })
+    const ran = await runAkb(deps.akb, full, { cwd: ws.cwd, board: ws.board, task, lang: job.lang, show: log?.push, track: io.track })
     log?.end()
     return ran
   }
@@ -201,7 +201,7 @@ function boardAkb(ws: TaskFolder, deps: FlowDeps, io: FlowIo, task?: string) {
 
 /** The board made, brought up to Cloud and set to run on the job's runtime; the refusal when not. */
 async function setUp(job: Job, ws: TaskFolder, deps: FlowDeps, io: FlowIo): Promise<string | null> {
-  const akb = boardAkb(ws, deps, io)
+  const akb = boardAkb(job, ws, deps, io)
   const runtime = job.runtime
   const missing = unavailable(runtime, await deps.runtimes())
   if (missing) return missing
@@ -259,7 +259,7 @@ export async function runReview(job: Job, ws: TaskFolder, tasks: string[], deps:
   const since = Date.now()
   const failed = await setUp(job, ws, deps, io)
   if (failed) return { ok: false, reason: failed }
-  const akb = boardAkb(ws, deps, io)
+  const akb = boardAkb(job, ws, deps, io)
   const ran = await akb(['review-memory', '--task', ...tasks, '--follow', '--events', '--json'], true)
   if (io.lost()) return { ok: false, reason: '' }
   const answer = answerOf<{ result?: string; error?: { message?: string } }>(ran)
@@ -277,7 +277,7 @@ async function reviewRejections(job: Job, ws: TaskFolder, deps: FlowDeps, io: Fl
   if (!read.ok) return { runs: [], failure: read.error }
   if (!read.value.tasks.length && !read.value.triage.length) return { runs: [] }
   const since = Date.now()
-  const akb = boardAkb(ws, deps, io)
+  const akb = boardAkb(job, ws, deps, io)
   const laid = layOut(ws.board, read.value)
   const ran = await akb(['review-dismissals', '--all', '--follow', '--events', '--json'], true)
   clearLaid(ws.board)
@@ -313,7 +313,7 @@ export async function runAgent(job: Job & { agent: AgentJob }, ws: TaskFolder, d
   const args = workflow ? ['agent', 'run', workflowName(workflow), name]
     : name === 'reflect' ? ['reflect', '--cards', ...tasks!.map((t) => String(t.number))]
     : [name]
-  const akb = boardAkb(ws, deps, io, ws.cloudTask ?? undefined)
+  const akb = boardAkb(job, ws, deps, io, ws.cloudTask ?? undefined)
   // Listing reaps a run a stopped Runner left recorded as live, which would hold the agent for good.
   await akb(['run', 'list', '--all', '--json'])
   const ran = await akb([...args, '--follow', '--events', '--json'], true)
@@ -363,7 +363,7 @@ export async function runFlow(job: Job & { flow: Flow }, ws: TaskFolder, deps: F
   const { flow } = job
   const since = Date.now()
   const fail = (reason: string): FlowEnd => ({ ok: false, reason })
-  const akb = boardAkb(ws, deps, io, ws.task)
+  const akb = boardAkb(job, ws, deps, io, ws.task)
   const made = (ran: Ran): api.Call<number> => {
     const answer = answerOf<{ id?: number; error?: { message?: string; kind?: string } }>(ran)
     return ran.code === 0 && answer?.id ? { ok: true, value: answer.id } : { ok: false, error: answer?.error?.message ?? refusal(ran), code: answer?.error?.kind }

@@ -6,6 +6,9 @@ export interface Env {
   SUPABASE_URL: string
   /** The project's service role key. It never leaves the Worker. */
   SUPABASE_SERVICE_ROLE_KEY: string
+  /** Set per request, never configured: the web's interface language, which the jobs the
+   *  request starts reply in (#11). */
+  REQUEST_LANG?: 'en' | 'zh'
   /**
    * Resend's API key, for the invitation mail (#327). Deliberately not required: a Worker
    * that cannot mail still answers every route, and the hourly run says so in the log rather

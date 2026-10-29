@@ -121,6 +121,7 @@ async function rpc<T>(env: Env, fn: string, args: Record<string, unknown>): Prom
         authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
         'content-type': 'application/json',
         accept: 'application/json',
+        ...(env.REQUEST_LANG ? { 'x-akb-lang': env.REQUEST_LANG } : {}),
       },
       body: JSON.stringify(args),
     })

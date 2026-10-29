@@ -33,6 +33,7 @@ import { queueCompleted } from './propose'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter, type RunEvent } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
+import { inLanguage } from './language'
 import { openPlan } from './resolve'
 import { humanSectionFor } from './runner'
 import { planRetry, retryLine } from './retry'
@@ -187,7 +188,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // Resume the recorded action, not another phase of the same delivery. A resume that could
   // only open a new session (#1321) brings the whole ask instead.
   const basePrompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? spec.prompt || resumePrompt(record.deliveryId, record.cardId, record.action) : spec.prompt)
-  const prompt = [basePrompt, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n')
+  const prompt = inLanguage([basePrompt, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n'))
 
   // The board as it was the moment before the agent touched it. The difference between this
   // and the same read at the close is what this run could be answerable for; which of it
@@ -228,7 +229,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   const restartBase = !client || record.formatRepair ? undefined
     : record.resumedFrom ? restartPrompt(requestOf(record), record.deliveryId)
     : record.continues && !record.continues.fork ? spec.prompt : undefined
-  const restart = restartBase ? [restartBase, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n') : undefined
+  const restart = restartBase ? inLanguage([restartBase, discardedCardsPrompt(record.discardedCards)].filter(Boolean).join('\n\n')) : undefined
   // A printing agent that reads its turns off stdin (#1540) is handed the prompt there, and
   // stdin stays open until a turn ends with nothing left in the background.
   const stdinPrompt = client ? undefined : active.stdinPrompt

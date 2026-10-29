@@ -1031,7 +1031,7 @@ const MATCHERS = [
 export const V1_CORS: Record<string, string> = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PATCH, PUT, DELETE',
-  'access-control-allow-headers': 'authorization, content-type, idempotency-key, last-event-id',
+  'access-control-allow-headers': 'authorization, content-type, idempotency-key, last-event-id, x-akb-lang',
   'access-control-expose-headers': 'deprecation, sunset, link, idempotent-replayed, retry-after',
   'access-control-max-age': '86400',
 }
@@ -1051,7 +1051,9 @@ export function isV1Request(request: Request, url: URL): boolean {
   return isV1Path(url.pathname)
 }
 
-export async function routeV1(request: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
+export async function routeV1(request: Request, base: Env, ctx: ExecutionContext, url: URL): Promise<Response> {
+  const lang = request.headers.get('x-akb-lang')
+  const env: Env = lang === 'en' || lang === 'zh' ? { ...base, REQUEST_LANG: lang } : base
   if (url.pathname === '/v1/openapi.json') {
     if (request.method !== 'GET') throw methodNotAllowed()
     return json(openapi)

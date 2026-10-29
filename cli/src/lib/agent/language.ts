@@ -1,37 +1,35 @@
-// What language a run writes the board in (#337).
-//
-// One helper behind every path words reach an agent by — the ask a run is given
-// (agent/prompts.ts), every turn of a conversation (agent/chat.ts), and the setup line a
-// user pastes into their own agent (agent/resolve.ts) — so a board is never half translated.
-//
-// An English machine is told nothing at all: the flows are written in English, so an English
-// board's prompts stay exactly as they were and cost nothing.
-//
-// The boundary rides in the line rather than only in `akb guide board`, because the flows
-// that write the most prose — `writing`, `refine`, `revise` and `spec-agent` — are never
-// given that guide. A run told to write Chinese without the boundary translates a
-// section heading, and that is a card the board can no longer read.
+// What language a run replies and writes in (#337, #11): one short line in that language, at
+// the very end of every prompt. An English run is told nothing. Which headings and keys stay
+// English is the board's rule (`akb guide board`, `writing`), not this line's.
 
 import { readLanguage } from '../machine/settings'
-import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, type Language } from '../machine/types'
+import { DEFAULT_LANGUAGE, isLanguage, type Language } from '../machine/types'
 
-/** Whether this board is read in something other than English. For the caller that only
- *  needs to know a rule applies — a printed `create` line spelling out `--slug` — rather
- *  than what the rule says. */
-export function translating(language: Language = readLanguage()): boolean {
+/** Set by the Runner (#11): the language of the message that started a Cloud run, over this
+ *  machine's own setting. */
+export const RUN_LANGUAGE_ENV = 'AI4KANBAN_RUN_LANGUAGE'
+
+const LINES: Record<Language, string> = {
+  en: '',
+  zh: '请用中文回复和写作。',
+}
+
+/** The language this run writes in. */
+export function runLanguage(): Language {
+  const asked = process.env[RUN_LANGUAGE_ENV]
+  return isLanguage(asked) ? asked : readLanguage()
+}
+
+/** Whether this run writes in something other than English. */
+export function translating(language: Language = runLanguage()): boolean {
   return language !== DEFAULT_LANGUAGE
 }
 
-/** The sentence that tells one run which language the board is read in, or nothing at all
- *  when it is English. */
-export function languageNote(language: Language = readLanguage()): string {
-  if (!translating(language)) return ''
-  const name = LANGUAGE_NAMES[language]
-  return [
-    `Write this board's prose in ${name}: card titles and bodies, open questions and their options, memory notes, and what you say back to me.`,
-    `Keep English whatever the language: frontmatter keys and their fixed values, \`##\` and \`###\` section headings, the \`<!-- agent -->\` boundary, todo checkboxes, the \`[user]\` tag, track and module names, and card filenames. Never rename or translate a section title — the board matches those by literal English text, so a changed one is a card it can no longer read, and a title that is not English needs \`akb raw create --slug\` a short English slug.`,
-    `Rewriting a card or a memory file that already exists keeps the language that file is already in; only what you write for me to read personally — an open question and its options — follows ${name} on every card, and so does the first note in a memory file still holding nothing but its seeded header.`,
-    `This governs the board's prose alone: code, comments, commit messages and the repository's own documents follow the repository, not me. \`akb guide board\` carries the rule in full.`,
-  ].join(' ')
+/** The line that ends a prompt, or nothing in English. */
+export function languageNote(language: Language = runLanguage()): string {
+  return LINES[language]
 }
 
+/** The prompt with the line at its very end. */
+export const inLanguage = (prompt: string, language: Language = runLanguage()): string =>
+  [prompt, languageNote(language)].filter(Boolean).join('\n\n')

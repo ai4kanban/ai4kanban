@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { akbEnv, bundledAkb, type Akb } from './akb'
+import { inLanguage } from '../../cli/src/lib/agent/language'
 import type { RunEvent, TurnEnd } from '../../cli/src/lib/agent/wire'
 import * as api from './api'
 import type { AgentJob, Flow, Job, JobEvent, JobReport, RuntimeReport } from './api'
@@ -385,10 +386,10 @@ async function runClaimed(job: Job, deps: Deps, track: (stop: () => Promise<void
       const file = writeTranscript(job, attachmentsOf(job))
       const transcript = file ? `\n\nThis task came out of a discussion. Read it for what the card leaves out: ${file}` : ''
       const planned = (resume: string | null | undefined, fork: boolean, said = '') => {
-        let p = deps.plan(job.runtime, prompt + said, cwd, resume, job.model, settingsOf(job), fork)
+        let p = deps.plan(job.runtime, job.lang ? inLanguage(prompt + said, job.lang) : prompt + said, cwd, resume, job.model, settingsOf(job), fork)
         // A task's chat changes its card with the akb the Runner carries, on the task's board.
-        if (ws) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, ws.board, ws.task) } }
-        if (ideas) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, discussed), KANBAN_IDEAS: ideas } }
+        if (ws) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, ws.board, ws.task, job.lang) } }
+        if (ideas) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, discussed, undefined, job.lang), KANBAN_IDEAS: ideas } }
         return p
       }
       // A discussion task's session (#2146), else a new one reading the discussion.

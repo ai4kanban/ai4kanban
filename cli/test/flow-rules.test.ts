@@ -23,6 +23,7 @@ import { readRule, ruleFor, setAgentRule } from '../src/lib/agent/rules.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { findSpecAgent } from '../src/lib/agents/index.ts'
 import { setLanguage } from '../src/lib/machine/settings.ts'
+import { inLanguage, RUN_LANGUAGE_ENV } from '../src/lib/agent/language.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
@@ -557,32 +558,36 @@ describe('a delivery', () => {
   })
 })
 
-// The language the board is read in (#337). One helper behind both paths — the ask a run is
-// given and the setup line a user pastes — so a board that is not English is never half
-// translated. `AI4KANBAN_HOME` is the machine here, as in
+// The language a run writes in (#337, #11): one short line in that language, at the very end,
+// and nothing on an English machine. `AI4KANBAN_HOME` is the machine here, as in
 // `machine-settings.test.ts`.
 describe("the board's language", () => {
-  it("names the language and its boundary in a run's ask", () => {
+  it('ends a printed flow and the setup line with one short line, and the ask holds none', () => {
     setLanguage('zh')
-    const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
-    assert.match(prompt, /Write this board's prose in 中文/)
-    // The boundary rides in the ask itself: `writing`, `refine`, `revise` and `spec-agent`
-    // are never given `akb guide board`.
-    assert.match(prompt, /section headings/)
-    assert.match(prompt, /--slug/)
-    assert.match(prompt, /keeps the language that file is already in/)
-    assert.match(prompt, /code, comments, commit messages/)
+    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1, title: 'card one' }), /请用中文/)
+    assert.match(setupInstruction(), /请用中文回复和写作。$/)
+    const sink = startCollecting()
+    try {
+      printFlow({ action: 'create' })
+    } finally {
+      stopCollecting()
+    }
+    assert.equal(sink.out.join('\n').trimEnd().split('\n').at(-1), '请用中文回复和写作。')
   })
 
-  it('says the same on the setup line, which does not go through the ask', () => {
-    setLanguage('zh')
-    assert.match(setupInstruction(), /Write this board's prose in 中文/)
+  it("follows the Runner's language over this machine's", () => {
+    setLanguage('en')
+    process.env[RUN_LANGUAGE_ENV] = 'zh'
+    try {
+      assert.equal(inLanguage('ask'), 'ask\n\n请用中文回复和写作。')
+    } finally {
+      delete process.env[RUN_LANGUAGE_ENV]
+    }
+    assert.equal(inLanguage('ask'), 'ask')
   })
 
   it('says nothing at all on an English machine', () => {
-    for (const action of ['implement', 'create'] as const) {
-      assert.doesNotMatch(buildPrompt({ action, id: 1, title: 'card one' }), /board's prose/)
-    }
+    assert.equal(inLanguage('ask'), 'ask')
     assert.equal(setupInstruction(), '/kanban. Set up this board — follow docs/kanban/setup-checklist.md.')
   })
 
@@ -602,7 +607,7 @@ describe("the board's language", () => {
     assert.match(printed(), /create --title "\.\." --slug <short-english-slug> —/)
   })
 
-  it('carries the rule in full in `akb guide board`', () => {
+  it('keeps the rule in `akb guide board`', () => {
     const guide = findGuide('board')!.text
     assert.match(guide, /## The board's language/)
     assert.match(guide, /Prose in frontmatter is still prose/)

@@ -3,7 +3,7 @@
 
 import { freshSession } from "./auth";
 import { API_URL } from "./config";
-import type { Lang } from "./i18n";
+import { LANG, type Lang } from "./i18n";
 
 export type Author = { kind: "reviewer"; email: string; handle?: string | null } | { kind: "user"; handle: string } | { kind: "api_key"; id: string; name: string };
 
@@ -125,6 +125,7 @@ async function call(path: string, init: RequestInit = {}, retried = false): Prom
   const session = await freshSession();
   const headers = new Headers(init.headers);
   if (session) headers.set("authorization", `Bearer ${session.access_token}`);
+  if (!path.startsWith("http")) headers.set("x-akb-lang", LANG);
   if (init.body) headers.set("content-type", "application/json");
   let r: Response;
   try {

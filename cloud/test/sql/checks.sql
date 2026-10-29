@@ -5618,4 +5618,41 @@ begin
 end
 $running_limit$;
 
+-- A job replies in the interface language of the request that made it, and one made with none
+-- takes its task's last (#11).
+do $job_lang$
+declare
+  P constant uuid := 'a0a0a0a0-0011-4011-8011-000000000001';
+  MAC constant uuid := 'd0d0d0d0-0011-4011-8011-000000000001';
+  BUDGET constant integer := 100000;
+  RUNTIMES constant jsonb := '[{"name": "codex", "installed": true}]';
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  v_ws text;
+  v_task text;
+  v_job cloud.runner_jobs;
+begin
+  insert into cloud.accounts (id, handle) values (P, 'lang-p');
+  v_ws := api.v1_create_workspace(P, '{"name": "Lang"}', BUDGET) ->> 'id';
+  perform api.register_runner(P, MAC, 'Mac', 10, '0.5.0', RUNTIMES, false, 900, BUDGET);
+
+  perform set_config('request.headers', '{"x-akb-lang": "zh"}', true);
+  v_task := api.v1_create_task(P, jsonb_build_object('title', 'T', 'run', true, 'workspace', v_ws), CODING, BUDGET) ->> 'id';
+  v_job := cloud.v1_flow_job(v_task);
+  assert v_job.lang = 'zh', format('a job did not take the request''s language: %s', v_job.lang);
+  assert cloud.runner_job_json(v_job) ->> 'lang' = 'zh', 'the Runner was not told the language';
+
+  perform set_config('request.headers', '', true);
+  insert into cloud.runner_jobs (owner_id, runtime, prompt, task_id) values (P, 'codex', 'Next', v_task) returning * into v_job;
+  assert v_job.lang = 'zh', 'a job made with no language did not take its task''s';
+
+  perform set_config('request.headers', '{"x-akb-lang": "en"}', true);
+  insert into cloud.runner_jobs (owner_id, runtime, prompt, task_id) values (P, 'codex', 'Again', v_task) returning * into v_job;
+  assert v_job.lang = 'en', 'a switched language did not reach the next job';
+  perform set_config('request.headers', '', true);
+
+  raise notice 'sql checks: #11 job language checks passed';
+end
+$job_lang$;
+
 rollback;

@@ -33,6 +33,7 @@ export interface FakeJob {
   review?: { tasks: string[] } | null
   agent?: { name: string; workflow?: string; tasks?: { id: string; number: number }[] } | null
   prompt: string
+  lang?: 'en' | 'zh' | null
   attachments: { name: string; content: string }[]
   state: 'waiting' | 'claimed' | 'finished'
   machine?: string

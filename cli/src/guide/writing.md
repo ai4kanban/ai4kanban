@@ -75,8 +75,8 @@ Every flow writes a card in this order:
 
 ## General writing requirements
 
-- **Keep section titles fixed**: do not rename or translate an existing `##` or `###`
-  section title, and leave empty scaffold sections in place.
+- **Keep section titles fixed**: write every `##` and `###` section title in English, never
+  rename or translate an existing one, and leave empty scaffold sections in place.
 - **Edit only the body**: use board commands for every frontmatter field (`akb guide board`).
 - **Name the source in frontmatter**: pass each plan path, card `#id`, or URL the card came
   from as `--source` to `akb raw create`, or `--add-source` to `akb raw update`; never write

@@ -46,7 +46,7 @@ import { field, metaLine, numbered } from './facts'
 import { taskChatsToReview, type ChatToReview } from './memory-review'
 import { dismissalReview } from './settings'
 import { dismissalsToReview, rejectionsToReview, withdrawnSources } from './dismissal-review'
-import { translating } from './language'
+import { languageNote, translating } from './language'
 import { buildAsk, frozenRules, landBlock, reflectedCards, settingsBlock, workflowRulesBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { openOf } from '../view/rules'
@@ -939,6 +939,11 @@ export function printFlow(rawReq: AgentRequest, program = 'akb'): MoveResult {
     say(`this board's ${ruleOwnerSays(owner)} — the user's words, and yours to follow here too:`)
     say('')
     say(rule)
+  }
+  const language = languageNote()
+  if (language) {
+    say('')
+    say(language)
   }
   return {
     mode: 'print',

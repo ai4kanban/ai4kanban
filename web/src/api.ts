@@ -4,6 +4,7 @@
 import { ApiError, type SharedComponent } from "@review/api";
 import { freshSession } from "@review/auth";
 import { API_URL } from "@review/config";
+import { LANG } from "@review/i18n";
 
 export { ApiError };
 
@@ -366,6 +367,7 @@ export async function call(path: string, init: RequestInit = {}, retried = false
   if (!session) throw new ApiError("unauthenticated", 401);
   const headers = new Headers(init.headers);
   headers.set("authorization", `Bearer ${session.access_token}`);
+  headers.set("x-akb-lang", LANG);
   if (init.body) headers.set("content-type", "application/json");
   let r: Response;
   try {

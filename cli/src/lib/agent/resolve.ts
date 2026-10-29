@@ -605,8 +605,7 @@ export function skillCall(agent?: string, pin?: string): string {
  *  It is one line rather than one per step: setup picks up at the first unticked box, so
  *  the same paste restarts it wherever it stopped.
  *
- *  It carries the board's language itself (#337): a pasted line never goes through the ask,
- *  and setup is where a board's first cards and memory notes are written. */
+ *  It ends in the run's language line (#11): a pasted line never goes through a run. */
 export function setupInstruction(): string {
   return [`${skillCall(PLANNING_ROLE)}. Set up this board — follow docs/kanban/setup-checklist.md.`, languageNote()]
     .filter(Boolean)

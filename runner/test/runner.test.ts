@@ -232,6 +232,16 @@ describe('the Runner', () => {
     assert.deepEqual(job.report, { reply: 'Two tiers.', session: 'th_1', context: { used: 38_000, limit: 200_000 } })
   })
 
+  it('ends the prompt in the language of the message that started it (#11)', async () => {
+    const zh = cloud.dispatch({ id: 'j1', resume: 'th_1', lang: 'zh' })
+    start()
+    await until(() => zh.state === 'finished')
+    assert.ok(planned[0]!.prompt.endsWith('\n\n请用中文回复和写作。'), planned[0]!.prompt)
+    const en = cloud.dispatch({ id: 'j2', lang: 'en' })
+    await until(() => en.state === 'finished')
+    assert.doesNotMatch(planned[1]!.prompt, /请用中文/)
+  })
+
   it('copies a discussion task\'s session, and falls back to a new one reading the discussion (#2146)', async () => {
     const job = cloud.dispatch({ id: 'j1', resume: 'ds1', fork: true, transcript: 'User: Tiers?\n\nAgent: Two.' })
     const forked: (boolean | undefined)[] = []
