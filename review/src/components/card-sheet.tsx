@@ -249,7 +249,6 @@ export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRe
       {open && (
         <div role="dialog" className="nb-panel nb-pop origin-top-right absolute right-0 top-[calc(100%+6px)] z-20 w-[320px] max-w-[calc(100vw-24px)] bg-nb-paper p-3">
           <p className="text-[13px] font-[700]">{a.removeAsk}</p>
-          <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{a.removeBody}</p>
           <textarea
             rows={3}
             value={reason}
@@ -260,6 +259,7 @@ export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRe
             className="mt-2.5 block w-full resize-none rounded-[8px] border bg-nb-paper px-2.5 py-2 text-[12.5px] leading-snug text-nb-ink outline-none placeholder:text-nb-ink-soft max-md:text-[16px]"
             style={{ borderColor: HAIRLINE }}
           />
+          <p className="mt-1.5 text-[12px] leading-snug text-nb-ink-soft">{a.removeHint}</p>
           <div className="mt-3 flex justify-end gap-2">
             <Button variant="ghost" size="xs" onClick={() => setOpen(false)}>
               {a.keep}
@@ -272,7 +272,7 @@ export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRe
                 setReason("");
               }}
             >
-              {a.remove}
+              {reason.trim() ? a.remove : a.discard}
             </Button>
           </div>
         </div>
