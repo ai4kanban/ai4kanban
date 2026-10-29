@@ -132,7 +132,7 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
           navigate(`/tasks/${encodeURIComponent(t.key)}`);
         }}
       />
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto [&>*]:shrink-0">
+      <nav className="mb-2 flex shrink-0 flex-col gap-0.5">
         {boardHref && (
           <Link href={boardHref} className={cn(ROW, "h-[30px]", onBoard && ACTIVE)}>
             <LuSquareKanban size={13} aria-hidden />
@@ -143,10 +143,12 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
           <FiGrid size={13} aria-hidden />
           <span className="flex-1 truncate">{T.flows.title}</span>
         </Link>
-        <Link href="/stats" className={cn(ROW, "mb-2 h-[30px]", path === "/stats" && ACTIVE)}>
+        <Link href="/stats" className={cn(ROW, "h-[30px]", path === "/stats" && ACTIVE)}>
           <FiBarChart2 size={13} aria-hidden />
           <span className="flex-1 truncate">{T.stats.title}</span>
         </Link>
+      </nav>
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto [&>*]:shrink-0">
         {query.trim() ? (
           <>
             <span className="px-2.5 pb-1 text-[11px] font-[700] text-nb-ink-soft">{T.matches}</span>
@@ -161,7 +163,7 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
         ) : (
           <ChatList chats={store.chats} active={activeChat} />
         )}
-      </nav>
+      </div>
       <div className="mt-auto flex shrink-0 items-center gap-1">
         <Link href={archiveHref} className={cn(ROW, "h-[30px] min-w-0 flex-1", path === "/archive" && ACTIVE)}>
           <FiArchive size={13} aria-hidden />
