@@ -11,10 +11,13 @@ type ImageCopy = Pick<Copy["ai"], "notImage" | "tooBig" | "tooMany" | "openImage
 
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 const MAX_IMAGES = 4;
-const MAX_BYTES = 5 * 1024 * 1024;
+const MB = 1024 * 1024;
+/** What a shrunk picture may weigh; the original is only capped so decoding it stays bounded. */
+const MAX_MB = 5;
+const MAX_SOURCE_MB = 50;
 const MAX_SIDE = 2000;
 /** A picture larger than this, drawn again, goes as a JPEG: four must fit Cloud's 4 MB. */
-const JPEG_OVER = 1024 * 1024;
+const JPEG_OVER = MB;
 const EXT: Record<string, string> = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp" };
 
 export type Staged = { id: string; image: ChatImage; url: string };
@@ -67,8 +70,8 @@ export function useStagedImages(c: ImageCopy, onProblem: (problem: string | null
         onProblem(c.notImage(file.name));
         continue;
       }
-      if (file.size > MAX_BYTES) {
-        onProblem(c.tooBig(file.name));
+      if (file.size > MAX_SOURCE_MB * MB) {
+        onProblem(c.tooBig(file.name, MAX_SOURCE_MB));
         continue;
       }
       if (held.current >= MAX_IMAGES) {
@@ -80,6 +83,11 @@ export function useStagedImages(c: ImageCopy, onProblem: (problem: string | null
       if (!image) {
         held.current--;
         onProblem(c.notImage(file.name));
+        continue;
+      }
+      if ((image.content.length * 3) / 4 > MAX_MB * MB) {
+        held.current--;
+        onProblem(c.tooBig(file.name, MAX_MB));
         continue;
       }
       setStaged((s) => [...s, { id: crypto.randomUUID(), image, url: `data:${image.type};base64,${image.content}` }]);
