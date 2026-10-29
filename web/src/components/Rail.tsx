@@ -148,7 +148,7 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
           <span className="flex-1 truncate">{T.stats.title}</span>
         </Link>
       </nav>
-      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto [&>*]:shrink-0">
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden [&>*]:shrink-0">
         {query.trim() ? (
           <>
             <span className="px-2.5 pb-1 text-[11px] font-[700] text-nb-ink-soft">{T.matches}</span>
@@ -167,7 +167,7 @@ export function Rail({ open, onToggle, archiveHref, activeChat }: { open: boolea
       <div className="mt-auto flex shrink-0 items-center gap-1">
         <Link href={archiveHref} className={cn(ROW, "h-[30px] min-w-0 flex-1", path === "/archive" && ACTIVE)}>
           <FiArchive size={13} aria-hidden />
-          {T.archive}
+          <span className="flex-1 truncate">{T.archive}</span>
         </Link>
         <button
           type="button"
@@ -212,16 +212,16 @@ export function ChatList({ chats, active, big }: { chats: ChatRow[]; active?: st
           )}
           <span className={cn("min-w-0 flex-1 truncate", c.state === "waiting_you" && !on && "font-[700]")}>{c.title}</span>
           {c.host && (
-            <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.idea.from(HOST_NAMES[c.host])} aria-label={T.idea.from(HOST_NAMES[c.host])}>
+            <span className="nb-tip nb-tip-end shrink-0 text-nb-ink-soft" data-tip={T.idea.from(HOST_NAMES[c.host])} aria-label={T.idea.from(HOST_NAMES[c.host])}>
               <FiTerminal size={12} aria-hidden />
             </span>
           )}
           {c.state === "replying" && (
-            <span className="nb-tip shrink-0 text-nb-ink-soft" data-tip={T.chatReplying} aria-label={T.chatReplying}>
+            <span className="nb-tip nb-tip-end shrink-0 text-nb-ink-soft" data-tip={T.chatReplying} aria-label={T.chatReplying}>
               <FiLoader size={12} className="animate-spin" aria-hidden />
             </span>
           )}
-          {c.state === "waiting_you" && <span className="nb-tip size-1.5 shrink-0 rounded-full bg-nb-accent" data-tip={T.chatYou} aria-label={T.chatYou} />}
+          {c.state === "waiting_you" && <span className="nb-tip nb-tip-end size-1.5 shrink-0 rounded-full bg-nb-accent" data-tip={T.chatYou} aria-label={T.chatYou} />}
         </Link>
         <CloseChat
           chat={c}
