@@ -107,20 +107,7 @@ ever a throwaway project, never one a workspace is using.**
 
 ## Deploy
 
-Staging first, production only once staging passes. Every command takes `-- --env staging`,
-which reads `cloud/.env.staging` alone (production's values in the shell never reach it).
-
-1. **Staging**: `npm run migrate -- --env staging`, then `npm run deploy -- --env staging`.
-2. **Verify staging**: `npm run check:live -- --env staging` reports `up to date`, and
-   `npm run check:closed -- --env staging` passes. Then the change itself, by hand: sign in on
-   `https://staging.wildcrane-app.pages.dev` (`../web/README.md`), and walk the flow it touches.
-3. **Production**: `npm run migrate`, then `npm run deploy` — the schema goes first, so the
-   Worker always has the tables it expects.
-4. **Verify production**: `npm run check:live` reports `up to date`;
-   `curl https://api.ai4kanban.dev/health`, then `POST /v1/self-check` with an **admitted**
-   account's token. `not_admitted` means the account is not on the list, not a failed deploy.
-
-`npm run rollback` returns the Worker, **not the schema**.
+See [`docs/deploy.md`](../docs/deploy.md).
 
 ## Staging
 

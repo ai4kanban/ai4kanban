@@ -42,13 +42,10 @@ names, and falls back to the previous one if the new one does not start.
 `npm install` here (it builds `dist/`), `npm test`, `npm run lint`. The Runner bundles the CLI's
 harness, session and Realtime code from `../cli/src`, and the CLI itself into `dist/akb/`, so
 `cli/` needs its own `npm install`.
-Releasing: raise `version`, `npm run build`, and `npm publish --provenance=false` from this
-folder with an npm token (trusted publishing is not set up, so the `runner-v*` workflow cannot
-publish). Then in `cloud/` run `npm run runner-release candidate <version> <percent>` and widen
-it to `stable`; raise `RUNNER_MIN_PROTOCOL` only after that, and after a plugin release.
+Releasing: [`docs/deploy.md`](../docs/deploy.md).
 
 The desktop app is `desktop/`: a Tauri 2 shell running the bundled Node on `dist/launcher.mjs`
 with `WILDCRANE_DESKTOP=1`; the two speak JSON lines (`src/desktop.ts`). It needs Rust.
 `npm install --include=dev` there, then `npm run dev`; `npm run lint` typechecks the windows,
-`node scripts/preview.mjs` draws every window state into one page. Releasing: raise its
-`version`, push the tag `desktop-v<version>` (`.github/workflows/desktop-release.yml`).
+`node scripts/preview.mjs` draws every window state into one page.
+Releasing: [`docs/deploy.md`](../docs/deploy.md).
