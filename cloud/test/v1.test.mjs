@@ -595,7 +595,7 @@ describe('workspaces (#2045)', () => {
   })
 
   it('reads daily stats over whole days, a year at most, in an IANA zone (#2066)', async () => {
-    db.v1_workspace_stats = () => ({ data: [] })
+    db.v1_workspace_stats = () => ({ data: [], models: [] })
     const stats = (q) => send(`/v1/workspaces/ws_1/stats?${q}`)
     assert.equal((await stats('from=2026-01-01&to=2026-12-31&tz=Asia/Shanghai')).status, 200)
     assert.equal((await stats('from=2024-01-01&to=2024-12-31')).status, 200)

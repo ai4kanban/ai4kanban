@@ -1,13 +1,16 @@
 // `/stats` (#2066): the workspace's tasks created, done and cancelled per day, and what its runs
-// cost, over 30 days, 90 days or a year, split into days in the browser's time zone.
+// cost, over 30 days, 90 days or a year, split into days in the browser's time zone, and each
+// model's runs and cost over the range (#38).
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { AgentMark } from "@review/components/agent-mark";
 import { HAIRLINE } from "@review/components/chrome";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { T } from "../i18n";
 import { useNarrow } from "../lib/narrow";
 import { useStore } from "../store";
+import { LABEL, MARK } from "../components/Settings";
 import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
 
@@ -18,8 +21,7 @@ const ZERO: api.Usage = { input: 0, cacheCreation: 0, cacheRead: 0, output: 0 };
 
 const iso = (at: number) => new Date(at).toISOString().slice(0, 10);
 const label = (date: string) => T.stats.day(Number(date.slice(5, 7)), Number(date.slice(8, 10)));
-const money = (usd: number) => `$${usd.toFixed(2)}`;
-const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+const money = (usd: number | null) => (usd === null ? "—" : `$${usd.toFixed(2)}`);
 
 /** The last `n` days up to today on the browser's calendar, each with its row or zeros. */
 function daysOf(n: number, rows: api.StatsDay[]): api.StatsDay[] {
@@ -37,6 +39,7 @@ export function Stats() {
   const phone = useNarrow();
   const [range, setRange] = useState(RANGES[0]!);
   const [rows, setRows] = useState<api.StatsDay[] | null>(null);
+  const [models, setModels] = useState<api.StatsModel[]>([]);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -50,7 +53,11 @@ export function Stats() {
     setRows(null);
     setFailed(false);
     api.readStats(store.ws.id, days[0]!.date, days.at(-1)!.date, tz).then(
-      (r) => live && setRows(r),
+      (r) => {
+        if (!live) return;
+        setRows(r.data);
+        setModels(r.models);
+      },
       () => live && setFailed(true),
     );
     return () => {
@@ -140,18 +147,10 @@ export function Stats() {
                     height={phone ? 120 : 150}
                     legend={<Key color={LINE.completed}>{T.stats.cost}</Key>}
                     series={[{ values: days.map((d) => d.costUsd), color: LINE.completed }]}
-                    tip={(i) => {
-                      const d = days[i]!;
-                      return [
-                        [T.stats.cost, money(d.costUsd)],
-                        [T.stats.tokens.input, compact.format(d.usage.input)],
-                        [T.stats.tokens.output, compact.format(d.usage.output)],
-                        [T.stats.tokens.cacheRead, compact.format(d.usage.cacheRead)],
-                        [T.stats.tokens.cacheWrite, compact.format(d.usage.cacheCreation)],
-                      ];
-                    }}
+                    tip={(i) => [[T.stats.cost, money(days[i]!.costUsd)]]}
                     days={days}
                   />
+                  <Ranking models={models} phone={phone} />
                 </>
               )}
             </div>
@@ -159,6 +158,107 @@ export function Stats() {
         </div>
       </div>
     </Window>
+  );
+}
+
+const SHOWN = 5;
+
+/** Costliest first, then the ones with no cost by runs; past five rows, the rest merge into 其他. */
+function rank(models: api.StatsModel[]) {
+  const sorted = [...models].sort((a, b) => (a.costUsd === null ? (b.costUsd === null ? b.runs - a.runs : 1) : b.costUsd === null ? -1 : b.costUsd - a.costUsd));
+  if (sorted.length <= SHOWN) return { top: sorted, rest: [] };
+  return { top: sorted.slice(0, SHOWN - 1), rest: sorted.slice(SHOWN - 1) };
+}
+
+const nameOf = (m: api.StatsModel) => m.model ?? T.stats.defaultModel;
+const labelOf = (c: string) => LABEL[c as api.Connector] ?? c;
+
+function Mark({ connector, size }: { connector: string; size: number }) {
+  const harness = MARK[connector as api.Connector];
+  return harness ? <AgentMark harness={harness} size={size} /> : <span className="inline-block shrink-0" style={{ width: size }} />;
+}
+
+function Ranking({ models, phone }: { models: api.StatsModel[]; phone: boolean }) {
+  const { top, rest } = rank(models);
+  const costs = rest.flatMap((m) => (m.costUsd === null ? [] : [m.costUsd]));
+  const restCost = costs.length ? costs.reduce((s, c) => s + c, 0) : null;
+  const marks = [...new Set(rest.map((m) => m.connector))];
+  return (
+    <section className="nb-section flex flex-col gap-1 bg-nb-sheet px-4 pb-2 pt-4">
+      {(phone || top.length === 0) && <h2 className="pb-2 text-[14px] font-[800]">{T.stats.models}</h2>}
+      {top.length === 0 ? (
+        <p className="pb-3 text-[13px] text-nb-ink-soft">{T.stats.noRuns}</p>
+      ) : phone ? (
+        <>
+          {top.map((m) => (
+            <div key={`${m.connector}:${m.model}`} className="flex items-center gap-3 py-2.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+              <Mark connector={m.connector} size={18} />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className={cn("truncate text-[13.5px] font-[600]", !m.model && "italic")}>{nameOf(m)}</span>
+                <span className="truncate text-[12px] text-nb-ink-soft">
+                  {labelOf(m.connector)} · {T.stats.runsOf(m.runs)}
+                </span>
+              </span>
+              <span className="shrink-0 text-[13.5px] font-[700] tabular-nums">{money(m.costUsd)}</span>
+            </div>
+          ))}
+          {rest.length > 0 && (
+            <div className="flex items-center gap-3 py-2.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+              <Marks connectors={marks} />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-[13.5px] font-[600]">{T.stats.other}</span>
+                <span className="truncate text-[12px] text-nb-ink-soft">
+                  {T.stats.moreModels(rest.length)} · {T.stats.runsOf(rest.reduce((s, m) => s + m.runs, 0))}
+                </span>
+              </span>
+              <span className="shrink-0 text-[13.5px] font-[700] tabular-nums">{money(restCost)}</span>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="flex items-baseline gap-4 pb-2 text-[11.5px] text-nb-ink-soft">
+            <h2 className="min-w-0 flex-1 text-[14px] font-[800] text-nb-ink">{T.stats.models}</h2>
+            <span className="w-[64px] text-right">{T.stats.runs}</span>
+            <span className="w-[88px] text-right">{T.stats.cost}</span>
+          </div>
+          {top.map((m) => (
+            <div key={`${m.connector}:${m.model}`} className="flex h-[42px] items-center gap-4 text-[13px]" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+              <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                <Mark connector={m.connector} size={16} />
+                <span className="shrink-0 font-[600]">{labelOf(m.connector)}</span>
+                <span className={cn("truncate text-nb-ink-soft", m.model ? "font-mono text-[12px]" : "italic")}>{nameOf(m)}</span>
+              </span>
+              <span className="w-[64px] text-right tabular-nums">{m.runs}</span>
+              <span className="w-[88px] text-right font-[700] tabular-nums">{money(m.costUsd)}</span>
+            </div>
+          ))}
+          {rest.length > 0 && (
+            <div className="flex h-[42px] items-center gap-4 text-[13px]" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+              <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                <Marks connectors={marks} />
+                <span className="shrink-0 font-[600]">{T.stats.other}</span>
+                <span className="truncate text-nb-ink-soft">{T.stats.moreModels(rest.length)}</span>
+              </span>
+              <span className="w-[64px] text-right tabular-nums">{rest.reduce((s, m) => s + m.runs, 0)}</span>
+              <span className="w-[88px] text-right font-[700] tabular-nums">{money(restCost)}</span>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+function Marks({ connectors }: { connectors: string[] }) {
+  return (
+    <span className="flex shrink-0 items-center -space-x-1">
+      {connectors.map((c) => (
+        <span key={c} className="inline-flex size-[18px] items-center justify-center rounded-full bg-nb-sheet">
+          <Mark connector={c} size={13} />
+        </span>
+      ))}
+    </span>
   );
 }
 

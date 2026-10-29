@@ -240,6 +240,9 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
     (UTC by default), tasks `created`, `completed` (`done`) and `rejected` (`cancelled`), and
     the `usage` tokens and `costUsd` of runs finished that day. Days with nothing are left out;
     the range is at most a year.
+    `models` sums the same runs over the whole range, one entry per `connector` and `model`
+    (`null` when the task named none): `runs` and `costUsd` (`null` when none of them reported
+    a cost). Unordered.
   - **Roles**: a member reads and edits every project, task and card of the workspace,
     starts tasks and chats with the agent; owners also rename and delete it, manage its
     members, invite guests and change share links.

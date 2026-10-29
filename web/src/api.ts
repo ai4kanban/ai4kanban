@@ -271,6 +271,14 @@ export interface StatsDay {
   costUsd: number;
 }
 
+/** One connector and model's runs over the whole range of the stats; `model` is null when the task named none. */
+export interface StatsModel {
+  connector: string;
+  model: string | null;
+  runs: number;
+  costUsd: number | null;
+}
+
 export type Connector = "claude-code" | "codex" | "cursor" | "opencode" | "kimi" | "dsh" | "zcode" | "grok";
 
 /** One setting a connector declares, as its Runner reported it; `apiKey` is the only secret. */
@@ -442,7 +450,7 @@ export const listMarketplace = (ws: string) => json<Page<MarketplaceWorkflow>>(c
 export const installWorkflow = (ws: string, id: string) => json<MarketplaceWorkflow>(call(`/v1/marketplace/workflows/${enc(id)}/install`, post({ workspace: ws })));
 export const uninstallWorkflow = (ws: string, id: string) => json<MarketplaceWorkflow>(call(`/v1/marketplace/workflows/${enc(id)}/uninstall`, post({ workspace: ws })));
 export const readStats = (ws: string, from: string, to: string, tz: string) =>
-  json<{ data: StatsDay[] }>(call(`/v1/workspaces/${enc(ws)}/stats?from=${from}&to=${to}&tz=${enc(tz)}`)).then((r) => r.data);
+  json<{ data: StatsDay[]; models: StatsModel[] }>(call(`/v1/workspaces/${enc(ws)}/stats?from=${from}&to=${to}&tz=${enc(tz)}`));
 export const listChats = (ws: string) => json<Page<ChatRow>>(call(`/v1/chats?workspace=${enc(ws)}&limit=50&external=1`));
 
 export const readTask = (idOrKey: string) => json<Task>(call(`/v1/tasks/${enc(idOrKey)}`));

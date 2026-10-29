@@ -3584,6 +3584,22 @@ begin
   assert jsonb_array_length(api.v1_workspace_stats(O, v_ws, '2026-03-01', '2026-03-01', 'Asia/Shanghai') -> 'data') = 0,
     'a day outside the range was listed';
 
+  -- #38: each connector and model's runs over the range, from the same runs as the days.
+  insert into cloud.runner_jobs (owner_id, runtime, model, prompt, task_id, state, outcome, finished_at, usage, cost_usd) values
+    (O, 'claude-code', 'claude-opus-5-5', 'p', v_done, 'finished', 'done', '2026-03-02 10:00+00', null, 1.5),
+    (O, 'claude-code', 'claude-opus-5-5', 'p', v_done, 'finished', 'done', '2026-03-02 11:00+00', null, 0.5),
+    (O, 'codex', 'gpt-5.5', 'p', v_done, 'finished', 'done', '2026-03-02 12:00+00', '{"input": 5, "output": 5}', null);
+  v_rows := api.v1_workspace_stats(O, v_ws, '2026-03-01', '2026-03-02', 'UTC');
+  assert (select jsonb_agg(m order by m ->> 'connector', m ->> 'model') from jsonb_array_elements(v_rows -> 'models') m) =
+    '[{"connector": "claude-code", "model": "claude-opus-5-5", "runs": 2, "costUsd": 2},
+      {"connector": "claude-code", "model": null, "runs": 2, "costUsd": 0.75},
+      {"connector": "codex", "model": "gpt-5.5", "runs": 1, "costUsd": null}]',
+    format('the models were wrong: %s', v_rows -> 'models');
+  assert (select sum((m ->> 'costUsd')::numeric) from jsonb_array_elements(v_rows -> 'models') m) =
+         (select sum((d ->> 'costUsd')::numeric) from jsonb_array_elements(v_rows -> 'data') d),
+    'the models did not add up to the days';
+  assert api.v1_workspace_stats(O, v_ws, '2026-02-01', '2026-02-02', 'UTC') -> 'models' = '[]', 'a range with no runs listed models';
+
   perform pg_temp.refuses(format('select api.v1_workspace_stats(%L, %L, %L, %L, %L)', X, v_ws, '2026-03-01', '2026-03-02', 'UTC'),
     'AKB20', 'a stranger read the stats');
   perform pg_temp.refuses(format('select api.v1_workspace_stats(%L, %L, %L, %L, %L)', O, v_ws, '2026-03-01', '2026-03-02', 'Mars/Base'),

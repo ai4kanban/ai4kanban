@@ -9914,13 +9914,47 @@
       "WorkspaceStats": {
         "type": "object",
         "required": [
-          "data"
+          "data",
+          "models"
         ],
         "properties": {
           "data": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WorkspaceStatsDay"
+            }
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "connector",
+                "model",
+                "runs",
+                "costUsd"
+              ],
+              "properties": {
+                "connector": {
+                  "type": "string",
+                  "example": "claude-code"
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "runs": {
+                  "type": "integer"
+                },
+                "costUsd": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
             }
           }
         }
