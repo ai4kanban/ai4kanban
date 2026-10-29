@@ -1,6 +1,6 @@
 {
   "name": "wildcrane-runner",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "WildCrane's Local Runner \u2014 connects this computer to WildCrane and runs its jobs on your local Claude Code, Codex, OpenCode or Cursor.",
   "license": "FSL-1.1-ALv2",
   "homepage": "https://wildcrane.ai/",
