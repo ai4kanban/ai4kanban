@@ -28,7 +28,7 @@ import { remember, reviewLink } from "../lib/links";
 import { useNarrow } from "../lib/narrow";
 import { Link, navigate, useLocation } from "../router";
 import { useStore } from "../store";
-import { StatusPill, type PillStatus } from "../components/chips";
+import { pillLabel, StatusPill, type PillStatus } from "../components/chips";
 import { useDismiss } from "../components/Header";
 import { LandedCommit, LandedDiff } from "../components/Landed";
 import { RunLog, watchDoing } from "../components/RunLog";
@@ -526,7 +526,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
             <CardSheet
               number={numberOf(task.key)}
               title={task.title}
-              status={<StatusPill status={pill} label={slot ? T.waitingForSlot : undefined} />}
+              status={<StatusPill status={pill} label={pillLabel(task)} />}
               actions={actions}
               info={info}
               above={

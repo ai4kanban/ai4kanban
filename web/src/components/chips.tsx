@@ -2,6 +2,7 @@
 // and blocked marks. Read only; ROI is gone.
 
 import { FiAlertCircle, FiCheckCircle, FiClock, FiEye, FiFlag, FiLock, FiPauseCircle, FiPlayCircle, FiXCircle } from "react-icons/fi";
+import type { Task } from "../api";
 import { T } from "../i18n";
 import type { Level, Status } from "../lib/card";
 import { workflowIcon } from "./workflow-icon";
@@ -19,6 +20,11 @@ const SKIN: Record<PillStatus, { icon: typeof FiEye; soft: string; ink: string }
   done: { icon: FiCheckCircle, soft: "var(--color-nb-mint-soft)", ink: "var(--color-nb-mint-ink)" },
   cancelled: { icon: FiXCircle, soft: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)", ink: "var(--color-nb-ink-soft)" },
 };
+
+/** The pill's name for a task where the status alone says too little: 等待运行 for a queued task held by the plan
+ *  (#2209), the step a running one is on (#79). */
+export const pillLabel = (task: Task): string | undefined =>
+  task.status === "queued" && task.waiting_for_slot ? T.waitingForSlot : task.status === "running" && task.run?.step ? T.step[task.run.step] : undefined;
 
 /** `label`: another name for the status, such as 等待运行 for a queued task held by the plan (#2209). */
 export function StatusPill({ status, label = T.status[status] }: { status: PillStatus; label?: string }) {

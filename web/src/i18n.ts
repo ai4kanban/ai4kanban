@@ -60,6 +60,7 @@ const zh = {
   sep: "、",
   otherProjectsNeedYou: "其他项目有任务等你处理",
   status: { review: "待审核", running: "运行中", queued: "排队中", failed: "未能完成", stopped: "已停止", done: "已完成", cancelled: "已移除" },
+  step: { refine: "细化中", implement: "执行中", revise: "修订中", resolve: "处理回答中" },
   tabs: { board: "看板", chats: "对话", more: "更多" },
   noChats: "还没有对话",
   archiveCount: (n: number) => `${n} 个任务`,
@@ -496,7 +497,7 @@ const zh = {
       "competitor-research": { title: "竞品调研", gloss: "对比竞品是否有同类功能、如何设计，并与我们的方案并列成表。", helper: true },
       "email-planner": { title: "邮件", gloss: "撰写邮件内容并制作预览，包括 newsletter 和公告。", helper: true },
       "qa-manager": { title: "质检员", gloss: "维护项目的测试用例：跟进每张完成的卡片，并为已有功能补写场景。", placeholder: "会附加到 质检员 每次运行的末尾，例如「用例按页面分组」。" },
-      "blog-planner": { title: "简报与大纲", gloss: "负责博客文章卡片从规划到交付。", placeholder: "会附加到博客文章卡片每次新建、细化和修订运行的末尾，例如「每篇不超过 1500 字」。" },
+      "blog-planner": { title: "简报与大纲", gloss: "负责博客文章卡片从细化到交付。", placeholder: "会附加到博客文章卡片每次新建、细化和修订运行的末尾，例如「每篇不超过 1500 字」。" },
       "blog-illustrator": { title: "配图", gloss: "按确认的大纲为博客文章新做封面和正文配图。", placeholder: "会附加到每次制作博客配图的运行末尾，例如「示意图统一用白色背景」。" },
       proposer: {
         title: "建议后续任务",
@@ -506,7 +507,7 @@ const zh = {
       },
       "project-writer": {
         title: "描述项目",
-        gloss: "从用户视角写清项目现状、目标用户和功能，供规划和筛选参考。",
+        gloss: "从用户视角写清项目现状、目标用户和功能，供细化和筛选参考。",
         when: "按所设周期，仅在有新归档的卡片，或者还没有项目描述时运行。",
         note: "项目描述保存在「记忆」中，由该 Agent 维护。",
         placeholder: "会附加到每次更新项目描述的末尾，例如「不写内部工具」。",
@@ -520,7 +521,7 @@ const zh = {
       },
       "memory-pruner": {
         title: "整理记忆",
-        gloss: "将记忆精简为对后续规划真正有用的内容。",
+        gloss: "将记忆精简为对后续细化真正有用的内容。",
         when: "按下「立即整理」时，以及按此处设置的周期。",
         placeholder: "会附加到每次整理记忆的末尾，例如「付费客户相关的记录一律保留」。",
         run: "立即整理",
@@ -588,6 +589,7 @@ const en: Copy = {
   sep: ", ",
   otherProjectsNeedYou: "Other projects need you",
   status: { review: "To review", running: "Running", queued: "Waiting", failed: "Didn't finish", stopped: "Stopped", done: "Done", cancelled: "Removed" },
+  step: { refine: "Refining", implement: "Implementing", revise: "Revising", resolve: "Applying answers" },
   tabs: { board: "Board", chats: "Chats", more: "More" },
   noChats: "No chats yet",
   archiveCount: (n) => (n === 1 ? "1 task" : `${n} tasks`),
@@ -1049,7 +1051,7 @@ const en: Copy = {
       },
       "project-writer": {
         title: "Describe the project",
-        gloss: "Describes what the project is today — who it's for and what it does — for planning and triage to follow.",
+        gloss: "Describes what the project is today — who it's for and what it does — for refining and triage to follow.",
         when: "on your schedule, only when a card has been finished or there is no description yet.",
         note: "The description is in Memory and kept up to date for you.",
         placeholder: 'Added to the end of every update — "leave out internal tools".',
@@ -1063,7 +1065,7 @@ const en: Copy = {
       },
       "memory-pruner": {
         title: "Tidy memory",
-        gloss: "Squeezes the memory back down to what helps planning.",
+        gloss: "Squeezes the memory back down to what helps refining.",
         when: "you press Run now, and on the schedule set here.",
         placeholder: 'Added to the end of every prune — "never drop a line about a paying customer".',
       },

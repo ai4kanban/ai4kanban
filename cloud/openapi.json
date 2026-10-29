@@ -7894,6 +7894,16 @@
                   "null"
                 ],
                 "description": "The name of the runtime the step runs on."
+              },
+              "step": {
+                "type": "string",
+                "enum": [
+                  "refine",
+                  "implement",
+                  "revise",
+                  "resolve"
+                ],
+                "description": "What the step does: `refine` plans the card or makes the previews an approval starts, `implement` builds it, from the start when the task skips planning."
               }
             },
             "required": [

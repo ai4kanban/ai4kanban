@@ -308,7 +308,8 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   the next approval, then builds, or ends a task whose workflow has nothing to land. A build held
   on the card's question asks it the same way, and the answer carries the build on. A decision
   while a step is waiting or running is `conflict`. A task reads `run: { state: "queued" |
-  "running", runner_connected, machine, runtime_name, stopping, runner_removed, job } | null`, `result` once done, `failure` once failed, and
+  "running", runner_connected, machine, runtime_name, stopping, runner_removed, job, step } | null` — `step` is
+  `refine`, `implement`, `revise` or `resolve` (#79) — `result` once done, `failure` once failed, and
   `last_job`, whose log `GET /v1/runner/jobs/{id}/stream` streams and `GET /v1/runner/jobs/{id}` reads once ended. Nothing is retried; a step whose
   Runner went away fails the task. A running task cannot be cancelled (`task_running`).
 - **Stop and resume** (#2128): `POST /v1/tasks/{id}/stop` stops a running step, keeping its work:

@@ -25,7 +25,7 @@ const zh = {
         title: "执行之前，先看预览",
         pain: "想法太多消化不完，人成了交付瓶颈？",
         value: "让 Agent 先把想法变成预览——一张 UI 原型比功能文档直接得多。",
-        note: "每个任务会多花些 token 做规划和预览，让你花最少的精力审批。",
+        note: "每个任务会多花些 token 做细化和预览，让你花最少的精力审批。",
       },
       {
         title: "专注主线，支线交给 Agent",
@@ -42,7 +42,7 @@ const zh = {
         title: "越用越懂你",
         pain: "AI 总犯同样的错，屡教不改？",
         value: "记忆天然按 Agent 和模块切分，取用更精准，占用的上下文更少。",
-        note: "定期总结对话、整理记忆会花少量 token，让之后的规划更准。",
+        note: "定期总结对话、整理记忆会花少量 token，让之后的细化更准。",
       },
       {
         title: "让 Agent 替你当用户",
@@ -137,7 +137,7 @@ const en: FirstRunCopy = {
         title: "See a preview before the build",
         pain: "More ideas than you can digest, and you've become the bottleneck?",
         value: "Agents turn each idea into a preview first. A UI mockup says more than any spec.",
-        note: "Each task spends some extra tokens on planning and previews, so you can approve work with little effort.",
+        note: "Each task spends some extra tokens on refining and previews, so you can approve work with little effort.",
       },
       {
         title: "Own the main line. Agents cover the gaps.",

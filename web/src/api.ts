@@ -25,7 +25,7 @@ export interface Task {
   created_by?: string;
   /** `machine` is the computer the step runs on; `stopping` once asked to stop (#2128); `runner_removed` when
    *  a queued step's computer was removed from the workspace (#2143). */
-  run?: { state: "queued" | "running"; runner_connected: boolean; machine?: string | null; runtime_name?: string | null; stopping?: boolean; runner_removed?: boolean; job: string } | null;
+  run?: { state: "queued" | "running"; runner_connected: boolean; machine?: string | null; runtime_name?: string | null; stopping?: boolean; runner_removed?: boolean; job: string; step?: "refine" | "implement" | "revise" | "resolve" } | null;
   result?: string | null;
   failure?: string | null;
   last_job?: string | null;

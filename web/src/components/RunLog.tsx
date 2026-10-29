@@ -431,7 +431,7 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
             <>
               <span className={PULSE_DOT} aria-hidden />
               <span>
-                {T.running}
+                {task.run?.step ? T.step[task.run.step] : T.running}
                 {started ? ` · ${clock(now - started)}` : ""}
               </span>
             </>
