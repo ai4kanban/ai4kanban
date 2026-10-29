@@ -217,7 +217,7 @@ export const refining = (at: { round?: number | null; rounds?: number } | null |
   !!at?.rounds && Math.max(at.round || 1, 1) < at.rounds;
 
 /** 移除: an icon, then a confirm under it with an optional reason. */
-export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRemove: (reason?: string) => void; draftKey?: string }) {
+export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRemove: (reason?: string) => Promise<boolean>; draftKey?: string }) {
   const a = COPY.act;
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useDraft(draftKey);
@@ -266,10 +266,9 @@ export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRe
             </Button>
             <Button
               size="xs"
-              onClick={() => {
+              onClick={async () => {
                 setOpen(false);
-                onRemove(reason.trim() || undefined);
-                setReason("");
+                if (await onRemove(reason.trim() || undefined)) setReason("");
               }}
             >
               {reason.trim() ? a.remove : a.discard}

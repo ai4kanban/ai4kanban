@@ -308,6 +308,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     setTrouble(null);
     try {
       await work();
+      return true;
     } catch (e) {
       setTrouble(sayError(e));
       // A card updated while it was open: read it again, and say so.
@@ -315,6 +316,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
         loadCard();
         loadTask();
       }
+      return false;
     } finally {
       setBusy(false);
     }
@@ -409,7 +411,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     <>
       {reviewed && <ChatButton quiet label={REVIEW.comments.heading} count={thread.length} open={railOpen} unread={unread && !railOpen} onClick={toggleRail} />}
       {owner && reviewed && <ShareSlot task={task.id} />}
-      {(task.status === "queued" || task.status === "waiting_review") && <RemoveButton busy={busy} draftKey={`${store.ws.id}.task.${task.id}.remove`} onRemove={(reason) => void remove(reason)} />}
+      {(task.status === "queued" || task.status === "waiting_review") && <RemoveButton busy={busy} draftKey={`${store.ws.id}.task.${task.id}.remove`} onRemove={remove} />}
       {waiting && approve >= 0 && !asked && !staged && <RunButton refine={refining(flow)} busy={busy} onClick={() => void run()} />}
       {built && (
         <Button size="xs" className="ml-2" onClick={() => navigate(`/new?workflow=${encodeURIComponent(built.id)}`)}>

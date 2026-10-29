@@ -142,8 +142,10 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
     try {
       await work();
       await reload();
+      return true;
     } catch (e) {
       fail(e);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -170,7 +172,7 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
       await postDecision(token, { text: answerText(c.questions, questions, answers, recent), review_revision: review.revision });
       setAnswers(NO_ANSWERS);
     });
-  const remove = (reason?: string) => void act(() => cancelTask(shared.task.id, reason));
+  const remove = (reason?: string) => act(() => cancelTask(shared.task.id, reason));
 
   const pill = !member ? null : shared.task.status === "cancelled" ? (
     <DeliveryPill label={c.pill.removed} tone="quiet" />
