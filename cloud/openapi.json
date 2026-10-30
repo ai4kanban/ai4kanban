@@ -2635,6 +2635,48 @@
         }
       }
     },
+    "/v1/tasks/{id}/restore": {
+      "post": {
+        "summary": "Restore a removed task",
+        "tags": [
+          "Tasks"
+        ],
+        "description": "Brings a `cancelled` task back as `restores_to` says: `waiting_review` if it was removed while waiting on review, else `stopped`. Its card returns to the board — out of `.archive/`, into its group’s folder while that is open — with no rejection on it, its line on the group root no longer struck, and the task leaves `GET /v1/rejections`. A task that is not `cancelled` is `conflict`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The task’s id or its key (`WC-12`), current or one it had before."
+          }
+        ]
+      }
+    },
     "/v1/tasks/{id}/stop": {
       "post": {
         "summary": "Stop a running task",
@@ -7967,6 +8009,18 @@
               "null"
             ],
             "description": "The handle of whoever cancelled it."
+          },
+          "restores_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "waiting_review",
+              "stopped",
+              null
+            ],
+            "description": "What `POST /v1/tasks/{id}/restore` brings a `cancelled` task back as; null for any other."
           },
           "review": {
             "$ref": "#/components/schemas/Review"

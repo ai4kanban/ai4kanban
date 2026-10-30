@@ -539,7 +539,10 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   discussion as it stands. Its `…/start` needs `expectedVersion`, and a retry
   answers the task already made.
 - **Rejections and triage** (#2067): `POST /v1/tasks/{id}/cancel` takes `{ reason? }` (at most
-  2000); a task reads `cancel_reason` and `cancelled_by`. A triage item is a follow-up waiting to
+  2000); a task reads `cancel_reason` and `cancelled_by`. `POST /v1/tasks/{id}/restore` (#94) brings a
+  removed task back as its `restores_to` says — `waiting_review` if it was removed waiting on review,
+  else `stopped` — its card back on the board unrejected, and off `GET /v1/rejections`; a task not
+  `cancelled` is `conflict`. A triage item is a follow-up waiting to
   be sorted, in a project (`general` without one), kept as a board file (#2107) — `triage/<name>.md`
   open, `triage/dismissed/` or `triage/archived/` once sorted, synced to Runners with the board:
   `{ id: "tri_<project>_<name>", project, title, text, source_task, workflow, state: "open" |

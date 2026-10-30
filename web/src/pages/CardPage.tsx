@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
-import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX } from "react-icons/fi";
+import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
 import type { Artifact, Comment, Decision, Shared } from "@review/api";
 import { AiChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
@@ -35,6 +35,7 @@ import { useStore } from "../store";
 import { pillLabel, StatusPill, type PillStatus } from "../components/chips";
 import { useDismiss } from "../components/Header";
 import { LandedCommit, LandedDiff } from "../components/Landed";
+import { restore, RestoreButton, takeRestoreFailure } from "../components/Restore";
 import { RunLog, watchDoing } from "../components/RunLog";
 import { StageBand, type StageState } from "../components/StageBand";
 import { titleOf } from "../components/Agents";
@@ -163,6 +164,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState<string | null>(null);
+  const [unrestored, setUnrestored] = useState<string | null>(null);
   const [from, setFrom] = useState<api.Discussion | null>(null);
   const [built, setBuilt] = useState<api.Workflow | null>(null);
   // Queued only by the plan's running limit (#2209): its notice names the limit, and offers Free Pro.
@@ -171,6 +173,10 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   useEffect(() => {
     if (slot && !plan) api.readBilling().then(setPlan, () => {});
   }, [slot]);
+  // A restore from the archive that failed says why here (#94).
+  useEffect(() => {
+    setUnrestored(task ? takeRestoreFailure(task.id) : null);
+  }, [task?.id]);
 
   useEffect(() => {
     setChat(query.get("chat") === "1");
@@ -415,6 +421,16 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       setOwn(t);
       store.patchTask(t);
     });
+  const back = async () => {
+    setBusy(true);
+    setUnrestored(
+      await restore(task, (t) => {
+        setOwn(t);
+        store.patchTask(t);
+      }),
+    );
+    setBusy(false);
+  };
   const stop = () =>
     act(async () => {
       const t = await api.stopTask(task.id);
@@ -485,6 +501,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       {reviewed && <ChatButton quiet label={REVIEW.comments.heading} count={thread.length} open={railOpen} unread={unread && !railOpen} onClick={toggleRail} />}
       {owner && reviewed && <ShareSlot task={task.id} />}
       {(task.status === "queued" || task.status === "waiting_review") && <RemoveButton busy={busy} draftKey={`${store.ws.id}.task.${task.id}.remove`} onRemove={remove} />}
+      {task.status === "cancelled" && <RestoreButton task={task} busy={busy} onRestore={() => void back()} />}
       {waiting && approve >= 0 && !asked && !staged && <RunButton refine={refining(flow)} busy={busy} onClick={() => void run()} />}
       {built && (
         <Button size="xs" className="ml-2" onClick={() => navigate(`/new?workflow=${encodeURIComponent(built.id)}`)}>
@@ -593,6 +610,12 @@ export function CardPage({ taskKey }: { taskKey: string }) {
               info={info}
               above={
                 <>
+                  {task.status === "cancelled" && (
+                    <Line tone="grey" icon={<FiXCircle size={14} aria-hidden />}>
+                      {T.restoreTask.removedLine(task.cancelled_by ?? "", REVIEW.date(task.updated_at), task.cancel_reason ?? "")}
+                    </Line>
+                  )}
+                  {task.status === "cancelled" && unrestored && <Line tone="peach" icon={<FiAlertCircle size={14} aria-hidden />}>{unrestored}</Line>}
                   {staged && flow && (
                     <StageBand stages={stageNames} stage={flow.round} state={stageState} questions={questions.length} approve={{ busy, onApprove: () => void run() }} />
                   )}

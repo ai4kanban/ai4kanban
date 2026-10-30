@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { settleEndings } from '../src/v1/endings.ts'
+import { restoreCard, settleEndings } from '../src/v1/endings.ts'
 import { fakeBoards } from './fake-board.mjs'
 
 const SUPABASE_URL = 'https://project.supabase.co'
@@ -182,5 +182,50 @@ describe('a group', () => {
     p.end('task_s', 'done')
     await settleEndings(env)
     assert.deepEqual(callsTo('v1_close_group').map((c) => c.body.p_task), ['task_r'])
+  })
+})
+
+describe('a restored task', () => {
+  const rejected = (title) => card(title).replace('questions: []', 'archived: 2026-10-28\nrejected: true\nrejected_reason: Too broad\nrejected_at: 2026-10-28T00:00:00Z\nrejected_by: user\nquestions: []')
+
+  it('puts its card back in its group’s folder, unrejected, and unstrikes the root’s line', async () => {
+    const p = project([
+      { task: 'task_r', number: 10, title: 'Root', status: 'waiting_review', path: 'todo/10-root/root.md', body: card('Root', { todo: '- [ ] ~~S #11~~\n- [ ] T #12' }) },
+      { task: 'task_s', number: 11, title: 'S', status: 'stopped', path: '.archive/11-task-s.md', parent: 'task_r', body: rejected('S') },
+    ])
+    await restoreCard(env, 'task_s')
+    assert.ok(!p.read('.archive/11-task-s.md'))
+    const s = p.read('todo/10-root/11-task-s.md')
+    assert.equal(s, card('S'))
+    assert.match(p.read('todo/10-root/root.md'), /^- \[ \] S #11$/m)
+    const indexed = callsTo('v1_index_cards').flatMap((c) => c.body.p_cards)
+    assert.deepEqual(indexed.filter((e) => e.number === 11).map((e) => [e.path, !!e.deleted]),
+      [['.archive/11-task-s.md', true], ['todo/10-root/11-task-s.md', false]])
+  })
+
+  it('takes a group root’s folder back with it', async () => {
+    const p = project([
+      { task: 'task_r', number: 10, title: 'Root', status: 'stopped', path: '.archive/10-root/root.md', body: rejected('Root') },
+      { task: 'task_s', number: 11, title: 'S', status: 'cancelled', path: '.archive/10-root/11-task-s.md', parent: 'task_r', body: rejected('S') },
+    ])
+    await restoreCard(env, 'task_r')
+    assert.equal(p.read('todo/10-root/root.md'), card('Root'))
+    assert.equal(p.read('todo/10-root/11-task-s.md'), rejected('S'))
+    assert.ok(!p.read('.archive/10-root/root.md'))
+  })
+
+  it('leaves a card removed on the web where it is, and never overwrites one already back', async () => {
+    const p = project([
+      { task: 'task_r', number: 10, title: 'Root', status: 'running', path: 'todo/10-root/root.md', body: card('Root', { todo: '- [ ] ~~S #11~~' }) },
+      { task: 'task_s', number: 11, title: 'S', status: 'stopped', path: 'todo/10-root/11-task-s.md', parent: 'task_r', body: card('S') },
+      { task: 'task_a', number: 1, title: 'A', status: 'stopped', path: '.archive/1-task-a.md', body: rejected('A') },
+      { task: 'task_b', number: 2, title: 'B', status: 'running', path: 'todo/1-task-a.md', body: card('Other') },
+    ])
+    await restoreCard(env, 'task_s')
+    assert.equal(p.read('todo/10-root/11-task-s.md'), card('S'))
+    assert.match(p.read('todo/10-root/root.md'), /^- \[ \] S #11$/m)
+    await restoreCard(env, 'task_a')
+    assert.equal(p.read('todo/1-task-a.md'), card('Other'))
+    assert.equal(p.read('.archive/1-task-a.md'), rejected('A'))
   })
 })

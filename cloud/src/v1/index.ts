@@ -66,7 +66,7 @@ import { BUILTIN_WORKFLOWS, builtinJson, builtinWorkflow, isBuiltin, workflowFor
 import type { BuiltinWorkflow } from './workflows.ts'
 import { guestInvite } from './guest-mail.ts'
 import { chatCursor, discussionChatInput, discussionInput, draftInput, externalDiscussionInput, startIdea } from './discussions.ts'
-import { settleEndings } from './endings.ts'
+import { restoreCard, settleEndings } from './endings.ts'
 import { stopRun } from '../run-log.ts'
 import type { Invite } from './guest-mail.ts'
 import { sendMail } from '../mail.ts'
@@ -477,6 +477,14 @@ async function reasonOf(c: Call): Promise<string | null> {
 
 async function cancelTask(c: Call): Promise<Response> {
   return stopJob(c, 'v1_cancel_task', { p_id: await taskId(c), p_reason: await reasonOf(c) })
+}
+
+/** A removed task back (#94), its card with it. */
+async function restoreTask(c: Call): Promise<Response> {
+  const task = await taskId(c)
+  const done = await write(c, 'v1_restore_task', { p_id: task })
+  await restoreCard(c.env, task)
+  return json(done)
 }
 
 function listTasks(c: Call): Promise<Response> {
@@ -918,6 +926,7 @@ export const ROUTES: [string, string, Handler][] = [
   ['PATCH', '/v1/tasks/{id}', updateTask],
   ['POST', '/v1/tasks/{id}/cancel', cancelTask],
   ['POST', '/v1/tasks/{id}/stop', async (c) => stopJob(c, 'v1_stop_task', { p_id: await taskId(c) })],
+  ['POST', '/v1/tasks/{id}/restore', restoreTask],
   ['POST', '/v1/tasks/{id}/resume', async (c) => change(c, 'v1_resume_task', { p_id: await taskId(c), p_machine: machineOf(await bodyOf(c.request)) })],
   ['GET', '/v1/tasks/{id}/workflow', async (c) => readTaskWorkflow(c.env, c.caller.accountId, await taskId(c))],
   ['GET', '/v1/tasks/{id}/card', async (c) => readCard(c.env, c.caller.accountId, await taskId(c))],

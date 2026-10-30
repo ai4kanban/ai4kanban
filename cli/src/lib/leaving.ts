@@ -68,6 +68,16 @@ export function markSubtaskIn(text: string, id: number, action: 'tick' | 'strike
   return null
 }
 
+/** A struck subtask line put back, as a rejected card restored (#94) needs. Null when no line changed. */
+export function unstrikeSubtaskIn(text: string, id: number): string | null {
+  const re = new RegExp(`^(\\s*[-*]\\s+(?:\\[[ xX]\\]\\s+)?)~~(.*#${id}\\b.*)~~\\s*$`)
+  const lines = text.split('\n')
+  const i = lines.findIndex((line) => re.test(line))
+  if (i < 0) return null
+  lines[i] = lines[i]!.replace(re, '$1$2')
+  return lines.join('\n')
+}
+
 // Edits the two list lines in place rather than re-serializing the frontmatter, so a card
 // the board never wrote keeps whatever else it has. Only the inline `[1, 2]` form the board
 // writes is matched.

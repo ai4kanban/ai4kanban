@@ -34,6 +34,9 @@ export interface Task {
   /** A Workflow builder task's: the workflow it changes, then the one it saved. */
   context?: { workflow?: string; created?: boolean };
   cancel_reason?: string | null;
+  cancelled_by?: string | null;
+  /** What a removed task comes back as when restored (#94). */
+  restores_to?: "waiting_review" | "stopped" | null;
   review?: Review;
   /** Where a built task's commit landed (#2109); null when nothing was committed. */
   landing?: { commit: string; branch: string; machine: string } | null;
@@ -481,6 +484,7 @@ export const createTask = ({ images, ...body }: { title: string; request: string
   json<Task>(call("/v1/tasks", { ...post({ ...body, ...(images?.length ? { images } : {}), source: "web", run: true }), headers: { "idempotency-key": crypto.randomUUID() } }));
 export const cancelTask = (task: string, reason?: string) => json<Task>(call(`/v1/tasks/${enc(task)}/cancel`, post(reason ? { reason } : undefined)));
 export const stopTask = (task: string) => json<Task>(call(`/v1/tasks/${enc(task)}/stop`, post()));
+export const restoreTask = (task: string) => json<Task>(call(`/v1/tasks/${enc(task)}/restore`, post()));
 export const resumeTask = (task: string, machine?: string) => json<Task>(call(`/v1/tasks/${enc(task)}/resume`, post(machine ? { machine } : undefined)));
 
 export const listTriage = (ws: string, state: TriageItem["state"]) => all<TriageItem>(`/v1/triage?workspace=${enc(ws)}&state=${state}`, Infinity);

@@ -3368,6 +3368,10 @@ begin
   assert api.v1_task_chat(A, v_task) ->> 'status' = 'failed', 'a cancelled task''s chat kept replying';
   perform api.register_runner(A, HOME, 'home-mac', 3, '0.4.0', RUNTIMES, false, 900, BUDGET);
 
+  -- #94: one removed while queued comes back stopped.
+  v_json := api.v1_restore_task(A, v_task, BUDGET);
+  assert v_json ->> 'status' = 'stopped' and v_json -> 'restores_to' = 'null', format('a restored queued task misread: %s', v_json);
+
   -- #59: a running one's step is asked to stop first; its ending then leaves the task removed.
   v_task := api.v1_create_task(A, '{"title": "Remove me", "run": true}', CODING, BUDGET) ->> 'id';
   v_job := cloud.v1_flow_job(v_task);
@@ -3376,6 +3380,13 @@ begin
   assert (select stop_requested from cloud.runner_jobs where id = v_job.id), 'a removed task''s running step was not stopped';
   perform api.finish_runner_job(A, HOME, v_job.id, 'stopped', null, BUDGET, null);
   assert api.v1_task(A, v_task) ->> 'status' = 'cancelled', 'a stopped step brought a removed task back';
+
+  -- #94: restored, it stops for a resume on the computer that ran it; one not removed is refused.
+  assert api.v1_task(A, v_task) ->> 'restores_to' = 'stopped', 'a removed running task would not come back stopped';
+  v_json := api.v1_restore_task(A, v_task, BUDGET);
+  assert v_json ->> 'status' = 'stopped' and v_json -> 'resume' ->> 'machine' = 'home-mac',
+    format('a restored task did not stop for a resume: %s', v_json);
+  perform pg_temp.refuses(format('select api.v1_restore_task(%L, %L, %s)', A, v_task, BUDGET), 'AKB21', 'a task not removed was restored');
 
   v_task := api.v1_create_task(A, '{"title": "Busy", "run": true}', CODING, BUDGET) ->> 'id';
   perform api.claim_runner_job(A, HOME, (cloud.v1_flow_job(v_task)).id, 900, BUDGET);
@@ -4453,6 +4464,20 @@ begin
   assert api.v1_rejections_reviewed(X, array[v_task], BUDGET) = 0, 'an outsider marked a rejection learned';
   assert api.v1_rejections_reviewed(M, array[v_task], BUDGET) = 1, 'marking learned misread';
   assert jsonb_array_length(api.v1_list_rejections(A, v_ws) -> 'tasks') = 0, 'a learned rejection still waited';
+
+  -- #94: one removed waiting on review comes back to it, and is no rejection to learn.
+  v_gone := api.v1_create_task(A, jsonb_build_object('title', 'Back', 'project', v_prj), WF, BUDGET) ->> 'id';
+  update cloud.tasks set status = 'waiting_review' where id = v_gone;
+  assert api.v1_cancel_task(A, v_gone, BUDGET, 'Not now') -> 'result' ->> 'restores_to' = 'waiting_review',
+    'a task removed waiting on review would not come back to it';
+  assert jsonb_array_length(api.v1_list_rejections(A, v_ws) -> 'tasks') = 1, 'a removal with a reason was no rejection';
+  perform pg_temp.refuses(format('select api.v1_restore_task(%L, %L, %s)', X, v_gone, BUDGET), 'AKB20', 'an outsider restored a task');
+  v_json := api.v1_restore_task(M, v_gone, BUDGET);
+  assert v_json ->> 'status' = 'waiting_review' and v_json -> 'cancel_reason' = 'null' and v_json -> 'cancelled_by' = 'null',
+    format('a restored task misread: %s', v_json);
+  assert jsonb_array_length(api.v1_list_rejections(A, v_ws) -> 'tasks') = 0, 'a restored task was still a rejection';
+  assert exists (select 1 from cloud.api_events where type = 'task.updated' and data ->> 'id' = v_gone and data ->> 'status' = 'waiting_review'),
+    'a restore was not told';
 
   -- A card's task by its number.
   v_json := api.v1_card_tasks(jsonb_build_array(jsonb_build_object('project', v_prj,
