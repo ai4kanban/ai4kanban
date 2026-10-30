@@ -1,5 +1,6 @@
 // Hosted narration (#1054): only a Pro user reaches it, spending their AI credits (#1113),
 // the key never leaves the Worker, and a provider failure is a refusal rather than silence.
+// The voice's language and the tier pick the model (#87).
 
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
@@ -7,14 +8,21 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
 import { COST_LOOKUP, GENERATION_URL } from '../src/ai-calls.ts'
-import { MONTHLY_CREDITS, TRIAL_CREDITS } from '../src/credits.ts'
-import { SPEECH_MODEL, wav } from '../src/speech.ts'
+import { CREDIT_RATES, MONTHLY_CREDITS, TRIAL_CREDITS } from '../src/credits.ts'
+import { SPEECH_MODELS, VOICES, mainLanguage, mp3Seconds, wav } from '../src/speech.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
 const ENV = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: 'service-role', OPENROUTER_API_KEY: 'or-key' }
 const SUBJECT = '11111111-1111-4111-8111-111111111111'
 const OTHER = '22222222-2222-4222-8222-222222222222'
 const PCM = new Uint8Array([0x01, 0x00, 0xff, 0x7f])
+const SECONDS = PCM.length / 48000
+// Two MPEG-1 layer III frames at 128 kbps and 44.1 kHz, behind an empty ID3 tag.
+const FRAME = new Uint8Array(417)
+FRAME.set([0xff, 0xfb, 0x90, 0x00])
+const MP3 = new Uint8Array([0x49, 0x44, 0x33, 4, 0, 0, 0, 0, 0, 0, ...FRAME, ...FRAME])
+const MP3_SECONDS = (2 * 1152) / 44100
+const charge = (seconds, tier) => (seconds / 60) * CREDIT_RATES.speech[tier]
 const PRO = { id: 'sub_1', customer_id: 'c', period: 'yearly', status: 'active', current_period_end: null }
 
 const realFetch = globalThis.fetch
@@ -42,8 +50,10 @@ beforeEach(async () => {
   used = {}
   trials = {}
   trialUsed = {}
-  provider = () =>
-    new Response(PCM, { headers: { 'content-type': 'audio/pcm;rate=24000;channels=1', 'x-generation-id': 'gen-s1' } })
+  provider = (body) =>
+    body.response_format === 'mp3'
+      ? new Response(MP3, { headers: { 'content-type': 'audio/mpeg', 'x-generation-id': 'gen-s1' } })
+      : new Response(PCM, { headers: { 'content-type': 'audio/pcm;rate=24000;channels=1', 'x-generation-id': 'gen-s1' } })
   sent = []
   recorded = []
   recording = 'up'
@@ -80,7 +90,7 @@ beforeEach(async () => {
     }
     if (address === 'https://openrouter.ai/api/v1/audio/speech') {
       sent.push({ headers: init.headers, body: JSON.parse(init.body) })
-      return provider()
+      return provider(JSON.parse(init.body))
     }
     throw new Error(`unexpected fetch of ${address}`)
   }
@@ -103,13 +113,79 @@ describe('POST /v1/speech', () => {
     assert.deepEqual(body, wav(PCM))
     assert.equal(new TextDecoder().decode(body.slice(0, 4)), 'RIFF')
     assert.deepEqual(body.slice(44), PCM)
-    assert.deepEqual(sent[0].body, { model: SPEECH_MODEL, input: '안녕하세요', voice: 'Kore', response_format: 'pcm' })
+    assert.deepEqual(sent[0].body, {
+      model: SPEECH_MODELS.multilingual.standard,
+      input: '안녕하세요',
+      voice: 'Kore',
+      response_format: 'pcm',
+    })
     assert.equal(sent[0].headers.authorization, 'Bearer or-key')
+    assert.equal(res.headers.get('x-voice'), 'Kore')
+    assert.equal(res.headers.get('x-tier'), 'standard')
   })
 
-  it('spends a credit per second spoken', async () => {
+  it('spends the standard tier’s credits by the second, unless premium is asked for', async () => {
+    assert.deepEqual(CREDIT_RATES.speech, { standard: 160, premium: 270 })
     await call({ voice: 'Kore', text: 'Hi' })
-    assert.equal(used[SUBJECT], PCM.length / 48000)
+    assert.equal(used[SUBJECT], charge(SECONDS, 'standard'))
+
+    const res = await call({ voice: 'Kore', text: 'Hi', tier: 'premium' }, ENV, OTHER)
+    assert.equal(res.headers.get('x-tier'), 'premium')
+    assert.equal(sent[1].body.model, SPEECH_MODELS.multilingual.premium)
+    assert.equal(used[OTHER], charge(SECONDS, 'premium'))
+  })
+
+  it('reads a Chinese voice with the Chinese model, answering its mp3 as it came', async () => {
+    const res = await call({ voice: 'yunzhou', text: '欢迎使用 WildCrane，AI 版本 v2.5。', tier: 'premium' })
+
+    assert.equal(res.status, 200)
+    assert.equal(res.headers.get('content-type'), 'audio/mpeg')
+    assert.equal(res.headers.get('x-voice'), 'Yunzhou')
+    assert.deepEqual(new Uint8Array(await res.arrayBuffer()), MP3)
+    assert.deepEqual(sent[0].body, {
+      model: SPEECH_MODELS.zh.premium,
+      input: '欢迎使用 WildCrane，AI 版本 v2.5。',
+      voice: VOICES.Yunzhou.id,
+      response_format: 'mp3',
+    })
+    assert.equal(used[SUBJECT], charge(MP3_SECONDS, 'premium'))
+    await Promise.all(later)
+    assert.deepEqual(recorded, [
+      row({ p_usage: MP3_SECONDS, p_cost_usd: 0.003, p_generation_id: 'gen-s1', p_tier: 'premium' }),
+    ])
+  })
+
+  it('reads an English voice with the English model, as wav', async () => {
+    const res = await call({ voice: 'Arthur', text: 'Welcome to WildCrane 2.5.' })
+
+    assert.equal(res.headers.get('content-type'), 'audio/wav')
+    assert.deepEqual(sent[0].body, {
+      model: SPEECH_MODELS.en.standard,
+      input: 'Welcome to WildCrane 2.5.',
+      voice: VOICES.Arthur.id,
+      response_format: 'pcm',
+    })
+  })
+
+  it('refuses a line whose main language is not the voice’s, before reaching the provider', async () => {
+    const zh = await call({ voice: 'Arthur', text: '欢迎使用 WildCrane。' })
+    assert.equal(zh.status, 400)
+    assert.equal((await zh.json()).error.message, 'This text is in Chinese. Pick a Chinese voice.')
+
+    const en = await call({ voice: 'Yunzhou', text: 'Welcome to 野鹤.' })
+    assert.equal((await en.json()).error.message, 'This text is in English. Pick an English voice.')
+    assert.equal(sent.length, 0)
+    assert.equal(used[SUBJECT], undefined)
+  })
+
+  it('lets a multilingual voice read any language', async () => {
+    assert.equal((await call({ voice: 'Kore', text: '欢迎使用 WildCrane。' })).status, 200)
+  })
+
+  it('refuses an unknown tier', async () => {
+    const res = await call({ voice: 'Kore', text: 'Hi', tier: 'economy' })
+    assert.equal(res.status, 400)
+    assert.equal(sent.length, 0)
   })
 
   it('records the call after answering, with its seconds and the cost looked up by generation (#1355)', async () => {
@@ -119,7 +195,7 @@ describe('POST /v1/speech', () => {
 
     await Promise.all(later)
     assert.deepEqual(looked, [{ address: `${GENERATION_URL}?id=gen-s1`, headers: { authorization: 'Bearer or-key' } }])
-    assert.deepEqual(recorded, [row({ p_usage: PCM.length / 48000, p_cost_usd: 0.003, p_generation_id: 'gen-s1' })])
+    assert.deepEqual(recorded, [row({ p_usage: SECONDS, p_cost_usd: 0.003, p_generation_id: 'gen-s1' })])
   })
 
   it('records the call with no cost when the lookup finds none, keeping the generation', async () => {
@@ -128,14 +204,14 @@ describe('POST /v1/speech', () => {
     await Promise.all(later)
 
     assert.equal(looked.length, COST_LOOKUP.tries)
-    assert.deepEqual(recorded, [row({ p_usage: PCM.length / 48000, p_generation_id: 'gen-s1' })])
+    assert.deepEqual(recorded, [row({ p_usage: SECONDS, p_generation_id: 'gen-s1' })])
   })
 
   it('answers and charges all the same when the call cannot be recorded', async () => {
     recording = 'down'
     assert.equal((await call({ voice: 'Kore', text: 'Hi' })).status, 200)
     await Promise.all(later)
-    assert.equal(used[SUBJECT], PCM.length / 48000)
+    assert.equal(used[SUBJECT], charge(SECONDS, 'standard'))
   })
 
   it('serves Pro whether or not the account is admitted to Cloud', async () => {
@@ -221,6 +297,7 @@ const row = (over = {}) => ({
   p_usage: null,
   p_cost_usd: null,
   p_generation_id: null,
+  p_tier: 'standard',
   ...over,
 })
 
@@ -245,6 +322,20 @@ async function token(subject) {
   return `${input}.${b64uBytes(new Uint8Array(signature))}`
 }
 
+describe('mainLanguage', () => {
+  it('counts each Latin word against the Han characters', () => {
+    assert.equal(mainLanguage('在 WildCrane v2.5 里，AI 会先写 script，再用 TTS 生成旁白。'), 'zh')
+    assert.equal(mainLanguage('Welcome to 野鹤.'), 'en')
+    assert.equal(mainLanguage('2.5'), null)
+  })
+})
+
+describe('mp3Seconds', () => {
+  it('sums the frames past the ID3 tag', () => {
+    assert.equal(mp3Seconds(MP3), MP3_SECONDS)
+  })
+})
+
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
@@ -252,3 +343,19 @@ const b64u = (text) => b64uBytes(new TextEncoder().encode(text))
 
 const b64uBytes = (bytes) =>
   Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+describe('VOICES', () => {
+  it('matches the scriptwriter’s voice list, group by group', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const list = await readFile(new URL('../../cli/src/agents/scriptwriter/references/voices.md', import.meta.url), 'utf8')
+    const groups = { Chinese: 'zh', English: 'en', Multilingual: 'multilingual' }
+    const listed = {}
+    let group
+    for (const line of list.split('\n')) {
+      if (line.startsWith('## ')) group = groups[line.slice(3)]
+      const name = /^\| (\w+) \|/.exec(line)?.[1]
+      if (name && name !== 'Voice') listed[name] = group
+    }
+    assert.deepEqual(listed, Object.fromEntries(Object.entries(VOICES).map(([name, v]) => [name, v.language])))
+  })
+})

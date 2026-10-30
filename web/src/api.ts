@@ -231,9 +231,18 @@ export interface Quota {
   used: { tasks: number; storage: number };
 }
 
+/** What each hosted capability spends: per minute of speech, per image, per music track. */
+export interface CreditRates {
+  speech: { standard: number; premium: number };
+  image: { economy: number; standard: number; premium: number };
+  music: number;
+}
+
 export interface BillingRead {
   billing: Billing;
   credits: Credits | null;
+  /** Absent from a Cloud before #87. */
+  rates?: CreditRates;
   quota: Quota;
 }
 

@@ -115,6 +115,8 @@ interface Generation {
   fallback: Said
   /** What the success line names in brackets after the file. */
   label: (res: Response) => string
+  /** Where the answer goes when its format is not the one `out` names. */
+  outFor?: (res: Response, out: string) => string
 }
 
 const REF_TYPES: Record<string, string> = {
@@ -129,6 +131,7 @@ function usage(problem: string, line: string): never {
 }
 
 const TIERS = ['economy', 'standard', 'premium']
+const SPEECH_TIERS = ['standard', 'premium']
 
 /** `akb cloud image --aspect <ratio> [--tier <tier>] [--ref <file>]… --out <file.png> "<prompt>"` */
 export async function cloudImage(
@@ -170,13 +173,16 @@ export async function cloudImage(
   })
 }
 
-/** `akb cloud tts --voice <name> --out <file.wav> "<text>"` — never falls back to another voice. */
+/** `akb cloud tts --voice <name> [--tier <tier>] --out <file.wav> "<text>"` — never falls back to
+ *  another voice or tier. */
 export async function cloudTts(
-  opts: { voice?: string; out?: string; text: string },
+  opts: { voice?: string; tier?: string; out?: string; text: string },
   program: string,
 ): Promise<MoveResult> {
-  const line = `${program} cloud tts --voice <name> --out <file.wav> "<text>"`
+  const line = `${program} cloud tts --voice <name> [--tier standard|premium] --out <file.wav> "<text>"`
   if (!opts.voice) usage('Missing --voice.', line)
+  const tier = opts.tier ?? 'standard'
+  if (!SPEECH_TIERS.includes(tier)) usage(`--tier ${tier}: pick one of ${SPEECH_TIERS.join(', ')}.`, line)
   if (!opts.out) usage('Missing --out.', line)
   const text = opts.text.trim()
   if (!text) usage('Missing the text to speak.', line)
@@ -184,7 +190,7 @@ export async function cloudTts(
   return generate({
     usage: line,
     endpoint: '/v1/speech',
-    body: { voice, text },
+    body: { voice, text, tier },
     out: opts.out,
     pro_required: {
       zh: '托管声音是 Pro 功能。升级 Pro：https://wildcrane.ai/pricing',
@@ -198,7 +204,10 @@ export async function cloudTts(
       zh: '也可以改用本地声音（`npx hyperframes tts --list`）。',
       en: 'You can also use a local voice instead (`npx hyperframes tts --list`).',
     },
-    label: (res) => res.headers.get('x-voice') ?? voice,
+    label: (res) => `${res.headers.get('x-voice') ?? voice}, ${res.headers.get('x-tier') ?? 'standard'}`,
+    // Chinese voices answer mp3 (#87).
+    outFor: (res, out) =>
+      res.headers.get('content-type') === 'audio/mpeg' && /\.wav$/i.test(out) ? out.replace(/\.wav$/i, '.mp3') : out,
   })
 }
 
@@ -260,8 +269,9 @@ async function generate(g: Generation): Promise<MoveResult> {
     if (res.status === 400) usage(error?.message ?? 'The request was refused.', g.usage)
     refuse(g.failed, g.fallback)
   }
-  fs.mkdirSync(path.dirname(path.resolve(g.out)), { recursive: true })
-  fs.writeFileSync(g.out, Buffer.from(await res.arrayBuffer()))
-  say(`${g.out} (${g.label(res)})`)
-  return { out: g.out }
+  const out = g.outFor?.(res, g.out) ?? g.out
+  fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true })
+  fs.writeFileSync(out, Buffer.from(await res.arrayBuffer()))
+  say(`${out} (${g.label(res)})`)
+  return { out }
 }

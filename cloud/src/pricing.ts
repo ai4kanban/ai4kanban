@@ -1,10 +1,11 @@
 /**
  * The public pricing page (#2017), at `/pricing`, in Chinese and English, desktop and phone.
- * Every number comes from src/quota.ts. Subscribing signs in with GitHub through Supabase and
+ * Every number comes from src/quota.ts and src/credits.ts. Subscribing signs in with GitHub through Supabase and
  * lands on Creem's checkout.
  */
 
 import { RUNNER_DOWNLOAD_URL } from './config.ts'
+import { CREDIT_RATES } from './credits.ts'
 import type { Env } from './env.ts'
 import { PLANS, PRICES } from './quota.ts'
 
@@ -27,6 +28,8 @@ const TEXT = {
     tasks: (n: number) => `${n} 个`,
     days: (n: number) => `${n} 天`,
     extra: '按需加购',
+    rates: ['语音合成（每分钟积分）', '图像生成（每张积分）', '音乐生成（每首积分）'],
+    tiers: { economy: '经济', standard: '标准', premium: '高质' },
     shared: ['多 Agent 支持', '分阶段审核', '自定义工作流', '链接分享与访客审阅', '记住偏好与项目要求'],
     per: '/ 月',
     free: { name: 'Free', sub: '适合轻量使用', button: '免费开始' },
@@ -52,6 +55,8 @@ const TEXT = {
     tasks: (n: number) => String(n),
     days: (n: number) => `${n} days`,
     extra: 'Buy as needed',
+    rates: ['Text to speech (credits per minute)', 'Image generation (credits per image)', 'Music generation (credits per track)'],
+    tiers: { economy: 'Economy', standard: 'Standard', premium: 'Premium' },
     shared: ['Multi-agent support', 'Review at each stage', 'Custom workflows', 'Review links and guest access', 'Personal & project memory'],
     per: '/ month',
     free: { name: 'Free', sub: 'For occasional use', button: 'Start free' },
@@ -89,6 +94,14 @@ function values(lang: Lang, plan: 'free' | 'pro'): string[] {
   return [t.tasks(p.tasks), size(p.storage), size(p.file), t.days(p.retentionDays), plan === 'pro' ? t.extra : '—']
 }
 
+/** Pro's credits per use (#87), one line per capability: `标准 160 · 高质 270`. Free has none. */
+function rates(lang: Lang): string[] {
+  const t = TEXT[lang]
+  const tiered = (r: Record<string, number>) =>
+    Object.entries(r).map(([tier, n]) => `${t.tiers[tier as keyof typeof t.tiers]} ${n}`).join(' · ')
+  return [tiered(CREDIT_RATES.speech), tiered(CREDIT_RATES.image), String(CREDIT_RATES.music)]
+}
+
 const value = (v: string | true) =>
   v === true ? CHECK : `<span class="${v === '—' ? 'none' : 'v'}">${esc(v)}</span>`
 
@@ -124,13 +137,13 @@ function compare(lang: Lang): string {
   const t = TEXT[lang]
   const free = values(lang, 'free')
   const pro = values(lang, 'pro')
-  const row = (l: string, a: string | true, b: string | true, i: number, limits: boolean) =>
-    `<div class="row">${label(lang, l, i, limits)}<span class="cell">${value(a)}</span><span class="cell pro">${value(b)}</span></div>`
+  const row = (l: string, a: string | true, b: string | true, i: number, limits: boolean, kind = 'row') =>
+    `<div class="${kind}">${label(lang, l, i, limits)}<span class="cell">${value(a)}</span><span class="cell pro">${value(b)}</span></div>`
   const group = (title: string) => `<div class="row group"><span class="label">${esc(title)}</span><span class="cell"></span><span class="cell pro"></span></div>`
   return `<div class="compare">
 <div class="row top"><div class="intro"><span class="tag"><i></i>${esc(t.eyebrow)}</span><h1 class="${lang}">${esc(t.titleA)}<span class="mark">${esc(t.titleB)}</span></h1></div>
 <div class="cell">${planHead(lang, 'free')}</div><div class="cell pro">${planHead(lang, 'pro')}</div></div>
-${group(t.limitsHead)}${t.labels.map((l, i) => row(l, free[i]!, pro[i]!, i, true)).join('')}
+${group(t.limitsHead)}${t.labels.map((l, i) => row(l, free[i]!, pro[i]!, i, true)).join('')}${rates(lang).map((r, i) => row(t.rates[i]!, '—', r, i, false, 'row tiers')).join('')}
 ${group(t.featuresHead)}${t.shared.map((l, i) => row(l, true, true, i, false)).join('')}
 </div>`
 }
@@ -140,6 +153,7 @@ function phonePlan(lang: Lang, plan: 'free' | 'pro'): string {
   const v = values(lang, plan)
   const items = [
     ...t.labels.map((l, i) => `<li>${label(lang, l, i, true)}${value(v[i]!)}</li>`),
+    ...rates(lang).map((r, i) => `<li>${label(lang, t.rates[i]!, i, false)}${value(plan === 'pro' ? r : '—')}</li>`),
     ...t.shared.map((l, i) => `<li>${label(lang, l, i, false)}${value(true)}</li>`),
   ]
   return `<section class="plan ${plan}"><div class="top">${planHead(lang, plan)}</div><ul>${items.join('')}</ul></section>`
@@ -278,5 +292,6 @@ main{position:relative;padding:56px 0 80px}
 .plan{overflow:hidden;border:1px solid var(--rule);border-radius:12px;background:#fff}.plan .top{padding:20px}.plan.pro .top{background:var(--pro)}
 .plan ul{padding:0 20px 6px}.plan li{display:flex;justify-content:space-between;gap:16px;min-height:44px;border-top:1px solid var(--rule);font-size:14px;line-height:44px}
 .plan li .label{padding:0;min-width:0}.plan li>.ck{flex-shrink:0;margin-top:14px}.plan li .note{margin-top:-8px}}
+.plan li .v{text-align:right;line-height:1.4;padding:12px 0}.row.tiers{line-height:1.45}.row.tiers>span{padding-top:14px;padding-bottom:14px}
 @media (prefers-reduced-motion:reduce){.lane,.digit{animation:none}.digit{transform:translateY(var(--to))}}
 `

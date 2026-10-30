@@ -15,7 +15,7 @@ export interface AiCall {
   /** US dollars, as the provider reported it. */
   cost?: number | null
   generationId?: string | null
-  /** The tier an image was asked for. */
+  /** The tier an image or a line was asked for. */
   tier?: string
 }
 

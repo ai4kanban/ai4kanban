@@ -11,7 +11,7 @@
  */
 
 import { API_ORIGIN, CLOUD_UI_ORIGIN } from './config.ts'
-import { readCredits } from './credits.ts'
+import { CREDIT_RATES, readCredits } from './credits.ts'
 import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
 import { badRequest, billingFailed, billingUnavailable, notFound, proRequired, trialUsed, unauthenticated } from './errors.ts'
@@ -167,7 +167,7 @@ export async function routeBilling(request: Request, env: Env, rest: string): Pr
       billing.plan === 'pro' ? readCredits(env, session.subject, billing) : null,
       quotaOf(env, session, billing),
     ])
-    return json({ billing, credits, quota })
+    return json({ billing, credits, rates: CREDIT_RATES, quota })
   }
 
   if (rest === 'trial') {

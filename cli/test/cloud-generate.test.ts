@@ -169,6 +169,30 @@ describe('akb cloud image / tts / music', () => {
     assert.equal(sent.length, 1)
   })
 
+  it('asks for the tier given, naming the voice and tier it got (#87)', async () => {
+    signIn()
+    answer(() => new Response('wav-bytes', { headers: { 'content-type': 'audio/wav', 'x-voice': 'Kore', 'x-tier': 'premium' } }))
+    const out = path.join(home, 'line.wav')
+    const { code, out: said } = await akb(['cloud', 'tts', '--voice', 'kore', '--tier', 'premium', '--out', out, 'hi'])
+    assert.equal(code, 0)
+    assert.equal(said, `${out} (Kore, premium)`)
+    assert.deepEqual(sent, [{ url: `${API}/v1/speech`, body: { voice: 'kore', text: 'hi', tier: 'premium' } }])
+
+    const bad = await akb(['cloud', 'tts', '--voice', 'Kore', '--tier', 'economy', '--out', out, 'hi'])
+    assert.equal(bad.code, 2)
+    assert.match(bad.err, /^--tier economy: pick one of standard, premium\.\nusage: akb cloud tts /)
+  })
+
+  it('writes an mp3 answer beside the .wav asked for', async () => {
+    signIn()
+    answer(() => new Response('mp3-bytes', { headers: { 'content-type': 'audio/mpeg', 'x-voice': 'Yunzhou', 'x-tier': 'standard' } }))
+    const { code, out: said } = await akb(['cloud', 'tts', '--voice', 'Yunzhou', '--out', path.join(home, 'line.wav'), '你好'])
+    assert.equal(code, 0)
+    assert.equal(said, `${path.join(home, 'line.mp3')} (Yunzhou, standard)`)
+    assert.equal(fs.readFileSync(path.join(home, 'line.mp3'), 'utf8'), 'mp3-bytes')
+    assert.equal(fs.existsSync(path.join(home, 'line.wav')), false)
+  })
+
   it('writes the track and asks for the length given', async () => {
     signIn()
     answer(() => new Response('wav-bytes', { headers: { 'content-type': 'audio/wav' } }))

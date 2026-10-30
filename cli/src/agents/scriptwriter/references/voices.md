@@ -1,6 +1,34 @@
 # Narration voices
 
-Generate with `akb cloud tts --voice <name> --out <file> "<text>"`. Every voice speaks every language; match tone, not language.
+Generate with `akb cloud tts --voice <name> [--tier standard|premium] --out <file> "<text>"`. Pick from the group of the narration's language; a voice reads only its own language, except the multilingual group, which speaks every language. Chinese voices write `.mp3`.
+
+## Chinese
+
+| Voice | Tone |
+| --- | --- |
+| Yunzhou | Male, crisp professional |
+| Mingxuan | Male, confident presenter |
+| Haoran | Male, warm mature |
+| Zihao | Male, gentle young |
+| Xinyi | Female, composed mature |
+| Ruoxi | Female, clear presenter |
+| Tianqing | Female, sweet bright |
+| Wanyu | Female, calm knowing |
+
+## English
+
+| Voice | Tone |
+| --- | --- |
+| Arthur | Male, warm British storyteller |
+| Graham | Male, deep resonant |
+| Edmund | Male, steady British newsreader |
+| Miles | Male, friendly smooth |
+| Clara | Female, confident warm |
+| Hazel | Female, clear British teacher |
+| Ivy | Female, upbeat friendly |
+| Nora | Female, bright youthful |
+
+## Multilingual
 
 | Voice | Tone |
 | --- | --- |

@@ -57,11 +57,30 @@ One redirect, with no lookup, so the answer reveals nothing about what exists.
 
 ## Narration
 
-- `POST /v1/speech` — `{ "voice": "Kore", "text": "…" }`: wav of the text in that voice, from
-  `google/gemini-3.8-flash-tts` through OpenRouter. Voices are `VOICES` in `src/speech.ts`; text
-  is at most 4000 characters. Needs the `OPENROUTER_API_KEY` secret. Any Pro sign-in, admitted or
-  not, spending 1 AI credit per second of generated audio. Each call is recorded in
-  `cloud.ai_calls` with its seconds and upstream cost.
+- `POST /v1/speech` — `{ "voice": "Kore", "text": "…", "tier": "standard" }`: the text in that
+  voice, with its voice in `x-voice` and tier in `x-tier`. `tier` is `standard` (the default) or
+  `premium`. Each voice belongs to one language (`VOICES` in `src/speech.ts`), and the voice's
+  language and the tier pick the model (`SPEECH_MODELS`); the old 30 voices speak every language.
+  Chinese voices answer mp3, the rest wav. Text is at most 4000 characters. Needs the
+  `OPENROUTER_API_KEY` secret. Any Pro sign-in, admitted or not, spending 160 (`standard`) or
+  270 (`premium`) AI credits per minute of generated audio, by the second. A failure spends
+  nothing and never falls back to another tier or model. Each call is recorded in
+  `cloud.ai_calls` with its seconds, tier and upstream cost.
+  - `400 bad_request` — unknown voice or tier, or the text's main language is not the voice's:
+    `"This text is in Chinese. Pick a Chinese voice."` Han characters over half of them and the
+    Latin words together make a text Chinese.
+
+  ```sh
+  curl -X POST "$CLOUD/v1/speech" -H "authorization: Bearer $TOKEN" \
+    -d '{"voice":"Yunzhou","text":"欢迎使用 WildCrane。","tier":"premium"}' -o line.mp3
+  ```
+- **Why these models** (#87): one provider per language whose two tiers share one set of
+  voices, so a sample's voice is the final video's. Chinese: MiniMax Speech 2.8 (`turbo` / `hd`),
+  natural Chinese that reads embedded English and numbers; English: ElevenLabs (`flash-v2.5` /
+  `v3`), the most expressive narration; other languages: Gemini 3.8 TTS (`flash-lite` / `flash`).
+  Measured 2026-10-30 per second: MiniMax $0.00058 / $0.00094, ElevenLabs $0.00048 / $0.00102,
+  Gemini $0.00015 / $0.00023. Each tier's credits per minute are its dearest model's cost over
+  Gemini `flash`'s × 60, rounded up to 10.
 
 ## Images
 
@@ -160,6 +179,8 @@ carries no `CREEM_API_KEY` / `CREEM_WEBHOOK_SECRET`.
   Also `"credits": { "total", "left", "resetsAt" }` for Pro, `null` otherwise: Pro's AI credits
   this UTC month (#1113), spent by every hosted capability at the rates in `src/credits.ts`
   (`cloud.credit_spends`). On the trial alone, its fixed pool instead, with `resetsAt` null.
+  Also `"rates"`: those rates, `{ "speech": { "standard", "premium" }, "image": { "economy",
+  "standard", "premium" }, "music" }` — per minute, per image and per track.
   Also `"quota": { "limits": { "tasks", "storage", "file", "retentionDays" }, "used": { "tasks",
   "storage" }, "storagePacks", "storagePack" }`: the plan's limits (bytes for sizes), with each
   paid storage pack adding `storagePack` to Pro's storage, and what the account uses — nothing

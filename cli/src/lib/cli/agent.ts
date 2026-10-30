@@ -358,10 +358,11 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .argument('[text...]', 'what to say')
     .summary('generate narration in a hosted voice, spending Pro credits')
     .option('--voice <name>', 'a hosted voice')
-    .option('--out <file>', 'where to write the audio')
+    .option('--tier <tier>', 'standard (default) for drafts and samples, premium for the final video')
+    .option('--out <file>', 'where to write the audio; a Chinese voice writes .mp3')
     .action(async function (this: Command, text: string[]) {
-      const o = this.opts() as { voice?: string; out?: string }
-      await boardless(this, cli, (p) => cloudTts({ voice: o.voice, out: o.out, text: text.join(' ') }, p))
+      const o = this.opts() as { voice?: string; tier?: string; out?: string }
+      await boardless(this, cli, (p) => cloudTts({ voice: o.voice, tier: o.tier, out: o.out, text: text.join(' ') }, p))
     })
 
   withShared(cloud.command('music'))

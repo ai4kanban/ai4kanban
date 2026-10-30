@@ -1,5 +1,6 @@
 // 设置 → 账单 (#2080), after legacy kanban-ui/components/Billing.tsx's Summary and Credits: the
-// plan row, one row per figure, then the AI capabilities credits pay for (#77). Read-only:
+// plan row, one row per figure, then the AI capabilities credits pay for (#77), each with its
+// credits per tier (#87). Read-only:
 // upgrading opens the pricing page and everything about a subscription opens the billing
 // portal, both in a new tab.
 
@@ -94,26 +95,44 @@ export function BillingPanel() {
         <Figure label={t.tasks} value={String(quota.used.tasks)} cap={String(quota.limits.tasks)} over={quota.used.tasks >= quota.limits.tasks} />
         <Figure label={t.storage} value={size(quota.used.storage)} cap={size(quota.limits.storage)} over={quota.used.storage >= quota.limits.storage} />
       </div>
-      <AiUses />
+      <AiUses rates={read.rates} />
     </>
   );
 }
 
 const AI_ICONS = [FiImage, FiMic, FiMusic];
 
-function AiUses() {
+function AiUses({ rates }: { rates?: api.CreditRates }) {
   const t = T.billing;
+  const prices = rates && [Object.values(rates.image), Object.values(rates.speech), [rates.music]];
   return (
     <div className="mt-7">
       <Group title={t.ai}>
-        {t.aiUses.map(({ name, hint }, i) => {
+        {t.aiUses.map(({ name, hint, tiers, unit }, i) => {
           const Icon = AI_ICONS[i]!;
+          const credits = prices?.[i];
           return (
             <div key={name} className="flex items-start gap-3 border-b border-nb-ink/10 py-3 last:border-b-0">
               <Icon size={16} className="mt-px shrink-0 text-nb-ink-soft" aria-hidden />
-              <div className="min-w-0">
-                <p className="text-[13.5px] font-[700] leading-tight text-nb-ink">{name}</p>
-                <p className="mt-1 max-w-[62ch] text-[12px] leading-snug text-nb-ink-soft">{hint}</p>
+              <div className="flex min-w-0 flex-1 items-start justify-between gap-6 max-md:flex-col max-md:gap-2">
+                <div className="min-w-0">
+                  <p className="text-[13.5px] font-[700] leading-tight text-nb-ink">{name}</p>
+                  <p className="mt-1 max-w-[62ch] text-[12px] leading-snug text-nb-ink-soft">{hint}</p>
+                </div>
+                {credits && (
+                  <div className="shrink-0 text-right max-md:text-left">
+                    <p className="text-[13px] leading-tight tabular-nums">
+                      {tiers.map((tier, n) => (
+                        <span key={tier}>
+                          {n > 0 && <span className="text-nb-ink/25"> · </span>}
+                          {tier && <span className="text-nb-ink-soft">{tier} </span>}
+                          <span className="font-[700] text-nb-ink">{credits[n]}</span>
+                        </span>
+                      ))}
+                    </p>
+                    <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{unit}</p>
+                  </div>
+                )}
               </div>
             </div>
           );

@@ -29,6 +29,14 @@ describe('the pricing page', () => {
     assert.ok(!/studio|waitlist/i.test(html))
   })
 
+  it('shows Pro’s credits per use, by tier, from src/credits.ts (#87)', () => {
+    const zh = renderPricing('zh', 'https://project.supabase.co')
+    // Each rate on the wide table and Pro's phone plan.
+    for (const shown of ['标准 160 · 高质 270', '经济 230 · 标准 320 · 高质 769']) assert.equal(zh.split(shown).length - 1, 2, shown)
+    assert.ok(zh.includes('语音合成（每分钟积分）'))
+    assert.ok(renderPricing('en', 'https://x').includes('Standard 160 · Premium 270'))
+  })
+
   it('never lets an injected value out of its script', () => {
     const html = renderPricing('en', 'https://x.supabase.co/</script><b>')
     assert.ok(!html.includes('</script><b>'))

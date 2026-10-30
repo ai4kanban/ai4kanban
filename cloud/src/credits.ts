@@ -2,8 +2,8 @@
  * AI credits (#1113): Pro's monthly pool for every hosted capability. The grant and each
  * capability's rate live here and nowhere else; `cloud.credit_spends` records what was spent.
  *
- * A credit is one second of narration. Another capability is priced by its upstream cost over
- * narration's. Nothing carries over: a UTC month starts full, and any credit left lets a use
+ * A credit is what one second of the first narration model cost upstream; every rate is priced
+ * by its upstream cost over that. Nothing carries over: a UTC month starts full, and any credit left lets a use
  * start, so the last one may run over. The trial (#1932) instead has one fixed pool for its
  * whole length.
  */
@@ -16,8 +16,8 @@ export const MONTHLY_CREDITS = 5000
 export const TRIAL_CREDITS = 1000
 
 export const CREDIT_RATES = {
-  /** Per second spoken. */
-  speech: 1,
+  /** Per minute spoken by tier, charged by the second (#87): the tier's dearest model across languages. */
+  speech: { standard: 160, premium: 270 },
   /** Per generated image by tier, including its reference images (#1114, #77). */
   image: { economy: 230, standard: 320, premium: 769 },
   /** Per hosted music track, whatever its length (#1822): priced at market rate, not by upstream cost (#1827). */

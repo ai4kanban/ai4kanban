@@ -26,7 +26,7 @@ Under your agent section heading, write a `###` script subsection titled in the 
 - **Brief**: audience, one core claim, device, aspect ratio, resolution, target length or range, required content, visual direction, subtitle style and audio intent.
 - **Narrative**: write the video as continuous sections in viewing order, each saying what the viewer sees and how it hands over to the next. Number shots `S<n>` only where a section needs them.
 - **Words**: give exact conversational, courteous narration and on-screen text with the voice source; mark unvoiced sections explicitly. Missing narration never means silence.
-- **Voice**: for TTS, pick voices from `references/voices.md`. Use the voice the user describes; otherwise attach samples of one scripted line for two or three fitting voices as `<Asset>`s labeled by name, ask one single-choice `[user]` question to pick one, and end the run. Put the chosen name in the voice source.
+- **Voice**: for TTS, pick voices from the narration language's group in `references/voices.md`. Use the voice the user describes; otherwise attach samples of one scripted line for two or three fitting voices as `<Asset>`s labeled by name, generated with `--tier standard`, ask one single-choice `[user]` question to pick one, and end the run. Put the chosen name in the voice source.
 - **No hosted voice**: when Cloud refuses hosted voices, sample the local Kokoro voices `af_heart` and `zf_xiaobei` instead and say so in your section.
 - **Facts**: list the product claims the video makes and how each was verified; mark unverified ones.
 - **Direction**: specify only what affects the story. Recipes in `references/index.md` are optional references, never a requirement.

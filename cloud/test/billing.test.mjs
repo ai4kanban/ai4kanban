@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import { billingOf, cancelStrandedPacks, creemBase, isPro, signatureOf } from '../src/billing.ts'
-import { creditsOf, MONTHLY_CREDITS, TRIAL_CREDITS } from '../src/credits.ts'
+import { CREDIT_RATES, creditsOf, MONTHLY_CREDITS, TRIAL_CREDITS } from '../src/credits.ts'
 import worker from '../src/index.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
@@ -356,8 +356,9 @@ describe('the signed-in billing routes', () => {
   it('shows Pro this month\'s credits, and nobody else any', async () => {
     rows.set('sub_1', { ...row('active'), user_id: SUBJECT })
     spent[SUBJECT] = 1587.6
-    const { credits } = await (await signedIn('GET', '/v1/billing')).json()
+    const { credits, rates } = await (await signedIn('GET', '/v1/billing')).json()
     assert.equal(credits.total, MONTHLY_CREDITS)
+    assert.deepEqual(rates, CREDIT_RATES)
     assert.equal(credits.left, MONTHLY_CREDITS - 1588)
 
     rows.clear()
