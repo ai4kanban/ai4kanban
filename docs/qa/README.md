@@ -32,6 +32,7 @@
 - [丢弃一次执行，保留任务](cloud/discard-build/case.md)
 - [按语言和档次生成配音](cloud/narration-tiers/case.md)
 - [移除一个没结束的任务，再恢复它](cloud/remove-and-restore/case.md)
+- [给卡片预约细化，没有阻塞就立刻开始](cloud/start-scheduled-refine/case.md)
 
 ## review
 
@@ -46,6 +47,7 @@
 - [切换任务页的语言](review/switch-language/case.md)
 - [在已结束任务的审核页和 AI 讨论](review/chat-on-ended-task/case.md)
 - [工作区成员打开分享链接](review/member-opens-link/case.md)
+- [从公开的审核链接登录](review/sign-in-from-link/case.md)
 
 ## web
 
@@ -66,6 +68,7 @@
 - [在任务页分享，拿到 Web 上的链接地址](web/share-panel-address/case.md)
 - [所有者在任务页保存组件里的修改](web/save-component-on-task/case.md)
 - [在设置里看连接的 Agent 版本](web/agent-version-in-settings/case.md)
+- [看排队中的任务为什么还没开始](web/queue-reason/case.md)
 
 ## runner
 
@@ -121,6 +124,7 @@
   没有 Runner 时，用 SQL 把任务置为 `waiting_review`、`review_status='ready'`、`review_phase=1`
   造出待审核；登录态写进 `localStorage['wildcrane.review.session']`（`expires_at` 用毫秒）。
   Worker 用 `--var APP_URL:<web 来源>`，`REVIEW_URL` 已删除。客人用 `PUT /v1/tasks/{id}/guests/{email}`。
+  运行电脑未连接：SQL 把 `cloud.runners.live_until` 改到过去。脚本点击聊天框内元素不要用 `scrollIntoView`，整个面板会被顶上去。
 - **web**：同 review 的本地云端栈，`web/` 用同样的 `VITE_*` 跑 vite。用一台假 Runner 代替真电脑：
   `POST /v1/runner`（`machineId` 须是 UUID，protocol 11，`claude-code` 已登录，15 分钟内续一次）、
   `POST /v1/runner/folders` 放一个项目；Agent 的回复用 `/v1/runner/jobs/<id>/claim` 和 `/finish`
@@ -130,6 +134,8 @@
   每个用户一份全新的 Chrome 配置，加 `--disable-features=BackForwardCache`，否则页面会卡在 API 上。成员要先调过任一
   `/v1` 路由才有账号行，还要写 `wc.setupDone.<账号>`，否则首次设置会盖住页面或改掉全局默认。组件域名用
   `--host-resolver-rules="MAP *.wildcraneusercontent.com:443 127.0.0.1:<端口>" --ignore-certificate-errors` 指到本地 TLS 服务。
+  无头页面是 `hidden`，不出帧，`mouseWheel` 也会挂住：连上后先发 `Emulation.setFocusEmulationEnabled {enabled:true}`。
+  `list_runner_jobs` 只返回剩余名额数量的作业，其余的用 `task.run.job` 领。
 - **runner**：同 web 的本地云端栈，但用真 Runner：`runner/` 里 `node scripts/build.mjs`，再以
   `WILDCRANE_HOME=<临时目录>`、`AI4KANBAN_CLOUD_URL`/`AI4KANBAN_SUPABASE_URL`/`AI4KANBAN_SUPABASE_ANON_KEY`
   指向本地栈、`WILDCRANE_POLL_MS=2000` 运行 `bin/wildcrane-runner.mjs`（替身没有 Realtime，靠轮询领作业）。
@@ -138,6 +144,9 @@
   证据里把电脑名换成 `QA-Mac`。
   多份 Agent 用临时 `HOME` 和干净的 `PATH`，假副本的版本号要高于真的：`/Applications/ChatGPT.app` 和
   `/opt/homebrew/bin` 还是会被搜到；另外 unset `NVM_DIR`、`PNPM_HOME`。
+  启动前 unset 全部 `CLAUDE_*`、`CLAUDECODE`；写 `session.json`、`projects.json`、`machine.json` 可跳过登录。账号用过假 Runner
+  就换一个，`release` 后新作业仍钉在旧 machine 上。第一次放项目后要真跑一个任务才有 `.akb/kanban`；没运行过的卡用
+  `POST /v1/tasks`（不带 `run`）加 `akb raw create --title … --id <n>`。
 - **site**：直接对线上 `https://wildcrane.ai` 取证，用自己端口的无头 Chrome 加 CDP 点击和截图；浏览器语言
   用 `Network.setUserAgentOverride` 的 `acceptLanguage` 模拟。下载链接用 `curl -sL -o /dev/null -w '%{http_code}'` 记日志。
 - **plugin**：`git archive` 取 `runner cli plugins .claude-plugin skill cloud/src`，在 `runner/` 里构建。
@@ -149,6 +158,8 @@
   启动后等 14 秒再发 `/wildcrane`。按钮只有面板开着时有焦点：用 Tab 走到目标（SGR 里反显的 `7m`）再按 Enter。
   要真登录时接本地云端栈，替身的 `/auth/v1/token` 要答 `user.id`；项目文件夹不能在 `/tmp`，账号上已有的假 Runner 要先
   `POST /v1/runner/release`。插件的 Runner 不认 `WILDCRANE_POLL_MS`，替身下只在启动时领作业。
+  截图的环境保留 `https_proxy`，否则查不到发布清单；tmux 用 `-x 130`，提示框才不折行。验证权限询问时 `settings.json` 不能带
+  `wildcrane_panel` 的 allow；询问框含 `panel.key`，不要进证据。
 - **通用**：本机 shell 导出了指向真实看板的 `AI4KANBAN_BOARD`，取证前先 `unset`（在看板运行里还要 unset
   `AI4KANBAN_LANGUAGE_LINE`、`AI4KANBAN_TASK`、`AI4KANBAN_COMMAND`、`WILDCRANE_JOB`）。`akb triage add` 要用
   `--board <项目>/.akb/kanban`，`--dir` 会写到过期的 `docs/kanban/`。`POST /v1/tasks` 要带
@@ -157,3 +168,5 @@
   `report.session` 和 `context`；替身要经 stdin 把 SQL 交给 `psql`，否则带图消息 503；Worker 的副本也要带 `cli/`。
   起一个想法用 `POST /v1/discussions/external`；要到 `refine`，在卡片 frontmatter 写 `stages: 2` 再批准；真实的问题
   要来自一次运行 finish 的 `review.question`，写进卡片不算。共享看板上领作业前先记下已有作业 id。
+  `PUT /v1/tasks/{id}/card` 写 `blocked_by` 时 `body` 要以 frontmatter 开头（`blocked_by: [4]`），否则 400。Worker 的副本还要带
+  `skill/`，否则构建 `dist/akb` 失败。
