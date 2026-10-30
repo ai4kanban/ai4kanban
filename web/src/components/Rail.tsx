@@ -1,6 +1,6 @@
 // Copied from legacy kanban-ui/components/Rail.tsx: the find box (`/` focuses it, ↑↓ pick,
 // Enter opens), then 看板 (the current project's board), 工作流, 统计 and the current project's conversations newest first: 对话 (idea
-// conversations), then 任务 (task chats, numbered); one in no project counts as general's, the archive at the foot. The rail has no surface: it sits on the window's cream.
+// conversations), then 任务 (task chats you wrote in, numbered); one in no project counts as general's, the archive at the foot. The rail has no surface: it sits on the window's cream.
 // 收起左栏 sits beside the archive; collapsed, a narrow bar of icons keeps 展开左栏 in that spot.
 // Its right edge drags to resize, double-click resets; the width is kept across reloads.
 

@@ -3209,6 +3209,9 @@ begin
   v_json := api.v1_task_chat(A, v_task);
   assert v_json ->> 'status' = 'replying' and jsonb_array_length(v_json -> 'messages') = 1
     and v_json -> 'messages' -> 0 ->> 'body' = 'Build a pricing page.', 'the request did not open the chat';
+  assert not api.v1_list_chats(A, null, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_task)),
+    'a new task''s chat was on the rail before its creator wrote';
+  update cloud.task_chats set in_rail = true where task_id = v_task;
   assert api.v1_list_chats(A, null, null, 20) -> 'data' -> 0 ->> 'state' = 'replying', 'a chat waiting on its step was not replying';
   assert exists (select 1 from cloud.api_events where seq > v_seq and type = 'chat.updated' and account_id = A
     and data = jsonb_build_object('task', v_task, 'state', 'replying')), 'the chat change was not told to its member';
@@ -3454,6 +3457,7 @@ begin
     'clearing a member''s chat touched another''s';
 
   -- A page of chats, newest message first.
+  update cloud.task_chats set in_rail = true where account_id = A;
   v_json := api.v1_list_chats(A, null, null, 1);
   assert jsonb_array_length(v_json -> 'data') = 1 and v_json ->> 'next' = v_json -> 'data' -> 0 ->> 'task', 'a chat page misread';
   assert api.v1_list_chats(A, null, v_json ->> 'next', 1) -> 'data' -> 0 ->> 'task' <> v_json ->> 'next', 'the next page repeated a chat';
@@ -4332,12 +4336,19 @@ begin
   assert api.v1_list_chats(A, v_ws, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_other)),
     'Build now''s chat did not come back to the rail once the user wrote';
 
+  -- Clearing a chat takes it off the rail until the user writes again.
+  perform api.v1_task_chat_clear(A, v_task, BUDGET);
+  assert not (select in_rail from cloud.task_chats where task_id = v_task and account_id = A), 'a cleared chat stayed on the rail';
+  perform api.v1_task_chat_send(A, v_task, 'Back again', null, BUDGET);
+  assert api.v1_list_chats(A, v_ws, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_task)),
+    'a cleared chat did not come back once the user wrote';
+
   -- A task from no discussion carries nothing.
   v_other := api.v1_create_task(A, jsonb_build_object('title', 'Plain', 'workspace', v_ws, 'run', true), CODING, BUDGET) ->> 'id';
   v_job := cloud.v1_flow_job(v_other);
   assert v_job.resume is null and not v_job.fork and v_job.transcript_of is null, 'a plain task carried a session';
-  assert api.v1_list_chats(A, v_ws, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_other)),
-    'a planned task''s chat was not on the rail';
+  assert not api.v1_list_chats(A, v_ws, null, 20) -> 'data' @> jsonb_build_array(jsonb_build_object('task', v_other)),
+    'a new task''s chat was on the rail before its creator wrote';
 
   -- The Triage page's Build now keeps its chat off the rail too.
   v_other := api.v1_create_task(A, jsonb_build_object('title', 'Triaged', 'workspace', v_ws, 'run', true, 'skip_plan', true,

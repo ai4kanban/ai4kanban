@@ -515,7 +515,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
 - **Chat**: each workspace member's own conversation with an agent on a task: `GET`, `POST`,
   `DELETE /v1/tasks/{id}/chat`, or `/v1/shared/{token}/chat` on the review page (`owner_only`
   for a guest or a visitor). Nobody reads another's. `GET /v1/chats?workspace=` lists the
-  caller's, newest message first: `{ task, key, title, project, last_message_at, state:
+  ones the caller wrote in (#113; clearing one drops it until they write again), newest message first: `{ task, key, title, project, last_message_at, state:
   "replying" | "waiting_you" | "idle" }`; a change raises `chat.updated` `{ task, state }` to the
   member alone. `GET` answers `{ messages: [{ id, role: "user" | "agent",
   body, image_names, stopped, usage, cost_usd, duration_ms }], status, job, runtime, runtimes, runner: { connected }, context: { used, limit } | null }`:
