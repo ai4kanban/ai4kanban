@@ -23,8 +23,8 @@ export interface Task {
   updated_at: string;
   card_version: number | null;
   created_by?: string;
-  /** `creator` is who made it (#95): an agent, from the task in `task`, or an account; old tasks have none. */
-  source_context?: { creator?: { agent?: string; account?: string }; task?: string };
+  /** `creator` is who made it (#95): an agent, from the task in `task`, or an account; old tasks have none. `idea` is the idea it was started from (#111). */
+  source_context?: { creator?: { agent?: string; account?: string }; task?: string; idea?: string };
   /** `machine` is the computer the step runs on; `stopping` once asked to stop (#2128); `runner_removed` when
    *  a queued step's computer was removed from the workspace (#2143). */
   run?: { state: "queued" | "running"; runner_connected: boolean; machine?: string | null; runtime_name?: string | null; stopping?: boolean; runner_removed?: boolean; job: string; step?: "create" | "refine" | "implement" | "revise" | "resolve" } | null;

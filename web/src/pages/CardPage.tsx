@@ -234,7 +234,8 @@ export function CardPage({ taskKey }: { taskKey: string }) {
 
   // Who made it (#95): an agent, with the task it came from, or a person. An old task records
   // none; one started from an idea chat is still its starter's.
-  const creator = task?.source_context?.creator ?? (task?.discussion ? {} : undefined);
+  const fromIdea = !!(task?.discussion || task?.source_context?.idea);
+  const creator = task?.source_context?.creator ?? (fromIdea ? {} : undefined);
   const sourceTask = creator?.agent ? task?.source_context?.task : undefined;
   const [sourceKey, setSourceKey] = useState<string | null>(null);
   useEffect(() => {
@@ -492,7 +493,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const chatIo = api.taskChat(task.id);
   const ownChat = (c: Chat): Chat => {
     const [first, ...rest] = c.messages;
-    return task.discussion && first?.role === "user" && first.body === task.request ? { ...c, messages: rest } : c;
+    return fromIdea && first?.role === "user" && first.body === task.request ? { ...c, messages: rest } : c;
   };
   const ai = (
     <AiChat

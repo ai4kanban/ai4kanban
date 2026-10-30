@@ -4194,6 +4194,7 @@ begin
   assert v_json ->> 'title' = 'Pricing page' and v_json ->> 'request' = E'A page with tiers.\n\n## Done when\n- Shows tiers'
     and v_json ->> 'project' = v_prj and v_json ->> 'discussion' = v_dsc and v_json -> 'run' ->> 'state' = 'queued'
     and v_json ->> 'runtime' = (cloud.v1_default_runtime(A)).id, format('the started task misread: %s', v_json);
+  assert v_json -> 'source_context' ->> 'idea' = v_idea, format('the started task did not name its idea: %s', v_json);
   assert cloud.v1_open_tasks(A) = v_open, 'a queued task took a running place';
   assert api.v1_discussion(A, v_dsc) -> 'ideas' -> 0 -> 'task' = jsonb_build_object('id', v_task, 'key', v_json ->> 'key'),
     'the idea did not name its task';
@@ -4231,6 +4232,7 @@ begin
   assert api.v1_delete_discussion(A, v_dsc, BUDGET) = jsonb_build_object('id', v_dsc, 'object', 'discussion', 'deleted', true),
     'a delete misread';
   assert api.v1_task(A, v_task) -> 'discussion' = 'null', 'a started task still named its deleted discussion';
+  assert api.v1_task(A, v_task) -> 'source_context' ->> 'idea' = v_idea, 'a started task forgot its idea with the discussion';
   perform pg_temp.refuses(format('select api.v1_discussion(%L, %L)', A, v_dsc), 'AKB20', 'a deleted discussion was read');
   assert cloud.v1_open_tasks(A) = v_open, 'open tasks moved with a discussion';
 
