@@ -512,6 +512,42 @@ export function pull(ws: TaskFolder, machineId: string): Promise<api.Call<void>>
   })
 }
 
+/** The Cloud board version the folder last read up to; null when never read. */
+export const readHead = (ws: Pick<TaskFolder, 'cwd'>): number | null => readBase(ws).head_seq
+
+/** What Cloud changed since the base, between jobs (#103): written only over a file still as last
+ *  read. One changed here keeps its base, so the next push merges it, and the base keeps its
+ *  `head_seq` until that push lands. */
+export const pullChanges = (ws: TaskFolder): Promise<api.Call<void>> => inFolder(ws.cwd, async () => {
+  const base = readBase(ws)
+  if (base.head_seq === null) return { ok: true, value: undefined }
+  const read = await api.readBoard(ws.project, base.head_seq)
+  if (!read.ok) return read
+  const shared = sharedMemory(ws.board)
+  const root = rootOf(ws)
+  let skipped = false
+  for (const f of read.value.files) {
+    const p = f.path.startsWith(root) ? f.path.slice(root.length) : f.path
+    const isShared = p.startsWith(MEMORY) && shared(p.slice(MEMORY.length))
+    if (kept(p) && isShared === !f.path.startsWith(root)) {
+      const file = path.join(ws.board, p)
+      const here = readText(file)
+      if (here !== f.content && here !== (base.files[f.path]?.content ?? null)) {
+        skipped = true
+        continue
+      }
+      if (f.content === null) fs.rmSync(file, { force: true })
+      else if (here !== f.content) write(file, f.content)
+    }
+    if (f.content === null) delete base.files[f.path]
+    else base.files[f.path] = { seq: f.seq, content: f.content }
+  }
+  if (!skipped) base.head_seq = read.value.head_seq
+  writeBase(ws, base)
+  writeIndex(ws.board)
+  return { ok: true, value: undefined }
+})
+
 async function readCloud(ws: TaskFolder): Promise<api.Call<void>> {
   const base = readBase(ws)
   const known = new Set(Object.keys(base.files))

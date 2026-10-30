@@ -1981,6 +1981,16 @@ begin
   perform pg_temp.refuses(format('select api.add_project_folder(%L, %L, %L, %L, %s)', A, LAPTOP, 'x', '/x', BUDGET),
     'AKB21', 'a computer that is not the Runner added a folder');
 
+  -- #103: a board change is hinted per project to the account keeping it; shared memory to every project.
+  delete from realtime.messages where event = 'board';
+  perform api.hint_board((select workspace_id from cloud.projects where id = v_site), array[v_site], 7, HOME);
+  assert (select array_agg(payload) from realtime.messages where event = 'board' and topic = 'runner:' || A::text)
+    = array[jsonb_build_object('board', v_site, 'head_seq', 7, 'machine', HOME)], 'a board change was not hinted to its Runner';
+  delete from realtime.messages where event = 'board';
+  perform api.hint_board((select workspace_id from cloud.projects where id = v_site), null, 8);
+  assert (select count(*) from realtime.messages where event = 'board' and payload ->> 'head_seq' = '8' and not payload ? 'machine'
+    and payload ->> 'board' in (v_site, v_quiet)) = 2, 'a shared memory change did not hint every project';
+
   -- A project's job goes to its folder on its computer, and nowhere else.
   v_job := api.dispatch_runner_job(A, 'codex', v_site, 'Build it', '[]', BUDGET);
   assert v_job ->> 'projectDir' = '/Users/a/site', 'a project''s job did not carry its folder';

@@ -59,6 +59,7 @@ beforeEach(async () => {
     // One personal workspace, unless a test says otherwise (#2045).
     v1_audience: () => [USER],
     v1_board_of: () => 'ws_1',
+    hint_board: () => undefined,
     v1_payer: () => USER,
     v1_take_endings: () => [],
     v1_claim_idempotency: ({ p_key, p_hash }) => {
@@ -82,7 +83,6 @@ beforeEach(async () => {
     SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: 'service-role',
     ARTIFACTS: bucket,
-    BOARDS: (boards = fakeBoards()),
     EVENT_HUBS: {
       idFromName: (name) => name,
       get: (name) => {
@@ -97,6 +97,7 @@ beforeEach(async () => {
       },
     },
   }
+  env.BOARDS = boards = fakeBoards(env, (p) => pending.push(p))
   globalThis.fetch = async (url, init) => {
     const address = String(url)
     if (address === jwksUrl(SUPABASE_URL)) return json({ keys: [{ ...jwk, kid: 'k', alg: 'ES256' }] })
@@ -741,6 +742,30 @@ describe('board files (#2081, #2114)', () => {
     }
     assert.equal((await commit([{ path: P1 + CARD, content: 'x'.repeat(256 * 1024 + 1), base_seq: 0 }])).status, 413)
     assert.deepEqual(boards.of('ws_1').diff(null).files, [])
+  })
+
+  it('hints the Runners of the projects a change touched, naming the computer that pushed it (#103)', async () => {
+    db.v1_card_place = ({ p_task }) => ({ task: p_task, project: 'prj_1', path: CARD, version: 0, metadata: {}, assets: {} })
+    db.v1_card = ({ p_task }) => ({ object: 'card', task: p_task, project: 'prj_1', path: CARD, version: 1, metadata: {}, assets: {} })
+    const hints = async () => {
+      await idle()
+      return callsTo('hint_board').splice(0).map((c) => c.body)
+    }
+    await commit([{ path: P1 + CARD, content: 'A', base_seq: 0 }])
+    assert.deepEqual(await hints(), [{ p_workspace: 'ws_1', p_projects: ['prj_1'], p_head: 1, p_machine: HOME }])
+    calls.length = 0
+    assert.equal((await send('/v1/tasks/task_aa/card', { method: 'PUT', body: { body: 'From the page', base_version: 1 } })).status, 200)
+    assert.deepEqual((await hints()).map((h) => [h.p_projects, h.p_head, h.p_machine]), [[['prj_1'], 2, null]], 'a card saved on the page')
+    calls.length = 0
+    await commit([{ path: 'memory/tone.md', content: 'Plain', base_seq: 0 }])
+    assert.deepEqual((await hints()).map((h) => h.p_projects), [null], 'shared memory is every project’s')
+    calls.length = 0
+    assert.equal((await commit([{ path: P1 + CARD, content: 'Stale', base_seq: 0 }])).status, 409)
+    await commit([{ path: 'memory/tone.md', content: 'Plain', base_seq: 3 }])
+    assert.deepEqual(await hints(), [], 'a refused write and one that changed nothing')
+    db.hint_board = () => json({ message: 'boom' }, 500)
+    assert.equal((await commit([{ path: P1 + CARD, content: 'B', base_seq: 2 }])).status, 200, 'a failed hint failed the write')
+    await idle()
   })
 
   it('keeps a card saved on the page and a job’s push to it apart: the later one is refused, not lost', async () => {

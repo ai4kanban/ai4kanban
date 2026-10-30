@@ -33,10 +33,10 @@ export function storageOn(db) {
 
 /** `boards.of(workspace)` is the object itself, for checks reading what it holds; `boards.project(id)`
  *  the same for one project's files, by the paths its board names them. */
-export function fakeBoards(env = {}) {
+export function fakeBoards(env = {}, waitUntil = () => {}) {
   const held = new Map()
   const of = (name) => {
-    if (!held.has(name)) held.set(name, new Board({ storage: storageOn(new DatabaseSync(':memory:')) }, env))
+    if (!held.has(name)) held.set(name, new Board({ storage: storageOn(new DatabaseSync(':memory:')), waitUntil }, env))
     return held.get(name)
   }
   const project = (id, workspace = 'ws_1') => {

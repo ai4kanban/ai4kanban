@@ -16,7 +16,9 @@ import { toWire, type Deps } from '../src/jobs'
 import { akbEnv } from '../src/akb'
 import { agentDue } from '../src/agents'
 import { sharedMemory } from '../src/memory-files'
-import { keptBoard, openTaskFolder, pull, pushBoard } from '../src/task-folder'
+import { keptBoard, openTaskFolder, pull, pushBoard, readHead } from '../src/task-folder'
+import { watchBoards } from '../src/board-watch'
+import { hold } from '../src/cache'
 import { FILE_BYTES, diffOf } from '../src/diff'
 import { acpModels, claudeModels, codexModels, opencodeModels, plan, type Plan } from '../src/runtimes'
 import { FakeCloud, until, writeFakeSession, type FakeJob } from './fake-cloud'
@@ -731,6 +733,68 @@ describe('a task’s folder (#2037)', () => {
     assert.equal(commits().length, 1)
     assert.equal(cloud.file('memory/readme.md'), 'once')
     assert.equal(read('memory/readme.md'), 'once')
+  })
+
+  describe('Cloud’s changes between jobs (#103)', () => {
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+    const reads = () => cloud.log.filter((l) => l.startsWith('GET /v1/projects/prj_1/board')).length
+    let watch: ReturnType<typeof watchBoards> | null = null
+    afterEach(() => watch?.close())
+
+    it('reads once for hints close together, dropping its own push and versions already read', async () => {
+      await runTask('j1')
+      watch = watchBoards(MACHINE, 60_000, 60_000, 50)
+      const before = reads()
+      cloud.put({ 'memory/readme.md': 'From the page' })
+      watch.hint('prj_1', cloud.head, MACHINE)
+      watch.hint('prj_1', readHead(keptBoard(cached())!)!)
+      watch.hint('prj_2', cloud.head)
+      await sleep(150)
+      assert.equal(reads(), before, 'a dropped hint read the board')
+      watch.hint('prj_1', cloud.head)
+      watch.hint('prj_1', cloud.head)
+      await until(() => read('memory/readme.md') === 'From the page')
+      await sleep(150)
+      assert.equal(reads(), before + 1)
+      assert.equal(readHead(keptBoard(cached())!), cloud.head)
+    })
+
+    it('writes only the files left as last read, deletions too, and keeps one changed here for its push', async () => {
+      await runTask('j1')
+      watch = watchBoards(MACHINE, 60_000, 60_000, 50)
+      const head = readHead(keptBoard(cached())!)
+      fs.writeFileSync(path.join(board(), 'memory', 'readme.md'), 'mine')
+      cloud.put({ 'memory/readme.md': 'theirs', [CARD]: null, 'todo/2-new.md': '---\ntitle: New\n---\n' })
+      watch.hint('prj_1', cloud.head)
+      await until(() => fs.existsSync(path.join(board(), 'todo', '2-new.md')))
+      assert.ok(!fs.existsSync(path.join(board(), CARD)), 'a card deleted on Cloud stayed')
+      assert.equal(read('memory/readme.md'), 'mine')
+      assert.match(read('todo/README.md'), /#2 New/)
+      assert.equal(readHead(keptBoard(cached())!), head, 'the base moved past a file it did not take')
+      const sent = await pushBoard(keptBoard(cached())!, MACHINE)
+      assert.ok(!sent.ok && sent.conflict, 'the file changed here went up over Cloud’s')
+    })
+
+    it('reads a folder a job holds once the job is over', async () => {
+      await runTask('j1')
+      watch = watchBoards(MACHINE, 60_000, 60_000, 50)
+      const release = hold(cached())
+      cloud.put({ 'memory/readme.md': 'During the job' })
+      watch.hint('prj_1', cloud.head)
+      await sleep(150)
+      assert.equal(read('memory/readme.md'), 'Shipped', 'a held folder was written')
+      release()
+      watch.look()
+      await until(() => read('memory/readme.md') === 'During the job')
+    })
+
+    it('reads on its poll when no hint can arrive', async () => {
+      await runTask('j1')
+      await runner!.close()
+      start('', { watchMs: 50 })
+      cloud.put({ 'memory/readme.md': 'Polled' })
+      await until(() => read('memory/readme.md') === 'Polled')
+    })
   })
 
   it('sends a .tsx mockup as the page it draws, again when a file beside it changes (#2003)', async () => {

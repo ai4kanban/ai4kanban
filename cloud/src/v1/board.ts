@@ -183,7 +183,7 @@ export async function commitBoard(env: Env, ctx: ExecutionContext, account: stri
   const { job, machine, files } = commitInput(project, body)
   await call(env, 'v1_board_job', { p_account: account, p_project: project, p_job: job, p_machine: machine })
   const workspace = await workspaceOfProject(env, project)
-  const done = await boardOf(env, workspace).commit(files)
+  const done = await boardOf(env, workspace).commit(files, machine)
   if (!done.ok) {
     return json({ error: { code: 'version_conflict', message: 'These files changed since they were read.' }, files: done.files }, 409)
   }

@@ -3,7 +3,7 @@
 // read the waiting jobs on every connect and hint. The chats it answered are reviewed for
 // memory once a day (#2065), the projects' periodic agents are looked at every minute (#2068),
 // the cache is cleaned at the start and once a day (#2147), and the boards kept here go back to
-// Cloud as they change (#59).
+// Cloud as they change (#59) and come down as Cloud's change (#103).
 
 import { connectCloudLive, type LiveConnection } from '../../cli/src/lib/cloud/live'
 import { readSession } from '../../cli/src/lib/cloud/session'
@@ -169,6 +169,7 @@ export function startRunner(options: Options): Runner {
       void deps().runtimes()
     }
     await readJobs()
+    if (!live?.joined()) boards?.pullAll()
     void reviewDue()
     void agentsDue()
     schedule(live?.joined() ? options.heartbeatMs ?? HEARTBEAT_MS : Math.min(options.pollMs ?? POLL_MS, options.heartbeatMs ?? HEARTBEAT_MS))
@@ -185,11 +186,16 @@ export function startRunner(options: Options): Runner {
           if (registration) void answerHint(registration.machineId, payload)
           return
         }
+        if (typeof payload.board === 'string') {
+          if (typeof payload.head_seq === 'number') boards?.hint(payload.board, payload.head_seq, payload.machine as string | undefined)
+          return
+        }
         if (payload.jobId || !(payload.alertId || payload.taskId)) void readJobs()
         options.onHint?.(payload)
       },
       onReady: () => {
         void readJobs()
+        boards?.pullAll()
         options.onHint?.({})
       },
     })

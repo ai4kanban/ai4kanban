@@ -1,6 +1,7 @@
 // One workspace's board files (#2081, #2114): a row per file and a workspace-wide change number.
 // Each project's files sit under `projects/<id>/`, the workspace's shared memory under `memory/`.
 // A write names the `seq` each file was read at; any file moved on since refuses the whole write.
+// A write that changed something is hinted to the Runners keeping the projects it touched (#103).
 
 import { call } from './db.ts'
 import type { Env } from './env.ts'
@@ -33,9 +34,11 @@ const rowOf = (r: Stored): BoardRow => ({ path: r.path, content: r.deleted ? nul
 export class Board {
   private readonly sql: SqlStorage
   private readonly state: DurableObjectState
+  private readonly env: Env
 
-  constructor(state: DurableObjectState, _env: Env) {
+  constructor(state: DurableObjectState, env: Env) {
     this.state = state
+    this.env = env
     this.sql = state.storage.sql
     this.sql.exec('create table if not exists files (path text primary key, content text, seq integer not null, deleted integer not null default 0)')
     this.sql.exec('create index if not exists files_seq on files (seq)')
@@ -50,7 +53,7 @@ export class Board {
         case '/read': return this.read(body.paths as string[])
         case '/list': return this.list(body.prefix as string)
         case '/match': return this.match(body.pattern as string)
-        case '/commit': return this.commit(body.files as BoardWrite[])
+        case '/commit': return this.commitAndHint(body.files as BoardWrite[], body.workspace as string, body.machine as string | undefined)
         case '/drop': return this.drop(body.prefix as string)
         case '/destroy': return this.destroy()
       }
@@ -126,6 +129,20 @@ export class Board {
     })
   }
 
+  private commitAndHint(files: BoardWrite[], workspace: string, machine?: string): Committed {
+    const before = this.head()
+    const done = this.commit(files)
+    if (!done.ok || done.head_seq === before) return done
+    const paths = done.files.filter((f) => f.seq === done.head_seq).map((f) => f.path)
+    const projects = paths.some((p) => p.startsWith(SHARED_MEMORY)) ? null
+      : [...new Set(paths.map((p) => /^projects\/([^/]+)\//.exec(p)?.[1]).filter((p): p is string => !!p))]
+    if (projects?.length === 0) return done
+    this.state.waitUntil(call(this.env, 'hint_board', {
+      p_workspace: workspace, p_projects: projects, p_head: done.head_seq, p_machine: machine ?? null,
+    }).catch(() => {}))
+    return done
+  }
+
   /** A project is gone: so is every row under its prefix. */
   drop(prefix: string): { dropped: number } {
     if (!prefix.endsWith('/')) throw new Error('a board prefix ends in /')
@@ -156,7 +173,8 @@ export function boardOf(env: Env, workspace: string) {
     read: (paths: string[]) => ask<BoardRow[]>('read', { paths }),
     list: (prefix: string) => ask<BoardRow[]>('list', { prefix }),
     match: (pattern: string) => ask<BoardRow[]>('match', { pattern }),
-    commit: (files: BoardWrite[]) => ask<Committed>('commit', { files }),
+    /** `machine`: the computer that pushed it, which its hint names. */
+    commit: (files: BoardWrite[], machine?: string) => ask<Committed>('commit', { files, workspace, machine }),
     drop: (prefix: string) => ask<{ dropped: number }>('drop', { prefix }),
     destroy: () => ask<{ destroyed: true }>('destroy'),
   }

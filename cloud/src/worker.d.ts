@@ -70,6 +70,7 @@ declare interface DurableObjectState {
   /** Pings answered without waking the object (#2163). */
   setWebSocketAutoResponse(pair: WebSocketRequestResponsePair): void
   getWebSocketAutoResponseTimestamp(ws: WebSocket): Date | null
+  waitUntil(promise: Promise<unknown>): void
   readonly storage: {
     getAlarm(): Promise<number | null>
     setAlarm(at: number): Promise<void>
