@@ -134,6 +134,11 @@ if (a === 'raw' && b === 'init') {
   }
   if (how.landed) fs.renameSync(cardOf(Number(c)), path.join(board, '.archive', path.basename(cardOf(Number(c)))))
   console.log(JSON.stringify({ ok: true, deliveryId: 'd1', ...(how.landed ? { landed: true } : { carryOn: 'build' }) }))
+} else if (a === 'delivery' && b === 'discard') {
+  // A discarded build (#61): its record keeps no checkout.
+  const file = path.join(board, 'deliveries', `${c}.json`)
+  fs.writeFileSync(file, JSON.stringify({ ...JSON.parse(fs.readFileSync(file, 'utf8')), worktree: undefined, status: 'cancelled' }))
+  console.log(JSON.stringify({ ok: true, deliveryId: c, discarded: true }))
 } else if (a === 'run' && b === 'stop') {
   const runs = read('runs.json', [])
   const run = runs.find((r) => r.sessionId === c)

@@ -1375,6 +1375,24 @@ describe('flow jobs (#2020)', () => {
     })
   })
 
+  describe('discarding a build (#61)', () => {
+    it('throws away each checkout the card still holds, and nothing else', async () => {
+      await flowJob('j1', { verb: 'create' })
+      const record = (deliveryId: string, cardId: number, worktree?: string) =>
+        fs.writeFileSync(path.join(board(), 'deliveries', `${deliveryId}.json`), JSON.stringify({ deliveryId, cardId, worktree }))
+      fs.mkdirSync(path.join(board(), 'deliveries'), { recursive: true })
+      record('d1', 2, '.akb/worktrees/2/d1')
+      record('d2', 2)
+      record('d3', 3, '.akb/worktrees/3/d3')
+      const job = await flowJob('j2', { verb: 'discard', card: 2 })
+      assert.equal(job.outcome, 'done', job.reason)
+      assert.deepEqual(job.report?.card, 2)
+      const discarded = calls().filter((c) => c[0] === 'delivery').map((c) => c.join(' '))
+      assert.deepEqual(discarded, [`delivery discard d1 --yes --json --board ${board()}`])
+      assert.ok(!cardCalls().some((c) => c.startsWith('card implement')), 'a discard built the card')
+    })
+  })
+
   describe('stopping the board runs a force-quit Runner left (#2120)', () => {
     type FakeRun = { sessionId: string; cardId: number; status?: string; startedAt: number }
     const runsFile = () => path.join(board(), '.fake', 'runs.json')

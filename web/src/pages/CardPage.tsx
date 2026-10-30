@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
-import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiCpu, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
+import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiCpu, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiTrash2, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
 import type { Artifact, Chat, Comment, Decision, Shared } from "@review/api";
 import { AiChat, EarlierChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
@@ -36,6 +36,7 @@ import { useStore } from "../store";
 import { pillLabel, StatusPill, type PillStatus } from "../components/chips";
 import { useDismiss } from "../components/Header";
 import { LandedCommit, LandedDiff } from "../components/Landed";
+import { ConfirmButton } from "../components/Confirm";
 import { restore, RestoreButton, takeRestoreFailure } from "../components/Restore";
 import { RunLog, watchDoing } from "../components/RunLog";
 import { StageBand, type StageState } from "../components/StageBand";
@@ -460,6 +461,12 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       setOwn(t);
       store.patchTask(t);
     });
+  const discard = () =>
+    act(async () => {
+      const t = await api.discardTask(task.id);
+      setOwn(t);
+      store.patchTask(t);
+    });
   const retry = () =>
     act(async () => {
       const t = await api.createTask({ title: task.title, request: task.request, project: task.project, workspace: task.workspace, workflow: task.workflow.id });
@@ -582,6 +589,11 @@ export function CardPage({ taskKey }: { taskKey: string }) {
           <FiPlay className="text-[14px]" aria-hidden />
           {T.resume}
         </Button>
+      )}
+      {task.discardable && (
+        <span className="ml-2 flex">
+          <ConfirmButton icon={<FiTrash2 className="text-[13px]" aria-hidden />} label={T.discard.label} ask={T.discard.ask} hint={T.discard.hint} busy={busy} onConfirm={() => void discard()} />
+        </span>
       )}
     </>
   );

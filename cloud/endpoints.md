@@ -349,6 +349,10 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   and waits while it is offline. Either one refused is `conflict`. `available: false` — a shared
   computer no longer shared — is `runner_unavailable` unless the resume names `{ machine }`,
   which starts the step afresh there.
+- **Discard** (#61): a task whose build has not landed reads `discardable: true`;
+  `POST /v1/tasks/{id}/discard` stops the build, puts the task back on its plan's approval, and
+  removes the build's worktree and branch on that computer once it is connected. Refused is
+  `conflict`.
 - **Which computer** (#2196): `POST /v1/tasks` and `…/ideas/{idea}/start` take `machine` — one of
   the creator's holding the project, or one shared with the workspace and online, else
   `runner_unavailable`. Left out: the creator's own, or with none holding the project, the first

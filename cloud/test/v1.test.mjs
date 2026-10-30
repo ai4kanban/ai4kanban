@@ -1094,8 +1094,11 @@ describe('tasks run by the Runner (#2020)', () => {
     assert.deepEqual(await (await send('/v1/tasks/task_1/stop', { method: 'POST' })).json(), { id: 'task_1' })
     db.v1_resume_task = ({ p_id }) => ({ id: p_id, status: 'queued' })
     assert.deepEqual(await (await send('/v1/tasks/task_1/resume', { method: 'POST' })).json(), { id: 'task_1', status: 'queued' })
+    // A discarded build (#61) stops its running step the same way.
+    db.v1_discard_task = ({ p_id }) => ({ job: 'job_3', result: { id: p_id, status: 'waiting_review' } })
+    assert.deepEqual(await (await send('/v1/tasks/task_1/discard', { method: 'POST' })).json(), { id: 'task_1', status: 'waiting_review' })
     await idle()
-    assert.deepEqual(stopped.at(-1), ['job_2', 'https://run-log/stop'])
+    assert.deepEqual(stopped.slice(-2), [['job_2', 'https://run-log/stop'], ['job_3', 'https://run-log/stop']])
     delete env.RUN_LOGS
     const list = await (await send('/v1/chats?workspace=ws_2&limit=5&after=task_9')).json()
     assert.deepEqual([list.p_workspace, list.p_after, list.p_limit], ['ws_2', 'task_9', 5])

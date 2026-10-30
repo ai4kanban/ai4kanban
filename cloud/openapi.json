@@ -2720,6 +2720,65 @@
         ]
       }
     },
+    "/v1/tasks/{id}/discard": {
+      "post": {
+        "summary": "Discard a build",
+        "tags": [
+          "Tasks"
+        ],
+        "description": "Throws away a build that has not landed (`discardable: true`) and keeps the task: a running build stops, and the task waits on its plan's approval again. The build's worktree and branch are removed on the computer that ran it, once that computer is connected; approving again builds afresh after that. A task with nothing to discard is `conflict`.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The task’s id or its key (`WC-12`), current or one it had before."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "machine": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "The computer to run it on instead (#2196)."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/tasks/{id}/resume": {
       "post": {
         "summary": "Resume a task",
@@ -8024,6 +8083,10 @@
               null
             ],
             "description": "What `POST /v1/tasks/{id}/restore` brings a `cancelled` task back as; null for any other."
+          },
+          "discardable": {
+            "type": "boolean",
+            "description": "Whether `POST /v1/tasks/{id}/discard` can throw its build away: a build that is running, waiting, stopped or failed."
           },
           "review": {
             "$ref": "#/components/schemas/Review"

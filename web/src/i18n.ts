@@ -107,6 +107,11 @@ const zh = {
   stopWaitingTip: (machine: string) => `${machine} 的 Runner 未连接，连上后停止`,
   resume: "续跑",
   stoppedLine: (machine: string) => `已停止。改动保留在 ${machine} 上，「续跑」从停下的地方接着做。`,
+  discard: {
+    label: "丢弃",
+    ask: "丢弃这次执行？",
+    hint: "这次的改动和工作分支都会清掉。任务和方案保留，可以重新执行。",
+  },
   restoreTask: {
     label: "恢复",
     ask: "恢复这个任务？",
@@ -662,6 +667,11 @@ const en: Copy = {
   stopWaitingTip: (machine) => `The Runner on ${machine} isn't connected; it stops once it connects`,
   resume: "Resume",
   stoppedLine: (machine) => `Stopped. The changes stay on ${machine}; Resume picks up where it left off.`,
+  discard: {
+    label: "Discard",
+    ask: "Discard this run?",
+    hint: "Its changes and branch are deleted. The task and its plan stay, ready to run again.",
+  },
   restoreTask: {
     label: "Restore",
     ask: "Restore this task?",

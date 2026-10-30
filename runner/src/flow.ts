@@ -165,6 +165,25 @@ export function deliveryEnding(ws: TaskFolder, id: string | undefined): FlowEnd 
   return null
 }
 
+/** The deliveries on card `id` whose worktree is still here. */
+function checkoutsOf(ws: TaskFolder, id: number): string[] {
+  const dir = path.join(ws.board, 'deliveries')
+  let names: string[]
+  try {
+    names = fs.readdirSync(dir).filter((n) => n.endsWith('.json'))
+  } catch {
+    return []
+  }
+  return names.flatMap((n) => {
+    try {
+      const held = JSON.parse(fs.readFileSync(path.join(dir, n), 'utf8')) as { deliveryId?: string; cardId?: number; worktree?: string }
+      return held.cardId === id && held.worktree && held.deliveryId ? [held.deliveryId] : []
+    } catch {
+      return []
+    }
+  })
+}
+
 const refusal = (ran: Ran) => ran.last.replace(/^akb( raw)?: /, '').slice(0, 300) || 'akb stopped with an error.'
 const firstLine = (text?: string) => (text ?? '').split('\n').map((l) => l.trim()).find(Boolean)?.slice(0, 300)
 
@@ -395,6 +414,8 @@ export async function runFlow(job: Job & { flow: Flow }, ws: TaskFolder, deps: F
     return ran.code === 0 && answer?.id ? { ok: true, value: answer.id } : { ok: false, error: answer?.error?.message ?? refusal(ran), code: answer?.error?.kind }
   }
 
+  if (flow.verb === 'discard') return discardBuilds()
+
   const failed = await setUp(job, ws, deps, io)
   if (failed) return fail(failed)
 
@@ -491,6 +512,19 @@ export async function runFlow(job: Job & { flow: Flow }, ws: TaskFolder, deps: F
     const landing = commit ? { landing: { commit, branch: answer?.delivery?.branch ?? '' } } : {}
     const session = answer?.agentSession ?? answer?.error?.agentSession
     return { ok: true, report: { ...(said ? { reply: said } : {}), ...(session ? { session } : {}), ...spent, card: id, ...(review ? { review } : {}), ...landing } }
+  }
+
+  /** A discarded build (#61): every delivery on the card still holding a checkout gives it up. */
+  async function discardBuilds(): Promise<FlowEnd> {
+    const pulled = await pull(ws, deps.machineId)
+    if (!pulled.ok) return fail(pulled.error)
+    const card = akbCardOf(ws) ?? flow.card
+    if (!card) return { ok: true, report: {} }
+    for (const delivery of checkoutsOf(ws, card)) {
+      const ran = await akb(['delivery', 'discard', delivery, '--yes', '--json'], true)
+      if (ran.code !== 0) return fail(refusal(ran))
+    }
+    return { ok: true, report: { card } }
   }
 
   /** A discussion task's planning step (#2146): the session it carries, and the discussion. */

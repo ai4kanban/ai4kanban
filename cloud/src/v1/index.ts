@@ -928,6 +928,7 @@ export const ROUTES: [string, string, Handler][] = [
   ['POST', '/v1/tasks/{id}/cancel', cancelTask],
   ['POST', '/v1/tasks/{id}/stop', async (c) => stopJob(c, 'v1_stop_task', { p_id: await taskId(c) })],
   ['POST', '/v1/tasks/{id}/restore', restoreTask],
+  ['POST', '/v1/tasks/{id}/discard', async (c) => stopJob(c, 'v1_discard_task', { p_id: await taskId(c) })],
   ['POST', '/v1/tasks/{id}/resume', async (c) => change(c, 'v1_resume_task', { p_id: await taskId(c), p_machine: machineOf(await bodyOf(c.request)) })],
   ['GET', '/v1/tasks/{id}/workflow', async (c) => readTaskWorkflow(c.env, c.caller.accountId, await taskId(c))],
   ['GET', '/v1/tasks/{id}/card', async (c) => readCard(c.env, c.caller.accountId, await taskId(c))],

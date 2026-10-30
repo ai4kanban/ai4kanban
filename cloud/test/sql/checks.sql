@@ -5313,6 +5313,78 @@ begin
 end
 $run_controls$;
 
+-- #61: a build is discarded, keeping its task: it stops, the plan waits on approval again, and the
+-- computer that built it cleans up before a new build starts.
+do $discard_build$
+declare
+  A constant uuid := 'a0a0a0a0-0061-4061-8061-000000000001';
+  HOME constant uuid := 'cccccccc-0061-4061-8061-000000000003';
+  BUDGET constant integer := 100000;
+  RUNTIMES constant jsonb := '[{"name": "codex", "installed": true}]';
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  v_ws text;
+  v_prj text;
+  v_task text;
+  v_job cloud.runner_jobs;
+  v_clean cloud.runner_jobs;
+  v_next cloud.runner_jobs;
+  v_json jsonb;
+begin
+  insert into cloud.accounts (id, handle) values (A, 'db-a');
+  perform api.register_runner(A, HOME, 'home-mac', 10, '0.5.0', RUNTIMES, false, 900, BUDGET);
+  v_ws := api.v1_create_workspace(A, '{"name": "Discard"}', BUDGET) ->> 'id';
+  v_prj := api.v1_create_project(A, jsonb_build_object('name', 'Site', 'workspace', v_ws), BUDGET) ->> 'id';
+  insert into cloud.project_folders (project_id, machine_id, account_id, path) values (v_prj, HOME, A, '/work/site');
+  v_task := api.v1_create_task(A, jsonb_build_object('title', 'Pricing', 'project', v_prj, 'run', true), CODING, BUDGET) ->> 'id';
+
+  -- Planning is not a build.
+  v_job := cloud.v1_flow_job(v_task);
+  assert not (api.v1_task(A, v_task) ->> 'discardable')::boolean, 'a planning step was discardable';
+  perform pg_temp.refuses(format('select api.v1_discard_task(%L, %L, %s)', A, v_task, BUDGET), 'AKB21', 'a planning step was discarded');
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  perform api.finish_runner_job(A, HOME, v_job.id, 'done', '', BUDGET, '{"card": 7}');
+
+  -- A running build: stopped, and the task waits on the plan's approval.
+  v_job := cloud.v1_dispatch_flow(v_task, 'implement');
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  assert (api.v1_task(A, v_task) ->> 'discardable')::boolean, 'a running build was not discardable';
+  v_json := api.v1_discard_task(A, v_task, BUDGET);
+  assert v_json ->> 'job' = v_job.id::text, format('a discard did not stop the build: %s', v_json);
+  v_json := v_json -> 'result';
+  assert v_json ->> 'status' = 'waiting_review' and v_json -> 'run' = 'null' and v_json -> 'resume' = 'null'
+    and not (v_json ->> 'discardable')::boolean and v_json ->> 'last_job' = v_job.id::text
+    and v_json -> 'review' ->> 'status' = 'ready' and v_json -> 'review' -> 'options' -> 0 ->> 'approve' = 'true',
+    format('a discarded build misread: %s', v_json);
+  select * into v_clean from cloud.runner_jobs where task_id = v_task and flow ->> 'verb' = 'discard';
+  assert v_clean.state = 'waiting' and v_clean.machine_id = HOME and v_clean.project_dir = '/work/site'
+    and (v_clean.flow ->> 'card')::integer = 7, format('the cleanup misread: %s', row_to_json(v_clean));
+  perform pg_temp.refuses(format('select api.v1_discard_task(%L, %L, %s)', A, v_task, BUDGET), 'AKB21', 'a build was discarded twice');
+
+  -- The stopped build reporting in leaves the task as it is.
+  perform api.finish_runner_job(A, HOME, v_job.id, 'stopped', '', BUDGET, '{"card": 7}');
+  assert api.v1_task(A, v_task) ->> 'status' = 'waiting_review', 'a discarded build''s stop moved its task';
+
+  -- Built again: the new build waits for the cleanup.
+  v_next := cloud.v1_dispatch_flow(v_task, 'implement');
+  assert not (api.claim_runner_job(A, HOME, v_next.id, 900, BUDGET) ->> 'claimed')::boolean, 'a new build ran before the cleanup';
+  perform api.claim_runner_job(A, HOME, v_clean.id, 900, BUDGET);
+  perform api.finish_runner_job(A, HOME, v_clean.id, 'done', '', BUDGET, '{"card": 7}');
+  assert (api.claim_runner_job(A, HOME, v_next.id, 900, BUDGET) ->> 'claimed')::boolean, 'a new build did not run after the cleanup';
+  v_json := api.v1_task(A, v_task);
+  assert v_json ->> 'status' = 'running' and v_json -> 'run' ->> 'job' = v_next.id::text, format('the new build misread: %s', v_json);
+
+  -- A failed one too.
+  perform api.finish_runner_job(A, HOME, v_next.id, 'failed', 'Exited with code 1.', BUDGET, null);
+  assert (api.v1_task(A, v_task) ->> 'discardable')::boolean, 'a failed build was not discardable';
+  v_json := api.v1_discard_task(A, v_task, BUDGET);
+  assert v_json -> 'job' = 'null' and v_json -> 'result' ->> 'status' = 'waiting_review' and v_json -> 'result' -> 'failure' = 'null',
+    format('a failed build''s discard misread: %s', v_json);
+
+  raise notice 'sql checks: #61 discard checks passed';
+end
+$discard_build$;
+
 -- #2110: a task's next step goes back to the computer of its last, and a reflect runs where its task landed.
 do $own_computer$
 declare

@@ -70,7 +70,7 @@ export interface AgentJob {
 }
 
 export interface Flow {
-  verb: 'create' | 'resolve' | 'revise' | 'approve' | 'implement' | 'refine'
+  verb: 'create' | 'resolve' | 'revise' | 'approve' | 'implement' | 'refine' | 'discard'
   /** The task's workflow id, e.g. `wf_builtin_coding`. */
   workflow: string
   /** The akb card id this Runner reported before. */
