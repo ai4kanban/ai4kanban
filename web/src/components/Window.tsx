@@ -30,6 +30,7 @@ const RAIL_KEY = "wildcrane.web.rail";
 export function Window({
   project,
   side,
+  sideKey,
   activeChat,
   phoneLead,
   phoneTop,
@@ -40,6 +41,8 @@ export function Window({
   project?: Project | null;
   /** A rail on the right, beside the page: the card page's comments. */
   side?: ReactNode;
+  /** Makes the side rail drag-resizable, its width kept under this key. */
+  sideKey?: string;
   /** The task or idea conversation whose chat is open, lit in the rail. */
   activeChat?: string;
   /** At phone width, the page's own control ahead of find in the top row. */
@@ -189,8 +192,67 @@ export function Window({
       <div className="flex min-h-0 flex-1">
         <Rail open={rail} onToggle={toggleRail} archiveHref={archiveHref} activeChat={activeChat} />
         <div className={cn("relative min-w-0 flex-1 overflow-hidden bg-nb-paper", side ? "rounded-t-[14px]" : "rounded-tl-[14px]")}>{children}</div>
-        {side && <div className={cn("w-[360px] shrink-0 px-3", sideMoved && "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]")}>{side}</div>}
+        {side &&
+          (sideKey ? (
+            <SideRail storeKey={sideKey} moved={sideMoved}>
+              {side}
+            </SideRail>
+          ) : (
+            <div className={cn("w-[360px] shrink-0 px-3", sideMoved && "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]")}>{side}</div>
+          ))}
       </div>
+    </div>
+  );
+}
+
+const SIDE_MIN = 360;
+/** 40% of the window by default; the left rail and the page always keep 720px between them. */
+const sideBase = () => Math.max(SIDE_MIN, Math.round(innerWidth * 0.4));
+const sideFit = (w: number) => Math.round(Math.max(SIDE_MIN, Math.min(w, innerWidth * 0.6, innerWidth - 720)));
+
+/** The side rail, its left edge dragged to resize as Rail's right edge is. */
+function SideRail({ storeKey, moved, children }: { storeKey: string; moved: boolean; children: ReactNode }) {
+  // Null until dragged, so the default follows the window.
+  const [saved, setSaved] = useState(() => Number(localStorage.getItem(storeKey)) || null);
+  const width = sideFit(saved ?? sideBase());
+  const [drag, setDrag] = useState<{ x: number; w: number } | null>(null);
+  const [, refit] = useState(0);
+  useEffect(() => {
+    const on = () => refit((n) => n + 1);
+    addEventListener("resize", on);
+    return () => removeEventListener("resize", on);
+  }, []);
+  const endDrag = () => {
+    if (!drag) return;
+    setDrag(null);
+    localStorage.setItem(storeKey, String(width));
+  };
+  return (
+    <div style={{ width }} className={cn("relative shrink-0 px-3", drag && "select-none", moved && "animate-[nbSlideInRight_220ms_cubic-bezier(0.32,0.72,0,1)]")}>
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={T.resizeRail}
+        title={T.resizeRail}
+        onPointerDown={(e) => {
+          if (e.button) return;
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setDrag({ x: e.clientX, w: width });
+        }}
+        onPointerMove={(e) => drag && setSaved(sideFit(drag.w - (e.clientX - drag.x)))}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onDoubleClick={() => {
+          setSaved(null);
+          localStorage.removeItem(storeKey);
+        }}
+        className={cn(
+          "absolute inset-y-0 -left-[3px] z-10 w-[6px] cursor-col-resize touch-none after:absolute after:inset-y-0 after:left-[2px] after:w-[2px] after:bg-[color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] after:opacity-0 after:transition-opacity hover:after:opacity-100",
+          drag && "after:opacity-100",
+        )}
+      />
+      {children}
     </div>
   );
 }

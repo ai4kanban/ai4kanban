@@ -389,7 +389,7 @@ export function TriagePage({ projectId }: { projectId: string }) {
 
   if (store.tasks && !project) return <Gone text={T.notFoundProject} />;
   if (phone) return <Window project={project}>{detailPane ?? page}</Window>;
-  return <Window project={project} side={detailPane ?? undefined}>{page}</Window>;
+  return <Window project={project} side={detailPane ?? undefined} sideKey="wildcrane.web.triage.detail.width">{page}</Window>;
 }
 
 function sourceLabel(source: string, tasks: Map<string, api.Task>) {
