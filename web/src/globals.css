@@ -14,6 +14,56 @@
   box-shadow: 1px 1px 0 0 var(--color-nb-accent);
 }
 
+/* A card still being created (legacy kanban-ui): a ringing dot and two sweeping skeleton lines,
+   both still for less motion. */
+@keyframes nbCreatingRing {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-nb-sky) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+.a4k-creating-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-nb-sky);
+  animation: nbCreatingRing 1.9s ease-out infinite;
+}
+@keyframes nbCreatingSweep {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -60% 0;
+  }
+}
+.a4k-creating-line {
+  height: 7px;
+  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--color-nb-ink) 9%, transparent);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-nb-wash) 70%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 260% 100%;
+  animation: nbCreatingSweep 2.2s ease-in-out infinite;
+}
+.a4k-creating-line + .a4k-creating-line {
+  animation-delay: 0.25s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-creating-dot,
+  .a4k-creating-line {
+    animation: none;
+  }
+}
+
 /* The subtask map's live chip: an ember ring that swells out of the frame and fades (legacy
    kanban-ui). On ::after so the chip keeps its press shadow. */
 @keyframes nbChipRing {

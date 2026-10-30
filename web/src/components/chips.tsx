@@ -84,3 +84,18 @@ export function BlockedChip({ by }: { by: string }) {
     </span>
   );
 }
+
+// A card still being created (legacy kanban-ui): a ringing dot, not a pill.
+export function CreatingChip() {
+  return (
+    <span
+      className="nb-tip nb-tip-below nb-tip-end inline-flex min-w-0 items-center gap-1.5 text-[10px] font-[800] uppercase leading-none tracking-[0.08em] text-nb-sky-ink"
+      tabIndex={0}
+      data-tip={T.creatingTip}
+      style={ELASTIC_CHIP}
+    >
+      <span className="a4k-creating-dot" aria-hidden />
+      <span className="truncate">{T.step.create}</span>
+    </span>
+  );
+}

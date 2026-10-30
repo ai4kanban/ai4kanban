@@ -1,7 +1,8 @@
 // Copied from legacy kanban-ui/components/BoardCard.tsx: the number, one status mark, the
 // blocked and question marks, todo progress, the title, priority and stale days. An unread dot
 // before the number, and the avatars of whoever left unread comments at the foot. A task with
-// no card yet, or one still being written, shows its title and status alone.
+// no card yet shows its title and status alone; one still being written wears legacy's
+// "being created" face and is not a link (#110).
 
 import { FiClock, FiHelpCircle } from "react-icons/fi";
 import { Avatar } from "@review/components/chat";
@@ -12,18 +13,41 @@ import { creating, numberOf, statusOf } from "../lib/card";
 import { cn } from "@review/lib/utils";
 import { Link } from "../router";
 import { useStore } from "../store";
-import { BlockedChip, pillLabel, PriorityChip, StatusPill, TodoProgress, WorkflowTag } from "./chips";
+import { BlockedChip, CreatingChip, pillLabel, PriorityChip, StatusPill, TodoProgress, WorkflowTag } from "./chips";
 
 export function BoardCard({ task, staleDays }: { task: Task; staleDays?: number }) {
+  if (creating(task)) return <BeingCreatedCard task={task} />;
+  return <ReadyCard task={task} staleDays={staleDays} />;
+}
+
+function BeingCreatedCard({ task }: { task: Task }) {
+  return (
+    <div className="nb-inset flex flex-col rounded-[13px] p-3 text-nb-ink" style={{ background: "var(--color-nb-wash)" }}>
+      <div className="mb-1.5 flex items-center justify-between gap-1.5">
+        <span className="shrink-0 text-[11.5px] font-[800] text-nb-ink-soft">{numberOf(task.key)}</span>
+        <CreatingChip />
+      </div>
+      <p className="break-words text-[13px] font-[700] leading-snug tracking-[-0.01em]">{task.title}</p>
+      <div className="mt-2.5 flex flex-col gap-1.5" aria-hidden>
+        <span className="a4k-creating-line w-full" />
+        <span className="a4k-creating-line w-[58%]" />
+      </div>
+    </div>
+  );
+}
+
+function ReadyCard({ task, staleDays }: { task: Task; staleDays?: number }) {
   const store = useStore();
   const unread = useAlerts().of(task.id);
   const who = unread?.commenters ?? [];
   const info = task.creating ? undefined : store.cardOf(task);
   const status = statusOf(task) ?? "failed";
   const userQs = info?.questions.filter((q) => q.user).length ?? 0;
-  const box = cn("nb-panel-sm flex flex-col p-3 text-left text-nb-ink no-underline", store.isNew(task) && "nb-new");
-  const face = (
-    <>
+  return (
+    <Link
+      href={`/tasks/${encodeURIComponent(task.key)}`}
+      className={cn("nb-panel-sm nb-press flex cursor-pointer flex-col p-3 text-left text-nb-ink no-underline", store.isNew(task) && "nb-new")}
+    >
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <span className="flex shrink-0 items-center gap-1.5 text-[11.5px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
           {unread && <span role="img" aria-label={T.unread} className="nb-tip size-[6px] shrink-0 rounded-full bg-nb-accent" data-tip={T.unread} />}
@@ -61,13 +85,6 @@ export function BoardCard({ task, staleDays }: { task: Task; staleDays?: number 
           </span>
         )}
       </div>
-    </>
-  );
-  // Its card is still being written (#98): on the board, but not open yet.
-  if (creating(task)) return <div className={box}>{face}</div>;
-  return (
-    <Link href={`/tasks/${encodeURIComponent(task.key)}`} className={cn(box, "nb-press cursor-pointer")}>
-      {face}
     </Link>
   );
 }
