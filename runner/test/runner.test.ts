@@ -18,7 +18,7 @@ import { agentDue } from '../src/agents'
 import { sharedMemory } from '../src/memory-files'
 import { keptBoard, openTaskFolder, pull, pushBoard } from '../src/task-folder'
 import { FILE_BYTES, diffOf } from '../src/diff'
-import { acpModels, codexModels, opencodeModels, plan, type Plan } from '../src/runtimes'
+import { acpModels, claudeModels, codexModels, opencodeModels, plan, type Plan } from '../src/runtimes'
 import { FakeCloud, until, writeFakeSession, type FakeJob } from './fake-cloud'
 
 type FakeFlow = FakeJob['flow']
@@ -1760,6 +1760,26 @@ describe('the real runtimes', () => {
     ] }))
     assert.deepEqual(codexModels(file), [{ id: 'gpt-a', name: 'GPT-A' }, { id: 'gpt-b', name: 'gpt-b' }])
     assert.deepEqual(codexModels(path.join(os.tmpdir(), 'no-such-cache.json')), [])
+  })
+
+  it("lists the main models of Claude Code's own picker (#85)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-catalog-'))
+    const catalog = (surface: string, fetchedAt: number, models: unknown[]) => ({
+      version: 2,
+      fetchedAt,
+      catalog: { surface, config: { models, provider_alias_targets: { opus: { default: 'claude-opus-5-5' }, fable: { default: 'claude-fable-5-1' } } } },
+    })
+    fs.writeFileSync(path.join(dir, 'a-cc.json'), JSON.stringify(catalog('cc', 2, [
+      { id: 'claude-opus-5-5', name: 'Opus 5.5', short_name: 'Opus', section: 'main', runtime: { family: 'opus' } },
+      { id: 'claude-fable-5-1', name: 'Fable 5.1', short_name: 'Fable', section: 'main', runtime: { family: 'fable' } },
+      { id: 'claude-new-1', name: 'New 1', section: 'main' },
+      { id: 'claude-opus-5', name: 'Opus 5', short_name: 'Opus', section: 'overflow', runtime: { family: 'opus' } },
+    ])))
+    fs.writeFileSync(path.join(dir, 'b-cc.json'), JSON.stringify(catalog('cc', 1, [{ id: 'claude-old', short_name: 'Old', section: 'main' }])))
+    fs.writeFileSync(path.join(dir, 'c-ccd.json'), JSON.stringify(catalog('ccd', 3, [{ id: 'claude-desk', short_name: 'Desk', section: 'main' }])))
+    fs.writeFileSync(path.join(dir, 'broken.json'), '{')
+    assert.deepEqual(claudeModels(dir), [{ id: 'opus', name: 'Opus' }, { id: 'fable', name: 'Fable' }, { id: 'claude-new-1', name: 'New 1' }])
+    assert.deepEqual(claudeModels(path.join(dir, 'missing')), [])
   })
 
   it('lists the models OpenCode and Cursor offer (#2084)', () => {

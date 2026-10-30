@@ -168,11 +168,14 @@ const SLOW = new Set<Job['runtime']>(['opencode', 'cursor'])
 const listed = (harness: Harness) => async (): Promise<Model[]> => (harness.models?.() ?? []).map((id) => ({ id, name: id }))
 
 const MODELS: Partial<Record<Job['runtime'], () => Promise<Model[]>>> = {
-  'claude-code': async () => [
-    { id: 'opus', name: 'Opus' },
-    { id: 'sonnet', name: 'Sonnet' },
-    { id: 'haiku', name: 'Haiku' },
-  ],
+  'claude-code': async () => {
+    const cached = claudeModels(path.join(process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'), 'cache', 'model-catalog'))
+    return cached.length ? cached : [
+      { id: 'opus', name: 'Opus' },
+      { id: 'sonnet', name: 'Sonnet' },
+      { id: 'haiku', name: 'Haiku' },
+    ]
+  },
   codex: async () => codexModels(path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'models_cache.json')),
   opencode: async () => opencodeModels(await output('opencode', ['models'])),
   cursor: () => cursorModels(),
@@ -253,6 +256,39 @@ export function codexModels(file: string): Model[] {
   } catch {
     return []
   }
+}
+
+/** The main list of Claude Code's own picker, from the newest catalogue it caches; the CLI's
+ *  (`cc`) before the desktop app's. A model its family alias points at goes by that alias, the
+ *  way a saved `opus` or `fable` names it. Older versions (`overflow`) are left out. */
+export function claudeModels(dir: string): Model[] {
+  let files: string[]
+  try {
+    files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'))
+  } catch {
+    return []
+  }
+  const catalogs = files.flatMap((f) => {
+    try {
+      const data = obj(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))
+      const catalog = obj(data.catalog)
+      const surface = str(catalog.surface)
+      return surface === 'cc' || surface === 'ccd' ? [{ surface, at: Number(data.fetchedAt) || 0, config: obj(catalog.config) }] : []
+    } catch {
+      return []
+    }
+  })
+  const newest = catalogs.sort((a, b) => (a.surface === b.surface ? b.at - a.at : a.surface === 'cc' ? -1 : 1))[0]
+  if (!newest) return []
+  const aliases = obj(newest.config.provider_alias_targets)
+  const models = Array.isArray(newest.config.models) ? newest.config.models : []
+  return models.map(obj).flatMap((m) => {
+    const id = str(m.id)
+    if (!id || m.section !== 'main') return []
+    const family = str(obj(m.runtime).family)
+    const alias = family && str(obj(aliases[family]).default) === id ? family : ''
+    return [{ id: alias || id, name: str(m.short_name) || str(m.name) || id }]
+  })
 }
 
 function probeLogin(binary: string, harness: Harness): Promise<boolean | undefined> {
