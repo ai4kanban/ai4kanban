@@ -6,13 +6,14 @@
 // `?triage=` fills it from a triage item, in its project, and needs a workflow picked (#2069) — the
 // item's own, picked already (#2139).
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FiAlertCircle, FiArrowUp, FiCheck, FiChevronDown, FiEdit2, FiLayout, FiPlus, FiSettings, FiTrash2, FiWifiOff } from "react-icons/fi";
 import { AgentMark } from "@review/components/agent-mark";
 import { Button } from "@review/components/button";
 import { ITEM, Menu, POPUP_PANEL } from "@review/components/menu";
 import { AddImages, StagedThumbs, useStagedImages } from "@review/components/staged-images";
 import { keptDraft, useDraft } from "@review/lib/draft";
+import { useGrowingBox } from "@review/lib/grow";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { keepImages } from "../lib/chat-images";
@@ -61,6 +62,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
   const [trouble, setTrouble] = useState<Trouble>(null);
   const pics = useStagedImages(REVIEW.ai, (text) => setTrouble(text ? { text } : null));
   const box = useRef<HTMLTextAreaElement>(null);
+  const grow = useGrowingBox(text, box);
 
   useEffect(() => {
     document.title = `${T.newIdea} · WildCrane`;
@@ -85,12 +87,6 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
   useEffect(() => {
     if (runtimes && !runtimes.data.some((r) => r.id === runtime)) setRuntime(runtimes.data[0]?.id ?? null);
   }, [runtimes]);
-  useLayoutEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [text]);
 
   // Esc leaves for where the reader came from.
   useEffect(() => {
@@ -176,11 +172,13 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
             <div className="nb-panel relative z-[1] flex flex-col gap-3 px-5 pb-3 pt-4 max-md:px-4">
               <StagedThumbs c={REVIEW.ai} staged={pics.staged} onRemove={pics.remove} />
               <textarea
-                ref={box}
+                ref={grow.ref}
                 rows={2}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onPaste={pics.paste}
+                onScroll={grow.onScroll}
+                style={grow.style}
                 placeholder={placeholder}
                 aria-label={placeholder}
                 className="max-h-[320px] min-h-[56px] w-full resize-none overflow-y-auto bg-transparent text-[15px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft focus:outline-none max-md:max-h-[40dvh] max-md:min-h-[104px] max-md:text-[16px]"

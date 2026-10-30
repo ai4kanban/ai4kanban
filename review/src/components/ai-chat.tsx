@@ -5,11 +5,12 @@
 // Pictures go with a message, a reply stops part way, and each reply has its time, cost and a
 // copy button (#2133).
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { FiCheck, FiChevronDown, FiCopy, FiImage, FiLoader, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
 import { ApiError, clearChat, readChat, sendChat, stopChat, type Chat, type ChatImage, type ChatMessage, type ChatRuntime, type Connector } from "../api";
 import type { Copy } from "../i18n";
 import { useDraft } from "../lib/draft";
+import { useGrowingBox } from "../lib/grow";
 import { useArrived } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { AgentMark, type Harness } from "./agent-mark";
@@ -110,6 +111,7 @@ export function AiChat({
   const pics = useStagedImages(c, setProblem);
   const { staged, dragging } = pics;
   const input = useRef<HTMLTextAreaElement>(null);
+  const grow = useGrowingBox(draft, input);
   const log = useRef<HTMLDivElement>(null);
   const was = useRef(false);
   const [doing, setDoing] = useState<string | null>(null);
@@ -156,13 +158,6 @@ export function AiChat({
     setDoing(null);
     if (job && io.watch) return io.watch(job, setDoing);
   }, [job]);
-
-  useLayoutEffect(() => {
-    const el = input.current;
-    if (!el) return;
-    el.style.height = "";
-    if (phone) el.style.height = `${el.scrollHeight}px`;
-  }, [draft, phone, !!chat]);
 
   useEffect(() => {
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
@@ -254,7 +249,7 @@ export function AiChat({
       )}
       <StagedThumbs c={c} staged={staged} onRemove={pics.remove} className="flex flex-wrap items-center gap-2 px-1 pt-1.5" />
       <textarea
-        ref={input}
+        ref={grow.ref}
         rows={3}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -265,9 +260,15 @@ export function AiChat({
             e.preventDefault();
           }
         }}
+        onScroll={grow.onScroll}
+        style={grow.style}
         placeholder={ask ?? c.ask}
         aria-label={ask ?? c.ask}
-        className={cn("w-full resize-none bg-transparent px-2.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none max-md:text-[16px]", phone && "max-h-[40dvh] min-h-[108px] overflow-y-auto")}
+        className={cn(
+          "w-full resize-none overflow-y-auto bg-transparent px-2.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none max-md:text-[16px]",
+          phone || page ? "max-h-[40dvh]" : "max-h-[240px]",
+          phone && "min-h-[108px]",
+        )}
       />
       <div className="flex h-7 items-center justify-between max-md:h-9">
         <span className="flex h-full min-w-0 items-center gap-1.5">
