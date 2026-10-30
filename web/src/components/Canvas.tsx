@@ -80,8 +80,9 @@ function fitOf(area: { w: number; h: number }, row: { w: number; h: number }): V
   return { s, x: Math.max(PAD, (area.w - row.w * s) / 2), y: PAD };
 }
 
-/** Where a press may not start a pan: controls, and prose a reader may select. */
-const NO_PAN = 'button, a, input, textarea, select, summary, video, audio, [role="slider"], [role="menu"], [data-canvas-text]';
+/** Where a touch may not start a pinch: controls. A pan also skips prose a reader may select. */
+const NO_PINCH = 'button, a, input, textarea, select, summary, video, audio, [role="slider"], [role="menu"]';
+const NO_PAN = `${NO_PINCH}, [data-canvas-text]`;
 
 export function Canvas({
   sections,
@@ -173,17 +174,48 @@ export function Canvas({
   }, []);
 
   // A drag from anywhere but a control or prose pans; a press that never moved stays a click.
+  // Two fingers anywhere but a control pinch-zoom at their midpoint.
   useEffect(() => {
     const a = area.current;
     if (!a) return;
     let drag: { id: number; x: number; y: number; from: View; on: boolean } | null = null;
     let dragged = false;
+    const touches = new Map<number, { x: number; y: number }>();
+    let pinch: { ids: [number, number]; d: number; mx: number; my: number; from: View; now: View } | null = null;
+    const two = () => {
+      const p = touches.get(pinch!.ids[0])!;
+      const q = touches.get(pinch!.ids[1])!;
+      const r = a.getBoundingClientRect();
+      return { d: Math.hypot(p.x - q.x, p.y - q.y) || 1, mx: (p.x + q.x) / 2 - r.left, my: (p.y + q.y) / 2 - r.top };
+    };
     const down = (e: PointerEvent) => {
       const v = latest.current;
-      if (e.button !== 0 || !v || (e.target as Element).closest?.(NO_PAN)) return;
+      if (e.button !== 0 || !v) return;
+      const target = e.target as Element;
+      if (e.pointerType === "touch" && !target.closest?.(NO_PINCH)) {
+        touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (touches.size === 2) {
+          drag = null;
+          dragged = true;
+          for (const id of touches.keys()) a.setPointerCapture(id);
+          pinch = { ids: [...touches.keys()] as [number, number], d: 0, mx: 0, my: 0, from: v, now: v };
+          Object.assign(pinch, two());
+          return;
+        }
+      }
+      if (pinch || target.closest?.(NO_PAN)) return;
       drag = { id: e.pointerId, x: e.clientX, y: e.clientY, from: v, on: false };
     };
     const move = (e: PointerEvent) => {
+      if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch) {
+        if (!pinch.ids.includes(e.pointerId)) return;
+        const { d, mx, my } = two();
+        const z = zoomAt(pinch.from, d / pinch.d, pinch.mx, pinch.my);
+        pinch.now = { ...z, x: z.x + mx - pinch.mx, y: z.y + my - pinch.my };
+        setMoved(pinch.now);
+        return;
+      }
       if (!drag || e.pointerId !== drag.id) return;
       const dx = e.clientX - drag.x;
       const dy = e.clientY - drag.y;
@@ -195,10 +227,17 @@ export function Canvas({
       setMoved({ ...drag.from, x: drag.from.x + dx, y: drag.from.y + dy });
     };
     const up = (e: PointerEvent) => {
-      if (drag?.id !== e.pointerId) return;
-      drag = null;
+      touches.delete(e.pointerId);
+      if (pinch?.ids.includes(e.pointerId)) {
+        // The other finger pans on from where it is.
+        const id = pinch.ids.find((i) => i !== e.pointerId)!;
+        const rest = touches.get(id);
+        drag = rest ? { id, x: rest.x, y: rest.y, from: pinch.now, on: true } : null;
+        pinch = null;
+      } else if (drag?.id !== e.pointerId) return;
+      else drag = null;
       // Past the click this release fires.
-      setTimeout(() => (dragged = false));
+      if (!drag) setTimeout(() => (dragged = false));
     };
     const click = (e: MouseEvent) => {
       if (!dragged) return;
@@ -206,12 +245,16 @@ export function Canvas({
       e.preventDefault();
     };
     const noDrag = (e: DragEvent) => e.preventDefault();
+    // Safari's own pinch zooms the page.
+    const noGesture = (e: Event) => e.preventDefault();
     a.addEventListener("pointerdown", down);
     a.addEventListener("pointermove", move);
     a.addEventListener("pointerup", up);
     a.addEventListener("pointercancel", up);
     a.addEventListener("click", click, true);
     a.addEventListener("dragstart", noDrag);
+    a.addEventListener("gesturestart", noGesture);
+    a.addEventListener("gesturechange", noGesture);
     return () => {
       a.removeEventListener("pointerdown", down);
       a.removeEventListener("pointermove", move);
@@ -219,6 +262,8 @@ export function Canvas({
       a.removeEventListener("pointercancel", up);
       a.removeEventListener("click", click, true);
       a.removeEventListener("dragstart", noDrag);
+      a.removeEventListener("gesturestart", noGesture);
+      a.removeEventListener("gesturechange", noGesture);
     };
   }, []);
 
