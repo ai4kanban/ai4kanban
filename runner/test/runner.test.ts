@@ -142,6 +142,7 @@ describe('the Runner', () => {
     assert.match(job.events.map((e) => e.text).join(''), /hello from the runtime hi/)
     assert.equal(planned[0]!.cwd, path.join(runnerHome(), 'work', 'j1'))
     assert.equal(/- (.+brief\.md)/.exec(planned[0]!.prompt)![1], brief)
+    assert.ok(planned[0]!.prompt.endsWith('\n\n---\n\nBuild it'), "Cloud's prompt was not last")
     // The attachments go with the job (#2133).
     assert.equal(fs.existsSync(path.dirname(brief)), false)
   })
@@ -252,7 +253,7 @@ describe('the Runner', () => {
       plan: (runtime, prompt, cwd, resume, model, _settings, fork) => {
         planned.push({ runtime, prompt, cwd, resume, model })
         forked.push(fork)
-        const file = /leaves out: (\S+)$/.exec(prompt)?.[1]
+        const file = /leaves out: (\S+)/.exec(prompt)?.[1]
         if (file) read = fs.readFileSync(file, 'utf8')
         // The discussion's session is not on this computer.
         const gone = !!resume
@@ -269,7 +270,8 @@ describe('the Runner', () => {
     await until(() => job.state === 'finished')
     assert.deepEqual(planned.map((p) => p.resume), ['ds1', null])
     assert.deepEqual(forked, [true, false])
-    assert.ok(!planned[0]!.prompt.includes('leaves out'), 'a carried session was pointed at the discussion')
+    assert.equal(planned[0]!.prompt, 'go', 'a carried session was pointed at the discussion')
+    assert.ok(planned[1]!.prompt.endsWith('\n\n---\n\ngo'), "Cloud's prompt was not last")
     assert.equal(read, 'User: Tiers?\n\nAgent: Two.\n')
     assert.equal(job.outcome, 'done')
     assert.deepEqual(job.report, { reply: 'Two tiers.', session: 'fresh-session' })
@@ -452,7 +454,8 @@ describe('a task’s folder (#2037)', () => {
     const job = await runTask('j1')
     assert.equal(job.outcome, 'done', job.reason)
     assert.equal(planned[0]!.cwd, cached())
-    assert.match(planned[0]!.prompt, new RegExp(`Task card: ${path.join(board(), CARD)}`))
+    assert.match(planned[0]!.prompt, new RegExp(`^Task card: ${path.join(board(), CARD)}`))
+    assert.ok(planned[0]!.prompt.endsWith('\n\n---\n\ngo'), "Cloud's prompt was not last")
     assert.equal(read(CARD), BODY)
     assert.equal(read('todo/hero.png'), 'hero-1')
     assert.equal(read('todo/shots/a.png'), 'a-1')

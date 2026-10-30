@@ -381,11 +381,16 @@ async function runClaimed(job: Job, deps: Deps, track: (stop: () => Promise<void
       ideas = wrote.file
     }
     if (!job.flow && !job.review) {
-      const prompt = job.prompt + folderLines(ws) + writeAttachments(job)
+      const head = folderLines(ws) + writeAttachments(job)
       const file = writeTranscript(job, attachmentsOf(job))
       const transcript = file ? `\n\nThis task came out of a discussion. Read it for what the card leaves out: ${file}` : ''
+      // The Runner's lines go first, so Cloud's prompt, and its language line, stays last.
+      const promptOf = (said: string) => {
+        const lines = (head + said).trim()
+        return lines ? `${lines}\n\n---\n\n${job.prompt}` : job.prompt
+      }
       const planned = (resume: string | null | undefined, fork: boolean, said = '') => {
-        let p = deps.plan(job.runtime, prompt + said, cwd, resume, job.model, settingsOf(job), fork)
+        let p = deps.plan(job.runtime, promptOf(said), cwd, resume, job.model, settingsOf(job), fork)
         // A task's chat changes its card with the akb the Runner carries, on the task's board.
         if (ws) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, ws.board, ws.task, job.languageLine ?? '') } }
         if (ideas) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, discussed, undefined, job.languageLine ?? ''), KANBAN_IDEAS: ideas } }
