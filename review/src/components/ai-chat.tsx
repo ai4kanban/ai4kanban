@@ -210,6 +210,10 @@ export function AiChat({
       setProblem(e instanceof ApiError && e.code === "offline" ? c.network : c.stopFailed);
     }
   };
+  /** A clicked send or stop button is swapped out, so focus goes back to the box for Esc; not on a phone, which would raise the keyboard. */
+  const refocus = () => {
+    if (!phone) input.current?.focus();
+  };
   /** ↑ in an empty box brings back the last message you sent, the caret after it. */
   const recall = () => {
     const last = chat.messages.findLast((m) => m.role === "user" && m.body);
@@ -301,11 +305,28 @@ export function AiChat({
               <FiLoader className="animate-spin text-[13px]" aria-hidden />
             </Button>
           ) : working(chat) ? (
-            <Button size="xs" onClick={() => void stop()} aria-label={c.stop} title={c.stop}>
+            <Button
+              size="xs"
+              onClick={() => {
+                refocus();
+                void stop();
+              }}
+              aria-label={c.stop}
+              title={c.stop}
+            >
               <FiSquare className="text-[13px]" aria-hidden />
             </Button>
           ) : (
-            <Button size="xs" disabled={busy || blocked || (!draft.trim() && !staged.length)} onClick={() => void send()} aria-label={c.send} title={c.send}>
+            <Button
+              size="xs"
+              disabled={busy || blocked || (!draft.trim() && !staged.length)}
+              onClick={() => {
+                refocus();
+                void send();
+              }}
+              aria-label={c.send}
+              title={c.send}
+            >
               <FiSend className="text-[13px]" aria-hidden />
             </Button>
           )}
@@ -317,7 +338,8 @@ export function AiChat({
   return (
     <section
       aria-label={c.label}
-      className={cn("flex flex-col bg-nb-paper", phone || page ? "h-full" : "nb-panel min-h-0 w-full overflow-hidden", bare && "justify-end")}
+      tabIndex={-1}
+      className={cn("flex flex-col bg-nb-paper outline-none", phone || page ? "h-full" : "nb-panel min-h-0 w-full overflow-hidden", bare && "justify-end")}
       onKeyDown={(e) => {
         // Esc stops a reply, once any menu of the chat's own is closed.
         if (e.key !== "Escape" || e.defaultPrevented || !working(chat) || e.currentTarget.querySelector('[role="menu"],[role="dialog"]')) return;
