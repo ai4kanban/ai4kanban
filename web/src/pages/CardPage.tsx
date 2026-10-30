@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { FaRegLightbulb } from "react-icons/fa";
 import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiTrash2, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
 import type { Artifact, Chat, Comment, Decision, Shared } from "@review/api";
-import { AiChat, EarlierChat } from "@review/components/ai-chat";
+import { AiChat, EarlierChat, preloadChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
 import { Button } from "@review/components/button";
 import { cardParts } from "@review/components/CardBody";
@@ -237,6 +237,15 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   // none; one started from an idea chat is still its starter's.
   const fromIdea = !!(task?.discussion || task?.source_context?.idea);
   const creator = task?.source_context?.creator ?? (fromIdea ? {} : undefined);
+  // Opened from an idea, the task's chat drops the request Cloud wrote as its first message.
+  const ownChat = (c: Chat): Chat => {
+    const [first, ...rest] = c.messages;
+    return fromIdea && first?.role === "user" && first.body === task?.request ? { ...c, messages: rest } : c;
+  };
+  // Read with the card, so the chat opens already drawn.
+  useEffect(() => {
+    if (task) void preloadChat(task.id, () => api.taskChat(task.id).read().then(ownChat));
+  }, [task?.id]);
   const sourceTask = creator?.agent ? task?.source_context?.task : undefined;
   const [sourceKey, setSourceKey] = useState<string | null>(null);
   useEffect(() => {
@@ -494,14 +503,9 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     if (narrow) setChat(false);
     setRailOpen((v) => !v);
   };
-  // Started from an idea (#91): the idea chat up to the start folds above the task's own, which
-  // opens without the request Cloud wrote as its first message.
+  // Started from an idea (#91): the idea chat up to the start folds above the task's own.
   const earlier = from?.messages.filter((m) => Date.parse(m.created_at) < Date.parse(task.created_at)) ?? [];
   const chatIo = api.taskChat(task.id);
-  const ownChat = (c: Chat): Chat => {
-    const [first, ...rest] = c.messages;
-    return fromIdea && first?.role === "user" && first.body === task.request ? { ...c, messages: rest } : c;
-  };
   const ai = (
     <AiChat
       key={task.id}

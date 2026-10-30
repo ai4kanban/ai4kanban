@@ -14,7 +14,7 @@ import { LANG, useCopy } from "../i18n";
 import { Previews } from "../lib/artifacts";
 import { cardMeta, openQuestions, withoutTitle } from "../lib/card-info";
 import { cn } from "../lib/utils";
-import { AiChat } from "./ai-chat";
+import { AiChat, preloadChat } from "./ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "./ai-corner";
 import { humanise } from "./CardBody";
 import { CardSheet, refining, RemoveButton, RunButton, type Info } from "./card-sheet";
@@ -85,6 +85,10 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
   useEffect(() => {
     if (member) readTaskWorkflow(shared.task.id).then(setFlow, () => {});
   }, [member, shared.task.id, review.phase]);
+  // Read with the card, so the chat opens already drawn.
+  useEffect(() => {
+    if (member) void preloadChat(token);
+  }, [member, token]);
 
   // Rebuilt only when what is under review changes, so a poll never reloads a preview.
   const contentKey = JSON.stringify([card?.version, review.revision, shared.artifacts.map((a) => [a.id, a.latest_version])]);

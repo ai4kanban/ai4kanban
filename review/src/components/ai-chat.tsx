@@ -36,6 +36,13 @@ const POLL_MS = 3000;
 /** What the card holds, for the asks offered on an empty chat. */
 export type CardState = { question: boolean; comments: boolean; previews: boolean };
 
+/** The last chat read per token, so a reopened box draws at once and refreshes behind. */
+const seen = new Map<string, Chat>();
+
+/** Reads a chat ahead of its box opening; `read` is the `ChatApi.read` the box will be given. */
+export const preloadChat = (token: string, read: () => Promise<Chat> = () => readChat(token)) =>
+  read().then((chat) => void seen.set(token, chat), () => {});
+
 const working = (chat: Chat | null) => chat?.status === "queued" || chat?.status === "replying";
 
 /** Where the conversation is read and written; a share link's by default. */
@@ -101,7 +108,7 @@ export function AiChat({
   before?: ReactNode;
 }) {
   const io = api ?? linkChat(token);
-  const [chat, setChat] = useState<Chat | null>(null);
+  const [chat, setChat] = useState<Chat | null>(() => seen.get(token) ?? null);
   const arrived = useArrived(chat && chat.messages.map((m) => m.id));
   const [draft, setDraft] = useDraft(draftKey);
   const [picked, setPicked] = useState<string | null>(null);
@@ -122,12 +129,13 @@ export function AiChat({
 
   const take = useCallback(
     (next: Chat) => {
+      seen.set(token, next);
       setChat(next);
       setStopping((s) => (s && working(next) && next.job === s.job ? s : null));
       if (was.current && !working(next)) onReplied();
       was.current = working(next);
     },
-    [onReplied],
+    [token, onReplied],
   );
 
   const fail = (e: unknown) => {
@@ -166,17 +174,16 @@ export function AiChat({
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [chat?.messages.length, chat?.status]);
 
-  if (!chat) return <section aria-label={c.label} aria-busy className={cn("bg-nb-paper", phone || page ? "h-full" : "nb-panel h-[160px] w-full")} />;
-
-  const runtime = chat.runtimes.find((r) => r.id === (picked ?? chat.runtime)) ?? chat.runtimes[0]!;
+  // Until the chat is read, the box is drawn and takes a draft; the thread unfolds above it.
+  const runtime = chat && (chat.runtimes.find((r) => r.id === (picked ?? chat.runtime)) ?? chat.runtimes[0]!);
   const busy = working(chat) || sending;
-  const blocked = !!gone?.includes(runtime.id);
-  const empty = chat.messages.length === 0;
-  const bare = empty && !before;
+  const blocked = !!runtime && !!gone?.includes(runtime.id);
+  const empty = !chat || chat.messages.length === 0;
+  const bare = !chat || (empty && !before);
 
   const send = async () => {
     const body = draft.trim();
-    if ((!body && !staged.length) || busy || blocked || closed) return;
+    if ((!body && !staged.length) || !runtime || busy || blocked || closed) return;
     setSending(true);
     setProblem(null);
     try {
@@ -200,7 +207,7 @@ export function AiChat({
     }
   };
   const stop = async () => {
-    if (stopping) return;
+    if (stopping || !chat) return;
     setProblem(null);
     setStopping({ job: chat.job });
     try {
@@ -216,15 +223,15 @@ export function AiChat({
   };
   /** ↑ in an empty box brings back the last message you sent, the caret after it. */
   const recall = () => {
-    const last = chat.messages.findLast((m) => m.role === "user" && m.body);
+    const last = chat?.messages.findLast((m) => m.role === "user" && m.body);
     if (!last) return false;
     setDraft(last.body);
     requestAnimationFrame(() => input.current?.setSelectionRange(last.body.length, last.body.length));
     return true;
   };
 
-  const status = chat.status === "failed" ? c.failed : chat.status === "conflict" ? c.conflict : null;
-  const notes = closed ? [] : [!chat.runner.connected && c.offline, blocked && c.runnerGone, problem ?? status].filter((x): x is string => !!x);
+  const status = chat?.status === "failed" ? c.failed : chat?.status === "conflict" ? c.conflict : null;
+  const notes = closed ? [] : [chat && !chat.runner.connected && c.offline, blocked && c.runnerGone, problem ?? status].filter((x): x is string => !!x);
   const asks = [card.question && c.asks.question, card.comments && c.asks.comments, card.previews && c.asks.previews, c.asks.skip].filter(
     (x): x is string => !!x,
   );
@@ -280,18 +287,22 @@ export function AiChat({
       />
       <div className="flex h-7 items-center justify-between max-md:h-9">
         <span className="flex h-full min-w-0 items-center gap-1.5">
-          <Pick
-            c={c}
-            options={chat.runtimes}
-            value={runtime}
-            onPick={(id) => {
-              setPicked(id);
-              setProblem(null);
-            }}
-            onManage={onManage}
-            gone={gone}
-          />
-          <ContextRing context={chat.context} tip={c.context} />
+          {chat && runtime ? (
+            <Pick
+              c={c}
+              options={chat.runtimes}
+              value={runtime}
+              onPick={(id) => {
+                setPicked(id);
+                setProblem(null);
+              }}
+              onManage={onManage}
+              gone={gone}
+            />
+          ) : (
+            <span aria-hidden className="h-full w-[104px] animate-pulse rounded-[8px] bg-nb-ink/[0.06]" />
+          )}
+          <ContextRing context={chat?.context} tip={c.context} />
         </span>
         <span className="flex h-full items-center gap-1">
           <AddImages
@@ -319,7 +330,7 @@ export function AiChat({
           ) : (
             <Button
               size="xs"
-              disabled={busy || blocked || (!draft.trim() && !staged.length)}
+              disabled={!runtime || busy || blocked || (!draft.trim() && !staged.length)}
               onClick={() => {
                 refocus();
                 void send();
@@ -349,6 +360,8 @@ export function AiChat({
     >
       {over ? (
         <div className="relative min-h-0 flex-1">{over}</div>
+      ) : !chat ? (
+        page && <div className="flex-1" />
       ) : bare && !page && (aboveBox || closed) ? null : bare && !page ? (
         <div className="flex flex-col items-start gap-1.5 px-3 pt-3">
           <p className="px-1 pb-0.5 text-[12px] text-nb-ink-soft">{c.tryAsking}</p>
