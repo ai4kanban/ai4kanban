@@ -3,6 +3,8 @@
 // Cloud and linked back to that task. Without the variable nothing here is used.
 
 import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
 
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import { accessToken } from './session'
@@ -111,4 +113,36 @@ export async function createTask(from: string, said: NewTask): Promise<Made> {
   const number = numberOf(made.value.key)
   if (!Number.isInteger(number)) return { ok: false, error: `Cloud answered a task with no number: ${made.value.key}`, code: 'refused' }
   return { ok: true, value: { task: made.value, number, from: source.value, replayed: made.replayed === true } }
+}
+
+/** The Cloud project a Runner keeps this board for: the board is `<project>/.akb/kanban`, and the
+ *  Runner's `.akb/base.json` beside it holds that project's files. Null on a board no Runner keeps. */
+export function runnerProject(board: string): string | null {
+  if (path.basename(board) !== 'kanban' || path.basename(path.dirname(board)) !== '.akb') return null
+  try {
+    const base = JSON.parse(fs.readFileSync(path.join(path.dirname(board), 'base.json'), 'utf8')) as { files?: Record<string, unknown> }
+    for (const p of Object.keys(base.files ?? {})) {
+      const project = /^projects\/([^/]+)\//.exec(p)?.[1]
+      if (project) return project
+    }
+  } catch {
+    // No Runner keeps it.
+  }
+  return null
+}
+
+/** The web's Approve on card `number` of `project`: Cloud moves the task on and sends its next
+ *  step to the Runner. */
+export async function approveTask(project: string, number: number): Promise<CloudCall<{ key: string }>> {
+  const held = await call<{ prefix: string }>('GET', `/v1/projects/${encodeURIComponent(project)}`)
+  if (!held.ok) return held
+  const key = `${held.value.prefix}-${number}`
+  const task = await call<{ review?: { revision?: number } | null }>('GET', `/v1/tasks/${encodeURIComponent(key)}`)
+  if (!task.ok) return task
+  const revision = task.value.review?.revision
+  const decided = await call('POST', `/v1/tasks/${encodeURIComponent(key)}/decisions`, {
+    decision: 'approve',
+    ...(revision !== undefined ? { review_revision: revision } : {}),
+  })
+  return decided.ok ? { ok: true, value: { key } } : decided
 }

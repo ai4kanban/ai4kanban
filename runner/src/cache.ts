@@ -44,6 +44,9 @@ function usedAt(dir: string): number | null {
   }
 }
 
+/** The folder's last write to Cloud failed. */
+export const unsent = (dir: string) => fs.existsSync(unsentFile(dir))
+
 /** Whether the folder's last write to Cloud failed. */
 export function markUnsent(dir: string, unsent: boolean): void {
   if (!unsent) return void fs.rmSync(unsentFile(dir), { force: true })
@@ -51,18 +54,18 @@ export function markUnsent(dir: string, unsent: boolean): void {
   fs.writeFileSync(unsentFile(dir), '')
 }
 
-const busy = new Map<string, number>()
+const holds = new Map<string, number>()
 
 /** Keep `dir` while a job works there; the answer lets it go. */
 export function hold(dir: string): () => void {
-  busy.set(dir, (busy.get(dir) ?? 0) + 1)
+  holds.set(dir, (holds.get(dir) ?? 0) + 1)
   let held = true
   return () => {
     if (!held) return
     held = false
-    const left = busy.get(dir)! - 1
-    if (left) busy.set(dir, left)
-    else busy.delete(dir)
+    const left = holds.get(dir)! - 1
+    if (left) holds.set(dir, left)
+    else holds.delete(dir)
   }
 }
 
@@ -77,8 +80,11 @@ function paused(dir: string): boolean {
   }
 }
 
+/** A job works in the folder. */
+export const busy = (dir: string) => holds.has(dir)
+
 /** A job, unsent work or a paused delivery still holds the folder. */
-export const kept = (dir: string) => busy.has(dir) || fs.existsSync(unsentFile(dir)) || paused(dir)
+export const kept = (dir: string) => busy(dir) || unsent(dir) || paused(dir)
 
 /** Empty a linked folder's `.akb/`, its own files untouched; false when it is kept. */
 export function clearAkb(dir: string): boolean {

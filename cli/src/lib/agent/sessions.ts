@@ -1622,6 +1622,8 @@ export async function discardDelivery(id: string): Promise<{ ok: boolean; delive
     if (steps.includes('superseded') && !steps.includes('dropped')) {
       live.steps.push({ step: 'dropped', at: Date.now() })
     }
+    // What tells a discard from a cancel, for the Runner reporting it (#59).
+    live.steps.push({ step: 'discarded', at: Date.now() })
   })
   syncAudit(delivery.deliveryId)
   return { ok: true, deliveryId: delivery.deliveryId }

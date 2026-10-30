@@ -51,8 +51,8 @@ import path from 'node:path'
 
 import { say } from '../lib/io'
 import { pidAlive } from '../lib/lock'
-import { die, BOARD_FLAG } from '../lib/paths'
-import { createTask, workspaceTask } from '../lib/cloud/tasks'
+import { die, BOARD_FLAG, KANBAN } from '../lib/paths'
+import { approveTask, createTask, runnerProject, workspaceTask } from '../lib/cloud/tasks'
 import { findCard } from '../lib/view/read'
 import { creationRefusal, openOf } from '../lib/view/rules'
 import type { MoveResult } from '../lib/types'
@@ -93,6 +93,9 @@ export async function cmdStartRun(
   const inside = insideRun()
   // Only the user approves a round (#1790).
   if (inside && action === 'approve') die('only the user approves a round — stop here and leave the card for them.', { kind: 'run-refused', action })
+  // A Runner's board is approved as the web does it: Cloud sends the next step (#59).
+  const project = action === 'approve' ? runnerProject(KANBAN) : null
+  if (project) return await approveInCloud(project, req.id as number)
   if (action === 'approve') sayIfHeld(req, program)
   const runnable =
     action === 'refine' ? refinementRequest(req) : action === 'approve' ? approvalRequest(req) : (req as AgentRequest)
@@ -165,6 +168,13 @@ async function createInCloud(task: string, description: string, workflow?: strin
   const { task: created, from, replayed } = made.value
   say(`made ${created.key} in Cloud${replayed ? ' (already made)' : ''} — it is planned there, from ${from.key}`)
   return { key: created.key, task: created.id, replayed }
+}
+
+async function approveInCloud(project: string, id: number): Promise<MoveResult> {
+  const approved = await approveTask(project, id)
+  if (!approved.ok) die(`Cloud did not approve #${id}: ${approved.error}`, { kind: 'refused', ...(approved.code ? { code: approved.code } : {}) })
+  say(`approved #${id} in Cloud`)
+  return { id, task: approved.value.key, approved: true }
 }
 
 /** `akb card reject` (#1497): the card is filed on the spot, never by a run. A discard needs

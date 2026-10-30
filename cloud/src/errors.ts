@@ -51,7 +51,6 @@ export type RefusalCode =
   | 'session_required'
   | 'review_outdated'
   | 'card_missing'
-  | 'task_running'
   | 'link_invalid'
   | 'link_expired'
   | 'link_revoked'
@@ -388,7 +387,6 @@ const SHARED_REFUSALS: Record<string, Refusal> = {
   runner_unavailable: new Refusal('runner_unavailable', 409, 'That computer is no longer available. Pick another one.'),
   review_outdated: new Refusal('review_outdated', 409, 'This task has changed since it was opened. Reload it and review again.'),
   card_missing: new Refusal('card_missing', 409, 'This task has no full card to review yet.'),
-  task_running: new Refusal('task_running', 409, 'A running task cannot be cancelled.'),
 }
 
 export const sharedRefusal = (detail: string | undefined) => {

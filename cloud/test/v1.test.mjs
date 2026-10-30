@@ -673,6 +673,7 @@ describe('board files (#2081, #2114)', () => {
     db.v1_board_job = ({ p_machine }) => [HOME, OTHER].includes(p_machine) ? { job: JOB, task: 'task_aa' }
       : json({ code: 'AKB21', message: 'This job has ended or moved to another computer.' }, 400)
     db.v1_index_cards = ({ p_cards }) => ({ indexed: p_cards.length })
+    db.v1_follow_cards = () => ({ stop: [] })
   })
 
   it('reads what changed since a seq in one call: the project’s own files and the shared memory, nothing of another project', async () => {
@@ -701,6 +702,19 @@ describe('board files (#2081, #2114)', () => {
       { task: 'task_aa', assets: { 'a.png': { artifact: 'art_1' } } },
     ])
     assert.equal(boards.of('ws_1').read(['memory/agents/planner/rejected.md'])[0].content, 'R')
+  })
+
+  it('takes a computer’s write with no job, and brings each task to its card (#59)', async () => {
+    const done = await send('/v1/projects/prj_1/board/commits', { method: 'POST', body: { machine: HOME, files: [
+      { path: P1 + '.archive/1-pricing.md', content: '---\ntitle: Pricing\nstatus: rejected\nworkflow: wf-mine\nrejected: true\nrejected_reason: Too broad\n---\n', base_seq: 0 },
+      { path: P1 + 'memory/readme.md', content: 'M', base_seq: 0 },
+    ] } })
+    assert.equal(done.status, 200)
+    assert.equal(callsTo('v1_board_job')[0].body.p_job, null)
+    assert.deepEqual(callsTo('v1_follow_cards')[0].body.p_cards,
+      [{ number: 1, archived: true, rejected: true, reason: 'Too broad', workflow: { name: 'wf-mine' }, review: null }])
+    db.v1_follow_cards = () => json({ message: 'boom' }, 500)
+    assert.equal((await commit([{ path: P1 + CARD, content: 'A', base_seq: 0 }])).status, 200, 'a task that did not follow failed the write')
   })
 
   it('takes two computers’ writes to different projects of one workspace, and refuses a file both changed', async () => {
@@ -1005,13 +1019,6 @@ describe('tasks run by the Runner (#2020)', () => {
     assert.deepEqual(callsTo('v1_create_task').map((c) => c.body.p_fields.run), [true, undefined])
     assert.equal((await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_builtin_coding', run: 'yes' } })).status, 400)
     assert.equal(callsTo('v1_create_task').length, 2)
-  })
-
-  it('refuses cancelling a running task as task_running', async () => {
-    db.v1_cancel_task = () => json({ code: 'AKB26', details: 'task_running', message: 'A running task cannot be cancelled.' }, 400)
-    const res = await send('/v1/tasks/task_1/cancel', { method: 'POST' })
-    assert.equal(res.status, 409)
-    assert.equal((await res.json()).error.code, 'task_running')
   })
 
   it('reads, sends and clears the caller’s own chat, and lists their chats', async () => {

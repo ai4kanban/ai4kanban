@@ -84,7 +84,6 @@ const zh = {
   slotsFull: (n: number) => `已有 ${n} 个任务在运行，达到套餐上限。有任务结束后，这个任务会自动开始。`,
   upgrade: "升级到 Pro",
   reviewFailed: "审核链接没能打开，请重试。",
-  cancelRunning: "任务正在运行，结束后才能移除。",
   retry: "重新发起",
   stage: {
     waiting: (stage: string) => `${stage}待你批准`,
@@ -620,7 +619,6 @@ const en: Copy = {
   slotsFull: (n) => `${n} tasks are already running, your plan's limit. This one starts on its own when one finishes.`,
   upgrade: "Upgrade to Pro",
   reviewFailed: "Couldn't open the review page. Try again.",
-  cancelRunning: "The task is running. It can be removed once it stops.",
   retry: "Start again",
   stage: {
     waiting: (stage) => `${stage} ready for your approval`,

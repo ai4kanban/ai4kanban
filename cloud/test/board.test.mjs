@@ -4,7 +4,8 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { assetsFile, cardFront, groupOfCard, isBoardPath, numberOfCard, workflowFolder } from '../src/board-files.ts'
-import { indexEntries, renumbered } from '../src/v1/board.ts'
+import { workflowFor } from '../src/v1/workflows.ts'
+import { followEntries, indexEntries, renumbered } from '../src/v1/board.ts'
 import { fakeBoards } from './fake-board.mjs'
 
 describe('the board object', () => {
@@ -84,6 +85,21 @@ describe('what of a board Cloud keeps', () => {
     assert.deepEqual(cardFront('---\ntitle: "Pricing: tiers"\nstatus: planning\nphase: 2\nmodules: [web]\n---\nBody'),
       { title: 'Pricing: tiers', status: 'planning', phase: 2 })
     assert.deepEqual(cardFront('No frontmatter'), {})
+  })
+
+  it('reads what a task follows of each card written: archived, rejected, workflow and open question (#59)', () => {
+    const card = (front) => `---\ntitle: A\n${front}---\nBody`
+    assert.deepEqual(followEntries([
+      { path: 'todo/1-a.md', content: card('workflow: wf-mine\nquestions:\n  - "[user] Plain?"\n  - question: "[user] Which?"\n    mode: single\n    options:\n      - Red\n      - Blue\n') },
+      { path: '.archive/2-b.md', content: card('rejected: true\n') },
+      { path: 'todo/3-c.md', content: null },
+      { path: 'todo/4-d.md', content: card('workflow: coding\n') },
+      { path: 'memory/readme.md', content: 'x' },
+    ]), [
+      { number: 1, archived: false, rejected: false, reason: null, workflow: { name: 'wf-mine' }, review: { question: 'Which?', options: ['Red', 'Blue'], position: 2 } },
+      { number: 2, archived: true, rejected: true, reason: null, review: null },
+      { number: 4, archived: false, rejected: false, reason: null, workflow: { name: 'coding', definition: workflowFor('wf_builtin_coding') }, review: null },
+    ])
   })
 
   it('indexes cards by number, deletions first, a subtask with its group, and assets by task', () => {

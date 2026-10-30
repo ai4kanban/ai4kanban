@@ -1,11 +1,13 @@
 // A task's folder (#2037): the project's board kept on this computer across jobs, a working copy
 // of its files in the workspace's Cloud `Board` (#2081, #2114): `projects/<id>/` is the board's
 // root, and the shared memory its agents declare the workspace's (#2093) sits at `memory/<name>`
-// in both. Before a job it reads what changed since it last read, in one call, and resets the
-// board's files to Cloud's; after it, every file the job changed goes back in one write on the
-// `seq` each was read at. Refused, the files both sides changed are merged here and written once
-// more. What it last read is the base, `.akb/base.json` in the project's folder. Triage items are
-// board files too (#2107). A project's periodic agent works on the same board for no task (#2068).
+// in both. Before a job it sends what changed here, then reads what changed since it last read,
+// in one call, and resets the board's files to Cloud's; after it, and whenever a file changes
+// (#59), every changed file goes back in one write on the `seq` each was read at. Refused, the
+// files both sides changed are merged here and written once more. A folder's reads and writes
+// take turns. What it last read is the base, `.akb/base.json` in the project's folder. Triage
+// items are board files too (#2107). A project's periodic agent works on the same board for no
+// task (#2068).
 
 import { spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
@@ -19,7 +21,7 @@ import { itemAt, stampItem } from '../../cloud/src/triage-files.ts'
 import { projectStateDir } from '../../cli/src/lib/machine/project'
 import * as api from './api'
 import type { Assets, Job } from './api'
-import { cacheDir, markUsed, markUnsent } from './cache'
+import { busy, cacheDir, markUsed, markUnsent } from './cache'
 import { sharedMemory, type Shared } from './memory-files'
 
 export { workflowFolder }
@@ -66,6 +68,7 @@ interface Base {
   layout?: 'workspace'
   head_seq: number | null
   workspace?: string | null
+  project?: string
   files: { [path: string]: { seq: number; content: string } }
 }
 
@@ -116,6 +119,29 @@ export function openDiscussionFolder(job: Pick<Job, 'project'>, projectDir: stri
   const board = path.join(projectDir, '.akb', 'kanban')
   fs.mkdirSync(board, { recursive: true })
   return { task: 'discussion', cloudTask: null, board, cwd: projectDir, project: job.project, number: null, workflow: null }
+}
+
+/** The board itself, for no task: what a change made outside a job goes back as (#59). */
+const boardFolder = (ws: Pick<TaskFolder, 'board' | 'cwd' | 'project'>): TaskFolder =>
+  ({ task: 'board', cloudTask: null, board: ws.board, cwd: ws.cwd, project: ws.project, number: null, workflow: null })
+
+/** The board a project folder here keeps for Cloud, once read from it; null when never read. */
+export function keptBoard(cwd: string): TaskFolder | null {
+  const board = path.join(cwd, '.akb', 'kanban')
+  const base = readBase({ cwd })
+  const project = base.project ?? /^projects\/([^/]+)\//.exec(Object.keys(base.files).find((p) => p.startsWith('projects/')) ?? '')?.[1]
+  return base.head_seq === null || !project ? null : boardFolder({ board, cwd, project })
+}
+
+const turns = new Map<string, Promise<unknown>>()
+
+/** One read or write of a folder's board at a time. */
+function inFolder<T>(dir: string, work: () => Promise<T>): Promise<T> {
+  const next = (turns.get(dir) ?? Promise.resolve()).then(work, work)
+  const held = next.catch(() => {})
+  turns.set(dir, held)
+  void held.then(() => turns.get(dir) === held && turns.delete(dir))
+  return next
 }
 
 const safe = (name: string) => name.replace(/[^\w.-]/g, '_') || 'default'
@@ -198,9 +224,9 @@ function writeRecord(ws: TaskFolder, record: Record_): void {
   fs.writeFileSync(recordFile(ws), `${JSON.stringify(record, null, 2)}\n`)
 }
 
-const baseFile = (ws: TaskFolder) => path.join(ws.cwd, '.akb', 'base.json')
+const baseFile = (ws: Pick<TaskFolder, 'cwd'>) => path.join(ws.cwd, '.akb', 'base.json')
 
-function readBase(ws: TaskFolder): Base {
+function readBase(ws: Pick<TaskFolder, 'cwd'>): Base {
   try {
     const base = JSON.parse(fs.readFileSync(baseFile(ws), 'utf8')) as Base
     if (base.layout === 'workspace') return base
@@ -475,9 +501,18 @@ function assetsOf(text: string | null | undefined): Assets {
 
 const assetsText = (assets: Assets) => `${JSON.stringify(assets, null, 2)}\n`
 
-/** Bring the folder up to Cloud: what changed since the base, in one call, then the board's
- *  files reset to it — a hand edit made outside a job is not kept. */
-export async function pull(ws: TaskFolder): Promise<api.Call<void>> {
+/** Bring the folder up to Cloud: what changed here goes first, then what changed since the base,
+ *  in one call, and the board's files reset to it. Nothing here is overwritten while it cannot
+ *  be sent. */
+export function pull(ws: TaskFolder, machineId: string): Promise<api.Call<void>> {
+  return inFolder(ws.cwd, async () => {
+    const sent = await sendBoard(boardFolder(ws), machineId)
+    if (!sent.ok) return { ok: false, error: `This computer's board changes could not be sent: ${sent.error}`, ...(sent.offline ? {} : { code: 'version_conflict' }) }
+    return readCloud(ws)
+  })
+}
+
+async function readCloud(ws: TaskFolder): Promise<api.Call<void>> {
   const base = readBase(ws)
   const known = new Set(Object.keys(base.files))
   if (base.workspace === undefined) {
@@ -493,6 +528,7 @@ export async function pull(ws: TaskFolder): Promise<api.Call<void>> {
     else base.files[f.path] = { seq: f.seq, content: f.content }
   }
   base.head_seq = read.value.head_seq
+  base.project = ws.project
   writeBase(ws, base)
 
   const reset = (view: Map<string, string>) => {
@@ -729,13 +765,34 @@ export function mergeFile(base: string | null, mine: string | null, theirs: stri
 /** Send back what the job changed: assets first, then every changed board file in one write.
  *  Refused, the files both sides changed are merged here and the write goes once more. Until one
  *  goes, the folder is kept out of the cache's cleanup. */
-export async function push(ws: TaskFolder, job: { id: string; machineId: string }): Promise<Pushed> {
+export const push = (ws: TaskFolder, job: { id: string; machineId: string }): Promise<Pushed> => inFolder(ws.cwd, async () => {
+  const pushed = await sendMarked(ws, job)
+  // Refused, the step runs again from Cloud's board: what the job changed here goes, rather than
+  // block every later read.
+  if (!pushed.ok && pushed.conflict && (await readCloud(ws)).ok) markUnsent(ws.cwd, false)
+  return pushed
+})
+
+/** `work` alone on the folder's board, with the job's push: what it lays out meanwhile never goes. */
+export const withBoard = <T>(ws: TaskFolder, work: (push: (job: { id: string; machineId: string }) => Promise<Pushed>) => Promise<T>): Promise<T> =>
+  inFolder(ws.cwd, () => work((job) => sendMarked(ws, job)))
+
+/** What changed on the board, for no job (#59). */
+export const pushBoard = (ws: TaskFolder, machineId: string): Promise<Pushed> => inFolder(ws.cwd, () => sendBoard(ws, machineId))
+
+/** Never before the board was first read: everything here would go up as new. */
+async function sendBoard(ws: TaskFolder, machineId: string): Promise<Pushed> {
+  if (readBase(ws).head_seq === null) return { ok: true, changed: false }
+  return sendMarked(ws, { id: null, machineId })
+}
+
+async function sendMarked(ws: TaskFolder, job: { id: string | null; machineId: string }): Promise<Pushed> {
   const pushed = await send(ws, job)
   markUnsent(ws.cwd, !pushed.ok)
   return pushed
 }
 
-async function send(ws: TaskFolder, job: { id: string; machineId: string }): Promise<Pushed> {
+async function send(ws: TaskFolder, job: { id: string | null; machineId: string }): Promise<Pushed> {
   const record = readRecord(ws)
   const base = readBase(ws)
   const fail = (error: string, conflict = false, code?: string): Pushed => ({ ok: false, conflict, error, ...(code ? {} : { offline: true }) })
@@ -749,7 +806,10 @@ async function send(ws: TaskFolder, job: { id: string; machineId: string }): Pro
   const local = localFiles(ws, base)
   const localOf = new Map<string, string>()
   const changes: api.BoardWrite[] = []
+  // An item a job is adding goes up with that job, stamped with its task.
+  const owed = (p: string) => !job.id && busy(ws.cwd) && itemAt(p)?.state === 'open' && !base.files[rootOf(ws) + p]
   for (const p of local) {
+    if (owed(p)) continue
     const content = fs.readFileSync(path.join(ws.board, p), 'utf8')
     const remote = remoteOf(ws, shared, p)
     localOf.set(remote, p)

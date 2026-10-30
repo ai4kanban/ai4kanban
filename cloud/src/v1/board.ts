@@ -14,8 +14,11 @@ import { json } from '../http.ts'
 import { uuid } from '../input.ts'
 import { objectOf } from './input.ts'
 import type { importInput } from './input.ts'
-import { workflowFor } from './workflows.ts'
+import { builtinWorkflow, workflowFor } from './workflows.ts'
 import { parseFrontmatter, serializeFrontmatter } from '../../../cli/src/lib/frontmatter.ts'
+import { openOf, parseQuestion } from '../../../cli/src/lib/view/rules.ts'
+import type { Question } from '../../../cli/src/lib/view/types.ts'
+import { stopRun } from '../run-log.ts'
 import { emitWritten } from '../triage.ts'
 import { triageId } from '../triage-files.ts'
 import { sortTriage } from '../triage-sort.ts'
@@ -38,8 +41,8 @@ export function inProject(project: string, path: string): boolean {
   return path.startsWith(SHARED_MEMORY) && isBoardPath(path)
 }
 
-export function commitInput(project: string, body: Record<string, unknown>): { job: string; machine: string; files: BoardWrite[] } {
-  const job = uuid(body.job, 'job')
+export function commitInput(project: string, body: Record<string, unknown>): { job: string | null; machine: string; files: BoardWrite[] } {
+  const job = body.job == null ? null : uuid(body.job, 'job')
   const machine = uuid(body.machine, 'computer')
   if (!Array.isArray(body.files)) throw badRequest('files must be a list.')
   if (body.files.length > MAX_FILES) throw payloadTooLarge(`files has at most ${MAX_FILES} entries.`)
@@ -111,6 +114,48 @@ async function withLinks(env: Env, account: string, task: string, body: string, 
   return serializeFrontmatter(meta) + '\n' + rest
 }
 
+/** What a task follows of its card (#59), for each card written: where it is, whether it was
+ *  rejected and why, its workflow and the first open question it asks the user with options. */
+export function followEntries(files: { path: string; content: string | null }[]): Record<string, unknown>[] {
+  return files.flatMap((f) => {
+    const number = numberOfCard(f.path)
+    if (number === null || f.content === null) return []
+    const { meta } = parseFrontmatter(f.content)
+    if (!meta) return []
+    const builtin = `wf_builtin_${meta.workflow.replace(/-/g, '_')}`
+    const workflow = !meta.workflow ? undefined
+      : builtinWorkflow(builtin) ? { name: meta.workflow, definition: workflowFor(builtin) } : { name: meta.workflow }
+    return [{
+      number,
+      archived: f.path.startsWith('.archive/'),
+      rejected: meta.rejected,
+      reason: meta.rejected_reason || null,
+      ...(workflow ? { workflow } : {}),
+      review: questionOf(meta.questions),
+    }]
+  })
+}
+
+function questionOf(questions: Question[]): { question: string; options: string[]; position: number } | null {
+  for (const [i, q] of questions.entries()) {
+    const { tag, text } = parseQuestion(q.text)
+    if (tag === 'user' && openOf([q]).length && q.options?.length) return { question: text, options: q.options.slice(0, 8), position: i + 1 }
+  }
+  return null
+}
+
+/** Tasks brought to the cards written, as the web's buttons would; a removed one's running step
+ *  is stopped. A failure is logged, never the write's. */
+async function follow(env: Env, ctx: ExecutionContext, account: string, project: string, entries: Record<string, unknown>[]): Promise<void> {
+  if (!entries.length) return
+  try {
+    const { stop } = await mutate<{ stop: string[] }>(env, 'v1_follow_cards', { p_account: account, p_project: project, p_cards: entries })
+    for (const job of stop) ctx.waitUntil(stopRun(env, job))
+  } catch (e) {
+    console.error('cloud: tasks did not follow their cards', { project, error: e instanceof Error ? e.message : String(e) })
+  }
+}
+
 /** Written, then indexed; an index that fails is caught up by the next write, never undone. */
 export async function index(env: Env, account: string, project: string, entries: Record<string, unknown>[]): Promise<void> {
   if (!entries.length) return
@@ -142,7 +187,9 @@ export async function commitBoard(env: Env, ctx: ExecutionContext, account: stri
   if (!done.ok) {
     return json({ error: { code: 'version_conflict', message: 'These files changed since they were read.' }, files: done.files }, 409)
   }
-  await index(env, account, project, indexEntries(written(project, files, done.files)))
+  const changed = written(project, files, done.files)
+  await index(env, account, project, indexEntries(changed))
+  await follow(env, ctx, account, project, followEntries(changed))
   ctx.waitUntil(triageWritten(env, ctx, workspace, files, done.files))
   return json({ head_seq: done.head_seq, files: done.files })
 }

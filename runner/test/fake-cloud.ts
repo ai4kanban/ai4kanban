@@ -399,8 +399,9 @@ export class FakeCloud {
       return send(200, { head_seq: this.head, files })
     }
     if (board) {
-      const job = this.jobs.get(body.job)
-      if (!job || job.state !== 'claimed' || job.machine !== body.machine || job.leaseLost) {
+      // No job: a change made on the board outside one (#59).
+      const job = body.job === null ? null : this.jobs.get(body.job)
+      if (body.job !== null && (!job || job.state !== 'claimed' || job.machine !== body.machine || job.leaseLost)) {
         return refuse(409, 'conflict', 'This job has ended or moved to another computer.')
       }
       const writes = body.files as { path: string; content: string | null; base_seq: number }[]

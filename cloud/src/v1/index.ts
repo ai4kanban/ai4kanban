@@ -476,7 +476,7 @@ async function reasonOf(c: Call): Promise<string | null> {
 }
 
 async function cancelTask(c: Call): Promise<Response> {
-  return change(c, 'v1_cancel_task', { p_id: await taskId(c), p_reason: await reasonOf(c) })
+  return stopJob(c, 'v1_cancel_task', { p_id: await taskId(c), p_reason: await reasonOf(c) })
 }
 
 function listTasks(c: Call): Promise<Response> {

@@ -2541,6 +2541,10 @@ begin
     'another computer pushed a job it does not hold');
   perform pg_temp.refuses(format('select api.v1_board_job(%L, %L, %L, %L)', A, cloud.v1_general(cloud.v1_personal(A)), v_job, HOME),
     'AKB21', 'a job pushed to another project');
+  -- #59: with no job, a computer of the caller's writes the project's board on its own.
+  assert api.v1_board_job(A, v_site, null, HOME) ->> 'job' is null, 'a computer of the caller''s could not push on its own';
+  perform pg_temp.refuses(format('select api.v1_board_job(%L, %L, null, %L)', A, v_site, gen_random_uuid()), 'AKB21',
+    'a computer not the caller''s pushed on its own');
 
   -- A lapsed lease: refused, the job finished, and the task's job dispatched once more at the head of its queue.
   update cloud.runner_jobs set lease_expires_at = now() - interval '1 second' where id = v_job;
@@ -3269,6 +3273,41 @@ begin
     format('the landed computer misread: %s', v_json);
   perform api.hint_runner_diff(A, 'req-1', v_json ->> 'project', v_json ->> 'commit');
 
+  -- #59: a build whose card the board archived as it ran still names where it landed.
+  v_task := api.v1_create_task(A, '{"title": "Archive", "run": true}', CODING, BUDGET) ->> 'id';
+  perform pg_temp.step(A, HOME, v_task, 'done', null, '{"card": 9}');
+  perform pg_temp.decide(A, v_task, 'approve');
+  v_job := cloud.v1_flow_job(v_task);
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  perform api.v1_follow_cards(A, (select project_id from cloud.tasks where id = v_task),
+    jsonb_build_array(jsonb_build_object('number', (select number from cloud.tasks where id = v_task), 'archived', true)), BUDGET);
+  assert api.v1_task(A, v_task) ->> 'status' = 'done', 'an archived card did not end its task';
+  perform api.finish_runner_job(A, HOME, v_job.id, 'done', null, BUDGET,
+    '{"reply": "Shipped.", "landing": {"commit": "abc123", "branch": "main"}}');
+  v_json := api.v1_task(A, v_task);
+  assert v_json ->> 'status' = 'done' and v_json ->> 'result' = 'Shipped.' and v_json -> 'landing' ->> 'commit' = 'abc123'
+    and (select landed_machine from cloud.tasks where id = v_task) = HOME, format('an archived build lost its landing: %s', v_json);
+
+  -- #59: a task waiting on review asks the card's open question, and the plan again once none is left.
+  v_task := api.v1_create_task(A, '{"title": "Ask", "run": true}', CODING, BUDGET) ->> 'id';
+  perform pg_temp.step(A, HOME, v_task, 'done', null, '{"card": 10}');
+  perform api.v1_follow_cards(A, (select project_id from cloud.tasks where id = v_task), jsonb_build_array(jsonb_build_object(
+    'number', (select number from cloud.tasks where id = v_task),
+    'review', '{"question": "Which color?", "options": ["Red", "Blue"], "position": 2}'::jsonb)), BUDGET);
+  v_json := (select review from cloud.tasks where id = v_task);
+  assert v_json ->> 'question' = 'Which color?' and (v_json ->> 'card_question')::int = 2
+    and v_json -> 'options' = '[{"label": "Red", "approve": false}, {"label": "Blue", "approve": false}]',
+    format('a card''s new question was not asked: %s', v_json);
+  perform api.v1_follow_cards(A, (select project_id from cloud.tasks where id = v_task), jsonb_build_array(jsonb_build_object(
+    'number', (select number from cloud.tasks where id = v_task), 'review', null)), BUDGET);
+  assert (select review ->> 'question' from cloud.tasks where id = v_task) = 'Approve this plan?', 'an answered question was still asked';
+
+  -- #59: a card rejected on the board removes its task with the reason, as the web's Remove.
+  perform api.v1_follow_cards(A, (select project_id from cloud.tasks where id = v_task), jsonb_build_array(jsonb_build_object(
+    'number', (select number from cloud.tasks where id = v_task), 'archived', true, 'rejected', true, 'reason', 'Out of scope')), BUDGET);
+  assert (select status = 'cancelled' and cancel_reason = 'Out of scope' and cancel_reviewed = false from cloud.tasks where id = v_task),
+    'a rejected card did not remove its task';
+
   -- A build held on a question asks it; the answer carries the build on.
   v_task := api.v1_create_task(A, '{"title": "Hold", "run": true}', CODING, BUDGET) ->> 'id';
   perform pg_temp.step(A, HOME, v_task, 'done', null, '{"card": 8}');
@@ -3319,16 +3358,25 @@ begin
   assert v_json ->> 'status' = 'queued' and not (v_json -> 'run' ->> 'runner_connected')::boolean,
     'a task for an offline Runner was refused or not waiting';
 
-  -- Cancel: a queued task's waiting steps end with it; a running one is refused.
-  v_json := api.v1_cancel_task(A, v_task, BUDGET);
+  -- Cancel: a queued task's waiting steps end with it.
+  v_json := api.v1_cancel_task(A, v_task, BUDGET) -> 'result';
   assert v_json ->> 'status' = 'cancelled' and v_json -> 'run' = 'null', 'a queued task was not cancelled';
   assert (select outcome = 'failed' and reason = 'Cancelled.' from cloud.runner_jobs where task_id = v_task),
     'a cancelled task''s step kept waiting';
   assert api.v1_task_chat(A, v_task) ->> 'status' = 'failed', 'a cancelled task''s chat kept replying';
   perform api.register_runner(A, HOME, 'home-mac', 3, '0.4.0', RUNTIMES, false, 900, BUDGET);
+
+  -- #59: a running one's step is asked to stop first; its ending then leaves the task removed.
+  v_task := api.v1_create_task(A, '{"title": "Remove me", "run": true}', CODING, BUDGET) ->> 'id';
+  v_job := cloud.v1_flow_job(v_task);
+  perform api.claim_runner_job(A, HOME, v_job.id, 900, BUDGET);
+  assert api.v1_cancel_task(A, v_task, BUDGET) -> 'result' ->> 'status' = 'cancelled', 'a running task was not removed';
+  assert (select stop_requested from cloud.runner_jobs where id = v_job.id), 'a removed task''s running step was not stopped';
+  perform api.finish_runner_job(A, HOME, v_job.id, 'stopped', null, BUDGET, null);
+  assert api.v1_task(A, v_task) ->> 'status' = 'cancelled', 'a stopped step brought a removed task back';
+
   v_task := api.v1_create_task(A, '{"title": "Busy", "run": true}', CODING, BUDGET) ->> 'id';
   perform api.claim_runner_job(A, HOME, (cloud.v1_flow_job(v_task)).id, 900, BUDGET);
-  perform pg_temp.refuses(format('select api.v1_cancel_task(%L, %L, %s)', A, v_task, BUDGET), 'AKB26', 'a running task was cancelled');
 
   -- A step whose lease ran out runs once more (#2081), then fails its task when the Runner
   -- registers again, or at the sweep.
@@ -3933,7 +3981,8 @@ begin
   assert (select held_flow from cloud.tasks where id = v_b) = '{"verb": "implement", "text": "Go"}', 'the step was not held';
   assert not (api.v1_release_task(v_b, 'revise', 'N') ->> 'started')::boolean, 'a blocked task was released';
 
-  -- Ending files the task once; the Worker reads its project's cards.
+  -- Ending files the task once; the Worker reads its project's cards. Earlier checks' endings are not this one's.
+  delete from cloud.task_endings;
   perform api.v1_cancel_task(A, v_a, BUDGET);
   assert api.v1_take_endings(10) @> jsonb_build_array(jsonb_build_object('task', v_a, 'closing', false)), 'an ending was not filed';
   assert api.v1_take_endings(10) = '[]', 'a claimed ending was handed out twice';
@@ -4391,10 +4440,10 @@ begin
   perform pg_temp.refuses(format('select api.v1_triage_emit(%L, %L, %L)', v_ws, 'task.created', '{}'), 'AKB21', 'a triage emit told a task');
 
   -- A cancel with a reason is a rejection to learn; one without is not.
-  v_json := api.v1_cancel_task(M, v_task, BUDGET, '  Too broad  ');
+  v_json := api.v1_cancel_task(M, v_task, BUDGET, '  Too broad  ') -> 'result';
   assert v_json ->> 'cancel_reason' = 'Too broad' and v_json ->> 'cancelled_by' = 'tri-m', format('a cancel misread: %s', v_json);
   v_gone := api.v1_create_task(A, jsonb_build_object('title', 'Quiet', 'project', v_prj), WF, BUDGET) ->> 'id';
-  assert api.v1_cancel_task(A, v_gone, BUDGET) ->> 'cancel_reason' is null, 'a cancel without a reason kept one';
+  assert api.v1_cancel_task(A, v_gone, BUDGET) -> 'result' ->> 'cancel_reason' is null, 'a cancel without a reason kept one';
   v_json := api.v1_list_rejections(M, v_ws);
   assert jsonb_array_length(v_json -> 'tasks') = 1 and v_json -> 'tasks' -> 0 ->> 'reason' = 'Too broad' and v_json ->> 'workspace' = v_ws,
     format('the rejections misread: %s', v_json);

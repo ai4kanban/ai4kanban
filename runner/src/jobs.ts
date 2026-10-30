@@ -44,6 +44,8 @@ const LEASE_MS = 15 * 60_000
 /** How often a result waiting offline tries Cloud again. */
 const RETRY_MS = 30_000
 const KILL_GRACE_MS = 5_000
+/** Board changes this close together go to Cloud as one write (#59). */
+const WATCH_MS = 1_000
 /** How long stopping a job's board runs may take before the Runner exits anyway. */
 export const STOP_MS = 10_000
 /** A connection test's limit; cloud/src/config.ts's RUNTIME_TEST_SECONDS matches it. */
@@ -62,6 +64,8 @@ export interface Deps {
   leaseMs: number
   retryMs: number
   stopMs: number
+  /** How long a board change waits for the next before it goes; null watches no board. */
+  watchMs: number | null
   akb: Akb
   runtimes: () => Promise<RuntimeReport[]>
 }
@@ -77,6 +81,7 @@ export const defaultDeps = (machineId: string): Deps => ({
   retryMs: RETRY_MS,
   testMs: TEST_MS,
   stopMs: STOP_MS,
+  watchMs: WATCH_MS,
   akb: bundledAkb(),
   runtimes: detectRuntimes,
 })
@@ -362,7 +367,7 @@ async function runClaimed(job: Job, deps: Deps, track: (stop: () => Promise<void
       keep(cwd)
       // A flow job, and a review, pulls once its board is there.
       if (!job.flow && !job.review) {
-        const pulled = await pull(ws)
+        const pulled = await pull(ws, deps.machineId)
         if (!pulled.ok) throw new Error(pulled.error)
       }
     }
@@ -371,7 +376,7 @@ async function runClaimed(job: Job, deps: Deps, track: (stop: () => Promise<void
     if (job.discussion && job.projectDir && folder) {
       const board = openDiscussionFolder(job, folder.cwd)
       keep(board.cwd)
-      const pulled = await pull(board)
+      const pulled = await pull(board, deps.machineId)
       if (!pulled.ok) throw new Error(pulled.error)
       discussed = board.board
     }
@@ -428,9 +433,9 @@ async function runClaimed(job: Job, deps: Deps, track: (stop: () => Promise<void
   }
   if (!run) {
     const ended = await runFlow(job as Job & { flow: Flow }, ws!, deps, io)
-    // Stopped by the user (#2128): its board runs paused, the work kept here for a resume.
-    const stopped = stream.asked() && !ended.ok
-    if (stopped) await stream.halted()
+    // Stopped by the user (#2128), or its delivery cancelled (#59): kept here for a resume.
+    const stopped = !ended.ok && (stream.asked() || ended.stopped === true)
+    if (stopped && stream.asked()) await stream.halted()
     await stream.end()
     if (stream.lost()) return
     if (stopped) return finish(deps, id, lease, 'stopped')

@@ -473,7 +473,7 @@ export const readBoard = (project: string, since: number | null) =>
   request<{ head_seq: number; files: BoardFile[] }>('GET', `/v1/projects/${q(project)}/board${since === null ? '' : `?since=${since}`}`)
 
 /** Refused as `version_conflict`, `files` holds those that moved on, as they are now. */
-export async function commitBoard(project: string, job: string, machine: string, files: BoardWrite[]):
+export async function commitBoard(project: string, job: string | null, machine: string, files: BoardWrite[]):
   Promise<Call<{ head_seq: number; files: { path: string; seq: number }[] }> & { files?: BoardFile[] }> {
   const sent = await send('POST', `/v1/projects/${q(project)}/board/commits`, { job, machine, files }, true, TIMEOUT_MS)
   if (!sent.ok) return sent

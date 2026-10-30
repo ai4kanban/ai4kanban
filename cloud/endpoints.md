@@ -317,7 +317,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   "running", runner_connected, machine, runtime_name, stopping, runner_removed, job, step } | null` — `step` is
   `refine`, `implement`, `revise` or `resolve` (#79) — `result` once done, `failure` once failed, and
   `last_job`, whose log `GET /v1/runner/jobs/{id}/stream` streams and `GET /v1/runner/jobs/{id}` reads once ended. Nothing is retried; a step whose
-  Runner went away fails the task. A running task cannot be cancelled (`task_running`).
+  Runner went away fails the task. Cancelling a running task stops its step first.
 - **Stop and resume** (#2128): `POST /v1/tasks/{id}/stop` stops a running step, keeping its work:
   `run.stopping` until its Runner has stopped, a Runner not connected stopping once it connects,
   then the task is `stopped`. A stopped or failed task reads `resume: { machine, available } | null`;
@@ -417,9 +417,10 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   the files it changes the workspace's next `seq`; a deleted file stays as `content: null`.
   `GET /v1/projects/{id}/board?since=<seq>` answers `{ head_seq, files: [{ path, content, seq }] }`
   for what of the project's and the shared memory changed after `since`, every file without it.
-  `POST /v1/projects/{id}/board/commits` `{ job, machine, files: [{ path, content | null, base_seq }] }`
-  writes what a Runner job changed there, all or nothing, while that computer holds the job
-  (`conflict` otherwise); a file whose `base_seq` is behind refuses the write as
+  `POST /v1/projects/{id}/board/commits` `{ job?, machine, files: [{ path, content | null, base_seq }] }`
+  writes what a Runner changed there, all or nothing; with `job`, only while that computer holds
+  it (`conflict` otherwise). A task's card moved to `.archive/` ends the task: `cancelled` with
+  `rejected_reason` when `rejected: true`, else `done`. A changed `workflow:` sets the task's. A file whose `base_seq` is behind refuses the write as
   `version_conflict`, answering `files` as they are now. A file already holding what is written
   is no conflict. Each card written updates its task's index, by the path under the project:
   `title`, `card_version`, the previews it chose (`previews`), how many approvals they make
@@ -719,7 +720,6 @@ Always `{ "error": { "code": ..., "message": ... } }`; `message` is shown to a u
 | `version_conflict` | The card or a board file changed since it was read. Read it again and redo the change. |
 | `review_outdated` | The task changed since it was opened. Reload and review again. |
 | `card_missing` | The task has no full card to review yet. |
-| `task_running` | A run task's step is running; the Runner cannot stop it midway. |
 | `link_invalid` / `link_expired` / `link_revoked` | A share link that never existed, ran out, or was revoked. |
 | `sign_in_required` / `not_invited` | An `invited` link with no sign-in, or one whose email is not a guest of the task. |
 | `view_only` / `owner_only` | A write through a `link` link without a role, or what only the workspace's members may do. |

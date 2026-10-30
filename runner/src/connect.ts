@@ -2,7 +2,8 @@
 // to stay the account's Runner, keep a presence connection so Cloud sees it go (#2163), and
 // read the waiting jobs on every connect and hint. The chats it answered are reviewed for
 // memory once a day (#2065), the projects' periodic agents are looked at every minute (#2068),
-// and the cache is cleaned at the start and once a day (#2147).
+// the cache is cleaned at the start and once a day (#2147), and the boards kept here go back to
+// Cloud as they change (#59).
 
 import { connectCloudLive, type LiveConnection } from '../../cli/src/lib/cloud/live'
 import { readSession } from '../../cli/src/lib/cloud/session'
@@ -10,6 +11,7 @@ import { AGENTS_EVERY_MS, askDueAgents } from './agents'
 import * as api from './api'
 import { SWEEP_MS, removeLegacy, sweepCache } from './cache'
 import { pruneChats, reviewChats } from './chats'
+import { watchBoards, type BoardWatch } from './board-watch'
 import { answerHint } from './diff'
 import { stopLeftBehind } from './flow'
 import { status, t } from './i18n'
@@ -64,6 +66,7 @@ export function startRunner(options: Options): Runner {
   let attempts = 0
   let live: LiveConnection | null = null
   let presence: Presence | null = null
+  let boards: BoardWatch | null = null
   let timer: ReturnType<typeof setTimeout> | null = null
   let reading = false
   let readAgain = false
@@ -154,6 +157,8 @@ export function startRunner(options: Options): Runner {
       options.onConnected?.()
       openLive()
       presence ??= keepPresence(registration.machineId)
+      const { watchMs } = deps()
+      if (watchMs !== null) boards ??= watchBoards(registration.machineId, watchMs)
       // The registration skipped the slow model lists; the full look follows.
       void deps().runtimes()
     }
@@ -250,6 +255,7 @@ export function startRunner(options: Options): Runner {
       .finally(() => {
         running.delete(id)
         if (closed) return
+        boards?.look()
         status(idle())
         void readJobs()
       })
@@ -264,6 +270,7 @@ export function startRunner(options: Options): Runner {
     clearInterval(sweepTimer)
     live?.close()
     presence?.close()
+    boards?.close()
     // Each job's own stop is bounded; this bounds them all, should one hang.
     const stops = Promise.all([...running.values()].map((halt) => halt?.()))
     let timeout: ReturnType<typeof setTimeout> | undefined

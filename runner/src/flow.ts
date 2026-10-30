@@ -16,7 +16,7 @@ import { quoteArg } from '../../cli/src/lib/agent/argv'
 import { RAW_ARGS_KEY } from '../../cli/src/lib/agent/harnesses/types'
 import { LABELS, providerKey, providerOf, secretKeys, settingKeys } from './runtimes'
 import { secretsOf } from './secrets'
-import { SKILL_FOLDERS, akbCardOf, cardAssetsDir, cardFile, findCard, mcpServersOf, pull, push, resetSorted, workspaceOf, type McpServers, type TaskFolder } from './task-folder'
+import { SKILL_FOLDERS, akbCardOf, cardAssetsDir, cardFile, findCard, mcpServersOf, pull, resetSorted, withBoard, workspaceOf, type McpServers, type TaskFolder } from './task-folder'
 import { workflowName } from '../../cloud/src/board-files.ts'
 import { clearLaid, layOut } from './triage'
 import { draftLine, isBuilder, placeDraft } from './built'
@@ -47,7 +47,7 @@ export interface FlowIo {
   lost: () => boolean
 }
 
-export type FlowEnd = { ok: true; report: JobReport } | { ok: false; reason: string }
+export type FlowEnd = { ok: true; report: JobReport } | { ok: false; reason: string; stopped?: boolean }
 
 interface Run {
   sessionId: string
@@ -147,6 +147,24 @@ export async function stopLeftBehind(akb: Akb, ws: TaskFolder, id: number, ms: n
   if (!working.has(workKey(ws, id))) await stopRuns(akb, ws, id, 0, ms)
 }
 
+/** A build's delivery ended by a command, not by landing (#59): cancelled is a stop the task
+ *  carries on from; discarded, or blocked from landing, fails it with the delivery's reason. */
+export function deliveryEnding(ws: TaskFolder, id: string | undefined): FlowEnd | null {
+  if (!id) return null
+  let held: { status?: string; steps?: { step?: string }[]; review?: { stopped?: { reason?: string; why?: string } } }
+  try {
+    held = JSON.parse(fs.readFileSync(path.join(ws.board, 'deliveries', `${path.basename(id)}.json`), 'utf8'))
+  } catch {
+    return null
+  }
+  const stopped = held.review?.stopped
+  if (held.status === 'cancelled') {
+    return held.steps?.some((s) => s.step === 'discarded') ? { ok: false, reason: 'The build was discarded.' } : { ok: false, reason: '', stopped: true }
+  }
+  if (held.status === 'active' && stopped?.reason === 'landing') return { ok: false, reason: firstLine(stopped.why) ?? 'The build could not land.' }
+  return null
+}
+
 const refusal = (ran: Ran) => ran.last.replace(/^akb( raw)?: /, '').slice(0, 300) || 'akb stopped with an error.'
 const firstLine = (text?: string) => (text ?? '').split('\n').map((l) => l.trim()).find(Boolean)?.slice(0, 300)
 
@@ -222,7 +240,7 @@ async function setUp(job: Job, ws: TaskFolder, deps: FlowDeps, io: FlowIo): Prom
     const skill = await runAkb(deps.akb, ['skill', 'install', '--dir', ws.cwd], { cwd: ws.cwd, track: io.track })
     if (skill.code !== 0) return refusal(skill)
   }
-  const pulled = await pull(ws)
+  const pulled = await pull(ws, deps.machineId)
   if (!pulled.ok) return pulled.error
   const used = await akb(['agent', 'use', runtime])
   if (used.code !== 0) return refusal(used)
@@ -284,17 +302,19 @@ async function reviewRejections(job: Job, ws: TaskFolder, deps: FlowDeps, io: Fl
   if (!read.value.tasks.length && !read.value.triage.length) return { runs: [] }
   const since = Date.now()
   const akb = boardAkb(job, ws, deps, io)
-  const laid = layOut(ws.board, read.value)
-  const ran = await akb(['review-dismissals', '--all', '--follow', '--events', '--json'], true)
-  clearLaid(ws.board)
-  resetSorted(ws)
-  const runs = (answerOf<{ runs?: Run[] }>(await akb(['run', 'list', '--all', '--json']))?.runs ?? []).filter((r) => (r.startedAt ?? 0) >= since)
-  if (io.lost()) return { runs }
-  if (ran.code !== 0) return { runs, failure: refusal(ran) }
-  const sent = await push(ws, { id: job.id, machineId: deps.machineId })
-  if (!sent.ok) return { runs, failure: sent.error }
-  const marked = await deps.api.markReviewed(laid.tasks, laid.triage)
-  return marked.ok ? { runs } : { runs, failure: marked.error }
+  return withBoard(ws, async (push) => {
+    const laid = layOut(ws.board, read.value)
+    const ran = await akb(['review-dismissals', '--all', '--follow', '--events', '--json'], true)
+    clearLaid(ws.board)
+    resetSorted(ws)
+    const runs = (answerOf<{ runs?: Run[] }>(await akb(['run', 'list', '--all', '--json']))?.runs ?? []).filter((r) => (r.startedAt ?? 0) >= since)
+    if (io.lost()) return { runs }
+    if (ran.code !== 0) return { runs, failure: refusal(ran) }
+    const sent = await push({ id: job.id, machineId: deps.machineId })
+    if (!sent.ok) return { runs, failure: sent.error }
+    const marked = await deps.api.markReviewed(laid.tasks, laid.triage)
+    return marked.ok ? { runs } : { runs, failure: marked.error }
+  })
 }
 
 /** Before a task is planned: the rejection review, a failure only logged. */
@@ -450,10 +470,14 @@ export async function runFlow(job: Job & { flow: Flow }, ws: TaskFolder, deps: F
       result?: string
       lastSessionId?: string
       agentSession?: string
-      delivery?: { commit?: string; branch?: string }
-      error?: { message?: string; result?: string; lastSessionId?: string; agentSession?: string }
+      delivery?: { id?: string; commit?: string; branch?: string }
+      error?: { message?: string; result?: string; lastSessionId?: string; agentSession?: string; delivery?: { id?: string } }
     }
     const answer = answerOf<Ended>(ran)
+    if (verb === 'implement') {
+      const ending = deliveryEnding(ws, answer?.delivery?.id ?? answer?.error?.delivery?.id)
+      if (ending) return ending
+    }
     const review = reviewOf(cardFile(ws))
     // A build held on the user's question is reported as one, like a plan's.
     if (ran.code !== 0 && !(verb === 'implement' && answer?.error && review)) {

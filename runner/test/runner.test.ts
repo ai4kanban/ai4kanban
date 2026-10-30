@@ -16,7 +16,7 @@ import { toWire, type Deps } from '../src/jobs'
 import { akbEnv } from '../src/akb'
 import { agentDue } from '../src/agents'
 import { sharedMemory } from '../src/memory-files'
-import { openTaskFolder } from '../src/task-folder'
+import { keptBoard, openTaskFolder, pull, pushBoard } from '../src/task-folder'
 import { FILE_BYTES, diffOf } from '../src/diff'
 import { acpModels, codexModels, opencodeModels, plan, type Plan } from '../src/runtimes'
 import { FakeCloud, until, writeFakeSession, type FakeJob } from './fake-cloud'
@@ -99,6 +99,7 @@ function start(script = 'console.log("hello from the runtime")', over: Partial<D
     retryMs: 50,
     testMs: 2_000,
     stopMs: 2_000,
+    watchMs: null,
     akb: { command: process.execPath, args: [FAKE_AKB] },
     runtimes: async () => installed,
     ...over,
@@ -657,7 +658,7 @@ describe('a task’s folder (#2037)', () => {
     assert.equal(commits().length, 1)
   })
 
-  it('reads only what changed since, and resets a hand edit made outside a job', async () => {
+  it('reads only what changed since, sending a hand edit made outside a job first (#59)', async () => {
     await runTask('j1')
     assert.equal(downloads().length, 2)
     const stamp = fs.statSync(path.join(board(), CARD)).mtimeMs
@@ -666,9 +667,10 @@ describe('a task’s folder (#2037)', () => {
     await runTask('j2')
     assert.equal(downloads().length, 2, 'an unchanged asset was downloaded again')
     assert.equal(fs.statSync(path.join(board(), CARD)).mtimeMs, stamp, 'an unchanged card was rewritten')
-    assert.equal(read('memory/readme.md'), 'Shipped')
-    assert.ok(!fs.existsSync(path.join(board(), 'todo', '9-stray.md')))
-    assert.equal(commits().length, 0)
+    assert.equal(read('memory/readme.md'), 'edited by hand')
+    assert.equal(cloud.file('memory/readme.md'), 'edited by hand')
+    assert.equal(cloud.file('todo/9-stray.md'), 'stray')
+    assert.equal(commits().length, 1)
 
     cloud.task.artifacts.get('art_1')!.push(Buffer.from('hero-2'))
     cloud.put({ 'memory/readme.md': 'Shipped again' })
@@ -676,6 +678,59 @@ describe('a task’s folder (#2037)', () => {
     assert.deepEqual(downloads().slice(2), ['GET /v1/artifacts/art_1/versions/2/file'])
     assert.equal(read('todo/hero.png'), 'hero-2')
     assert.equal(read('memory/readme.md'), 'Shipped again')
+  })
+
+  it('keeps a card archived outside a job archived on the next job (#59)', async () => {
+    await runTask('j1')
+    fs.mkdirSync(path.join(board(), '.archive'), { recursive: true })
+    fs.renameSync(path.join(board(), CARD), path.join(board(), '.archive', '1-task-1.md'))
+    const job = await runTask('j2')
+    assert.equal(job.outcome, 'done', job.reason)
+    assert.equal(cloud.file(CARD), null)
+    assert.equal(cloud.file('.archive/1-task-1.md'), BODY)
+    assert.ok(!fs.existsSync(path.join(board(), CARD)), 'the next job brought the card back')
+    assert.equal(read('.archive/1-task-1.md'), BODY)
+  })
+
+  it('fails a job whose board changes here do not merge, overwriting none of them (#59)', async () => {
+    await runTask('j1')
+    fs.writeFileSync(path.join(board(), 'memory', 'readme.md'), 'edited by hand')
+    cloud.put({ 'memory/readme.md': 'Shipped elsewhere' })
+    const job = await runTask('j2')
+    assert.equal(job.outcome, 'failed')
+    assert.match(job.reason ?? '', /could not be sent: memory\/readme\.md was changed elsewhere/)
+    assert.equal(read('memory/readme.md'), 'edited by hand')
+    assert.equal(cloud.file('memory/readme.md'), 'Shipped elsewhere')
+  })
+
+  it('sends a board change as it is made, close ones together, and what waited at the start (#59)', async () => {
+    await runTask('j1')
+    await runner!.close()
+    // Changed while no Runner ran: sent as the next one starts.
+    fs.writeFileSync(path.join(board(), 'memory', 'readme.md'), 'while away')
+    start('', { watchMs: 50 })
+    await until(() => cloud.file('memory/readme.md') === 'while away')
+    assert.equal(commits().length, 1)
+    fs.writeFileSync(path.join(board(), 'memory', 'readme.md'), 'one')
+    fs.writeFileSync(path.join(board(), 'memory', 'agents', 'planner', 'decisions.md'), 'two')
+    fs.writeFileSync(path.join(board(), 'todo', 'README.md'), 'generated')
+    await until(() => commits().length === 2)
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    assert.equal(commits().length, 2, 'close changes went as more than one write')
+    assert.equal(cloud.file('memory/readme.md'), 'one')
+    assert.equal(cloud.file('memory/agents/planner/decisions.md'), 'two')
+    assert.ok(!cloud.board.has('projects/prj_1/todo/README.md'), 'a generated file went up')
+  })
+
+  it('takes a folder’s writes in turn: the same change goes once (#59)', async () => {
+    await runTask('j1')
+    fs.writeFileSync(path.join(board(), 'memory', 'readme.md'), 'once')
+    const ws = keptBoard(cached())!
+    const sent = await Promise.all([pushBoard(ws, MACHINE), pushBoard(ws, MACHINE), pull(openTaskFolder({ task: 'task_1', project: 'prj_1', number: 1 }, null), MACHINE)])
+    assert.deepEqual(sent.map((s) => s.ok), [true, true, true])
+    assert.equal(commits().length, 1)
+    assert.equal(cloud.file('memory/readme.md'), 'once')
+    assert.equal(read('memory/readme.md'), 'once')
   })
 
   it('sends a .tsx mockup as the page it draws, again when a file beside it changes (#2003)', async () => {
@@ -1150,6 +1205,23 @@ describe('flow jobs (#2020)', () => {
     const resolveAt = log.findIndex((l) => l.startsWith('card resolve 2 --follow --events --json'))
     assert.ok(resolveAt >= 0 && log.slice(resolveAt).some((l) => l.startsWith('card implement 2 --follow --events --json')),
       'the answer was not resolved before the build carried on')
+  })
+
+  it('stops a build whose delivery was cancelled, and fails one discarded or blocked with its reason (#59)', async () => {
+    await flowJob('j1', { verb: 'create' })
+    const ended = (record: Record<string, unknown>) =>
+      JSON.stringify({ implement: { failed: 'delivery d1 did not land', ended: { deliveryId: 'd1', steps: [{ step: 'implement' }], ...record } } })
+    process.env.FAKE_AKB = ended({ status: 'cancelled' })
+    const cancelled = await flowJob('j2', { verb: 'implement', card: 2 })
+    assert.equal(cancelled.outcome, 'stopped', cancelled.reason)
+    process.env.FAKE_AKB = ended({ status: 'cancelled', steps: [{ step: 'implement' }, { step: 'discarded' }] })
+    const discarded = await flowJob('j3', { verb: 'implement', card: 2 })
+    assert.equal(discarded.outcome, 'failed')
+    assert.equal(discarded.reason, 'The build was discarded.')
+    process.env.FAKE_AKB = ended({ status: 'active', review: { rounds: [], stopped: { reason: 'landing', why: 'this could not be fitted onto the latest `main`: the API moved', at: 1 } } })
+    const blocked = await flowJob('j4', { verb: 'implement', card: 2 })
+    assert.equal(blocked.outcome, 'failed')
+    assert.equal(blocked.reason, 'this could not be fitted onto the latest `main`: the API moved')
   })
 
   it('fails with akb’s own words when a verb is refused, or the run fails, and saves nothing', async () => {

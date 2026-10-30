@@ -62,7 +62,6 @@ function sayError(e: unknown): string {
   if (code === "offline") return T.errors.offline;
   if (code === "conflict") return T.agentBusy;
   if (code === "review_outdated") return REVIEW.errors.outdated;
-  if (code === "task_running") return T.cancelRunning;
   if (code === "quota_exceeded") return quotaText(e)!;
   if (code === "chat_busy") return REVIEW.ai.busy;
   if (code === "runner_offline") return REVIEW.ai.offline;
