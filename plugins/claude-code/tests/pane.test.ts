@@ -26,6 +26,8 @@ function host(on: On, answers: Record<string, unknown>, lang = 'en') {
   on('session.id', () => ({ value: 'sess-1' }))
   on('session.cwd', () => ({ value: '/Users/me/git/ai4kanban' }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('command.register', () => ({ value: { command: 'wildcrane' } }))
+  on('session.start', (_$, e) => ({ cwd: e.cwd }))
   return { calls }
 }
 
@@ -317,6 +319,34 @@ test('an outdated plugin shows only the outdated notice', async ($, on) => {
   expect(await ui.find({ text: /out of date/ })).toBeDefined()
   expect(await ui.find({ text: /is available/ })).toBeUndefined()
   await ui.unmount()
+})
+
+test('a reload refreshes the open panel: the new version shows and the update notice goes', async ($, on) => {
+  const answers: Record<string, unknown> = { discussion: EMPTY, state: { ...PROJECTS, runner: 'running', plugin: { version: '0.1.0', latest: '0.1.4' } } }
+  host(on, answers)
+  on('ui.panes', () => ({ value: [{ id: 'wildcrane', title: 'WildCrane', isShown: true, isFocused: true, isPlaced: true }] }))
+  const ui = await onProjects($)
+  expect(await ui.find({ text: /^v0\.1\.0$/ })).toBeDefined()
+  expect(await ui.find({ text: /is available/ })).toBeDefined()
+
+  answers.state = { ...PROJECTS, runner: 'running', plugin: { version: '0.1.4', latest: null } }
+  await $.session.start({ cwd: '/Users/me/git/ai4kanban', surface: 'terminal', isInteractive: true })
+  expect(await ui.find({ text: /^v0\.1\.4$/ })).toBeDefined()
+  expect(await ui.find({ text: /is available/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a reload with the panel closed calls nothing', async ($, on) => {
+  const fake = host(on, { state: SIGNED_IN })
+  on('ui.panes', () => ({ value: [] }))
+  await $.session.start({ cwd: '/Users/me/git/ai4kanban', surface: 'terminal', isInteractive: true })
+  expect(fake.calls).toEqual([])
+})
+
+test('only the panel tool is allowed without asking', async ($, on) => {
+  on('tool.check', () => ({ decision: 'ask' }))
+  expect(await $.tool.check({ tool: 'mcp__plugin_wildcrane_wildcrane__wildcrane_panel', input: {} })).toMatchObject({ decision: 'allow' })
+  expect(await $.tool.check({ tool: 'mcp__plugin_wildcrane_wildcrane__wildcrane_draft_save', input: {} })).toMatchObject({ decision: 'ask' })
 })
 
 const TASKS = { tasks: [

@@ -293,6 +293,8 @@ export const register: Register = (on) => {
     // A WildCrane job's own Claude session: the panel belongs to the person's.
     if (await $.env.get('WILDCRANE_JOB')) return next(e)
     await $.command.register({ name: 'wildcrane', description: 'Shape ideas with Claude and start them as WildCrane tasks' })
+    // A reload: the open panel still holds what the old version read.
+    if ((await $.ui.panes()).some((p) => p.id === PANE)) await refresh($)
     return next(e)
   })
 
@@ -325,6 +327,12 @@ export const register: Register = (on) => {
   on('tool.describe', async ($, e, next) => {
     if (!e.tool.endsWith('__wildcrane_panel')) return next(e)
     return { description: e.description, isDeferred: true }
+  })
+
+  // The panel's own reads ask nobody; `panel.key` guards the tool.
+  on('tool.check', async ($, e, next) => {
+    if (!e.tool.endsWith('__wildcrane_panel')) return next(e)
+    return { decision: 'allow' }
   })
 
   // The model saved the ideas: the panel shows what it saved.
