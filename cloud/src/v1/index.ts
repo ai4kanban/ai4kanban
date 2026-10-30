@@ -72,7 +72,7 @@ import type { Invite } from './guest-mail.ts'
 import { sendMail } from '../mail.ts'
 import { boardFor, boardOf, projectRoot, workspaceOfProject } from '../board.ts'
 import { sortTriage } from '../triage-sort.ts'
-import { cardItem, createItem, dismissItem, heldIn, listTriage as listTriageItems, markLearned, openItem, restoreItem, unlearnedIn } from '../triage.ts'
+import { cardItem, createItem, dismissItem, heldIn, itemCreator, listTriage as listTriageItems, markLearned, openItem, restoreItem, unlearnedIn } from '../triage.ts'
 import type { NewItem } from '../triage.ts'
 import { ofTriageId } from '../triage-files.ts'
 import { listAgents, previewNamesOf, runAgent, updateAgent, updateWorkflowRule } from './agents.ts'
@@ -295,10 +295,11 @@ async function createTask(c: Call): Promise<Response> {
   if (changes && isBuiltin(changes)) throw builtinWorkflow(changes) ? readOnly() : notFound('No workflow has this id.')
   return idempotent(c.env, c.caller, c.request, body, async () => {
     if (item) {
-      await openItem(c.env, triage!)
+      const open = await openItem(c.env, triage!)
       if (await workspaceOfProject(c.env, fields.project as string) !== await workspaceOfProject(c.env, item.project)) {
         throw notFound('No triage item has this id.')
       }
+      fields.source_context = { ...(fields.source_context as object | undefined), ...itemCreator(open.fields) }
     }
     const task = await write(c, 'v1_create_task', { p_fields: fields, p_workflow: definition }) as { id: string; key: string }
     if (triage) await cardItem(c.env, c.ctx, triage, task)

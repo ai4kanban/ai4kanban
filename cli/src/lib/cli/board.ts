@@ -9,6 +9,7 @@
 
 import { insideRun } from '../agent/env'
 import { recordCards } from '../agent/created-cards'
+import { runAgent } from '../agent/scheduled'
 import { board, moveTarget, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
 import { BoardError, say, warn } from '../io'
@@ -117,6 +118,7 @@ async function cloudCard(task: string, opts: Record<string, unknown>): Promise<{
     slug: typeof opts.slug === 'string' ? opts.slug : undefined,
     metadata: run ? cardFields(opts) : undefined,
     triage: typeof opts.triage === 'string' ? triageFile(opts.triage) : undefined,
+    agent: runAgent() ?? undefined,
   })
   if (!made.ok) throw new BoardError(`Cloud did not make the task: ${made.error}`, { kind: 'refused' })
   const { task: created, number, from } = made.value

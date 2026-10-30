@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
-import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
+import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiCpu, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
 import type { Artifact, Comment, Decision, Shared } from "@review/api";
 import { AiChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
@@ -17,7 +17,7 @@ import { Button } from "@review/components/button";
 import { cardParts } from "@review/components/CardBody";
 import { CardSheet, refining, RemoveButton, RunButton, type Info } from "@review/components/card-sheet";
 import { HAIRLINE } from "@review/components/chrome";
-import { ChatButton, ChatPane } from "@review/components/chat";
+import { Avatar, ChatButton, ChatPane } from "@review/components/chat";
 import { answerText, NO_ANSWERS, QuestionPanel } from "@review/components/questions";
 import { ShareButton, SharePanel } from "@review/components/share";
 import { useThread } from "@review/components/thread";
@@ -230,6 +230,21 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     setFrom(null);
     if (task?.discussion) api.readDiscussion(task.discussion).then(setFrom, () => {});
   }, [task?.discussion]);
+
+  // Who made it (#95): an agent, with the task it came from, or a person. An old task records
+  // none; one started from an idea chat is still its starter's.
+  const creator = task?.source_context?.creator ?? (task?.discussion ? {} : undefined);
+  const sourceTask = creator?.agent ? task?.source_context?.task : undefined;
+  const [sourceKey, setSourceKey] = useState<string | null>(null);
+  useEffect(() => {
+    setSourceKey(null);
+    if (sourceTask) api.readTask(sourceTask).then((t) => setSourceKey(t.key), () => {});
+  }, [sourceTask]);
+  const byPerson = !!creator && !creator.agent;
+  const [members, setMembers] = useState<api.Member[]>([]);
+  useEffect(() => {
+    if (byPerson && task) api.listMembers(task.workspace).then(setMembers, () => {});
+  }, [byPerson, task?.workspace]);
 
   // The approvals the card makes (#2154) and its preview sections (#34), named by their agents.
   const [flow, setFlow] = useState<Awaited<ReturnType<typeof api.readTaskWorkflow>> | null>(null);
@@ -549,8 +564,33 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       )}
     </>
   );
+  const person = byPerson && task.created_by ? members.find((m) => m.handle === task.created_by)?.name || `@${task.created_by}` : null;
+  const creatorValue = creator?.agent ? (
+    <>
+      <span className="inline-flex items-center gap-1">
+        <span aria-hidden className="inline-flex size-[15px] items-center justify-center rounded-full" style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}>
+          <FiCpu style={{ width: 9, height: 9 }} />
+        </span>
+        {creator.agent === "triage-sort" ? T.triageSort : (titles.get(creator.agent) ?? titleOf({ agent: creator.agent, title: {} }))}
+      </span>
+      {sourceKey && (
+        <Link href={`/tasks/${encodeURIComponent(sourceKey)}`} className="nb-chip no-underline underline-offset-2 hover:underline" style={GREY}>
+          {numberOf(sourceKey)}
+        </Link>
+      )}
+    </>
+  ) : (
+    person && (
+      <span className="inline-flex items-center gap-1">
+        <Avatar who={person} size={15} />
+        {person}
+      </span>
+    )
+  );
+  const shown = meta ?? { modules: [], priority: null, todos: null, source: [], blockedBy: [], related: [] };
   const info: Info = {
-    ...(meta ?? { modules: [], priority: null, todos: null, source: [], blockedBy: [], related: [] }),
+    ...shown,
+    source: sourceKey ? shown.source.filter((s) => keyOf(task.key, s) !== sourceKey) : shown.source,
     workflow: workflowName(task.workflow),
     chipLink: (s, chip) => {
       const key = keyOf(task.key, s);
@@ -562,6 +602,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     },
     more: [
       { label: REVIEW.meta.started, value: REVIEW.when(task.created_at) },
+      ...(creatorValue ? [{ label: T.createdBy, value: creatorValue }] : []),
       ...(from
         ? [
             {

@@ -12,7 +12,7 @@ import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
 import { askJev } from './judge.ts'
 import type { Answer } from './judge.ts'
-import { cardItem, heldIn, heldOf, itemsJson, openItem, rewriteItem } from './triage.ts'
+import { cardItem, heldIn, heldOf, itemCreator, itemsJson, openItem, rewriteItem } from './triage.ts'
 import { cloudWorkflowOf, itemPath, ofTriageId, stampItem, stampOf, triageId } from './triage-files.ts'
 import { placeWorkflow } from './v1/board.ts'
 import { poke } from './v1/stream.ts'
@@ -291,7 +291,7 @@ export async function sortTriage(env: Env, id: string, ctx?: ExecutionContext): 
         await openItem(env, id)
         task = await mutate<{ id: string; key: string }>(env, 'v1_create_task', {
           p_account: item.owner,
-          p_fields: { title: item.title, request: item.text, run: true, project: at.project },
+          p_fields: { title: item.title, request: item.text, run: true, project: at.project, source_context: { agent: 'triage-sort', ...itemCreator(f) } },
           p_workflow: workflowFor(end.workflow!),
         })
       } catch (e) {

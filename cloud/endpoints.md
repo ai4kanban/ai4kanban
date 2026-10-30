@@ -292,6 +292,9 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   asks for a new review. Approving the plan saves them in the same write — a new workflow, or a
   new version of the one named — with `workflow.created` or `workflow.updated`, and the task's
   `context.workflow` names it (`context.created` when it is new). A task already running stays on its version.
+- **Task creator** (#95): every new task's `source_context.creator` is `{ agent }` when the call
+  names `source_context.agent`, else `{ account }`, the caller; a task made of a triage item takes
+  the item's `agent` and `source_task` (as `task`), and Cloud's sort names `triage-sort` without one.
 - **Task workflow**: a task runs on the workflow version current when it was created; later
   changes reach only new tasks. `GET /v1/tasks/{id}/workflow` reads it: `{ workflow, builtin,
   version, name, description, round, rounds, stages, lands, files }` — the approval its card is on,
@@ -545,7 +548,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   `cancelled` is `conflict`. A triage item is a follow-up waiting to
   be sorted, in a project (`general` without one), kept as a board file (#2107) — `triage/<name>.md`
   open, `triage/dismissed/` or `triage/archived/` once sorted, synced to Runners with the board:
-  `{ id: "tri_<project>_<name>", project, title, text, source_task, workflow, state: "open" |
+  `{ id: "tri_<project>_<name>", project, title, text, source_task, agent, workflow, state: "open" |
   "dismissed" | "carded", dismissed_reason, dismissed_by, dismissed_at, task }`; a move never
   renames the file, so the id stays. `GET /v1/triage?project=&state=&order=` lists them by when each
   last moved — `state` takes several, comma-separated, and `order=desc` pages newest first

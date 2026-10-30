@@ -36,7 +36,7 @@ import {
 import { currentSession } from '../lib/agent/origin'
 import { startResume, startRun, startSubRun } from '../lib/agent/start'
 import { knownWorkflow, scheduledAgent } from '../lib/agent/workflows'
-import { scheduledRequest } from '../lib/agent/scheduled'
+import { runAgent, scheduledRequest } from '../lib/agent/scheduled'
 import { cardCreation, eventsPathOf, noteRefineTried, readRuns, withStore } from '../lib/agent/store'
 import type {
   AgentRequest,
@@ -163,7 +163,7 @@ export async function cmdRunScheduled(workflow: string, agent: string, opts: Sta
  *  from planning as a task of its own; nothing starts here. */
 async function createInCloud(task: string, description: string, workflow?: string): Promise<MoveResult> {
   const title = description.split('\n')[0]!.trim().slice(0, 120)
-  const made = await createTask(task, { title, request: description, workflow, run: true })
+  const made = await createTask(task, { title, request: description, workflow, run: true, agent: runAgent() ?? undefined })
   if (!made.ok) die(`Cloud did not make the task: ${made.error}`, { kind: 'refused' })
   const { task: created, from, replayed } = made.value
   say(`made ${created.key} in Cloud${replayed ? ' (already made)' : ''} — it is planned there, from ${from.key}`)

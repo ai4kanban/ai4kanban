@@ -141,7 +141,7 @@ describe('sortTriage', () => {
     assert.equal(questions.workflow.criteria.wf_builtin_coding, 'Changes code.')
     const [task] = made()
     assert.deepEqual([task.p_account, task.p_workflow.id], [OWNER, 'wf_builtin_coding'])
-    assert.deepEqual(task.p_fields, { title: 'Dark mode', request: 'Add it', run: true, project: 'prj_1' })
+    assert.deepEqual(task.p_fields, { title: 'Dark mode', request: 'Add it', run: true, project: 'prj_1', source_context: { agent: 'triage-sort' } })
     const carded = triage()['triage/archived/dark-mode.md']
     assert.match(carded, /card_id: 3/)
     assert.match(carded, /task: task_1/)
@@ -158,6 +158,13 @@ describe('sortTriage', () => {
     assert.equal(await sortTriage(env, ID), 'card')
     assert.deepEqual(Object.keys(asked[0].questions).sort(), ['needsUser', 'workflow'])
     assert.deepEqual(Object.keys(asked[0].state), ['item'])
+  })
+
+  it('makes the task the proposing agent’s, from its source task (#95)', async () => {
+    seed({ source_task: 'task_9', agent: 'qa-manager' })
+    jev = () => json({ answers: { needsUser: yesOf(0.1), workflow: { choice: 'wf_builtin_coding', confidence: 0.8 } } })
+    assert.equal(await sortTriage(env, ID), 'card')
+    assert.deepEqual(made()[0].p_fields.source_context, { agent: 'qa-manager', task: 'task_9' })
   })
 
   it('makes a task on the workflow the item names, without asking for one (#2139)', async () => {

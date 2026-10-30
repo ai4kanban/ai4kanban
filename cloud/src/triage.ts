@@ -40,6 +40,8 @@ export interface TriageItem {
   title: string
   text: string
   source_task: string | null
+  /** The agent that raised it. */
+  agent: string | null
   workflow: string | null
   state: TriageState
   dismissed_reason: string | null
@@ -105,6 +107,7 @@ function jsonOf(workspace: string, h: Held, tasks: Map<string, string>): TriageI
     title: f.title!,
     text: h.file.body,
     source_task: f.source_task || null,
+    agent: f.agent || null,
     workflow: f.workflow ? cloudWorkflowOf(f.workflow) : null,
     state: h.state,
     dismissed_reason: dismissed ? f.dismissed_reason || null : null,
@@ -306,14 +309,20 @@ export async function restoreItem(env: Env, ctx: ExecutionContext, account: stri
 }
 
 /** The open item a new task is made of: its project. */
-export async function openItem(env: Env, id: string): Promise<{ project: string; name: string }> {
+export async function openItem(env: Env, id: string): Promise<{ project: string; name: string; fields: Record<string, string> }> {
   const at = ofTriageId(id)
   if (!at) throw missing()
   const h = await heldAt(boardOf(env, await workspaceOfProject(env, at.project)), at.project, at.name).catch(() => null)
   if (!h) throw missing()
   if (h.state !== 'open') throw conflict('This triage item is not waiting to be sorted.')
-  return at
+  return { ...at, fields: h.file.fields }
 }
+
+/** A task made of an item is the item's agent's (#95), from the task the item came from. */
+export const itemCreator = (f: Record<string, string>): { agent?: string; task?: string } => ({
+  ...(f.agent ? { agent: f.agent } : {}),
+  ...(f.source_task ? { task: f.source_task } : {}),
+})
 
 /** A task was made of it: into `archived/`, with the card it becomes. One sorted meanwhile stays. */
 export async function cardItem(env: Env, ctx: ExecutionContext | undefined, id: string, task: { id: string; key: string }): Promise<void> {

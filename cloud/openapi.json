@@ -2355,7 +2355,8 @@
                     "default": "api"
                   },
                   "source_context": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "`agent` names the agent making it, recorded as its creator; `creator` is set by Cloud."
                   },
                   "context": {
                     "type": "object",
@@ -7852,7 +7853,8 @@
             ]
           },
           "source_context": {
-            "type": "object"
+            "type": "object",
+            "description": "`creator` is who made it (#95): `{ agent }` or `{ account }`; a task from before it may have none."
           },
           "context": {
             "type": "object",
@@ -10801,6 +10803,13 @@
               "null"
             ],
             "description": "The task that proposed it."
+          },
+          "agent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The agent that proposed it."
           },
           "workflow": {
             "type": [

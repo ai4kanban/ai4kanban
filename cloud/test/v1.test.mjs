@@ -1340,6 +1340,12 @@ describe('rejections and triage (#2067)', () => {
     await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_builtin_coding', triage: other.id, run: true, skip_plan: true } })
     assert.equal(callsTo('v1_create_task')[1].body.p_fields.skip_plan, true)
     assert.equal((await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_builtin_coding', skip_plan: true } })).status, 400)
+    // Made of an agent's item, the task is that agent's, from the item's task (#95).
+    boards.project('prj_1').commit([{ path: 'triage/qa.md', content: '---\ntitle: Stutter\nagent: qa-manager\nsource_task: task_3\n---\n', base_seq: 0 }])
+    const qa = (await (await send('/v1/triage?project=prj_1')).json()).data.find((i) => i.title === 'Stutter')
+    assert.equal(qa.agent, 'qa-manager')
+    await send('/v1/tasks', { method: 'POST', body: { title: 'Go', workflow: 'wf_builtin_coding', triage: qa.id, source_context: { agent: 'planner' } } })
+    assert.deepEqual(callsTo('v1_create_task')[2].body.p_fields.source_context, { agent: 'qa-manager', task: 'task_3' })
 
     // Dismissed by the user, it waits; learned, it leaves; restored, the review withdraws it.
     const third = await (await send('/v1/triage', { method: 'POST', body: { title: 'Sepia', project: 'prj_1', workflow: 'wf_builtin_coding' } })).json()

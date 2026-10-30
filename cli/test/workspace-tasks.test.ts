@@ -8,6 +8,7 @@ import path from 'node:path'
 import { after, afterEach, beforeEach, describe, it } from 'node:test'
 
 import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { withStore } from '../src/lib/agent/store.ts'
 import { TASK_ENV } from '../src/lib/cloud/tasks.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
@@ -172,5 +173,14 @@ describe('in a Runner workspace', () => {
       run: true,
     })
     assert.ok(!fs.readdirSync(todo).some((f) => f.startsWith('12-')))
+  })
+
+  it('names the agent of the run making it as the task’s creator (#95)', async () => {
+    withStore((store) => {
+      store.runs.push({ sessionId: 'run-qa', cardId: null, action: 'scheduled', specAgent: 'qa-manager', status: 'running', startedAt: Date.now(), pid: process.pid } as never)
+    })
+    process.env[RUN_ENV] = 'run-qa'
+    await create(['--title', 'Stutter'])
+    assert.deepEqual(sent.find((s) => s.method === 'POST')!.body!.source_context, { task: 'task_src', agent: 'qa-manager' })
   })
 })

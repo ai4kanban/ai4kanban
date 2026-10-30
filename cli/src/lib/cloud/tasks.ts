@@ -79,6 +79,8 @@ export interface NewTask {
   metadata?: CardFields
   /** The file name of the triage item it is made of (#2107), which Cloud moves to `archived/`. */
   triage?: string
+  /** The agent making it, recorded as its creator (#95). */
+  agent?: string
 }
 
 export interface CardFields {
@@ -102,7 +104,7 @@ export async function createTask(from: string, said: NewTask): Promise<Made> {
     ...(workflow ? { workflow } : {}),
     ...(said.request?.trim() ? { request: said.request.trim() } : {}),
     source: 'api',
-    source_context: { task: from },
+    source_context: { task: from, ...(said.agent ? { agent: said.agent } : {}) },
     ...(said.run ? { run: true } : {}),
     ...(said.metadata && Object.keys(said.metadata).length ? { metadata: said.metadata } : {}),
     ...(said.triage ? { triage: `tri_${source.value.project.replace(/^prj_/, '')}_${said.triage}` } : {}),

@@ -241,6 +241,8 @@ const zh = {
       min < 1 ? "刚刚" : min < 60 ? `${min} 分钟前` : min < 1440 ? `${Math.floor(min / 60)} 小时前` : `${Math.floor(min / 1440)} 天前`,
   },
   fromChat: "来自对话",
+  createdBy: "创建者",
+  triageSort: "自动分拣",
   idea: {
     ask: "回复，或说「做吧」创建任务",
     ideas: "想法",
@@ -797,6 +799,8 @@ const en: Copy = {
     },
   },
   fromChat: "From chat",
+  createdBy: "Created by",
+  triageSort: "Auto-sort",
   idea: {
     ask: "Reply, or say “go ahead” to create the task",
     ideas: "Ideas",

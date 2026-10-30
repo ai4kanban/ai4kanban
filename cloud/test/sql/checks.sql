@@ -4803,6 +4803,40 @@ begin
 end
 $claims$;
 
+-- Every new task records its creator (#95): the agent the caller names, else the caller.
+do $task_creator$
+declare
+  BUDGET constant integer := 100000;
+  A constant uuid := 'a9a9a9a9-1111-4111-8111-111111111195';
+  WF constant jsonb := '{"id": "wf_builtin_x", "builtin": true, "lands": true, "hash": "h", "files": {}, "name": "Two steps"}';
+  v_prj text;
+  v_ctx jsonb;
+begin
+  delete from cloud.daily_writes;
+  insert into cloud.accounts (id, handle) values (A, 'creator-a');
+  insert into cloud.admitted_accounts (handle) values ('creator-a');
+  v_prj := api.v1_create_project(A, '{"name": "Made", "path": "/work/made"}', BUDGET) ->> 'id';
+
+  v_ctx := api.v1_create_task(A, jsonb_build_object('title', 'Mine', 'project', v_prj), WF, BUDGET) -> 'source_context';
+  assert v_ctx -> 'creator' = jsonb_build_object('account', A), format('a caller''s task was not theirs: %s', v_ctx);
+
+  v_ctx := api.v1_create_task(A, jsonb_build_object('title', 'Found', 'project', v_prj,
+    'source_context', '{"agent": " qa-manager ", "task": "task_1", "creator": {"account": "x"}}'::jsonb), WF, BUDGET) -> 'source_context';
+  assert v_ctx -> 'creator' = '{"agent": "qa-manager"}' and v_ctx ->> 'task' = 'task_1',
+    format('an agent''s task was not the agent''s: %s', v_ctx);
+
+  begin
+    insert into cloud.tasks (id, account_id, workspace_id, project_id, workflow, title)
+    select 'task_nocreator', A, p.workspace_id, p.id, '{}', 'None' from cloud.projects p where p.id = v_prj;
+    assert false, 'a task was made with no creator';
+  exception when others then
+    if sqlerrm not like '%needs its creator%' then raise; end if;
+  end;
+
+  raise notice 'sql checks: #95 task creator checks passed';
+end
+$task_creator$;
+
 rollback;
 
 -- #2084: OpenCode and Cursor runtimes, reported and run like the other two.

@@ -101,8 +101,9 @@ async function concurrentNumbers(socketDir) {
     insert into cloud.projects (id, account_id, workspace_id, name)
       values ('prj_race', '${ACCOUNT}', cloud.v1_personal('${ACCOUNT}'), 'Race')`), 'could not set up the race')
   const insert = (n) =>
-    Array.from({ length: each }, (_, i) => `insert into cloud.tasks (id, account_id, workspace_id, project_id, workflow, title, source)
-      values ('task_race_${n}_${i}', '${ACCOUNT}', cloud.v1_personal('${ACCOUNT}'), 'prj_race', '{}', 'x', 'api');`).join('\n')
+    Array.from({ length: each }, (_, i) => `insert into cloud.tasks (id, account_id, workspace_id, project_id, workflow, title, source, source_context)
+      values ('task_race_${n}_${i}', '${ACCOUNT}', cloud.v1_personal('${ACCOUNT}'), 'prj_race', '{}', 'x', 'api',
+        '{"creator": {"account": "${ACCOUNT}"}}');`).join('\n')
   await Promise.all(Array.from({ length: sessions }, (_, n) => new Promise((resolve, reject) => {
     const run = spawn('psql', sql(insert(n)), { stdio: ['ignore', 'ignore', 'pipe'] })
     let said = ''
