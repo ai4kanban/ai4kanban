@@ -536,7 +536,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       {!narrow && sectioned && <ViewSwitch view={view} onPick={setView} />}
       {reviewed && <ChatButton quiet label={REVIEW.comments.heading} count={thread.length} open={railOpen} unread={unread && !railOpen} onClick={toggleRail} />}
       {owner && reviewed && <ShareSlot task={task.id} />}
-      {(task.status === "queued" || task.status === "waiting_review") && <RemoveButton busy={busy} draftKey={`${store.ws.id}.task.${task.id}.remove`} onRemove={remove} />}
+      {task.status !== "done" && task.status !== "cancelled" && <RemoveButton busy={busy} draftKey={`${store.ws.id}.task.${task.id}.remove`} onRemove={remove} />}
       {task.status === "cancelled" && <RestoreButton task={task} busy={busy} onRestore={() => void back()} />}
       {waiting && approve >= 0 && !asked && !staged && <RunButton refine={refining(flow)} busy={busy} onClick={() => void run()} />}
       {built && (

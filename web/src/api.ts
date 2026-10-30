@@ -38,7 +38,7 @@ export interface Task {
   cancel_reason?: string | null;
   cancelled_by?: string | null;
   /** What a removed task comes back as when restored (#94). */
-  restores_to?: "waiting_review" | "stopped" | null;
+  restores_to?: "waiting_review" | "failed" | "stopped" | null;
   review?: Review;
   /** Where a built task's commit landed (#2109); null when nothing was committed. */
   landing?: { commit: string; branch: string; machine: string } | null;

@@ -110,7 +110,7 @@ const zh = {
   restoreTask: {
     label: "恢复",
     ask: "恢复这个任务？",
-    hint: { waiting_review: "卡片回到看板，任务回到「待审核」。", stopped: "卡片回到看板，任务回到「已停止」，可按「续跑」继续。" },
+    hint: { waiting_review: "卡片回到看板，任务回到「待审核」。", failed: "卡片回到看板，任务回到「未能完成」，可按「重新发起」。", stopped: "卡片回到看板，任务回到「已停止」，可按「续跑」继续。" },
     failed: (why: string) => `无法恢复：${why}`,
     notRemoved: "这个任务已经不是「已移除」了。",
     removedLine: (who: string, day: string, reason: string) => `${who ? `${who} 于 ` : ""}${day} 移除${reason ? `：${reason}` : ""}`,
@@ -665,7 +665,7 @@ const en: Copy = {
   restoreTask: {
     label: "Restore",
     ask: "Restore this task?",
-    hint: { waiting_review: "The card returns to the board and the task to To review.", stopped: "The card returns to the board and the task to Stopped; Resume carries it on." },
+    hint: { waiting_review: "The card returns to the board and the task to To review.", failed: "The card returns to the board and the task to Didn't finish; Start again reruns it.", stopped: "The card returns to the board and the task to Stopped; Resume carries it on." },
     failed: (why) => `Can't restore: ${why}`,
     notRemoved: "this task is no longer removed.",
     removedLine: (who, day, reason) => `Removed${who ? ` by ${who}` : ""} on ${day}${reason ? `: ${reason}` : ""}`,

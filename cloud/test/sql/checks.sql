@@ -3401,6 +3401,15 @@ begin
     format('a restored task did not stop for a resume: %s', v_json);
   perform pg_temp.refuses(format('select api.v1_restore_task(%L, %L, %s)', A, v_task, BUDGET), 'AKB21', 'a task not removed was restored');
 
+  -- #112: a stopped or failed task is removed too, and comes back as it was.
+  assert api.v1_cancel_task(A, v_task, BUDGET) -> 'result' ->> 'restores_to' = 'stopped', 'a removed stopped task would not come back stopped';
+  perform api.v1_restore_task(A, v_task, BUDGET);
+  update cloud.tasks set status = 'failed' where id = v_task;
+  assert api.v1_cancel_task(A, v_task, BUDGET) -> 'result' ->> 'restores_to' = 'failed', 'a removed failed task would not come back failed';
+  assert api.v1_restore_task(A, v_task, BUDGET) ->> 'status' = 'failed', 'a restored failed task misread';
+  update cloud.tasks set status = 'done' where id = v_task;
+  perform pg_temp.refuses(format('select api.v1_cancel_task(%L, %L, %s)', A, v_task, BUDGET), 'AKB21', 'a done task was removed');
+
   v_task := api.v1_create_task(A, '{"title": "Busy", "run": true}', CODING, BUDGET) ->> 'id';
   perform api.claim_runner_job(A, HOME, (cloud.v1_flow_job(v_task)).id, 900, BUDGET);
 

@@ -2642,7 +2642,7 @@
         "tags": [
           "Tasks"
         ],
-        "description": "Brings a `cancelled` task back as `restores_to` says: `waiting_review` if it was removed while waiting on review, else `stopped`. Its card returns to the board — out of `.archive/`, into its group’s folder while that is open — with no rejection on it, its line on the group root no longer struck, and the task leaves `GET /v1/rejections`. A task that is not `cancelled` is `conflict`.",
+        "description": "Brings a `cancelled` task back as `restores_to` says: `waiting_review` or `failed` if it was removed as one, else `stopped`. Its card returns to the board — out of `.archive/`, into its group’s folder while that is open — with no rejection on it, its line on the group root no longer struck, and the task leaves `GET /v1/rejections`. A task that is not `cancelled` is `conflict`.",
         "responses": {
           "200": {
             "description": "OK",
@@ -8019,6 +8019,7 @@
             ],
             "enum": [
               "waiting_review",
+              "failed",
               "stopped",
               null
             ],
