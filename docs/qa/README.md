@@ -10,6 +10,8 @@
 - [用一句话建卡](skill/create-card/case.md)
 - [让代理用中文回复和写卡](skill/reply-in-my-language/case.md)
 - [构建一张卡并跟随到落地](skill/follow-delivery-until-landed/case.md)
+- [用命令行按档次生成图片](skill/generate-image-by-tier/case.md)
+- [在 Runner 管理的项目里用命令行批准任务](skill/approve-on-runner-board/case.md)
 
 ## cloud
 
@@ -18,6 +20,9 @@
 - [打开分享出来的卡片链接](cloud/open-card-link/case.md)
 - [在任务对话里看每条回复花了多少钱](cloud/reply-cost/case.md)
 - [按模型查看工作区的用量和费用](cloud/usage-by-model/case.md)
+- [看任务正在细化还是执行](cloud/run-step/case.md)
+- [按档次生成图片](cloud/image-tiers/case.md)
+- [在命令行改了卡片，网页上的任务跟着变](cloud/board-follows-cards/case.md)
 
 ## review
 
@@ -30,6 +35,7 @@
 - [评论写到一半刷新页面](review/draft-comment/case.md)
 - [打开带待答问题的审核链接](review/open-question-link/case.md)
 - [切换审核页的语言](review/switch-language/case.md)
+- [在已结束任务的审核页和 AI 讨论](review/chat-on-ended-task/case.md)
 
 ## web
 
@@ -38,20 +44,33 @@
 - [在看板上找到待审核的任务并开始执行](web/review-on-board/case.md)
 - [跳过方案直接构建一个想法](web/build-now/case.md)
 - [查看工作流里有哪些角色](web/workflow-roles/case.md)
+- [在任务页查看卡片里的预览](web/view-previews/case.md)
+- [在设置里查看账单和 AI 能力](web/billing-ai/case.md)
 
 ## runner
 
 - [第一次启动 Runner 并登录](runner/sign-in-and-connect/case.md)
 - [在第二台电脑上启动 Runner](runner/second-computer/case.md)
 - [让 Runner 在本机项目文件夹里干活](runner/run-in-project-folder/case.md)
+- [在运行时设置里选 Claude Code 的模型](runner/pick-claude-model/case.md)
+- [在任务对话里附图提问，Agent 用我的语言回答](runner/chat-in-my-language/case.md)
+- [在 Runner 管理的项目里用命令行改任务，网页立刻跟着变](runner/cli-changes-reach-web/case.md)
 
 ## marketing
 
 已覆盖，无用例：这是在看板上写的营销工作本身，没有用户操作的产品界面。
 
+## site
+
+线上 `wildcrane.ai` 仍是 `legacy` 上的旧站，`site/` 不在 main 上。
+
+- [从官网下载桌面应用](site/download-desktop-app/case.md)
+- [在官网查看价格](site/view-pricing/case.md)
+- [把官网切换成中文](site/switch-to-chinese/case.md)
+
 ## 待覆盖
 
-- **site**
+无。
 
 ## 如何运行取证
 
@@ -80,3 +99,7 @@
   替身加一个 `/auth/v1/token` 代答 GitHub 登录；PATH 前放一个假的 `open` 记下登录地址，浏览器直接打开
   其中的 `redirect_to?code=任意`。作业用 `POST /v1/runner/jobs` 派发，由本机已登录的 `claude` 真跑。
   证据里把电脑名换成 `QA-Mac`。
+- **site**：直接对线上 `https://wildcrane.ai` 取证，用自己端口的无头 Chrome 加 CDP 点击和截图；浏览器语言
+  用 `Network.setUserAgentOverride` 的 `acceptLanguage` 模拟。下载链接用 `curl -sL -o /dev/null -w '%{http_code}'` 记日志。
+- **通用**：本机 shell 导出了指向真实看板的 `AI4KANBAN_BOARD`，取证前先 `unset`。`POST /v1/tasks` 要带
+  `"workflow":"wf_builtin_coding"`，正文字段是 `request`；本地 Worker 要带占位的 `CREEM_*` 变量，账单页才能加载。
