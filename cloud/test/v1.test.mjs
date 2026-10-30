@@ -744,6 +744,67 @@ describe('board files (#2081, #2114)', () => {
     assert.deepEqual(boards.of('ws_1').diff(null).files, [])
   })
 
+  describe('a refine scheduled on a card (#124)', () => {
+    const front = ({ schedule, blockedBy = '' } = {}) => [
+      '---', 'title: Pricing', 'status: todo', `blocked_by: [${blockedBy}]`,
+      ...(schedule ? ['schedule:', `  action: ${schedule}`, '  notes: Be brief'] : []), '---', 'Body', '',
+    ].join('\n')
+    const started = () => callsTo('v1_start_scheduled_refine')
+    const held = (path = CARD) => boards.project('prj_1').read([path])[0].content
+
+    beforeEach(() => {
+      db.v1_start_scheduled_refine = () => ({ started: true, verb: 'refine' })
+      db.v1_card_place = ({ p_task }) => ({ task: p_task, project: 'prj_1', path: CARD, version: 0, metadata: {}, assets: {} })
+      db.v1_card = ({ p_task }) => ({ object: 'card', task: p_task, project: 'prj_1', path: CARD, version: 2, metadata: {}, assets: {} })
+    })
+
+    it('starts a newly marked card as the push lands, once, and takes the mark off and reindexes', async () => {
+      assert.equal((await commit([{ path: P1 + CARD, content: front({ schedule: 'refine' }), base_seq: 0 }])).status, 200)
+      assert.deepEqual(started().map((c) => c.body), [{ p_project: 'prj_1', p_number: 1, p_notes: 'Be brief', p_machine: HOME }])
+      assert.doesNotMatch(held(), /schedule:/)
+      assert.equal(callsTo('v1_index_cards').at(-1).body.p_cards[0].links.schedule, null)
+    })
+
+    it('starts a card a PUT newly marked, on no computer in particular', async () => {
+      boards.project('prj_1').commit([{ path: CARD, content: front(), base_seq: 0 }])
+      const saved = await send('/v1/tasks/task_aa/card', { method: 'PUT', body: { body: front({ schedule: 'refine' }), base_version: 1 } })
+      assert.equal(saved.status, 200)
+      assert.deepEqual(started().map((c) => c.body.p_machine), [null])
+      assert.doesNotMatch((await saved.json()).body, /schedule:/)
+      assert.doesNotMatch(held(), /schedule:/)
+    })
+
+    it('leaves a mark the card already had, in place or moved, and any other action', async () => {
+      db.v1_start_scheduled_refine = () => ({ started: false })
+      const marked = front({ schedule: 'refine' })
+      await commit([{ path: P1 + CARD, content: marked, base_seq: 0 }])
+      calls.length = 0
+      await commit([{ path: P1 + CARD, content: marked + 'More', base_seq: 1 }])
+      assert.equal(started().length, 0, 'a mark already there started')
+      await commit([{ path: P1 + CARD, content: null, base_seq: 2 }, { path: P1 + 'todo/1-group/1-pricing.md', content: marked, base_seq: 0 }])
+      assert.equal(started().length, 0, 'a moved card started')
+      await commit([{ path: P1 + 'todo/5-next.md', content: front({ schedule: 'implement' }), base_seq: 0 }])
+      assert.equal(started().length, 0, 'another action started')
+      await commit([{ path: P1 + '.archive/6-gone.md', content: marked, base_seq: 0 }])
+      assert.equal(started().length, 0, 'an archived card started')
+    })
+
+    it('keeps the mark of a card the database would not start', async () => {
+      db.v1_start_scheduled_refine = () => ({ started: false })
+      const blocked = front({ schedule: 'refine', blockedBy: '2' })
+      await commit([{ path: P1 + CARD, content: blocked, base_seq: 0 }])
+      assert.equal(started().length, 1)
+      assert.equal(held(), blocked)
+    })
+
+    it('keeps the mark and the write when the start fails', async () => {
+      db.v1_start_scheduled_refine = () => json({ message: 'boom' }, 500)
+      const marked = front({ schedule: 'refine' })
+      assert.equal((await commit([{ path: P1 + CARD, content: marked, base_seq: 0 }])).status, 200)
+      assert.equal(held(), marked)
+    })
+  })
+
   it('hints the Runners of the projects a change touched, naming the computer that pushed it (#103)', async () => {
     db.v1_card_place = ({ p_task }) => ({ task: p_task, project: 'prj_1', path: CARD, version: 0, metadata: {}, assets: {} })
     db.v1_card = ({ p_task }) => ({ object: 'card', task: p_task, project: 'prj_1', path: CARD, version: 1, metadata: {}, assets: {} })

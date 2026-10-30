@@ -436,7 +436,9 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   (`cancelled`), and a root whose lines are all resolved — one ticked, no open question or
   unticked todo of its own — becomes `done`. A task left with no blocker then starts the step it
   waited with, else its `schedule`, which comes off the card. Each card changed is a new version
-  with `task.updated`.
+  with `task.updated`. A write that gives a card with no open blocker and no step in progress a
+  new `schedule` of `refine` (#124), through `PUT /v1/tasks/{id}/card` or a board commit, starts
+  that refine at once on the same terms; a mark the card already had waits for a blocker to leave.
 - **Board files** (#2081, #2114): one board per workspace. A project's cards (`todo/`, `.archive/`,
   named `<n>-<task id with ->.md`), memory (`memory/`), the workflow versions its tasks run on
   (`workflows/<id>/`), `triage/`, each task's assets list (`assets/<task>.json`) and its settings

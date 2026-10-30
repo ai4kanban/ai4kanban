@@ -6072,4 +6072,77 @@ begin
 end
 $account_lang$;
 
+-- #124: a refine scheduled on a card nothing blocks starts as the write lands, once.
+do $scheduled_refine$
+declare
+  A constant uuid := 'a0a0a0a0-0124-4124-8124-000000000001';
+  HOME constant uuid := 'cccccccc-0124-4124-8124-000000000003';
+  ELSEWHERE constant uuid := 'cccccccc-0124-4124-8124-000000000004';
+  BUDGET constant integer := 100000;
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  v_prj text;
+  v_id text;
+  v_free cloud.tasks;
+  v_blocker cloud.tasks;
+  v_blocked cloud.tasks;
+  v_ended cloud.tasks;
+  v_task cloud.tasks;
+  v_job cloud.runner_jobs;
+begin
+  insert into cloud.accounts (id, handle) values (A, 'refine-a');
+  perform api.register_runner(A, HOME, 'home-mac', 3, '0.4.0', '[{"name": "codex", "installed": true}]', false, 900, BUDGET);
+  v_prj := api.v1_create_project(A, '{"name": "Scheduled"}', BUDGET) ->> 'id';
+  insert into cloud.project_folders (project_id, machine_id, account_id, path) values (v_prj, HOME, A, '/work/scheduled');
+
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'Free', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_free from cloud.tasks where id = v_id;
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'Blocker', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_blocker from cloud.tasks where id = v_id;
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'Blocked', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_blocked from cloud.tasks where id = v_id;
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'Ended', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_ended from cloud.tasks where id = v_id;
+  perform api.v1_index_cards(A, v_prj, jsonb_build_array(jsonb_build_object('task', v_blocked.id,
+    'path', format('todo/%s-blocked.md', v_blocked.number), 'seq', 1, 'front', '{}'::jsonb,
+    'links', jsonb_build_object('blocked_by', jsonb_build_array(v_blocker.number), 'related', '[]'::jsonb,
+      'schedule', '{"action": "refine", "notes": ""}'::jsonb))), BUDGET);
+
+  -- A computer that does not have the project: nothing of the start stays.
+  perform pg_temp.refuses(format('select api.v1_start_scheduled_refine(%L, %s, null, %L)', v_prj, v_free.number, ELSEWHERE), 'AKB26',
+    'a computer without the project was bound');
+  assert not (select run from cloud.tasks where id = v_free.id), 'a failed start left the task run';
+
+  -- A task made without a run takes one, on the computer that wrote the card.
+  assert (api.v1_start_scheduled_refine(v_prj, v_free.number, 'Notes', HOME) ->> 'started')::boolean, 'a free card did not start';
+  select * into v_task from cloud.tasks where id = v_free.id;
+  assert v_task.run and v_task.run_card = v_task.number and v_task.machine_id = HOME and v_task.status = 'queued',
+    format('the task was not started: %s', to_jsonb(v_task));
+  v_job := cloud.v1_flow_job(v_free.id);
+  assert v_job.state = 'waiting' and v_job.machine_id = HOME and v_job.flow ->> 'verb' = 'refine'
+    and v_job.flow ->> 'text' = 'Notes' and (v_job.flow ->> 'card')::integer = v_task.number,
+    format('the step misread: %s', v_job.flow);
+
+  -- Started once: neither a second write nor the blocker path adds a step.
+  assert not (api.v1_start_scheduled_refine(v_prj, v_free.number, 'Notes', HOME) ->> 'started')::boolean, 'a running card started again';
+  assert not (api.v1_release_task(v_free.id, 'refine', 'Notes') ->> 'started')::boolean, 'release started a running card';
+  assert (select count(*) from cloud.runner_jobs where task_id = v_free.id) = 1, 'a card started twice';
+
+  -- Nothing starts a blocked card, an ended one, or a number with no task.
+  assert not (api.v1_start_scheduled_refine(v_prj, v_blocked.number, null, HOME) ->> 'started')::boolean, 'a blocked card started';
+  select * into v_task from cloud.tasks where id = v_blocked.id;
+  assert not v_task.run and v_task.machine_id is null and cloud.v1_flow_job(v_blocked.id) is null, 'a blocked card was touched';
+  perform api.v1_cancel_task(A, v_ended.id, BUDGET);
+  assert not (api.v1_start_scheduled_refine(v_prj, v_ended.number, null, HOME) ->> 'started')::boolean, 'an ended card started';
+  assert not (api.v1_start_scheduled_refine(v_prj, 9999, null, HOME) ->> 'started')::boolean, 'a number with no task started';
+
+  -- A run task's held refine, released as the last blocker leaves, is a step the table takes.
+  update cloud.tasks set run = true, run_card = v_blocked.number where id = v_blocked.id;
+  perform api.v1_cancel_task(A, v_blocker.id, BUDGET);
+  assert (api.v1_release_task(v_blocked.id, 'refine', null) ->> 'verb') = 'refine', 'release did not start the refine';
+
+  raise notice 'sql checks: #124 scheduled refine checks passed';
+end
+$scheduled_refine$;
+
 rollback;

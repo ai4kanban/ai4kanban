@@ -4,14 +4,14 @@
 // longer blocked starts what it held or what its `schedule` says.
 
 import { parseFrontmatter, serializeFrontmatter } from '../../../cli/src/lib/frontmatter.ts'
-import { clearScheduleIn, dropRefsIn, groupCloseOf, markSubtaskIn, queueRevisionIn, unstrikeSubtaskIn } from '../../../cli/src/lib/leaving.ts'
+import { dropRefsIn, groupCloseOf, markSubtaskIn, queueRevisionIn, unstrikeSubtaskIn } from '../../../cli/src/lib/leaving.ts'
 import type { Fate } from '../../../cli/src/lib/leaving.ts'
 import { boardFor, rewrite } from '../board.ts'
 import { draftFolder } from '../board-files.ts'
 import type { BoardClient } from '../board.ts'
 import { call } from '../db.ts'
 import type { Env } from '../env.ts'
-import { index, indexEntries } from './board.ts'
+import { clearSchedule, index, indexEntries } from './board.ts'
 
 interface ProjectCard {
   task: string
@@ -125,12 +125,7 @@ async function release(env: Env, ending: Ending, board: BoardClient, card: Proje
     p_action: schedule?.action ?? null,
     p_notes: schedule?.notes ?? null,
   })
-  if (!started.started || !schedule) return
-  const done = await rewrite(board, [card.path], (held) => {
-    const text = held.get(card.path)?.content
-    return text ? [{ path: card.path, content: clearScheduleIn(text) }] : []
-  })
-  await index(env, ending.account, ending.project, indexEntries(await written(board, done.files)))
+  if (started.started && schedule) await clearSchedule(env, ending.account, ending.project, board, card.path)
 }
 
 /** A restored task's card (#94) back on the board: out of `.archive/` into its group's folder while

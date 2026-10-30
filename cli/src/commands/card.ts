@@ -87,10 +87,9 @@ export interface CreateOptions {
   fromTask?: string
 }
 
-// `--schedule refine` hands the new card's first run to the board (lib/view/dispatch.ts)
-// instead of starting one here: it survives this session and every other, and the board
-// starts one scheduled run per tick rather than all of them at once. Read before the id is
-// allocated, so a bad value never leaves a card behind.
+// `--schedule refine` hands the new card's first run to Cloud instead of starting one here:
+// it survives this session and every other. Read before the id is allocated, so a bad value
+// never leaves a card behind.
 //
 // Which words are actions is the command's own check; what is left here is the two ways a
 // perfectly-spelled one would still never fire.

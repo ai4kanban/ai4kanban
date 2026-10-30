@@ -16,6 +16,7 @@ import { objectOf } from './input.ts'
 import type { importInput } from './input.ts'
 import { builtinWorkflow, workflowFor } from './workflows.ts'
 import { parseFrontmatter, serializeFrontmatter } from '../../../cli/src/lib/frontmatter.ts'
+import { clearScheduleIn } from '../../../cli/src/lib/leaving.ts'
 import { openOf, parseQuestion } from '../../../cli/src/lib/view/rules.ts'
 import type { Question } from '../../../cli/src/lib/view/types.ts'
 import { stopRun } from '../run-log.ts'
@@ -166,6 +167,52 @@ export async function index(env: Env, account: string, project: string, entries:
   }
 }
 
+/** A schedule handed over comes off its card. */
+export async function clearSchedule(env: Env, account: string, project: string, board: BoardClient, path: string): Promise<void> {
+  const done = await rewrite(board, [path], (held) => {
+    const text = held.get(path)?.content
+    return text ? [{ path, content: clearScheduleIn(text) }] : []
+  })
+  if (done.files.length) await index(env, account, project, indexEntries(await board.read(done.files.map((f) => f.path))))
+}
+
+type CardFile = { path: string; content: string | null }
+
+const refineOf = (f: CardFile) => {
+  const schedule = numberOfCard(f.path) !== null && f.content ? parseFrontmatter(f.content).meta?.schedule : null
+  return schedule?.action === 'refine' ? schedule : null
+}
+
+/** What a write replaces, read only when it schedules a refine. */
+const replaced = async (board: BoardClient, writes: CardFile[]): Promise<CardFile[]> =>
+  writes.some(refineOf) ? board.read(writes.map((w) => w.path)) : []
+
+/** The open cards a write newly scheduled for a refine (#124), by number: a card moved in the
+ *  write keeps the mark it had. */
+function newRefines(before: CardFile[], after: CardFile[]) {
+  const had = new Set(before.filter((f) => refineOf(f)).map((f) => numberOfCard(f.path)))
+  return after.flatMap((f) => {
+    const schedule = refineOf(f)
+    const number = numberOfCard(f.path)!
+    return schedule && f.path.startsWith('todo/') && !had.has(number) ? [{ path: f.path, number, notes: schedule.notes ?? null }] : []
+  })
+}
+
+/** Each such card starts now, unless a blocker or a step is in its way. A card not started keeps
+ *  its mark; a failure is logged, never the write's. */
+async function startRefines(env: Env, account: string, project: string, board: BoardClient, cards: ReturnType<typeof newRefines>, machine: string | null) {
+  for (const c of cards) {
+    try {
+      const { started } = await call<{ started: boolean }>(env, 'v1_start_scheduled_refine', {
+        p_project: project, p_number: c.number, p_notes: c.notes, p_machine: machine,
+      })
+      if (started) await clearSchedule(env, account, project, board, c.path)
+    } catch (e) {
+      console.error('cloud: scheduled refine not started', { project, card: c.number, error: e instanceof Error ? e.message : String(e) })
+    }
+  }
+}
+
 /** The project's own files a write changed, as its board names them. */
 const written = (project: string, writes: { path: string; content: string | null }[], seqs: { path: string; seq: number }[]) => {
   const root = projectRoot(project)
@@ -183,13 +230,17 @@ export async function commitBoard(env: Env, ctx: ExecutionContext, account: stri
   const { job, machine, files } = commitInput(project, body)
   await call(env, 'v1_board_job', { p_account: account, p_project: project, p_job: job, p_machine: machine })
   const workspace = await workspaceOfProject(env, project)
-  const done = await boardOf(env, workspace).commit(files, machine)
+  const board = boardOf(env, workspace)
+  const own = projectBoard(board, project)
+  const before = await replaced(own, written(project, files, []))
+  const done = await board.commit(files, machine)
   if (!done.ok) {
     return json({ error: { code: 'version_conflict', message: 'These files changed since they were read.' }, files: done.files }, 409)
   }
   const changed = written(project, files, done.files)
   await index(env, account, project, indexEntries(changed))
   await follow(env, ctx, account, project, followEntries(changed))
+  await startRefines(env, account, project, own, newRefines(before, changed), machine)
   ctx.waitUntil(triageWritten(env, ctx, workspace, files, done.files))
   return json({ head_seq: done.head_seq, files: done.files })
 }
@@ -230,6 +281,8 @@ export async function saveCard(env: Env, account: string, task: string, input: {
   const body = await withLinks(env, account, task, fields.body as string, (fields.metadata ?? {}) as Record<string, unknown>)
   const place = await mutate<CardIndex>(env, 'v1_card_place', { p_account: account, p_task: task, p_assets: fields.assets ?? null })
   const board = await boardFor(env, place.project)
+  const card = [{ path: place.path, content: body }]
+  const before = await replaced(board, card)
   const writes: BoardWrite[] = [{ path: place.path, content: body, base_seq: base }]
   if (fields.assets !== undefined) {
     const [list] = await board.read([assetsFile(task)])
@@ -248,6 +301,7 @@ export async function saveCard(env: Env, account: string, task: string, input: {
     metadata: fields.metadata ? metadata : cardMetadata(body),
     ...(fields.assets !== undefined ? { assets: fields.assets } : {}),
   }])
+  await startRefines(env, account, place.project, board, newRefines(before, card), null)
   return withBody(env, await call<CardIndex>(env, 'v1_card', { p_account: account, p_task: task }))
 }
 

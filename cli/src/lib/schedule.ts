@@ -16,7 +16,8 @@
 //
 // This module is the FIELD — how it reads and how it is written back. The rules about it
 // (which cards may carry one, when it has gone stale) are the board's, in ./view/rules.ts,
-// because the browser applies them too. Who fires it is ./view/dispatch.ts.
+// because the browser applies them too. Cloud fires it: cloud/src/v1/board.ts as the write lands,
+// cloud/src/v1/endings.ts as the last blocker leaves.
 
 import { yamlScalar, unquote } from './yaml.ts'
 import type { CardSchedule, ScheduledAction } from './view/types.ts'
