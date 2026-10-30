@@ -77,7 +77,7 @@ export function AiCorner({
   return (
     <>
       {drawn && !phone && (
-        <div ref={panel} data-closing={closing(open)} className="nb-chat absolute bottom-[76px] right-5 z-40">
+        <div ref={panel} data-closing={closing(open)} className="nb-chat absolute bottom-[76px] right-5 z-40 flex max-h-[min(860px,calc(100%-96px))] w-[min(560px,calc(100%-40px))] flex-col">
           {children}
         </div>
       )}

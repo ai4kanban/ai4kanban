@@ -163,7 +163,7 @@ export function AiChat({
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [chat?.messages.length, chat?.status]);
 
-  if (!chat) return <section aria-label={c.label} aria-busy className={cn("bg-nb-paper", phone || page ? "h-full" : "nb-panel h-[160px] w-[420px]")} />;
+  if (!chat) return <section aria-label={c.label} aria-busy className={cn("bg-nb-paper", phone || page ? "h-full" : "nb-panel h-[160px] w-full")} />;
 
   const runtime = chat.runtimes.find((r) => r.id === (picked ?? chat.runtime)) ?? chat.runtimes[0]!;
   const busy = working(chat) || sending;
@@ -313,7 +313,7 @@ export function AiChat({
   return (
     <section
       aria-label={c.label}
-      className={cn("flex flex-col bg-nb-paper", phone || page ? "h-full" : "nb-panel max-h-[620px] w-[420px] overflow-hidden", empty && "justify-end")}
+      className={cn("flex flex-col bg-nb-paper", phone || page ? "h-full" : "nb-panel min-h-0 w-full overflow-hidden", empty && "justify-end")}
       onKeyDown={(e) => {
         // Esc stops a reply, once any menu of the chat's own is closed.
         if (e.key !== "Escape" || e.defaultPrevented || !working(chat) || e.currentTarget.querySelector('[role="menu"],[role="dialog"]')) return;
