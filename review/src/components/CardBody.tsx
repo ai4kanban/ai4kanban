@@ -87,7 +87,7 @@ export function CardBody({
         </div>
       )}
       {canvas?.(pieces.filter((p): p is PreviewPiece => p.kind === "agent"))}
-      {agent && (
+      {agent && !canvas && (
         <Fold label={<span>{c.agentHalf}</span>}>
           <Markdown body={agent} previews={previews} cardLink={cardLink} className="nb-md-soft" />
         </Fold>

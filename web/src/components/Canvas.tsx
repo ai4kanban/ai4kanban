@@ -22,8 +22,6 @@ const STEP = 1.25;
 const PAD = 24;
 /** Room under the row for the zoom controls. */
 const PAD_BOTTOM = 64;
-/** Below this the canvas stops shrinking to end at the window's bottom, and the page scrolls to it. */
-const MIN_HEIGHT = 360;
 
 type View = { x: number; y: number; s: number };
 type Tile = { key: string; body: string; text?: true; phone?: true };
@@ -73,12 +71,22 @@ function tilesOf(p: PreviewPiece): Tile[] {
 
 const clamp = (s: number) => Math.min(MAX, Math.max(MIN, s));
 
+type Size = { w: number; h: number };
+
+/** The opening view: from the left, at 100% unless a group would not fit the height. */
+function fitOf(area: Size, row: Size): View | null {
+  if (!area.w || !row.w) return null;
+  return { s: clamp(Math.min(1, (area.h - PAD - PAD_BOTTOM) / row.h)), x: PAD, y: PAD };
+}
+
 /** The view showing every group, centered across and from the top. */
-function fitOf(area: { w: number; h: number }, row: { w: number; h: number }): View | null {
+function allOf(area: Size, row: Size): View | null {
   if (!area.w || !row.w) return null;
   const s = clamp(Math.min(1, (area.w - 2 * PAD) / row.w, (area.h - PAD - PAD_BOTTOM) / row.h));
   return { s, x: Math.max(PAD, (area.w - row.w * s) / 2), y: PAD };
 }
+
+const same = (a: View | null, b: View | null) => !!a && !!b && Math.abs(a.s - b.s) < 0.001 && Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
 
 /** Where a touch may not start a pinch: controls. A pan also skips prose a reader may select. */
 const NO_PINCH = 'button, a, input, textarea, select, summary, video, audio, [role="slider"], [role="menu"]';
@@ -112,19 +120,19 @@ export function Canvas({
   // null follows the fit until the reader pans or zooms.
   const [moved, setMoved] = useState<View | null>(null);
   const fit = fitOf(sizes.area, sizes.row);
+  const all = allOf(sizes.area, sizes.row);
   const view = moved ?? fit;
   const latest = useRef(view);
   latest.current = view;
 
-  // As wide as the page's scroller, and down to its bottom.
+  // As wide and as tall as the page's scroller.
   useLayoutEffect(() => {
     const el = root.current;
     const pane = el?.closest<HTMLElement>("[data-canvas-pane]");
     if (!el || !pane) return;
     const place = () => {
       const parent = el.parentElement!;
-      const top = el.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
-      const height = Math.round(Math.min(pane.clientHeight, Math.max(MIN_HEIGHT, pane.clientHeight - top)));
+      const height = pane.clientHeight;
       const width = pane.clientWidth;
       const left = Math.round((parent.clientWidth - width) / 2);
       setBox((b) => (b && b.width === width && b.left === left && b.height === height ? b : { width, left, height }));
@@ -153,8 +161,11 @@ export function Canvas({
   }, []);
 
   // The wheel pans, a pinch or ctrl+wheel zooms at the pointer — caught before any preview's own.
+  // A vertical wheel scrolls the page instead until the canvas reaches its top, and again once
+  // the groups' tops are back in view.
   useEffect(() => {
     const a = area.current;
+    const pane = root.current?.closest<HTMLElement>("[data-canvas-pane]");
     if (!a) return;
     const onWheel = (e: WheelEvent) => {
       const v = latest.current;
@@ -164,10 +175,23 @@ export function Canvas({
       if (e.ctrlKey) {
         const r = a.getBoundingClientRect();
         setMoved(zoomAt(v, Math.exp(-Math.max(-50, Math.min(50, e.deltaY)) / 100), e.clientX - r.left, e.clientY - r.top));
-      } else {
-        const k = e.deltaMode === 1 ? 16 : 1;
-        setMoved({ ...v, x: v.x - e.deltaX * k, y: v.y - e.deltaY * k });
+        return;
       }
+      const k = e.deltaMode === 1 ? 16 : 1;
+      const dx = e.deltaX * k;
+      let dy = e.deltaY * k;
+      if (pane && Math.abs(dy) > Math.abs(dx)) {
+        const end = pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 1;
+        const below = end ? 0 : Math.round(root.current!.getBoundingClientRect().top - pane.getBoundingClientRect().top);
+        if (dy > 0 && below > 0) {
+          pane.scrollTop += Math.min(dy, below);
+          dy = 0;
+        } else if (dy < 0 && v.y >= PAD) {
+          pane.scrollTop += dy;
+          dy = 0;
+        } else if (dy < 0) dy = Math.max(dy, v.y - PAD);
+      }
+      if (dx || dy) setMoved({ ...v, x: v.x - dx, y: v.y - dy });
     };
     a.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => a.removeEventListener("wheel", onWheel, { capture: true });
@@ -305,7 +329,7 @@ export function Canvas({
             <FiPlus size={14} aria-hidden />
           </ZoomButton>
           <span className="mx-0.5 h-4 w-px" style={{ background: HAIRLINE }} />
-          <ZoomButton label={T.canvas.fit} disabled={!moved} onClick={() => setMoved(null)}>
+          <ZoomButton label={T.canvas.fit} disabled={same(view, all)} onClick={() => setMoved(all)}>
             <FiMaximize size={13} aria-hidden />
           </ZoomButton>
         </div>
