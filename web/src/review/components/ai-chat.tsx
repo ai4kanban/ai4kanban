@@ -1,11 +1,12 @@
 // The owner's conversation with an agent on the review page (#2027), after legacy
 // kanban-ui/components/Chat.tsx and composer.tsx. No title row: the page's corner bubble opens
-// and closes it, and it grows with the conversation. The agent picker, the context ring and an
-// icon-only clear sit on the message box's bottom row. At phone width it covers the page.
+// and closes it, and it grows with the conversation. The agent picker and the context ring sit
+// on the message box's bottom row; clear heads the thread. At phone width it covers the page.
 // Pictures go with a message, a reply stops part way, and each reply has its time, cost and a
 // copy button (#2133).
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiImage, FiLoader, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
 import { ApiError, clearChat, readChat, sendChat, stopChat, type Chat, type ChatImage, type ChatMessage, type ChatRuntime, type Connector } from "../api";
 import type { Copy } from "../i18n";
@@ -15,6 +16,7 @@ import { useArrived } from "../lib/motion";
 import { cn } from "../lib/utils";
 import { AgentMark, type Harness } from "./agent-mark";
 import { Button } from "./button";
+import { HAIRLINE } from "./chrome";
 import { ContextRing } from "./context-ring";
 import { Copied, useCopyText } from "./copy";
 import { ImagePreview } from "./image-preview";
@@ -330,7 +332,6 @@ export function AiChat({
             onAdd={(files) => void pics.add(files)}
             className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] text-[14px] text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink max-md:size-9 max-md:text-[17px]"
           />
-          {!empty && io.clear && <Clear c={c} disabled={busy} onClear={clear} />}
           {stopping ? (
             <Button size="xs" disabled aria-label={c.stopping} title={c.stopping}>
               <FiLoader className="animate-spin text-[13px]" aria-hidden />
@@ -401,12 +402,15 @@ export function AiChat({
         </div>
       ) : (
         <div ref={attachLog} onScroll={(e) => fadeEdges(e.currentTarget)} className={cn("min-h-0 flex-1 overflow-y-auto", page && !phone ? "px-8 py-8" : "px-5 py-5")}>
-          <div className={cn("flex flex-col gap-2", page && "mx-auto max-w-[600px]")}>
-            {before}
-            {chat.messages.map((m) => (
-              <Said key={m.id} c={c} m={m} image={io.image} phone={phone} rise={arrived(m.id)} />
-            ))}
-            {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{stopping ? c.stopping : chat.status === "queued" ? c.queued : (doing ?? c.replying)}</p>}
+          <div className={cn(page && "mx-auto max-w-[600px]")}>
+            {!empty && !closed && io.clear && <Clear c={c} disabled={busy} onClear={clear} />}
+            <div className="flex flex-col gap-2">
+              {before}
+              {chat.messages.map((m) => (
+                <Said key={m.id} c={c} m={m} image={io.image} phone={phone} rise={arrived(m.id)} />
+              ))}
+              {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{stopping ? c.stopping : chat.status === "queued" ? c.queued : (doing ?? c.replying)}</p>}
+            </div>
           </div>
         </div>
       )}
@@ -661,45 +665,70 @@ function Pick({
   );
 }
 
-/** Clear asks first and says what survives: the card the chat already changed. */
+/** Clear asks first and says what survives: the card the chat already changed. The ask sits on `body`, as a short chat's log would cut it. */
 function Clear({ c, disabled, onClear }: { c: AiCopy; disabled: boolean; onClear: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const box = useDismiss(open, () => setOpen(false));
+  const ask = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const r = box.current!.getBoundingClientRect();
+    ask.current!.style.top = `${r.bottom + 6}px`;
+    ask.current!.style.right = `${document.documentElement.clientWidth - r.right}px`;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
   return (
-    <span ref={box} className="relative flex h-full items-center">
+    <span ref={box} className="-mt-2 mb-2 flex justify-end">
       <button
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        aria-label={c.clear}
-        title={c.clear}
         className={cn(
-          "inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink disabled:cursor-not-allowed disabled:opacity-40",
-          open && "bg-nb-ink/[0.06] text-nb-ink",
+          "inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] border bg-nb-paper px-2.5 text-[12px] font-[600] text-nb-ink hover:bg-nb-wash disabled:cursor-not-allowed disabled:opacity-40",
+          open && "bg-nb-wash",
         )}
+        style={{ borderColor: HAIRLINE }}
       >
         <FiTrash2 className="text-[13px]" aria-hidden />
+        {c.clear}
       </button>
-      {open && (
-        <div role="dialog" className="nb-panel nb-pop origin-bottom-right absolute bottom-[calc(100%+6px)] right-0 z-10 w-[260px] bg-nb-paper p-3">
-          <p className="text-[13px] font-[700] text-nb-ink">{c.clearAsk}</p>
-          <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{c.clearBody}</p>
-          <div className="mt-3 flex justify-end gap-2">
-            <Button variant="ghost" size="xs" onClick={() => setOpen(false)}>
-              {c.cancel}
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => {
-                setOpen(false);
-                void onClear();
-              }}
-            >
-              {c.clearYes}
-            </Button>
-          </div>
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            ref={ask}
+            role="dialog"
+            // Stops the chat and useDismiss from reading a click here as one outside.
+            onPointerDown={(e) => e.nativeEvent.stopPropagation()}
+            className="nb-panel nb-pop fixed z-[70] w-[260px] origin-top-right bg-nb-paper p-3"
+          >
+            <p className="text-[13px] font-[700] text-nb-ink">{c.clearAsk}</p>
+            <p className="mt-1 text-[12px] leading-snug text-nb-ink-soft">{c.clearBody}</p>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button variant="ghost" size="xs" onClick={() => setOpen(false)}>
+                {c.cancel}
+              </Button>
+              <Button
+                size="xs"
+                onClick={() => {
+                  setOpen(false);
+                  void onClear();
+                }}
+              >
+                {c.clearYes}
+              </Button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </span>
   );
 }
