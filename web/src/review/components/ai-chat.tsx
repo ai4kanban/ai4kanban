@@ -65,6 +65,12 @@ const linkChat = (token: string): ChatApi => ({
   stop: () => stopChat(token),
 });
 
+/** Messages dissolve before the frame cuts them; the fade grows with the scroll, so the top of the thread is untouched. */
+const fadeTop = (el: HTMLElement) => {
+  const px = Math.min(el.scrollTop, 48);
+  el.style.maskImage = px ? `linear-gradient(to bottom, transparent ${px / 5}px, #000 ${px}px)` : "";
+};
+
 /** `onManage` adds 管理运行时 to the pick; `gone`: runtimes whose Runner was removed. A change of `reload` reads the chat again. `page`: the
  *  chat is the whole page, its column centred, with no suggestions; `aboveBox` sits over the box
  *  in place of the suggestions, `ask` is the box's placeholder, and `over` covers the thread.
@@ -380,7 +386,7 @@ export function AiChat({
           ))}
         </div>
       ) : (
-        <div ref={log} className={cn("min-h-0 flex-1 overflow-y-auto", page && !phone ? "px-8 py-8" : "px-5 py-5")}>
+        <div ref={log} onScroll={(e) => fadeTop(e.currentTarget)} className={cn("min-h-0 flex-1 overflow-y-auto", page && !phone ? "px-8 py-8" : "px-5 py-5")}>
           <div className={cn("flex flex-col gap-2", page && "mx-auto max-w-[600px]")}>
             {before}
             {chat.messages.map((m) => (
