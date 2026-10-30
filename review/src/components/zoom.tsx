@@ -3,7 +3,7 @@
 // pinch zooms too (#1990): Chromium reports it as a ctrl+wheel. A frame swallows every wheel over
 // it, so a screen sits under a `Shield` that catches them; a click lifts it until the pointer leaves.
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { useCopy } from "../i18n";
 
@@ -79,6 +79,9 @@ export function usePinch(zoom: Zoom, area: React.RefObject<HTMLElement | null>, 
     el.scrollTop += r.top + a.fy * r.height - a.y;
   }, [zoom.scale, area]);
 }
+
+/** Set where every framed page needs a `Shield`, not only the screens: on a canvas that pans by the wheel. */
+export const ShieldFrames = createContext(false);
 
 /** Lies over a screen's frame so a pinch reaches the page. A click lifts it, handing the frame
  *  its pointer back — to click or scroll inside — until the pointer leaves. Its parent must be

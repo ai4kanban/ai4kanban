@@ -12,7 +12,7 @@ import { useDraft } from "../lib/draft";
 import { bodySources } from "../lib/mockup-tag";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
-import { CardBody } from "./CardBody";
+import { CardBody, type PreviewPiece } from "./CardBody";
 import { HAIRLINE, QUIET } from "./chrome";
 import { LevelSelect, ModuleChip } from "./chips";
 import { PreviewOf, type CardLink } from "./Markdown";
@@ -136,6 +136,7 @@ export function CardSheet({
   nameOf,
   cardLink,
   empty,
+  canvas,
 }: {
   number?: string;
   title: string;
@@ -155,9 +156,11 @@ export function CardSheet({
   cardLink?: CardLink;
   /** Drawn in place of a missing body. */
   empty: ReactNode;
+  /** Draws the preview sections and the previews the body does not name, in place of the body's own. */
+  canvas?: (sections: PreviewPiece[], extra: string[]) => ReactNode;
 }) {
-  const extra = useMemo(() => previews.unreferenced(body ? bodySources(body) : []), [previews, body]);
-  const more = extra.length > 0 && <Extra ids={extra.map((a) => a.id)} previews={previews} />;
+  const extra = useMemo(() => previews.unreferenced(body ? bodySources(body) : []).map((a) => a.id), [previews, body]);
+  const more = extra.length > 0 && !canvas && <Extra ids={extra} previews={previews} />;
   return (
     <main className="mx-auto flex w-full max-w-[840px] flex-col gap-6 px-6 py-6 max-md:gap-5 max-md:px-4 max-md:py-4">
       <div className="flex flex-col gap-3 max-md:gap-2.5">
@@ -181,7 +184,7 @@ export function CardSheet({
         <InfoBar info={info} />
         {below}
         {body !== null ? (
-          <CardBody body={body} previews={previews} nameOf={nameOf} cardLink={cardLink} afterBody={more} />
+          <CardBody body={body} previews={previews} nameOf={nameOf} cardLink={cardLink} afterBody={more} canvas={canvas && ((s) => canvas(s, extra))} />
         ) : (
           <>
             {empty}

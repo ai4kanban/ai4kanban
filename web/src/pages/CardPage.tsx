@@ -4,22 +4,26 @@
 // phase's, the one its share link shows; the AI bubble sits in the corner (review/'s ai-corner.tsx, its
 // chat on `/v1/tasks/{id}/chat`), revises the card and asks its open questions (#2101). A done
 // Workflow builder task names the workflow it saved and starts a task with it (#2004); a done
-// build names its commit and shows its diff (#2109).
+// build names its commit and shows its diff (#2109). At desktop width 文档 / 画布 lays the preview
+// sections out side by side on a canvas instead (#12).
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
-import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX } from "react-icons/fi";
+import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX } from "react-icons/fi";
 import type { Artifact, Comment, Decision, Shared } from "@review/api";
 import { AiChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
 import { Button } from "@review/components/button";
+import { cardParts } from "@review/components/CardBody";
 import { CardSheet, refining, RemoveButton, RunButton, type Info } from "@review/components/card-sheet";
+import { HAIRLINE } from "@review/components/chrome";
 import { ChatButton, ChatPane } from "@review/components/chat";
 import { answerText, NO_ANSWERS, QuestionPanel } from "@review/components/questions";
 import { ShareButton, SharePanel } from "@review/components/share";
 import { useThread } from "@review/components/thread";
 import { Previews } from "@review/lib/artifacts";
 import { cardMeta, openQuestions, withoutTitle } from "@review/lib/card-info";
+import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { useAlerts } from "../alerts";
 import { REVIEW, T, workflowName } from "../i18n";
@@ -38,6 +42,7 @@ import { Subtasks } from "../components/Subtasks";
 import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/Settings";
 import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
+import { Canvas } from "../components/Canvas";
 import { ComputerMenu, useComputers } from "../components/ComputerMenu";
 import { Notice, quotaText } from "../components/Notice";
 import { Gone } from "./Gone";
@@ -74,6 +79,46 @@ function sayError(e: unknown): string {
 const keyOf = (own: string, s: string) => (/^#\d+$/.test(s) ? own.replace(/\d+$/, s.slice(1)) : s);
 
 const NONE: never[] = [];
+
+// 文档 or 画布, kept in this browser for every task (#12).
+const VIEW_KEY = "wildcrane.web.task-view";
+type TaskView = "doc" | "canvas";
+
+function useTaskView() {
+  const [view, setView] = useState<TaskView>(() => (localStorage.getItem(VIEW_KEY) === "canvas" ? "canvas" : "doc"));
+  const pick = (v: TaskView) => {
+    setView(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {}
+  };
+  return [view, pick] as const;
+}
+
+function ViewSwitch({ view, onPick }: { view: TaskView; onPick: (v: TaskView) => void }) {
+  const seg = "inline-flex h-[26px] cursor-pointer items-center gap-1.5 rounded-[7px] px-2.5 text-[12px] font-[600]";
+  const item = (v: TaskView, icon: ReactNode, label: string) => (
+    <button
+      type="button"
+      aria-pressed={view === v}
+      onClick={() => onPick(v)}
+      className={cn(seg, view === v ? "bg-nb-paper text-nb-ink" : "text-nb-ink-soft hover:text-nb-ink")}
+      style={view === v ? { boxShadow: `inset 0 0 0 1px ${HAIRLINE}` } : undefined}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+  return (
+    <>
+      <span className="inline-flex rounded-[9px] bg-nb-wash p-[2px]">
+        {item("doc", <FiFileText className="text-[13px]" aria-hidden />, T.canvas.doc)}
+        {item("canvas", <FiGrid className="text-[13px]" aria-hidden />, T.canvas.canvas)}
+      </span>
+      <span className="mx-1 h-4 w-px" style={{ background: HAIRLINE }} />
+    </>
+  );
+}
 
 export function CardPage({ taskKey }: { taskKey: string }) {
   const store = useStore();
@@ -262,6 +307,10 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   });
 
   const meta = useMemo(() => (card ? cardMeta(card.body, card.metadata) : null), [card]);
+  const body = useMemo(() => (card ? withoutTitle(card.body) : null), [card]);
+  const [view, setView] = useTaskView();
+  const sectioned = useMemo(() => !!body && cardParts(body).pieces.some((p) => p.kind === "agent"), [body]);
+  const onCanvas = !narrow && sectioned && view === "canvas";
   const previews = useMemo(
     () => new Previews({ card: card ? { ...card, metadata: {} } : null, artifacts } as unknown as Shared, {
         component: (art, v) => api.readArtifactComponent(art.id, v.version),
@@ -429,6 +478,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
 
   const actions = (
     <>
+      {!narrow && sectioned && <ViewSwitch view={view} onPick={setView} />}
       {reviewed && <ChatButton quiet label={REVIEW.comments.heading} count={thread.length} open={railOpen} unread={unread && !railOpen} onClick={toggleRail} />}
       {owner && reviewed && <ShareSlot task={task.id} />}
       {(task.status === "queued" || task.status === "waiting_review") && <RemoveButton busy={busy} draftKey={`${store.ws.id}.task.${task.id}.remove`} onRemove={remove} />}
@@ -531,7 +581,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
         rail
       ) : (
         <div className="relative h-full">
-          <div className="h-full overflow-y-auto">
+          <div data-canvas-pane className="h-full overflow-y-auto">
             <CardSheet
               number={numberOf(task.key)}
               title={task.title}
@@ -562,10 +612,11 @@ export function CardPage({ taskKey }: { taskKey: string }) {
                   {!project?.general && <Subtasks task={task} />}
                 </>
               }
-              body={card ? withoutTitle(card.body) : null}
+              body={body}
               previews={previews}
               nameOf={nameOf}
               cardLink={cardLink}
+              canvas={onCanvas ? (sections, extra) => <Canvas sections={sections} extra={extra} previews={previews} nameOf={nameOf} cardLink={cardLink} /> : undefined}
               empty={loadingBody ? <Skeleton /> : <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-nb-ink">{task.request || task.title}</p>}
             />
           </div>

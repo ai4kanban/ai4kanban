@@ -57,7 +57,7 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 const SUB = "sub:";
 
 /** Calls `fn` with each line and whether it sits inside a fenced block. */
-function eachLine(text: string, fn: (line: string, fenced: boolean) => void): void {
+export function eachLine(text: string, fn: (line: string, fenced: boolean) => void): void {
   let fence = "";
   for (const line of text.split(/\r?\n/)) {
     const f = FENCE.exec(line)?.[1];

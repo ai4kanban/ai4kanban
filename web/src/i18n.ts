@@ -85,6 +85,14 @@ const zh = {
   upgrade: "升级到 Pro",
   reviewFailed: "审核链接没能打开，请重试。",
   retry: "重新发起",
+  canvas: {
+    doc: "文档",
+    canvas: "画布",
+    other: "其他产出",
+    zoomOut: "缩小",
+    zoomIn: "放大",
+    fit: "适应全部",
+  },
   stage: {
     waiting: (stage: string) => `${stage}待你批准`,
     approve: (next?: string) => (next ? `批准，开始${next}` : "批准"),
@@ -620,6 +628,14 @@ const en: Copy = {
   upgrade: "Upgrade to Pro",
   reviewFailed: "Couldn't open the review page. Try again.",
   retry: "Start again",
+  canvas: {
+    doc: "Document",
+    canvas: "Canvas",
+    other: "Other previews",
+    zoomOut: "Zoom out",
+    zoomIn: "Zoom in",
+    fit: "Fit all",
+  },
   stage: {
     waiting: (stage) => `${stage} ready for your approval`,
     approve: (next) => (next ? `Approve, start ${next}` : "Approve"),

@@ -58,11 +58,13 @@ export function AiCorner({
       const t = e.target as Element;
       return !panel.current?.contains(t) && !button.current?.contains(t) && !t.closest?.('[aria-modal="true"], [role="menu"]');
     };
-    let down = false;
-    const onDown = (e: PointerEvent) => void (down = e.button === 0 && away(e));
+    // A drag (panning a canvas) is not a click.
+    let down: { x: number; y: number } | null = null;
+    const onDown = (e: PointerEvent) => void (down = e.button === 0 && away(e) ? { x: e.clientX, y: e.clientY } : null);
     const onUp = (e: PointerEvent) => {
-      if (down && away(e) && (document.getSelection()?.isCollapsed ?? true)) toggle.current();
-      down = false;
+      const still = down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5;
+      if (still && away(e) && (document.getSelection()?.isCollapsed ?? true)) toggle.current();
+      down = null;
     };
     document.addEventListener("pointerdown", onDown);
     document.addEventListener("pointerup", onUp);

@@ -4,7 +4,7 @@
 // legacy draws it. The card's English `##` headings show in the reader's language.
 // Trimmed: questions.
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { FiChevronRight } from "react-icons/fi";
 import { COPY, useCopy } from "../i18n";
 import { type HumanPiece, splitCardBody, splitHuman } from "../lib/agent-half";
@@ -16,6 +16,15 @@ import { Markdown, type CardLink } from "./Markdown";
 const translated = (text: string) =>
   text.replace(/^## (.+)$/gm, (line, h: string) => (COPY.headings[h.trim()] ? `## ${COPY.headings[h.trim()]}` : line));
 
+export type PreviewPiece = Extract<HumanPiece, { kind: "agent" }>;
+
+/** A body cut for drawing: the human half in pieces — prose and one per preview section — and
+ *  the agent half, headings in the reader's language. */
+export function cardParts(body: string): { pieces: HumanPiece[]; agent: string } {
+  const halves = splitCardBody(body);
+  return { pieces: splitHuman(translated(halves.human)), agent: halves.agent && translated(halves.agent) };
+}
+
 /** A card's body: the part a reviewer reads first at the top, the agent's half folded under
  *  it. Nothing a reader has to act on is folded. A card carrying no boundary is all top. */
 export function CardBody({
@@ -24,6 +33,7 @@ export function CardBody({
   nameOf = humanise,
   cardLink,
   afterBody,
+  canvas,
 }: {
   body: string;
   previews: Previews;
@@ -31,14 +41,15 @@ export function CardBody({
   nameOf?: (agent: string) => string;
   cardLink?: CardLink;
   afterBody?: React.ReactNode;
+  /** Draws the preview sections on their own, between the prose and the agent half. */
+  canvas?: (sections: PreviewPiece[]) => ReactNode;
 }) {
   const c = useCopy();
-  const halves = useMemo(() => splitCardBody(body), [body]);
-  const pieces = useMemo(() => splitHuman(translated(halves.human)), [halves.human]);
+  const { pieces, agent } = useMemo(() => cardParts(body), [body]);
 
   // Sections next to each other share one list, ruled above and below.
-  const runs: (Extract<HumanPiece, { kind: "text" }> | Extract<HumanPiece, { kind: "agent" }>[])[] = [];
-  for (const p of pieces) {
+  const runs: (Extract<HumanPiece, { kind: "text" }> | PreviewPiece[])[] = [];
+  for (const p of canvas ? pieces.filter((x) => x.kind === "text") : pieces) {
     const last = runs[runs.length - 1];
     if (p.kind === "text") runs.push(p);
     else if (Array.isArray(last)) last.push(p);
@@ -48,34 +59,37 @@ export function CardBody({
   return (
     <>
       {/* One ground for both halves, and it is the page's: a wash here would tint every line. */}
-      <div className="nb-section flex flex-col gap-5 bg-nb-sheet p-5 max-md:p-4">
-        {runs.map((run, k) =>
-          Array.isArray(run) ? (
-            <div key={run[0]!.key} className="-mx-5 max-md:-mx-4" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
-              {run.map((p) => (
-                <PreviewSection key={p.key} agent={p.name} name={nameOf(p.name)}>
-                  {p.intro && <Markdown body={p.intro} previews={previews} cardLink={cardLink} />}
-                  {p.subs.length > 0 && (
-                    <div className={p.intro ? "mt-3" : undefined}>
-                      {p.subs.map((s) => (
-                        <SubSection key={s.key} heading={s.heading}>
-                          <Markdown body={s.body} previews={previews} cardLink={cardLink} />
-                        </SubSection>
-                      ))}
-                    </div>
-                  )}
-                </PreviewSection>
-              ))}
-            </div>
-          ) : (
-            <Markdown key={k} body={run.body} previews={previews} cardLink={cardLink} />
-          ),
-        )}
-        {afterBody}
-      </div>
-      {halves.agent && (
+      {(!canvas || runs.length > 0 || afterBody) && (
+        <div className="nb-section flex flex-col gap-5 bg-nb-sheet p-5 max-md:p-4">
+          {runs.map((run, k) =>
+            Array.isArray(run) ? (
+              <div key={run[0]!.key} className="-mx-5 max-md:-mx-4" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+                {run.map((p) => (
+                  <PreviewSection key={p.key} agent={p.name} name={nameOf(p.name)}>
+                    {p.intro && <Markdown body={p.intro} previews={previews} cardLink={cardLink} />}
+                    {p.subs.length > 0 && (
+                      <div className={p.intro ? "mt-3" : undefined}>
+                        {p.subs.map((s) => (
+                          <SubSection key={s.key} heading={s.heading}>
+                            <Markdown body={s.body} previews={previews} cardLink={cardLink} />
+                          </SubSection>
+                        ))}
+                      </div>
+                    )}
+                  </PreviewSection>
+                ))}
+              </div>
+            ) : (
+              <Markdown key={k} body={run.body} previews={previews} cardLink={cardLink} />
+            ),
+          )}
+          {afterBody}
+        </div>
+      )}
+      {canvas?.(pieces.filter((p): p is PreviewPiece => p.kind === "agent"))}
+      {agent && (
         <Fold label={<span>{c.agentHalf}</span>}>
-          <Markdown body={translated(halves.agent)} previews={previews} cardLink={cardLink} className="nb-md-soft" />
+          <Markdown body={agent} previews={previews} cardLink={cardLink} className="nb-md-soft" />
         </Fold>
       )}
     </>

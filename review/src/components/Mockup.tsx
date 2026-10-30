@@ -14,7 +14,7 @@
 // `/asset-view` address; full size opens over the page instead of on its own route. Trimmed:
 // the code view of a screen and copy path.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiCode, FiDownload, FiImage, FiMaximize2, FiMonitor, FiMoreHorizontal, FiSmartphone } from "react-icons/fi";
 import { useCopy } from "../i18n";
 import { SCREENS, type ComponentSpec, type Device, type Drawn, type MockupView } from "../lib/mockup-tag";
@@ -25,7 +25,7 @@ import { HyperframePlayer } from "./HyperframePlayer";
 import { ImagePreview, PreviewDialog } from "./image-preview";
 import { MediaPlayer } from "./MediaPlayer";
 import { Menu } from "./menu";
-import { Shield, useFitWidth, usePinch, useZoom, ZoomControls, type Zoom } from "./zoom";
+import { Shield, ShieldFrames, useFitWidth, usePinch, useZoom, ZoomControls, type Zoom } from "./zoom";
 
 const { w: W, h: H } = SCREENS.desktop;
 const PHONE = SCREENS.mobile;
@@ -643,8 +643,10 @@ function ComponentFrame({ loaded, save, title, onFail, fill }: { loaded: Loaded;
     const timer = setTimeout(onFail, COMPONENT_TIMEOUT);
     return () => clearTimeout(timer);
   }, [ready, onFail]);
+  const shield = useContext(ShieldFrames) && !fill;
   return (
-    <span className="block border-t border-[color-mix(in_srgb,var(--color-nb-ink)_14%,transparent)]">
+    <span className={`block border-t border-[color-mix(in_srgb,var(--color-nb-ink)_14%,transparent)] ${shield ? "relative" : ""}`}>
+      {shield && <Shield />}
       <iframe
         ref={frame}
         src={loaded.url}
