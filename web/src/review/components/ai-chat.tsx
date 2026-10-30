@@ -21,6 +21,7 @@ import { ContextRing } from "./context-ring";
 import { Copied, useCopyText } from "./copy";
 import { ImagePreview } from "./image-preview";
 import { Markdown } from "./Markdown";
+import { Menu, type MenuEntry } from "./menu";
 import { AddImages, StagedThumbs, useStagedImages } from "./staged-images";
 
 type AiCopy = Copy["ai"];
@@ -578,6 +579,8 @@ function Reply({ c, m, phone, rise }: { c: AiCopy; m: ChatMessage; phone?: boole
   );
 }
 
+const PICK_ROW = "px-2 font-normal";
+
 /** Which runtime answers: the task's first, then the reader's own, the way 新想法 picks one. */
 function Pick({
   c,
@@ -594,74 +597,60 @@ function Pick({
   onManage?: () => void;
   gone?: string[];
 }) {
-  const [open, setOpen] = useState(false);
-  const box = useDismiss(open, () => setOpen(false));
+  const runtimes: MenuEntry[] = options.map((o) => {
+    const detail = detailOf(c, o);
+    const note = gone?.includes(o.id) ? c.runnerRemoved : noteOf(c, o);
+    const on = o.id === value.id;
+    return {
+      key: o.id,
+      checked: on,
+      onSelect: () => onPick(o.id),
+      className: cn(PICK_ROW, !detail && "h-8", on && "bg-nb-ink/[0.05]"),
+      body: (
+        <>
+          <AgentMark harness={MARK[o.connector]} size={15} />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate">{nameOf(c, o)}</span>
+            {detail && <span className="truncate text-[11.5px] leading-[15px] text-nb-ink-soft">{detail}</span>}
+          </span>
+          {note && <span className="shrink-0 text-[11px] font-[700] text-nb-peach-ink">{note}</span>}
+          <span className="w-[13px] shrink-0">{on && <FiCheck size={12} className="text-nb-accent" aria-hidden />}</span>
+        </>
+      ),
+    };
+  });
+  const manage: MenuEntry = {
+    key: "manage",
+    divider: true,
+    onSelect: () => onManage?.(),
+    className: cn(PICK_ROW, "h-8 text-nb-ink-soft"),
+    body: (
+      <>
+        <FiSettings size={14} aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{c.manageRuntimes}</span>
+      </>
+    ),
+  };
   return (
-    <span ref={box} className="relative flex h-full min-w-0 items-center">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label={c.agentPick}
-        title={c.agentPick}
-        className="inline-flex h-full min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 hover:brightness-[0.97]"
-        style={{ background: "var(--color-nb-accent-wash)" }}
-      >
-        <AgentMark harness={MARK[value.connector]} size={16} />
-        <span className="max-w-[128px] truncate text-[12px] text-nb-ink">{nameOf(c, value)}</span>
-        <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
-      </button>
-      {open && (
-        <div role="menu" className="nb-panel nb-pop origin-bottom-left absolute bottom-[calc(100%+6px)] left-0 z-10 w-[256px] max-w-[calc(100vw-24px)] bg-nb-paper p-1">
-          {options.map((o) => {
-            const detail = detailOf(c, o);
-            const note = gone?.includes(o.id) ? c.runnerRemoved : noteOf(c, o);
-            return (
-              <button
-                key={o.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={o.id === value.id}
-                onClick={() => {
-                  onPick(o.id);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "flex w-full cursor-pointer items-center gap-2 rounded-[6px] px-2 text-left text-[13px] hover:bg-nb-ink/[0.05]",
-                  detail ? "py-1.5" : "h-8",
-                  o.id === value.id && "bg-nb-ink/[0.05]",
-                )}
-              >
-                <AgentMark harness={MARK[o.connector]} size={15} />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{nameOf(c, o)}</span>
-                  {detail && <span className="truncate text-[11.5px] leading-[15px] text-nb-ink-soft">{detail}</span>}
-                </span>
-                {note && <span className="shrink-0 text-[11px] font-[700] text-nb-peach-ink">{note}</span>}
-                <span className="w-[13px] shrink-0">{o.id === value.id && <FiCheck size={12} className="text-nb-accent" aria-hidden />}</span>
-              </button>
-            );
-          })}
-          {onManage && (
-            <>
-              <div className="mx-1 my-1 h-px bg-nb-ink/10" />
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  onManage();
-                }}
-                className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-[6px] px-2 text-left text-[13px] text-nb-ink-soft hover:bg-nb-ink/[0.05]"
-              >
-                <FiSettings size={14} aria-hidden />
-                <span className="min-w-0 flex-1 truncate">{c.manageRuntimes}</span>
-              </button>
-            </>
-          )}
-        </div>
+    <Menu
+      panel="w-[256px] max-w-[calc(100vw-24px)]"
+      items={onManage ? [...runtimes, manage] : runtimes}
+      trigger={({ open, onClick }) => (
+        <button
+          type="button"
+          onClick={onClick}
+          aria-expanded={open}
+          aria-label={c.agentPick}
+          title={c.agentPick}
+          className="inline-flex h-7 min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-[8px] pl-2 pr-1.5 hover:brightness-[0.97] max-md:h-9"
+          style={{ background: "var(--color-nb-accent-wash)" }}
+        >
+          <AgentMark harness={MARK[value.connector]} size={16} />
+          <span className="max-w-[128px] truncate text-[12px] text-nb-ink">{nameOf(c, value)}</span>
+          <FiChevronDown size={12} className="shrink-0 text-nb-ink-soft" aria-hidden />
+        </button>
       )}
-    </span>
+    />
   );
 }
 

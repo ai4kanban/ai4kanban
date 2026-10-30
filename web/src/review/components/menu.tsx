@@ -1,7 +1,7 @@
 // Stands in for legacy ui/dropdown-menu.tsx (Radix): a trigger and a list that closes on a
 // pick, Esc or a click outside. The panel wears legacy ui/popover.tsx's POPUP_PANEL.
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { closing, useShown } from "../lib/motion";
 import { cn } from "../lib/utils";
@@ -9,7 +9,16 @@ import { cn } from "../lib/utils";
 export const POPUP_PANEL = "rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper text-nb-ink shadow-[3px_3px_0_0_var(--color-nb-ink)]";
 export const ITEM = "flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-left text-[13px] font-[600] text-nb-ink no-underline hover:bg-nb-wash";
 
-export type MenuEntry = { key: string | number; body: React.ReactNode; onSelect: () => void; className?: string };
+export type MenuEntry = {
+  key: string | number;
+  body: React.ReactNode;
+  onSelect: () => void;
+  className?: string;
+  /** One of a set of choices: set, the entry is a radio showing whether it is the current one. */
+  checked?: boolean;
+  /** Draws a line above the entry. */
+  divider?: boolean;
+};
 
 export function Menu({
   trigger,
@@ -36,12 +45,17 @@ export function Menu({
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    // Captured, so a chat or dialog around the trigger sees it already handled.
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      setOpen(false);
+    };
     window.addEventListener("pointerdown", away);
-    window.addEventListener("keydown", key);
+    window.addEventListener("keydown", key, true);
     return () => {
       window.removeEventListener("pointerdown", away);
-      window.removeEventListener("keydown", key);
+      window.removeEventListener("keydown", key, true);
     };
   }, [open]);
   // The list sits on `body` so no scrolling or clipped ancestor cuts it; it opens upward when there is more room above.
@@ -66,10 +80,12 @@ export function Menu({
       el.style.transformOrigin = `${up ? "bottom" : "top"} ${align === "end" ? "right" : "left"}`;
     };
     place();
-    window.addEventListener("scroll", place, true);
+    // Not on the list's own scroll: placing it resets its height, which would clamp the scroll.
+    const moved = (e: Event) => e.target !== list.current && place();
+    window.addEventListener("scroll", moved, true);
     window.addEventListener("resize", place);
     return () => {
-      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("scroll", moved, true);
       window.removeEventListener("resize", place);
     };
   }, [shown, align]);
@@ -109,18 +125,21 @@ export function Menu({
           >
             {head}
             {items.map((it) => (
-              <button
-                key={it.key}
-                type="button"
-                role="menuitem"
-                className={cn(ITEM, it.className)}
-                onClick={() => {
-                  setOpen(false);
-                  it.onSelect();
-                }}
-              >
-                {it.body}
-              </button>
+              <Fragment key={it.key}>
+                {it.divider && <span role="separator" className="mx-1 my-1 h-px shrink-0 bg-nb-ink/10" />}
+                <button
+                  type="button"
+                  role={it.checked === undefined ? "menuitem" : "menuitemradio"}
+                  aria-checked={it.checked}
+                  className={cn(ITEM, it.className)}
+                  onClick={() => {
+                    setOpen(false);
+                    it.onSelect();
+                  }}
+                >
+                  {it.body}
+                </button>
+              </Fragment>
             ))}
           </span>,
           document.body,
