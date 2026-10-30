@@ -241,6 +241,8 @@ const zh = {
       min < 1 ? "刚刚" : min < 60 ? `${min} 分钟前` : min < 1440 ? `${Math.floor(min / 60)} 小时前` : `${Math.floor(min / 1440)} 天前`,
   },
   fromChat: "来自对话",
+  fromChatCount: (n: number) => `来自对话 · ${n} 条`,
+  taskStarted: "开始任务",
   createdBy: "创建者",
   triageSort: "自动分拣",
   idea: {
@@ -799,6 +801,8 @@ const en: Copy = {
     },
   },
   fromChat: "From chat",
+  fromChatCount: (n) => `From chat · ${n}`,
+  taskStarted: "Task started",
   createdBy: "Created by",
   triageSort: "Auto-sort",
   idea: {

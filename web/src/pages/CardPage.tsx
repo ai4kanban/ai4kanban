@@ -10,8 +10,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
 import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiCpu, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
-import type { Artifact, Comment, Decision, Shared } from "@review/api";
-import { AiChat } from "@review/components/ai-chat";
+import type { Artifact, Chat, Comment, Decision, Shared } from "@review/api";
+import { AiChat, EarlierChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
 import { Button } from "@review/components/button";
 import { cardParts } from "@review/components/CardBody";
@@ -28,6 +28,7 @@ import * as api from "../api";
 import { useAlerts } from "../alerts";
 import { REVIEW, T, workflowName } from "../i18n";
 import { creating, numberOf, openHref } from "../lib/card";
+import { readImage } from "../lib/chat-images";
 import { remember, reviewLink } from "../lib/links";
 import { useNarrow } from "../lib/narrow";
 import { Link, navigate, useLocation } from "../router";
@@ -485,13 +486,27 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     if (narrow) setChat(false);
     setRailOpen((v) => !v);
   };
+  // Started from an idea (#91): the idea chat up to the start folds above the task's own, which
+  // opens without the request Cloud wrote as its first message.
+  const earlier = from?.messages.filter((m) => Date.parse(m.created_at) < Date.parse(task.created_at)) ?? [];
+  const chatIo = api.taskChat(task.id);
+  const ownChat = (c: Chat): Chat => {
+    const [first, ...rest] = c.messages;
+    return task.discussion && first?.role === "user" && first.body === task.request ? { ...c, messages: rest } : c;
+  };
   const ai = (
     <AiChat
       key={task.id}
       c={REVIEW.ai}
       token={task.id}
       draftKey={`${store.ws.id}.task.${task.id}.chat`}
-      api={{ ...api.taskChat(task.id), watch: watchDoing }}
+      api={{
+        read: () => chatIo.read().then(ownChat),
+        send: (...a) => chatIo.send(...a).then(ownChat),
+        clear: () => chatIo.clear().then(ownChat),
+        stop: () => chatIo.stop().then(ownChat),
+        watch: watchDoing,
+      }}
       phone={narrow}
       card={{ question: asked, comments: comments.length > 0, previews: artifacts.length > 0 }}
       onReplied={() => void api.readTask(task.id).then(setOwn, () => {})}
@@ -501,6 +516,11 @@ export function CardPage({ taskKey }: { taskKey: string }) {
       ended={task.status === "done" || task.status === "failed" || task.status === "cancelled"}
       onEnded={loadTask}
       ask={questions.length ? REVIEW.ai.askPending : undefined}
+      before={
+        from && earlier.length > 0 && (
+          <EarlierChat c={REVIEW.ai} label={T.fromChatCount(earlier.length)} end={T.taskStarted} messages={earlier} image={(m, n) => readImage(from.id, m, n)} phone={narrow} />
+        )
+      }
       aboveBox={
         questions.length > 0 && (
           <QuestionPanel c={REVIEW.questions} questions={questions} answers={answers} onChange={setAnswers} busy={busy} phone={narrow} onSubmit={() => void submit()} />

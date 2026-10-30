@@ -6,7 +6,7 @@
 // copy button (#2133).
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { FiCheck, FiChevronDown, FiCopy, FiImage, FiLoader, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiChevronRight, FiCopy, FiImage, FiLoader, FiSend, FiSettings, FiSquare, FiTrash2 } from "react-icons/fi";
 import { ApiError, clearChat, readChat, sendChat, stopChat, type Chat, type ChatImage, type ChatMessage, type ChatRuntime, type Connector } from "../api";
 import type { Copy } from "../i18n";
 import { useDraft } from "../lib/draft";
@@ -61,7 +61,8 @@ const linkChat = (token: string): ChatApi => ({
 /** `onManage` adds 管理运行时 to the pick; `gone`: runtimes whose Runner was removed. A change of `reload` reads the chat again. `page`: the
  *  chat is the whole page, its column centred, with no suggestions; `aboveBox` sits over the box
  *  in place of the suggestions, `ask` is the box's placeholder, and `over` covers the thread.
- *  `ended`: the task is over, so the box is greyed out; a send Cloud refuses for that calls `onEnded`. */
+ *  `ended`: the task is over, so the box is greyed out; a send Cloud refuses for that calls `onEnded`.
+ *  `before` heads the log, above the first message. */
 export function AiChat({
   c,
   token,
@@ -79,6 +80,7 @@ export function AiChat({
   draftKey,
   ended,
   onEnded,
+  before,
 }: {
   c: AiCopy;
   token: string;
@@ -96,6 +98,7 @@ export function AiChat({
   draftKey?: string;
   ended?: boolean;
   onEnded?: () => void;
+  before?: ReactNode;
 }) {
   const io = api ?? linkChat(token);
   const [chat, setChat] = useState<Chat | null>(null);
@@ -169,6 +172,7 @@ export function AiChat({
   const busy = working(chat) || sending;
   const blocked = !!gone?.includes(runtime.id);
   const empty = chat.messages.length === 0;
+  const bare = empty && !before;
 
   const send = async () => {
     const body = draft.trim();
@@ -313,7 +317,7 @@ export function AiChat({
   return (
     <section
       aria-label={c.label}
-      className={cn("flex flex-col bg-nb-paper", phone || page ? "h-full" : "nb-panel min-h-0 w-full overflow-hidden", empty && "justify-end")}
+      className={cn("flex flex-col bg-nb-paper", phone || page ? "h-full" : "nb-panel min-h-0 w-full overflow-hidden", bare && "justify-end")}
       onKeyDown={(e) => {
         // Esc stops a reply, once any menu of the chat's own is closed.
         if (e.key !== "Escape" || e.defaultPrevented || !working(chat) || e.currentTarget.querySelector('[role="menu"],[role="dialog"]')) return;
@@ -323,7 +327,7 @@ export function AiChat({
     >
       {over ? (
         <div className="relative min-h-0 flex-1">{over}</div>
-      ) : empty && !page && (aboveBox || closed) ? null : empty && !page ? (
+      ) : bare && !page && (aboveBox || closed) ? null : bare && !page ? (
         <div className="flex flex-col items-start gap-1.5 px-3 pt-3">
           <p className="px-1 pb-0.5 text-[12px] text-nb-ink-soft">{c.tryAsking}</p>
           {asks.map((a) => (
@@ -343,29 +347,15 @@ export function AiChat({
       ) : (
         <div ref={log} className={cn("min-h-0 flex-1 overflow-y-auto", page && !phone ? "px-8 py-8" : "px-5 py-5")}>
           <div className={cn("flex flex-col gap-2", page && "mx-auto max-w-[600px]")}>
-            {chat.messages.map((m) =>
-              m.role === "user" ? (
-                <div key={m.id} className={cn("ml-16 mt-3 flex flex-col items-end first:mt-0", arrived(m.id) && "nb-rise")}>
-                  <div className="max-w-full rounded-[10px] bg-nb-ink/5 p-2.5">
-                    {!!m.image_names?.length && (
-                      <div className="flex flex-wrap justify-end gap-[6px]">
-                        {m.image_names.map((f, i) => (
-                          <Sent key={i} c={c} name={f} load={io.image && (() => io.image!(m.id, f))} />
-                        ))}
-                      </div>
-                    )}
-                    {m.body && <p className={cn("whitespace-pre-wrap break-words text-[13px] leading-[1.5]", !!m.image_names?.length && "mt-2")}>{m.body}</p>}
-                  </div>
-                </div>
-              ) : (
-                <Reply key={m.id} c={c} m={m} phone={phone} rise={arrived(m.id)} />
-              ),
-            )}
+            {before}
+            {chat.messages.map((m) => (
+              <Said key={m.id} c={c} m={m} image={io.image} phone={phone} rise={arrived(m.id)} />
+            ))}
             {working(chat) && <p className="mt-3 animate-pulse text-[12.5px] text-nb-ink-soft">{stopping ? c.stopping : chat.status === "queued" ? c.queued : (doing ?? c.replying)}</p>}
           </div>
         </div>
       )}
-      <div className={cn("shrink-0", page && !phone ? "px-8 pb-5" : "px-3 pb-3", empty ? "pt-3" : "pt-1")}>
+      <div className={cn("shrink-0", page && !phone ? "px-8 pb-5" : "px-3 pb-3", bare ? "pt-3" : "pt-1")}>
         <div className={cn(page && "mx-auto max-w-[600px]")}>
           {!closed && aboveBox}
           {notes.map((n) => (
@@ -377,6 +367,70 @@ export function AiChat({
         </div>
       </div>
     </section>
+  );
+}
+
+/** One message: yours on the right with its pictures, or an agent's reply. */
+function Said({ c, m, image, phone, rise }: { c: AiCopy; m: ChatMessage; image?: ChatApi["image"]; phone?: boolean; rise?: boolean }) {
+  if (m.role !== "user") return <Reply c={c} m={m} phone={phone} rise={rise} />;
+  return (
+    <div className={cn("ml-16 mt-3 flex flex-col items-end first:mt-0", rise && "nb-rise")}>
+      <div className="max-w-full rounded-[10px] bg-nb-ink/5 p-2.5">
+        {!!m.image_names?.length && (
+          <div className="flex flex-wrap justify-end gap-[6px]">
+            {m.image_names.map((f, i) => (
+              <Sent key={i} c={c} name={f} load={image && (() => image(m.id, f))} />
+            ))}
+          </div>
+        )}
+        {m.body && <p className={cn("whitespace-pre-wrap break-words text-[13px] leading-[1.5]", !!m.image_names?.length && "mt-2")}>{m.body}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** An earlier conversation, folded on one row; opened, it reads like the chat and ends on `end`. */
+export function EarlierChat({
+  c,
+  label,
+  end,
+  messages,
+  image,
+  phone,
+}: {
+  c: AiCopy;
+  label: string;
+  end: string;
+  messages: ChatMessage[];
+  image?: ChatApi["image"];
+  phone?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const Icon = open ? FiChevronDown : FiChevronRight;
+  return (
+    <div className="flex flex-col pb-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-[30px] w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-ink/5 px-2 text-left text-[12px] font-[600] text-nb-ink-soft hover:bg-nb-ink/10"
+      >
+        <Icon size={13} className="shrink-0" aria-hidden />
+        <span className="truncate">{label}</span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-2 pt-3">
+          {messages.map((m) => (
+            <Said key={m.id} c={c} m={m} image={image} phone={phone} />
+          ))}
+          <div className="mt-2 flex items-center gap-2 py-0.5">
+            <span className="h-px flex-1 bg-nb-ink/[0.14]" />
+            <span className="shrink-0 text-[11px] text-nb-ink-soft">{end}</span>
+            <span className="h-px flex-1 bg-nb-ink/[0.14]" />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
