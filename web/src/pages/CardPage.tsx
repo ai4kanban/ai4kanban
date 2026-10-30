@@ -179,11 +179,6 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     setUnrestored(task ? takeRestoreFailure(task.id) : null);
   }, [task?.id]);
 
-  useEffect(() => {
-    setChat(query.get("chat") === "1");
-    setAnswers(NO_ANSWERS);
-  }, [taskKey]);
-
   // The task, read on its own too: an old key, another workspace, or the archive.
   useEffect(() => {
     let live = true;
