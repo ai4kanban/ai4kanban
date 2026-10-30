@@ -216,7 +216,11 @@ function CompareNode(props: any) {
   const tag = useMemo(() => ({ a, b, shots, label, aLabel, bLabel }), [a, b, shots, label, aLabel, bLabel]);
   const spec = useMemo(() => previews?.compareOfTag(tag), [previews, tag]);
   if (!previews || !spec) return null;
-  for (const side of [tag.a, tag.b]) if (!previews.refOfSrc(side)) return <Note text={previews.missing(side).error!} />;
+  for (const side of [tag.a, tag.b]) {
+    if (previews.refOfSrc(side)) continue;
+    const view = previews.viewOfSrc(side);
+    return view.loading ? <PreviewOf view={view} /> : <Note text={view.error!} />;
+  }
   return <DeferredCompare spec={spec} />;
 }
 
@@ -226,6 +230,7 @@ function StoryboardNode(props: any) {
   const label = (props["data-label"] as string | undefined) || undefined;
   const view = useMemo(() => previews?.viewOfSrc(src, label), [previews, src, label]);
   if (!view) return null;
+  if (view.loading) return <PreviewOf view={view} />;
   if (view.error !== undefined) return <Note text={view.error} />;
   return view.storyboard ? <DeferredStoryboard load={view.storyboard} label={label} /> : <Note text={previews!.missing(src, label).error!} />;
 }

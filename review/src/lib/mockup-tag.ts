@@ -78,6 +78,8 @@ export type MockupView = Drawn & {
   deferred?: { load: () => Promise<Drawn>; screen: boolean; hyperframe?: boolean };
   storyboard?: () => Promise<StoryboardView>;
   compare?: CompareSpec;
+  /** Its artifact is still being read. */
+  loading?: true;
 };
 
 // A self-closing tag with no `<` or `>` inside it.

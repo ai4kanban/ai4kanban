@@ -51,6 +51,8 @@ export type Host = {
   component: ((art: Artifact, v: ArtifactVersion) => Promise<SharedComponent>) | null;
   canSave: boolean;
   saved: () => void;
+  /** An artifact not yet in hand: still being read, or its read failed. */
+  status?: (id: string) => "loading" | "failed" | undefined;
 };
 
 const SAVE_LIMIT = 256 * 1024;
@@ -102,6 +104,13 @@ export class Previews {
     return { src, error: COPY.card.mockup.missing(label || src.split("/").pop()!) };
   }
 
+  private absent(id: string | undefined, src: string, label?: string): MockupView {
+    const status = id ? this.host.status?.(id) : undefined;
+    if (status === "loading") return { src, loading: true };
+    if (status === "failed") return { src, error: COPY.card.mockup.previewFailed };
+    return this.missing(src, label);
+  }
+
   // One view per path or id, so a re-render never starts a load again.
   private views = new Map<string, MockupView>();
   private once(key: string, make: () => MockupView): MockupView {
@@ -114,14 +123,14 @@ export class Previews {
   viewOfSrc(src: string, label?: string): MockupView {
     return this.once(`src:${src}`, () => {
       const ref = this.refOfSrc(src);
-      return ref ? this.viewOf(ref, src) : this.missing(src, label);
+      return ref ? this.viewOf(ref, src) : this.absent(this.shared.card?.assets[src]?.artifact, src, label);
     });
   }
 
   viewOfArtifact(id: string): MockupView {
     return this.once(`id:${id}`, () => {
       const ref = this.ref(id);
-      return ref ? this.viewOf(ref, ref.art.name) : this.missing(id);
+      return ref ? this.viewOf(ref, ref.art.name) : this.absent(id, id);
     });
   }
 

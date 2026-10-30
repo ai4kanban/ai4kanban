@@ -113,7 +113,8 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     window.addEventListener(RUNTIMES_CHANGED, bump);
     return () => window.removeEventListener(RUNTIMES_CHANGED, bump);
   }, []);
-  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  // The previews read for one card version; `failed` could not be read, which is not missing.
+  const [got, setGot] = useState<{ card: string; artifacts: Artifact[]; failed: Set<string> } | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [busy, setBusy] = useState(false);
@@ -196,10 +197,11 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   }, [saved]);
 
   // The previews the body names, read as review/ reads them.
+  const readFor = card ? `${card.task}:${card.version}` : null;
   useEffect(() => {
-    const assets = card?.assets ?? {};
-    const ids = [...new Map(Object.values(assets).map((a) => [a.artifact, a.version])).entries()];
-    if (!ids.length) return setArtifacts([]);
+    if (!card || !readFor) return;
+    const ids = [...new Map(Object.values(card.assets ?? {}).map((a) => [a.artifact, a.version])).entries()];
+    const failed = new Set<string>();
     let live = true;
     Promise.all(
       ids.map(async ([id, pinned]) => {
@@ -209,15 +211,18 @@ export function CardPage({ taskKey }: { taskKey: string }) {
           if (n == null) return null;
           const v = await api.readArtifactVersion(id, n);
           return { id, type: art.type, name: art.name ?? id, latest_version: art.latest_version, versions: [v] } as Artifact;
-        } catch {
+        } catch (e) {
+          if (!(e instanceof api.ApiError && e.status === 404)) failed.add(id);
           return null;
         }
       }),
-    ).then((list) => live && setArtifacts(list.filter((a): a is Artifact => !!a)));
+    ).then((list) => live && setGot({ card: readFor, artifacts: list.filter((a): a is Artifact => !!a), failed }));
     return () => {
       live = false;
     };
-  }, [card?.version]);
+  }, [readFor]);
+  const settled = got?.card === readFor ? got : null;
+  const artifacts = useMemo(() => settled?.artifacts ?? [], [settled]);
 
   // Once anything is up for review, the card has its comments rail and its share link.
   const reviewed = !!review?.status;
@@ -259,8 +264,13 @@ export function CardPage({ taskKey }: { taskKey: string }) {
 
   const meta = useMemo(() => (card ? cardMeta(card.body, card.metadata) : null), [card]);
   const previews = useMemo(
-    () => new Previews({ card: card ? { ...card, metadata: {} } : null, artifacts } as unknown as Shared, { component: (art, v) => api.readArtifactComponent(art.id, v.version), canSave: false, saved: () => {} }),
-    [card, artifacts],
+    () => new Previews({ card: card ? { ...card, metadata: {} } : null, artifacts } as unknown as Shared, {
+        component: (art, v) => api.readArtifactComponent(art.id, v.version),
+        canSave: false,
+        saved: () => {},
+        status: (id) => (!settled ? "loading" : settled.failed.has(id) ? "failed" : undefined),
+      }),
+    [card, artifacts, settled],
   );
 
   const ownKey = task?.key;

@@ -484,7 +484,7 @@ function One({ view, label, alt, device, loop, variants, fold }: { view: MockupV
   const box = useRef<HTMLSpanElement>(null);
   const deferred = view.deferred;
   const loaded = useNearLoad(box, deferred?.load ?? null);
-  const drawn: Drawn | null = deferred ? loaded : view;
+  const drawn: Drawn | null = deferred ? loaded : view.loading ? null : view;
   const screen = !!deferred?.screen;
   const [shown, setShown] = useState<Device>(screen ? device : "desktop");
   const [full, setFull] = useState(false);
