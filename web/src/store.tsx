@@ -43,7 +43,10 @@ export interface Store {
   reloadWorkspaces: () => Promise<api.Workspace[]>;
   reload: () => void;
   patchTask: (task: api.Task) => void;
+  /** The card's fields; `blockedBy` holds only the blockers that have not ended. */
   cardOf: (task: api.Task) => CardInfo | undefined;
+  /** This task is done or removed. A card still naming it catches up later (#150). */
+  ended: (key: string) => boolean;
   rawCardOf: (task: api.Task) => api.Card | undefined;
   isNew: (task: api.Task) => boolean;
   markSeen: (task: string) => void;
@@ -252,6 +255,8 @@ export function StoreProvider({ me, workspaces: first, children }: { me: api.Me;
     };
   }, [loadRunner]);
 
+  const ended = useMemo(() => new Set(tasks?.filter((t) => t.status === "done" || t.status === "cancelled").map((t) => t.key)), [tasks]);
+
   const projects = useMemo(
     () => allProjects.map((p) => (p.general ? { ...p, name: T.general } : p)).sort((a, b) => Number(b.general) - Number(a.general)),
     [allProjects],
@@ -300,7 +305,11 @@ export function StoreProvider({ me, workspaces: first, children }: { me: api.Me;
     reloadWorkspaces,
     reload,
     patchTask,
-    cardOf: (t) => cardEntry(t)?.info,
+    cardOf: (t) => {
+      const info = cardEntry(t)?.info;
+      return info && { ...info, blockedBy: info.blockedBy.filter((k) => !ended.has(k)) };
+    },
+    ended: (key) => ended.has(key),
     rawCardOf: (t) => cardEntry(t)?.raw,
     isNew: (t) => !!known && !known.has(t.id),
     markSeen,

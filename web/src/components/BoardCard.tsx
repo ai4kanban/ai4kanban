@@ -13,7 +13,7 @@ import { creating, numberOf, statusOf } from "../lib/card";
 import { cn } from "@review/lib/utils";
 import { Link } from "../router";
 import { useStore } from "../store";
-import { BlockedChip, CreatingChip, pillLabel, PriorityChip, StatusPill, TodoProgress, WorkflowTag } from "./chips";
+import { BlockedChip, CreatingChip, pillLabel, PriorityChip, queueReason, StatusPill, TodoProgress, WorkflowTag } from "./chips";
 
 export function BoardCard({ task, staleDays }: { task: Task; staleDays?: number }) {
   if (creating(task)) return <BeingCreatedCard task={task} />;
@@ -54,8 +54,8 @@ function ReadyCard({ task, staleDays }: { task: Task; staleDays?: number }) {
           {numberOf(task.key)}
         </span>
         <span className="flex min-w-0 items-center gap-1.5">
-          {!!info?.blockedBy.length && <BlockedChip by={info.blockedBy.join(", ")} />}
-          <StatusPill status={status} label={pillLabel(task)} />
+          {!!info?.blockedBy.length && <BlockedChip by={info.blockedBy} />}
+          <StatusPill status={status} label={pillLabel(task)} tip={queueReason(task, info?.blockedBy ?? [])} tipAlign="end" />
           {!!info?.questions.length && (
             <span className="nb-tip inline-flex shrink-0" data-tip={T.questionsTip(info.questions.length)} style={{ color: userQs ? "var(--color-nb-accent)" : "var(--color-nb-ink-soft)" }}>
               <FiHelpCircle aria-hidden style={{ width: 13, height: 13 }} />

@@ -4,7 +4,7 @@
 import { FiAlertCircle, FiCheckCircle, FiClock, FiEye, FiFlag, FiLock, FiPauseCircle, FiPlayCircle, FiXCircle } from "react-icons/fi";
 import type { Task } from "../api";
 import { T } from "../i18n";
-import type { Level, Status } from "../lib/card";
+import { numberOf, type Level, type Status } from "../lib/card";
 import { workflowIcon } from "./workflow-icon";
 
 const ELASTIC_CHIP = { minWidth: 0, maxWidth: "100%" } as const;
@@ -21,17 +21,30 @@ const SKIN: Record<PillStatus, { icon: typeof FiEye; soft: string; ink: string }
   cancelled: { icon: FiXCircle, soft: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)", ink: "var(--color-nb-ink-soft)" },
 };
 
-/** The pill's name for a task where the status alone says too little: 等待运行 for a queued task held by the plan
- *  (#2209), the step a running one is on (#79). */
-export const pillLabel = (task: Task): string | undefined =>
-  task.status === "queued" && task.waiting_for_slot ? T.waitingForSlot : task.status === "running" && task.run?.step ? T.step[task.run.step] : undefined;
+/** The step a running task is on (#79). */
+export const pillLabel = (task: Task): string | undefined => (task.status === "running" && task.run?.step ? T.step[task.run.step] : undefined);
 
-/** `label`: another name for the status, such as 等待运行 for a queued task held by the plan (#2209). */
-export function StatusPill({ status, label = T.status[status] }: { status: PillStatus; label?: string }) {
+const waitingOnTip = (keys: string[]) => T.waitingOn(keys.map(numberOf).join(T.sep));
+
+/** Why a queued task has not started: only what has to clear first. `waitingOn`: its unfinished blockers. */
+export function queueReason(task: Task, waitingOn: string[]): string | undefined {
+  if (task.status !== "queued") return undefined;
+  if (waitingOn.length) return waitingOnTip(waitingOn);
+  if (task.waiting_for_slot) return T.waitingForLimit;
+  return task.run?.runner_connected === false ? T.waitingForRunner : undefined;
+}
+
+/** `tip`: a reason shown on hover, opening from the pill's `tipAlign` edge so a card's side can't cut it. */
+export function StatusPill({ status, label = T.status[status], tip, tipAlign = "start" }: { status: PillStatus; label?: string; tip?: string; tipAlign?: "start" | "end" }) {
   const c = SKIN[status];
   const Icon = c.icon;
   return (
-    <span className="nb-chip" title={label} style={{ ...ELASTIC_CHIP, background: c.soft, color: c.ink }}>
+    <span
+      className={tip ? `nb-chip nb-tip nb-tip-below nb-tip-${tipAlign}` : "nb-chip"}
+      title={tip ? undefined : label}
+      data-tip={tip}
+      style={{ ...ELASTIC_CHIP, background: c.soft, color: c.ink }}
+    >
       <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       <span className="truncate">{label}</span>
     </span>
@@ -77,9 +90,9 @@ export function TodoProgress({ done, total, width = 26 }: { done: number; total:
   );
 }
 
-export function BlockedChip({ by }: { by: string }) {
+export function BlockedChip({ by }: { by: string[] }) {
   return (
-    <span className="nb-chip nb-tip" data-tip={T.blocked(by)} style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}>
+    <span className="nb-chip nb-tip nb-tip-below" data-tip={waitingOnTip(by)} style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}>
       <FiLock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
     </span>
   );

@@ -33,7 +33,7 @@ import { remember, reviewLink } from "../lib/links";
 import { useNarrow } from "../lib/narrow";
 import { Link, navigate, useLocation } from "../router";
 import { useStore } from "../store";
-import { pillLabel, StatusPill, type PillStatus } from "../components/chips";
+import { pillLabel, queueReason, StatusPill, type PillStatus } from "../components/chips";
 import { useDismiss } from "../components/Header";
 import { LandedCommit, LandedDiff } from "../components/Landed";
 import { restore, RestoreButton, takeRestoreFailure } from "../components/Restore";
@@ -614,8 +614,10 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     )
   );
   const shown = meta ?? { modules: [], priority: null, todos: null, source: [], blockedBy: [], related: [] };
+  const waitingOn = shown.blockedBy.map((s) => keyOf(task.key, s)).filter((k) => !store.ended(k));
   const info: Info = {
     ...shown,
+    blockedBy: shown.blockedBy.filter((s) => waitingOn.includes(keyOf(task.key, s))),
     source: sourceKey ? shown.source.filter((s) => keyOf(task.key, s) !== sourceKey) : shown.source,
     workflow: workflowName(task.workflow),
     chipLink: (s, chip) => {
@@ -672,7 +674,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
             <CardSheet
               number={numberOf(task.key)}
               title={task.title}
-              status={<StatusPill status={pill} label={pillLabel(task)} />}
+              status={<StatusPill status={pill} label={pillLabel(task)} tip={queueReason(task, waitingOn)} />}
               actions={actions}
               info={info}
               above={
