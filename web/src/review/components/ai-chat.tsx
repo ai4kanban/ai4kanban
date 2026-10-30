@@ -65,10 +65,13 @@ const linkChat = (token: string): ChatApi => ({
   stop: () => stopChat(token),
 });
 
-/** Messages dissolve before the frame cuts them; the fade grows with the scroll, so the top of the thread is untouched. */
-const fadeTop = (el: HTMLElement) => {
-  const px = Math.min(el.scrollTop, 48);
-  el.style.maskImage = px ? `linear-gradient(to bottom, transparent ${px / 5}px, #000 ${px}px)` : "";
+/** Messages dissolve before the frame cuts them; each fade grows with the distance to that end, so both ends of the thread are untouched. */
+const fadeEdges = (el: HTMLElement) => {
+  const top = Math.min(el.scrollTop, 48);
+  const rest = el.scrollHeight - el.clientHeight - el.scrollTop;
+  const bottom = rest > 1 ? Math.min(rest, 48) : 0;
+  el.style.maskImage =
+    top || bottom ? `linear-gradient(to bottom, transparent ${top / 5}px, #000 ${top}px, #000 calc(100% - ${bottom}px), transparent calc(100% - ${bottom / 5}px))` : "";
 };
 
 /** `onManage` adds 管理运行时 to the pick; `gone`: runtimes whose Runner was removed. A change of `reload` reads the chat again. `page`: the
@@ -129,6 +132,17 @@ export function AiChat({
   const input = useRef<HTMLTextAreaElement>(null);
   const grow = useGrowingBox(draft, input);
   const log = useRef<HTMLDivElement>(null);
+  /** The list mounts once the chat is read; its fades follow resizes that scroll nothing. */
+  const attachLog = useCallback((el: HTMLDivElement) => {
+    log.current = el;
+    const watch = new ResizeObserver(() => fadeEdges(el));
+    watch.observe(el);
+    watch.observe(el.firstElementChild!);
+    return () => {
+      log.current = null;
+      watch.disconnect();
+    };
+  }, []);
   const was = useRef(false);
   const [doing, setDoing] = useState<string | null>(null);
   const job = chat?.status === "replying" ? chat.job : null;
@@ -386,7 +400,7 @@ export function AiChat({
           ))}
         </div>
       ) : (
-        <div ref={log} onScroll={(e) => fadeTop(e.currentTarget)} className={cn("min-h-0 flex-1 overflow-y-auto", page && !phone ? "px-8 py-8" : "px-5 py-5")}>
+        <div ref={attachLog} onScroll={(e) => fadeEdges(e.currentTarget)} className={cn("min-h-0 flex-1 overflow-y-auto", page && !phone ? "px-8 py-8" : "px-5 py-5")}>
           <div className={cn("flex flex-col gap-2", page && "mx-auto max-w-[600px]")}>
             {before}
             {chat.messages.map((m) => (
