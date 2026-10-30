@@ -1,5 +1,5 @@
 // `/projects/<id>/triage`, after legacy kanban-ui/components/Signals.tsx: the project's follow-ups waiting
-// to be sorted, grouped by the task that proposed them, with 转成任务, 直接构建 (#2139) and 忽略 on
+// to be sorted, grouped by the task that proposed them, with 细化想法, 直接构建 (#2139) and 忽略 on
 // each row and in the side detail; 历史 holds the sorted ones, newest first, a page at a time. Ignoring acts at
 // once: the toast undoes it or records why.
 

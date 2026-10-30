@@ -21,7 +21,7 @@ docs/kanban/
 ├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
 │                   does; written from the board UI or `akb raw rule`
 ├── triage/         items waiting to be sorted, one file each — not cards. Only
-│   │               Cloud's sort or Make task on the web's Triage page turns one
+│   │               Cloud's sort or Refine idea on the web's Triage page turns one
 │   │               into a card; `akb triage check <source-id>` finds an existing one
 │   ├── archived/   items a card was made of
 │   ├── dismissed/  items ignored, with the reason — `akb triage restore` puts one back
