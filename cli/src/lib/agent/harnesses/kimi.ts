@@ -1,5 +1,5 @@
 import { createKimiStreamRenderer } from '../wire'
-import { namesFlag, SKILL_SENTENCE, type Harness } from './types'
+import { machineFile, namesFlag, SKILL_SENTENCE, type Harness } from './types'
 
 // Kimi Code CLI, Moonshot's coding agent (#377). The binary is `kimi`, and what this
 // targets is what `curl -LsSf https://code.kimi.com/install.sh | bash` installs — not the
@@ -66,6 +66,14 @@ export const KIMI: Harness = {
   // Before `-p`, never after — see the note above.
   resumeArgs(argv, resumeId) {
     return kimiExtraArgs(argv, namesFlag(argv, ['--session', '-S', '--resume', '-r']) ? [] : ['--session', resumeId])
+  },
+
+  // An agent file wrapping Kimi's own prompt in `${base_prompt}`. Only a new session takes one;
+  // a resumed one keeps the agent it opened with, and Kimi refuses the flag beside `--session`.
+  systemPrompt(text, argv) {
+    if (namesFlag(argv, ['--session', '-S', '--resume', '-r', '--continue', '-C', '--agent', '--agent-file'])) return {}
+    const file = machineFile('kimi-language.md', `---\nname: akb-language\ndescription: Kimi's default agent, told which language to write in\n---\n\n\${base_prompt}\n\n${text}\n`)
+    return { args: ['--agent-file', file] }
   },
 
   // What Kimi takes: who pays for the run and where it goes, then the model. The provider

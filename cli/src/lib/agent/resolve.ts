@@ -28,7 +28,7 @@ import {
   namesFlag,
   uniqueIds,
 } from './harnesses'
-import { effectiveValues as valuesOf, isFilled, providerFor, settingArgs as argsOf, settingEnv } from './run-settings'
+import { effectiveValues as valuesOf, isFilled, providerFor, settingArgs as argsOf, settingEnv, withSystemLanguage } from './run-settings'
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
 import { DISCUSSION_ROLE, hiddenRole, PLANNING_ROLE, roleForFlow } from './roles'
@@ -527,12 +527,13 @@ export function openPlan(plan: RunPlan): ActiveRun {
   const resolved = resolveHarness({ agent: plan.agent, pin: plan.runtime, harness: plan.harness })
   const { harness } = resolved
   const start = startableBinary(plan.argv[0] ?? '', harness)
-  const argv = start.note ? [start.binary, ...plan.argv.slice(1)] : plan.argv
+  const started = start.note ? [start.binary, ...plan.argv.slice(1)] : plan.argv
+  const { argv, env } = withSystemLanguage(harness, started, runEnv(resolved, plan.cwd ?? REPO_ROOT), languageNote())
   return {
     ...plan,
     argv,
     ...(start.note ? { startNote: start.note } : {}),
-    env: runEnv(resolved, plan.cwd ?? REPO_ROOT),
+    env,
     // The folder and the binary: what a renderer needs to go looking for what the stream
     // left out (agent/harnesses/types.ts). argv's first word is the command's own binary,
     // the same one the spawn resolves and an ENOENT names.

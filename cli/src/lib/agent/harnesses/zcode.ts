@@ -50,6 +50,9 @@ export const ZCODE: Harness = {
     return []
   },
 
+  // No `systemPrompt`: ZCode's session language is its TUI's own setting, written to the
+  // user's config, and `session/create` takes no prompt or language of its own.
+
   // What ZCode takes: a model and the key. There is no pick between sign-ins, because only
   // one of them ever worked — a `zcode login` lands under a Coding Plan provider that the
   // command's own config never points at, so a run signed in that way asks for a `zai` key

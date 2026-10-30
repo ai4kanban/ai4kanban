@@ -13,7 +13,7 @@ import { splitCommand } from '../../cli/src/lib/agent/argv'
 import { HARNESSES as ALL } from '../../cli/src/lib/agent/harnesses'
 import { MODEL_KEY, type Harness } from '../../cli/src/lib/agent/harnesses/types'
 import { binaryOnPath } from '../../cli/src/lib/agent/installed'
-import { effectiveValues, providerFor, settingArgs, settingEnv, type SettingValues } from '../../cli/src/lib/agent/run-settings'
+import { effectiveValues, providerFor, settingArgs, settingEnv, withSystemLanguage, type SettingValues } from '../../cli/src/lib/agent/run-settings'
 import type { HarnessSetting } from '../../cli/src/lib/agent/types'
 import type { RunEvent, StreamRenderer, TurnEnd } from '../../cli/src/lib/agent/wire'
 import { obj, str } from '../../cli/src/lib/agent/wire/json'
@@ -80,24 +80,25 @@ export const hints = (runtime: Job['runtime']) => ({ install: HARNESSES[runtime]
 /** True when the runtime can open a copy of an earlier session (#2146). */
 export const forks = (runtime: Job['runtime']) => !!HARNESSES[runtime].forkArgs
 
-/** `resume` continues that session instead of opening a new one; with `fork`, a copy of it. */
-export function plan(runtime: Job['runtime'], prompt: string, cwd: string, resume?: string | null, model?: string | null, given: Settings = {}, fork = false): Plan {
+/** `resume` continues that session instead of opening a new one; with `fork`, a copy of it. `line`
+ *  is Cloud's language line, which also goes into the runtime's own system prompt (#104). */
+export function plan(runtime: Job['runtime'], prompt: string, cwd: string, resume?: string | null, model?: string | null, given: Settings = {}, fork = false, line = ''): Plan {
   const harness = HARNESSES[runtime]
   const values = held(runtime, model, given)
-  const argv = [...splitCommand(harness.command), ...settingArgs(harness, values)]
+  const base = [...splitCommand(harness.command), ...settingArgs(harness, values)]
   const id = randomUUID()
-  const copied = fork && resume && harness.forkArgs ? harness.forkArgs(argv, resume, id, cwd) : null
+  const copied = fork && resume && harness.forkArgs ? harness.forkArgs(base, resume, id, cwd) : null
   if (fork) resume = null
-  const extra = copied ?? (resume ? harness.resumeArgs(argv, resume, cwd) : harness.extraArgs(argv, id, cwd))
+  const extra = copied ?? (resume ? harness.resumeArgs(base, resume, cwd) : harness.extraArgs(base, id, cwd))
   const quiet = (line: string) => harness.quietStderr?.(line) ?? false
   // WILDCRANE_JOB keeps the Claude Code plugin a job's own session loads from serving it (#2161).
-  const env = { ...process.env, ...settingEnv(harness, values, given.secrets ?? {}, cwd), WILDCRANE_JOB: '1' }
+  const { argv, env } = withSystemLanguage(harness, [...base, ...extra], { ...process.env, ...settingEnv(harness, values, given.secrets ?? {}, cwd), WILDCRANE_JOB: '1' }, line)
   if (harness.client) {
     const client = harness.client(effectiveValues(harness, values))
     let session: string | undefined
     return {
       command: argv[0]!,
-      args: [...argv.slice(1), ...extra],
+      args: argv.slice(1),
       env,
       converse: (child, event) =>
         client.turn({
@@ -117,11 +118,11 @@ export function plan(runtime: Job['runtime'], prompt: string, cwd: string, resum
       session: () => session ?? resume ?? undefined,
     }
   }
-  const renderer = harness.renderer!(cwd, argv[0], [...argv, ...extra])
-  const toStdin = harness.stdinPrompt?.([...argv, ...extra])
+  const renderer = harness.renderer!(cwd, argv[0], argv)
+  const toStdin = harness.stdinPrompt?.(argv)
   return {
     command: argv[0]!,
-    args: [...argv.slice(1), ...extra, ...(toStdin ? [] : [prompt])],
+    args: [...argv.slice(1), ...(toStdin ? [] : [prompt])],
     env,
     stdin: toStdin?.(prompt),
     renderer,

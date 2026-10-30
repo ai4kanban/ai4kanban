@@ -270,6 +270,12 @@ export const CODEX: Harness = {
     return [...codexExtraArgs(argv, cwd), 'fork', resumeId]
   },
 
+  // Codex's developer message. `-c` is global, so it may sit before `exec`. It stands in for a
+  // `developer_instructions` in the user's config.toml, which is then left out of board runs.
+  systemPrompt(text, argv) {
+    return namesFlag(argv, ['developer_instructions']) ? {} : { args: ['-c', `developer_instructions=${JSON.stringify(text)}`] }
+  },
+
   // What Codex takes, in the order Claude Code's dialog draws the same four: who pays for
   // the run and where it goes, that endpoint's address, the key, a model, and how hard that
   // model thinks. Everything but the key reaches Codex through its own `-c key=value`

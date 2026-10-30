@@ -31,14 +31,14 @@ const MACHINE = '44444444-4444-4444-8444-444444444444'
 
 let cloud: FakeCloud
 let runner: Runner | null = null
-let planned: { runtime: string; prompt: string; cwd: string; resume?: string | null; model?: string | null; settings?: unknown }[] = []
+let planned: { runtime: string; prompt: string; cwd: string; resume?: string | null; model?: string | null; settings?: unknown; line?: string }[] = []
 let installed: RuntimeReport[] = []
 const FAKE_AKB = path.join(process.env.RUNNER_DIST ?? '', '..', 'test', 'fake-akb.mjs')
 const cached = (project = 'prj_1') => path.join(runnerHome(), 'cache', project)
 
 function fakeRuntime(script: string) {
-  return (runtime: string, prompt: string, cwd: string, resume?: string | null, model?: string | null, settings?: unknown): Plan => {
-    planned.push({ runtime, prompt, cwd, resume, model, settings })
+  return (runtime: string, prompt: string, cwd: string, resume?: string | null, model?: string | null, settings?: unknown, _fork?: boolean, line?: string): Plan => {
+    planned.push({ runtime, prompt, cwd, resume, model, settings, line })
     return {
       command: process.execPath,
       args: ['-e', script],
@@ -242,6 +242,7 @@ describe('the Runner', () => {
     start()
     await until(() => job.state === 'finished')
     assert.equal(planned[0]!.prompt, 'go\n\n请用中文回复和写作。')
+    assert.equal(planned[0]!.line, '请用中文回复和写作。')
     const akb = { command: 'akb', args: [] }
     assert.equal(akbEnv(akb, 'b', undefined, 'Reply and write in English.').AI4KANBAN_LANGUAGE_LINE, 'Reply and write in English.')
     // Even empty, Cloud's line stands over this machine's language setting.
@@ -1938,6 +1939,14 @@ describe('the real runtimes', () => {
     assert.equal(claude.command, 'claude')
     assert.ok(!claude.args.includes('Build it'))
     assert.match(claude.stdin!, /Build it/)
+  })
+
+  it("puts Cloud's language line in the runtime's own system prompt, and nothing for English (#104)", () => {
+    const zh = plan('claude-code', 'Build it', os.tmpdir(), null, null, {}, false, '请用中文回复和写作。')
+    assert.equal(zh.args[0], '--append-system-prompt')
+    assert.match(zh.args[1]!, /都用中文/)
+    assert.match(plan('dsh', 'Build it', os.tmpdir(), null, null, {}, false, '请用中文回复和写作。').env.DSH_SYSTEM_PROMPT!, /都用中文/)
+    assert.ok(!plan('claude-code', 'Build it', os.tmpdir(), null, null, {}, false, 'Reply and write in English.').args.includes('--append-system-prompt'))
   })
 })
 

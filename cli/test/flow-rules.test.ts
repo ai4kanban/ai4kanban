@@ -17,7 +17,7 @@ import { activeDelivery } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
-import { setupInstruction } from '../src/lib/agent/resolve.ts'
+import { openPlan, planRun, setupInstruction } from '../src/lib/agent/resolve.ts'
 import { addRuntime, setAgentRuntime } from '../src/lib/agent/runtimes.ts'
 import { readRule, ruleFor, setAgentRule } from '../src/lib/agent/rules.ts'
 import { findGuide } from '../src/lib/guide.ts'
@@ -587,6 +587,12 @@ describe("the board's language", () => {
       delete process.env[LANGUAGE_LINE_ENV]
     }
     assert.equal(inLanguage('ask'), 'ask\n\n请用中文回复和写作。')
+  })
+
+  it("tells the run's connector in its own system prompt too, and only off English (#104)", () => {
+    assert.ok(!openPlan(planRun('s1')).argv.includes('--append-system-prompt'))
+    setLanguage('zh')
+    assert.equal(openPlan(planRun('s1')).argv[1], '--append-system-prompt')
   })
 
   it('says nothing at all on an English machine', () => {

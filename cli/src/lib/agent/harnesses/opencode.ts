@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { createAcpClient } from '../wire'
 import { home, modelsIn, obj } from './models'
-import { MCP_CONFIG, SKILL_SENTENCE, type Harness } from './types'
+import { machineFile, MCP_CONFIG, SKILL_SENTENCE, type Harness } from './types'
 
 // OpenCode, reached through ACP: `opencode acp` holds the conversation over stdin and stdout,
 // driven by the same wire/acp.ts client dsh and grok run on. The session is opened with the
@@ -66,6 +66,20 @@ export const OPENCODE: Harness = {
   },
 
   env: () => ({ ...process.env }),
+
+  // `instructions` files join the system prompt, and OpenCode adds this config's list to the
+  // user's own rather than replacing it.
+  systemPrompt(text) {
+    const file = machineFile('opencode-language.md', `${text}\n`)
+    let own: Record<string, unknown> = {}
+    try {
+      own = obj(JSON.parse(process.env.OPENCODE_CONFIG_CONTENT ?? '{}'))
+    } catch {
+      // Not JSON: OpenCode would refuse it anyway.
+    }
+    const instructions = [...(Array.isArray(own.instructions) ? own.instructions : []), file]
+    return { env: { OPENCODE_CONFIG_CONTENT: JSON.stringify({ ...own, instructions }) } }
+  },
 
   // All four come out of the conversation (agent/wire/acp.ts). A blank cost is a real answer:
   // OpenCode prices off the models.dev catalogue, which rates free and plan models at zero.

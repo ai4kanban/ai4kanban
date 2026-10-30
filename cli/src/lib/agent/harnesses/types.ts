@@ -6,6 +6,10 @@
 // end. Adding an agent is adding one file beside this one and one name to the list in
 // `./index` — nothing outside this folder learns its name.
 
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { machineHome } from '../../machine/home'
 import type { RunClient, StreamRenderer } from '../wire'
 import type { HarnessOption, HarnessSetting } from '../types'
 
@@ -214,6 +218,12 @@ export interface Harness
    *  none — then it cannot see images at all, and a paste into its conversation is turned
    *  away rather than sent to an agent that would ignore it. */
   images?: ImageInput
+  /** How `text` joins this connector's own system prompt (#104), so a language ask holds on
+   *  every turn: `args` go right after the binary, `env` over the run's environment. `argv` is
+   *  the whole command line, for a flag the user already set. Left out by a connector with no
+   *  way in — the line that ends every prompt is then all it gets. Never writes into the
+   *  project. */
+  systemPrompt?(text: string, argv: string[]): { args?: string[]; env?: NodeJS.ProcessEnv }
 }
 
 // How a prompt asks for the skill on an agent with no direct skill syntax. A fresh chat
@@ -285,4 +295,18 @@ export const MCP_CONFIG: HarnessSetting = {
   kind: 'text',
   placeholder: '/path/to/mcp.json',
   help: 'A JSON file of `mcpServers`, as Claude Code\'s --mcp-config takes. Empty opens no servers.',
+}
+
+/** `text` in a file of the machine's own folder, for a connector that reads its system prompt
+ *  from one (#104). Never in the project. */
+export function machineFile(name: string, text: string): string {
+  const file = path.join(machineHome(), 'prompts', name)
+  try {
+    if (fs.readFileSync(file, 'utf8') === text) return file
+  } catch {
+    // Not written yet.
+  }
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, text)
+  return file
 }

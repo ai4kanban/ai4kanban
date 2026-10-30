@@ -4,6 +4,7 @@
 
 import { splitCommand } from './argv'
 import { SESSION_VARS } from './env'
+import { systemLanguage } from './language'
 import type { Harness } from './harnesses/types'
 import { RAW_ARGS_KEY } from './harnesses/types'
 import { pickedProvider, providerOwned, providerSetting, shownForProvider } from './providers'
@@ -116,4 +117,18 @@ export function effectiveValues(harness: Harness, held: SettingValues): Record<s
     out[setting.key] = value
   }
   return out
+}
+
+/** The command line and environment with `line`'s language ask in the connector's own system
+ *  prompt (#104). Unchanged for English, and for a connector with no way in. */
+export function withSystemLanguage(
+  harness: Harness,
+  argv: string[],
+  env: NodeJS.ProcessEnv,
+  line: string,
+): { argv: string[]; env: NodeJS.ProcessEnv } {
+  const text = systemLanguage(line)
+  const added = text && argv.length ? harness.systemPrompt?.(text, argv) : undefined
+  if (!added) return { argv, env }
+  return { argv: [argv[0]!, ...(added.args ?? []), ...argv.slice(1)], env: { ...env, ...added.env } }
 }

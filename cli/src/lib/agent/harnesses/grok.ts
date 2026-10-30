@@ -1,6 +1,6 @@
 import { createAcpClient } from '../wire'
 import { home, modelsIn, obj } from './models'
-import { MCP_CONFIG, SKILL_SENTENCE, type Harness } from './types'
+import { MCP_CONFIG, namesFlag, SKILL_SENTENCE, type Harness } from './types'
 
 // The fence a Grok run works behind, and the only place it can be said.
 //
@@ -59,6 +59,11 @@ export const GROK: Harness = {
   // `--resume` and `--continue` are that mode's own flags and mean nothing here.
   resumeArgs() {
     return []
+  },
+
+  // `--rules` appends to Grok's system prompt. A top-level option, so it goes before `agent`.
+  systemPrompt(text, argv) {
+    return namesFlag(argv, ['--rules']) ? {} : { args: ['--rules', text] }
   },
 
   // What Grok takes: a model, and the xAI key. Both boxes can stay empty — someone already

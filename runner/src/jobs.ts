@@ -54,7 +54,7 @@ export const TEST_MS = 30_000
 export interface Deps {
   machineId: string
   api: Pick<typeof api, 'claimJob' | 'renewJob' | 'openLog' | 'finishJob' | 'readTask' | 'readWorkflow' | 'listWorkflows' | 'readRejections' | 'markReviewed' | 'readChat'>
-  plan: (runtime: Job['runtime'], prompt: string, cwd: string, resume?: string | null, model?: string | null, settings?: Settings, fork?: boolean) => Plan
+  plan: (runtime: Job['runtime'], prompt: string, cwd: string, resume?: string | null, model?: string | null, settings?: Settings, fork?: boolean, line?: string) => Plan
   /** How often output goes while a page watches, and while none does. */
   flushMs: { watched: number; quiet: number }
   /** How long the end waits for the log to be stored before finishing anyway. */
@@ -395,7 +395,7 @@ async function runClaimed(job: Job, deps: Deps, track: (stop: () => Promise<void
         return lines ? `${lines}\n\n---\n\n${job.prompt}` : job.prompt
       }
       const planned = (resume: string | null | undefined, fork: boolean, said = '') => {
-        let p = deps.plan(job.runtime, promptOf(said), cwd, resume, job.model, settingsOf(job), fork)
+        let p = deps.plan(job.runtime, promptOf(said), cwd, resume, job.model, settingsOf(job), fork, job.languageLine ?? '')
         // A task's chat changes its card with the akb the Runner carries, on the task's board.
         if (ws) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, ws.board, ws.task, job.languageLine ?? '') } }
         if (ideas) p = { ...p, env: { ...p.env, ...akbEnv(deps.akb, discussed, undefined, job.languageLine ?? ''), KANBAN_IDEAS: ideas } }

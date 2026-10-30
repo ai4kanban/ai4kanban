@@ -67,6 +67,12 @@ function dshExtraArgs(argv: string[]): string[] {
   return args
 }
 
+// dsh-acp's own default persona, as 0.4.14 ships it — its `{{model}}` and `{{cwd}}` are filled in
+// by the bridge.
+const DSH_PERSONA = `You are a coding assistant powered by the {{model}} model, working inside an editor via the Agent Client Protocol. Your working directory is {{cwd}}. Your bash tool runs under a file sandbox \u2014 a \`[sandbox: file access denied \u2026]\` result is policy, not a command bug.
+
+Verify your work by running the code or tests. Keep answers brief and factual.`
+
 // DeepSeek Harness, reached through ACP (#225).
 //
 // dsh's own headless command says nothing until it is finished and can't carry on an
@@ -125,6 +131,14 @@ export const DSH: Harness = {
   ],
 
   env: () => ({ ...process.env }),
+
+  // dsh-acp's persona IS its system prompt, so the ask is added to the one in effect: the
+  // user's own `DSH_SYSTEM_PROMPT`, else the bridge's default. A `--persona` on the command
+  // line outranks both, and is left alone.
+  systemPrompt(text, argv) {
+    if (namesFlag(argv, ['--persona'])) return {}
+    return { env: { DSH_SYSTEM_PROMPT: `${process.env.DSH_SYSTEM_PROMPT || DSH_PERSONA}\n\n${text}` } }
+  },
 
   // ACP carries all three in the conversation itself (agent/wire/acp.ts), so a dsh run shows a
   // price, its tokens and the model the session opened on.

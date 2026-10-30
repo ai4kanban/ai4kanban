@@ -1,7 +1,7 @@
 import { createStreamRenderer } from '../wire'
 import { arr, home, modelsIn, obj, str } from './models'
 import { providerBlip } from './transient'
-import type { Harness } from './types'
+import { namesFlag, type Harness } from './types'
 
 // Claude Code's own voice rather than the agent's: the CLI writes its provider failures
 // under this one prefix, and nothing else a run ends on carries it (#525).
@@ -63,6 +63,11 @@ export const CLAUDE_CODE: Harness = {
 
   forkArgs(argv, resumeId, sessionId) {
     return [...claudeStreamArgs(argv), '--resume', resumeId, '--fork-session', '--session-id', sessionId]
+  },
+
+  // Set again on every turn, a resumed one too: the system prompt is not part of the session.
+  systemPrompt(text, argv) {
+    return namesFlag(argv, ['--append-system-prompt', '--append-system-prompt-file']) ? {} : { args: ['--append-system-prompt', text] }
   },
 
   // What Claude Code takes: who pays for the run, where that run goes, a model id, and how
