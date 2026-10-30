@@ -44,17 +44,15 @@ await esbuild.build({
 })
 
 const bundles = tests.map((f) => path.join(OUT_DIR, f.replace(/\.ts$/, '.mjs')))
-// A board's run record, its logs, its chats and its drawings live under the machine home now
-// (src/lib/machine/project.ts), so a test that opens a board would write into the real
-// `~/.ai4kanban/`. One throwaway home for the whole run keeps that off the machine; a test
-// that wants its own still sets `AI4KANBAN_HOME` for itself. Nor do the tests run inside
-// the board run that may have started this script: a test that wants one sets `KANBAN_RUN`, and none reads the terminal agent's session.
-// Nor Cloud's language line, which even empty stands over the machine's setting.
+// A board's run record, its logs, its chats and its drawings live under the machine home
+// (src/lib/machine/project.ts), so the run gets a throwaway one. Nothing else carries over
+// from whoever started it: an inherited `AI4KANBAN_BOARD` beats a test's own folder and
+// once pointed a test at the real board (#93). A test that wants a variable sets it itself.
 const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-test-home-'))
-const { AI4KANBAN_LANGUAGE_LINE: _line, ...env } = process.env
+const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(AI4KANBAN_|KANBAN_|WILDCRANE_)/.test(k)))
 const run = spawnSync(process.execPath, ['--test', ...bundles], {
   stdio: 'inherit',
-  env: { ...env, AI4KANBAN_HOME: HOME, KANBAN_RUN: '', CLAUDE_CODE_SESSION_ID: '', CODEX_THREAD_ID: '' },
+  env: { ...env, AI4KANBAN_HOME: HOME, CLAUDE_CODE_SESSION_ID: '', CODEX_THREAD_ID: '' },
 })
 fs.rmSync(OUT_DIR, { recursive: true, force: true })
 fs.rmSync(HOME, { recursive: true, force: true })

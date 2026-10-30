@@ -6,6 +6,7 @@
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 import { runAgent } from '../../src/lib/agent-cli.ts'
@@ -54,6 +55,26 @@ async function refusalOf(argv: string[], work: () => Promise<number>): Promise<v
   if (code !== 0) throw new Error(said ?? `\`${argv.join(' ')}\` refused`)
 }
 
+/** The real path of `file`, or of its nearest folder that exists. */
+function realOf(file: string): string {
+  try {
+    return fs.realpathSync(file)
+  } catch {
+    const up = path.dirname(file)
+    return up === file ? file : path.join(realOf(up), path.basename(file))
+  }
+}
+
+// A command opens the board `--board` names, else `AI4KANBAN_BOARD`, else the one under its
+// folder. Only a throwaway one under the temp folder is a test's to change (#93).
+function onlyTempBoards(root: string, argv: string[]): void {
+  const at = argv.findIndex((a) => a === '--board' || a.startsWith('--board='))
+  const flag = at < 0 ? null : argv[at]!.includes('=') ? argv[at]!.slice('--board='.length) : argv[at + 1]
+  const board = realOf(path.resolve(root, flag ?? (process.env.AI4KANBAN_BOARD?.trim() || root)))
+  const tmp = fs.realpathSync(os.tmpdir())
+  if (!board.startsWith(tmp + path.sep)) throw new Error(`a test may only touch a board under ${tmp}, not ${board}`)
+}
+
 /** The number Cloud would give the next task: past every card under `root`. */
 export function cloudNumber(root: string): number {
   let top = 0
@@ -77,6 +98,7 @@ export function cloudNumber(root: string): number {
 /** Run one board move against `root` and hand back its own fields. A `create` with no `--id`
  *  outside a Runner workspace takes the number Cloud would give it. */
 export async function move(root: string, argv: string[]): Promise<Record<string, unknown>> {
+  onlyTempBoards(root, argv)
   let answered: Record<string, unknown> = {}
   if (argv[0] === 'create' && !argv.includes('--id') && !process.env.AI4KANBAN_TASK) argv = [...argv, '--id', String(cloudNumber(root))]
   await refusalOf(argv, () =>
@@ -95,6 +117,7 @@ export async function move(root: string, argv: string[]): Promise<Record<string,
 /** The same for `akb` itself — a run, a chat, `agent`, `cloud`, a guide. These print rather
  *  than return a value, so there is nothing to hand back. */
 export async function run(root: string, argv: string[]): Promise<void> {
+  onlyTempBoards(root, argv)
   await refusalOf(argv, () => runAgent(argv, { program: 'akb', cwd: root }))
 }
 
