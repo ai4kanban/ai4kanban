@@ -1,5 +1,5 @@
-// Generated video covers (#1114): only a Pro user reaches it, a cover costs its flat credits
-// once the image is in hand, and the key never leaves the Worker.
+// Generated images (#1114): only a Pro user reaches it, an image costs its tier's credits (#77)
+// once it is in hand, and the key never leaves the Worker.
 
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { jwksUrl, issuerFor, resetJwksCache } from '../src/auth.ts'
 import worker from '../src/index.ts'
 import { CREDIT_RATES, MONTHLY_CREDITS } from '../src/credits.ts'
-import { IMAGE_MODEL, MAX_REFERENCE_BYTES } from '../src/image.ts'
+import { IMAGE_MODEL, MAX_REFERENCE_BYTES, TIERS } from '../src/image.ts'
 
 const SUPABASE_URL = 'https://project.supabase.co'
 const ENV = { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: 'service-role', OPENROUTER_API_KEY: 'or-key' }
@@ -74,12 +74,13 @@ afterEach(() => {
 })
 
 describe('POST /v1/image', () => {
-  it('answers the image and its model, at medium quality, with the key held by the Worker', async () => {
+  it('answers the image, its model and tier, standard at medium quality, with the key held by the Worker', async () => {
     const res = await call({ prompt: 'A cover', aspect: '16:9', references: [REF] })
 
     assert.equal(res.status, 200)
     assert.equal(res.headers.get('content-type'), 'image/png')
     assert.equal(res.headers.get('x-model'), IMAGE_MODEL)
+    assert.equal(res.headers.get('x-tier'), 'standard')
     assert.deepEqual(new Uint8Array(await res.arrayBuffer()), PNG)
     assert.deepEqual(sent[0].body, {
       model: IMAGE_MODEL,
@@ -93,14 +94,31 @@ describe('POST /v1/image', () => {
 
   it('spends 320 credits per image', async () => {
     await call({ prompt: 'A cover', aspect: '9:16' })
-    assert.equal(CREDIT_RATES.image, 320)
+    assert.equal(CREDIT_RATES.image.standard, 320)
     assert.equal(used[SUBJECT], 320)
     assert.equal(sent[0].body.input_references, undefined)
   })
 
-  it('records the call with what it cost (#1355)', async () => {
+  it("generates each tier at its own quality and price, and names it (#77)", async () => {
+    for (const [tier, quality] of [['economy', 'low'], ['premium', 'high']]) {
+      used[SUBJECT] = 0
+      const res = await call({ prompt: 'A cover', aspect: '16:9', tier })
+      assert.equal(res.status, 200)
+      assert.equal(res.headers.get('x-tier'), tier)
+      assert.equal(sent.at(-1).body.quality, quality)
+      assert.equal(used[SUBJECT], CREDIT_RATES.image[tier])
+    }
+    assert.deepEqual(Object.keys(TIERS), Object.keys(CREDIT_RATES.image))
+    assert.deepEqual(Object.values(CREDIT_RATES.image), [230, 320, 769])
+  })
+
+  it('records the call with what it cost and its tier (#1355, #77)', async () => {
     await call({ prompt: 'A cover', aspect: '16:9' })
-    assert.deepEqual(recorded, [row('image', { p_usage: 1, p_cost_usd: 0.04, p_generation_id: 'gen-i1' })])
+    await call({ prompt: 'A cover', aspect: '16:9', tier: 'premium' })
+    assert.deepEqual(recorded, [
+      row('image', { p_usage: 1, p_cost_usd: 0.04, p_generation_id: 'gen-i1', p_tier: 'standard' }),
+      row('image', { p_usage: 1, p_cost_usd: 0.04, p_generation_id: 'gen-i1', p_tier: 'premium' }),
+    ])
   })
 
   it('answers and charges all the same when the call cannot be recorded', async () => {
@@ -139,6 +157,7 @@ describe('POST /v1/image', () => {
     await refused({ prompt: ' ', aspect: '16:9' }, /prompt/)
     await refused({ prompt: 'x'.repeat(4001), aspect: '16:9' }, /4000/)
     await refused({ prompt: 'A cover', aspect: '4:5' }, /16:9/)
+    await refused({ prompt: 'A cover', aspect: '16:9', tier: 'ultra' }, /economy, standard, premium/)
     await refused({ prompt: 'A cover', aspect: '16:9', references: [REF, REF, REF, REF] }, /at most 3/)
     await refused({ prompt: 'A cover', aspect: '16:9', references: ['https://example.com/a.png'] }, /data URL/)
     const big = `data:image/png;base64,${'A'.repeat((MAX_REFERENCE_BYTES * 4) / 3 + 100)}`
@@ -153,16 +172,20 @@ describe('POST /v1/image', () => {
     assert.equal((await res.json()).error.code, 'image_unavailable')
   })
 
-  it('charges nothing when the provider fails or answers no image', async () => {
+  it('charges nothing and tries no other tier when the provider fails or answers no image', async () => {
     provider = () => json({ error: { message: 'upstream' } }, 500)
-    const failed = await call({ prompt: 'A cover', aspect: '16:9' })
+    const failed = await call({ prompt: 'A cover', aspect: '16:9', tier: 'premium' })
     assert.equal(failed.status, 502)
     assert.equal((await failed.json()).error.code, 'image_failed')
+    assert.equal(sent.length, 1)
 
     provider = () => json({ data: [] })
     assert.equal((await call({ prompt: 'A cover', aspect: '16:9' })).status, 502)
     assert.equal(used[SUBJECT], undefined)
-    assert.deepEqual(recorded, Array(2).fill(row('image', { p_ok: false })))
+    assert.deepEqual(recorded, [
+      row('image', { p_ok: false, p_tier: 'premium' }),
+      row('image', { p_ok: false, p_tier: 'standard' }),
+    ])
   })
 })
 

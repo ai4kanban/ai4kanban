@@ -1,12 +1,14 @@
 // 设置 → 账单 (#2080), after legacy kanban-ui/components/Billing.tsx's Summary and Credits: the
-// plan row, then one row per figure. Read-only: upgrading opens the pricing page and everything
-// about a subscription opens the billing portal, both in a new tab.
+// plan row, one row per figure, then the AI capabilities credits pay for (#77). Read-only:
+// upgrading opens the pricing page and everything about a subscription opens the billing
+// portal, both in a new tab.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiAlertCircle, FiExternalLink, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiExternalLink, FiImage, FiMic, FiMusic, FiRefreshCw } from "react-icons/fi";
 import { Button } from "@review/components/button";
 import * as api from "../api";
 import { LANG, T } from "../i18n";
+import { Group } from "./Welcome";
 
 const BADGE = "rounded-[6px] px-1.5 py-[3px] text-[11px] font-[700] leading-none";
 const MINT = "bg-nb-mint-soft text-nb-mint-ink";
@@ -77,19 +79,47 @@ export function BillingPanel() {
   const t = T.billing;
   const { credits, quota } = read;
   return (
-    <div className="flex flex-col">
-      <PlanRow billing={read.billing} />
-      {credits && (
-        <Figure
-          label={t.credits}
-          value={num(credits.left)}
-          cap={num(credits.total)}
-          note={credits.resetsAt ? t.resets(day(credits.resetsAt, "UTC")) : t.noReset}
-          over={credits.left === 0}
-        />
-      )}
-      <Figure label={t.tasks} value={String(quota.used.tasks)} cap={String(quota.limits.tasks)} over={quota.used.tasks >= quota.limits.tasks} />
-      <Figure label={t.storage} value={size(quota.used.storage)} cap={size(quota.limits.storage)} over={quota.used.storage >= quota.limits.storage} />
+    <>
+      <div className="flex flex-col">
+        <PlanRow billing={read.billing} />
+        {credits && (
+          <Figure
+            label={t.credits}
+            value={num(credits.left)}
+            cap={num(credits.total)}
+            note={credits.resetsAt ? t.resets(day(credits.resetsAt, "UTC")) : t.noReset}
+            over={credits.left === 0}
+          />
+        )}
+        <Figure label={t.tasks} value={String(quota.used.tasks)} cap={String(quota.limits.tasks)} over={quota.used.tasks >= quota.limits.tasks} />
+        <Figure label={t.storage} value={size(quota.used.storage)} cap={size(quota.limits.storage)} over={quota.used.storage >= quota.limits.storage} />
+      </div>
+      <AiUses />
+    </>
+  );
+}
+
+const AI_ICONS = [FiImage, FiMic, FiMusic];
+
+function AiUses() {
+  const t = T.billing;
+  return (
+    <div className="mt-7">
+      <Group title={t.ai}>
+        {t.aiUses.map(({ name, hint }, i) => {
+          const Icon = AI_ICONS[i]!;
+          return (
+            <div key={name} className="flex items-start gap-3 border-b border-nb-ink/10 py-3 last:border-b-0">
+              <Icon size={16} className="mt-px shrink-0 text-nb-ink-soft" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-[700] leading-tight text-nb-ink">{name}</p>
+                <p className="mt-1 max-w-[62ch] text-[12px] leading-snug text-nb-ink-soft">{hint}</p>
+              </div>
+            </div>
+          );
+        })}
+      </Group>
+      <p className="mt-2 px-1 text-[12px] leading-snug text-nb-ink-soft">{t.aiNote}</p>
     </div>
   );
 }

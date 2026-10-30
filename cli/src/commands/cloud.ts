@@ -128,13 +128,17 @@ function usage(problem: string, line: string): never {
   die(`${problem}\nusage: ${line}`, { kind: 'bad-args', bare: true, exitCode: 2 })
 }
 
-/** `akb cloud image --aspect <ratio> [--ref <file>]… --out <file.png> "<prompt>"` */
+const TIERS = ['economy', 'standard', 'premium']
+
+/** `akb cloud image --aspect <ratio> [--tier <tier>] [--ref <file>]… --out <file.png> "<prompt>"` */
 export async function cloudImage(
-  opts: { aspect?: string; refs: string[]; out?: string; prompt: string },
+  opts: { aspect?: string; tier?: string; refs: string[]; out?: string; prompt: string },
   program: string,
 ): Promise<MoveResult> {
-  const line = `${program} cloud image --aspect <ratio> [--ref <file>]… --out <file.png> "<prompt>"`
+  const line = `${program} cloud image --aspect <ratio> [--tier economy|standard|premium] [--ref <file>]… --out <file.png> "<prompt>"`
   if (!opts.aspect) usage('Missing --aspect.', line)
+  const tier = opts.tier ?? 'standard'
+  if (!TIERS.includes(tier)) usage(`--tier ${tier}: pick one of ${TIERS.join(', ')}.`, line)
   if (!opts.out) usage('Missing --out.', line)
   const prompt = opts.prompt.trim()
   if (!prompt) usage('Missing the prompt.', line)
@@ -150,7 +154,7 @@ export async function cloudImage(
   return generate({
     usage: line,
     endpoint: '/v1/image',
-    body: { prompt, aspect: opts.aspect, references },
+    body: { prompt, aspect: opts.aspect, tier, references },
     out: opts.out,
     pro_required: {
       zh: '图像生成是 Pro 功能。升级 Pro：https://wildcrane.ai/pricing',
@@ -161,7 +165,8 @@ export async function cloudImage(
       zh: '也可以改用现有图片或截图。',
       en: 'You can also use an existing image or screenshot instead.',
     },
-    label: (res) => res.headers.get('x-model') ?? 'unknown model',
+    // A Cloud without tiers answers no `x-tier`, and generated at standard.
+    label: (res) => `${res.headers.get('x-model') ?? 'unknown model'}, ${res.headers.get('x-tier') ?? 'standard'}`,
   })
 }
 

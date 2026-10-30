@@ -11,7 +11,7 @@
 
 import { generationCost, recordAiCall } from './ai-calls.ts'
 import { onTrialOnly, readBilling } from './billing.ts'
-import { readCredits, spendCredits } from './credits.ts'
+import { CREDIT_RATES, readCredits, spendCredits } from './credits.ts'
 import type { Env } from './env.ts'
 import { badRequest, creditsUsedUp, proRequired, speechFailed, speechUnavailable, trialCreditsUsedUp } from './errors.ts'
 
@@ -71,7 +71,7 @@ export async function speak(env: Env, ctx: ExecutionContext, user: string, body:
   }
   const pcm = new Uint8Array(await answer.arrayBuffer())
   const seconds = pcm.length / (PCM_RATE * 2)
-  await spendCredits(env, user, 'speech', seconds)
+  await spendCredits(env, user, 'speech', seconds * CREDIT_RATES.speech)
   const generationId = answer.headers.get('x-generation-id')
   ctx.waitUntil(
     generationCost(env, generationId).then((cost) =>

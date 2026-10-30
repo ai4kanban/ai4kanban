@@ -27,8 +27,10 @@ Choose one per image:
 
 - **Screenshot**: capture the real product in the state the copy describes.
 - **Drawn**: lay out a diagram or chart in HTML/CSS or SVG and render it to PNG.
-- **Generated**: `akb cloud image --aspect <ratio> --out <file> "<prompt>"`, which spends the
-  user's Pro credits; never for a product interface.
+- **Generated**: `akb cloud image --aspect <ratio> --tier <tier> --out <file> "<prompt>"`, which
+  spends the user's Pro credits; never for a product interface. Pass `--tier premium` for a
+  post's lead image, `standard` for its other images and `economy` for a draft or alternative,
+  unless the user asks for better or cheaper, and name the tier beside the image in your section.
 - **Fallback**: when a method cannot deliver, use another and say so in your section.
 
 ## Rules

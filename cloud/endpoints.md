@@ -63,14 +63,20 @@ One redirect, with no lookup, so the answer reveals nothing about what exists.
   not, spending 1 AI credit per second of generated audio. Each call is recorded in
   `cloud.ai_calls` with its seconds and upstream cost.
 
-## Covers
+## Images
 
-- `POST /v1/image` — `{ "prompt": "…", "aspect": "16:9", "references": ["data:image/png;base64,…"] }`:
-  one image from `openai/gpt-image-2.5-sunburst` through OpenRouter at medium quality, with its
-  model in `x-model`. `aspect` is one of `ASPECTS` in `src/image.ts`; prompt at most 4000
-  characters; at most 3 PNG, JPEG or WebP references of 8 MB each. Same key and sign-in as
-  narration, spending 320 AI credits per image, only once it is generated. Each call is recorded
-  in `cloud.ai_calls` with its upstream cost.
+- `POST /v1/image` — `{ "prompt": "…", "aspect": "16:9", "tier": "standard", "references": ["data:image/png;base64,…"] }`:
+  one image from `openai/gpt-image-2.5-sunburst` through OpenRouter, with its model in `x-model`
+  and tier in `x-tier`. `tier` is `economy`, `standard` (the default) or `premium`, at `low`,
+  `medium` or `high` quality and 230, 320 or 769 AI credits, spent only once the image is
+  generated; a failed tier is never retried on another. `aspect` is one of `ASPECTS` in
+  `src/image.ts`; prompt at most 4000 characters; at most 3 PNG, JPEG or WebP references of 8 MB
+  each. Same key and sign-in as narration. Each call is recorded in `cloud.ai_calls` with its
+  tier and upstream cost.
+- **Why these tiers** (#77): one model at three qualities keeps a post's images in one style.
+  Measured with one reference image: $0.0123, $0.0171 and $0.0410 per image. Each tier's credits
+  are 320 scaled by its cost over `standard`'s; the shared input cost is why `economy` saves
+  only about a quarter.
 
 ## Music
 

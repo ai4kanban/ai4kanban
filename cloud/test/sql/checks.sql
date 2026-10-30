@@ -1505,6 +1505,12 @@ begin
     'a failed call kept usage or cost';
   perform api.record_ai_call(CALLER, 'speech', true, 2.5, null, 'gen-2');
   perform api.record_ai_call(CALLER, 'music', true, 30, 0.08, 'gen-3');
+  perform api.record_ai_call(CALLER, 'image', true, 1, 0.04, 'gen-4', 'premium');
+  assert (select tier = 'premium' from cloud.ai_calls where generation_id = 'gen-4'), 'an image call lost its tier (#77)';
+  assert (select tier is null from cloud.ai_calls where generation_id = 'gen-3'), 'a music call was given a tier';
+  perform pg_temp.refuses(
+    $sql$select api.record_ai_call('00000000-0000-4000-8000-00000000c101', 'image', true, 1, 0, null, 'ultra')$sql$,
+    '23514', 'an image call of no known tier was stored');
   assert (select cost_usd is null and usage = 2.5 from cloud.ai_calls where generation_id = 'gen-2'),
     'a call whose cost is unknown was not stored with none';
   perform pg_temp.refuses(

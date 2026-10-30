@@ -10,7 +10,7 @@
 
 import { generationCost, recordAiCall } from './ai-calls.ts'
 import { onTrialOnly, readBilling } from './billing.ts'
-import { readCredits, spendCredits } from './credits.ts'
+import { CREDIT_RATES, readCredits, spendCredits } from './credits.ts'
 import type { Env } from './env.ts'
 import { badRequest, creditsUsedUp, musicFailed, musicUnavailable, proRequired, trialCreditsUsedUp } from './errors.ts'
 
@@ -76,7 +76,7 @@ export async function generateMusic(env: Env, ctx: ExecutionContext, user: strin
   const wav = isWav(streamed.audio) ? endAt(streamed.audio, length) : null
   const mp3 = wav ? null : endMp3At(streamed.audio, length)
   const generationId = answer.headers.get('x-generation-id') ?? streamed.id
-  await spendCredits(env, user, 'music', 1)
+  await spendCredits(env, user, 'music', CREDIT_RATES.music)
   const usage = wav?.seconds ?? mp3?.seconds ?? length
   ctx.waitUntil(
     (streamed.cost !== null ? Promise.resolve(streamed.cost) : generationCost(env, generationId)).then((cost) =>

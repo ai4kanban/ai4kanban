@@ -309,7 +309,7 @@ function WelcomeTour({ onClose }: { onClose: () => void }) {
 
 const CAPTION = "text-[11px] font-[700] uppercase leading-[14px] tracking-[0.1em]";
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+export function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
       <div className="mb-2 flex min-h-[30px] items-center">

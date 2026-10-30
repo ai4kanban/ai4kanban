@@ -18,8 +18,8 @@ export const TRIAL_CREDITS = 1000
 export const CREDIT_RATES = {
   /** Per second spoken. */
   speech: 1,
-  /** Per generated image, a flat price including its reference images (#1114). */
-  image: 320,
+  /** Per generated image by tier, including its reference images (#1114, #77). */
+  image: { economy: 230, standard: 320, premium: 769 },
   /** Per hosted music track, whatever its length (#1822): priced at market rate, not by upstream cost (#1827). */
   music: 160,
 } as const
@@ -55,9 +55,9 @@ export async function readCredits(env: Env, user: string, billing: Billing, now 
 }
 
 /** Record a spend. A failure is logged, never raised: what it pays for is already done. */
-export async function spendCredits(env: Env, user: string, use: CreditUse, amount: number): Promise<void> {
+export async function spendCredits(env: Env, user: string, use: CreditUse, credits: number): Promise<void> {
   try {
-    await call(env, 'spend_credits', { p_user_id: user, p_use: use, p_credits: amount * CREDIT_RATES[use] })
+    await call(env, 'spend_credits', { p_user_id: user, p_use: use, p_credits: credits })
   } catch (e) {
     console.error('cloud: credits not recorded', user, use, e)
   }

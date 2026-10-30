@@ -15,6 +15,8 @@ export interface AiCall {
   /** US dollars, as the provider reported it. */
   cost?: number | null
   generationId?: string | null
+  /** The tier an image was asked for. */
+  tier?: string
 }
 
 export const GENERATION_URL = 'https://openrouter.ai/api/v1/generation'
@@ -34,6 +36,7 @@ export async function recordAiCall(env: Env, user: string, capability: AiCapabil
       p_usage: numberOrNull(made.usage),
       p_cost_usd: numberOrNull(made.cost),
       p_generation_id: made.generationId || null,
+      ...(made.tier && { p_tier: made.tier }),
     })
   } catch (e) {
     console.error('cloud: ai call not recorded', user, capability, e)

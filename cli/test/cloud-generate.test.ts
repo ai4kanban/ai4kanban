@@ -136,22 +136,37 @@ describe('akb cloud image / tts / music', () => {
     assert.match(bad.err, /^Unknown voice\.\nusage: akb cloud tts /)
   })
 
-  it('writes the file and names it with the model', async () => {
+  it('writes the file and names it with the model and tier', async () => {
     signIn()
     const ref = path.join(home, 'shot.png')
     fs.writeFileSync(ref, 'png')
-    answer(() => new Response('image-bytes', { headers: { 'x-model': 'model-x' } }))
+    answer(() => new Response('image-bytes', { headers: { 'x-model': 'model-x', 'x-tier': 'premium' } }))
     const out = path.join(home, 'covers', 'a.png')
-    const { code, out: said } = await akb(['cloud', 'image', '--aspect', '16:9', '--ref', ref, '--out', out, 'a', 'cat'])
+    const { code, out: said } = await akb(['cloud', 'image', '--aspect', '16:9', '--tier', 'premium', '--ref', ref, '--out', out, 'a', 'cat'])
     assert.equal(code, 0)
     assert.equal(fs.readFileSync(out, 'utf8'), 'image-bytes')
-    assert.equal(said, `${out} (model-x)`)
+    assert.equal(said, `${out} (model-x, premium)`)
     assert.deepEqual(sent, [
       {
         url: `${API}/v1/image`,
-        body: { prompt: 'a cat', aspect: '16:9', references: [`data:image/png;base64,${Buffer.from('png').toString('base64')}`] },
+        body: { prompt: 'a cat', aspect: '16:9', tier: 'premium', references: [`data:image/png;base64,${Buffer.from('png').toString('base64')}`] },
       },
     ])
+  })
+
+  it('asks for standard by default, and refuses an unknown tier with exit 2 (#77)', async () => {
+    signIn()
+    answer(() => new Response('image-bytes', { headers: { 'x-model': 'model-x' } }))
+    const out = path.join(home, 'b.png')
+    const { code, out: said } = await akb(['cloud', 'image', '--aspect', '1:1', '--out', out, 'a cat'])
+    assert.equal(code, 0)
+    assert.equal(said, `${out} (model-x, standard)`)
+    assert.equal((sent[0].body as { tier: string }).tier, 'standard')
+
+    const bad = await akb(['cloud', 'image', '--aspect', '1:1', '--tier', 'ultra', '--out', out, 'a cat'])
+    assert.equal(bad.code, 2)
+    assert.match(bad.err, /^--tier ultra: pick one of economy, standard, premium\.\nusage: akb cloud image /)
+    assert.equal(sent.length, 1)
   })
 
   it('writes the track and asks for the length given', async () => {

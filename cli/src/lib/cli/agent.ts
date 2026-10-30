@@ -344,12 +344,13 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .argument('[prompt...]', 'what to draw')
     .summary('generate an image through Cloud, spending Pro credits')
     .option('--aspect <ratio>', 'the aspect ratio, e.g. 16:9')
+    .option('--tier <tier>', 'economy, standard (default) or premium; a higher tier costs more credits')
     .option('--ref <file>', 'a PNG, JPEG or WebP to draw from; repeat for more', (v: string, all: string[]) => [...all, v], [])
     .option('--out <file>', 'where to write the image')
     .action(async function (this: Command, prompt: string[]) {
-      const o = this.opts() as { aspect?: string; ref: string[]; out?: string }
+      const o = this.opts() as { aspect?: string; tier?: string; ref: string[]; out?: string }
       await boardless(this, cli, (p) =>
-        cloudImage({ aspect: o.aspect, refs: o.ref, out: o.out, prompt: prompt.join(' ') }, p),
+        cloudImage({ aspect: o.aspect, tier: o.tier, refs: o.ref, out: o.out, prompt: prompt.join(' ') }, p),
       )
     })
 
