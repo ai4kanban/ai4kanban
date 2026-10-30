@@ -73,6 +73,7 @@ const ZH = {
   opened: 'WildCrane 面板已打开。',
   notHere: '请在终端或 Claude Desktop 中使用 WildCrane 面板。',
   outdated: '插件版本过旧，任务暂停在这台电脑上运行。在终端执行以下命令更新，再运行 /reload-plugins：',
+  update: (v: string) => `插件有新版本 ${v}。在终端执行以下命令更新，再运行 /reload-plugins：`,
 }
 
 export type Copy = typeof ZH
@@ -150,6 +151,7 @@ const EN: Copy = {
   opened: 'The WildCrane panel is open.',
   notHere: 'Use the WildCrane panel in a terminal or Claude Desktop.',
   outdated: 'The plugin is out of date, so tasks no longer run on this computer. Update it in a terminal, then run /reload-plugins:',
+  update: (v) => `Version ${v} is available. Update it in a terminal, then run /reload-plugins:`,
 }
 
 export const UPDATE_COMMANDS = 'claude plugin marketplace update wildcrane\nclaude plugin update wildcrane@wildcrane'

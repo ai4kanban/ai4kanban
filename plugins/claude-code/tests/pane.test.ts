@@ -292,9 +292,30 @@ test('an outdated Runner shows the update commands above every tab', async ($, o
 })
 
 test('a running Runner shows no update notice', async ($, on) => {
-  host(on, { discussion: EMPTY, state: { ...PROJECTS, runner: 'running' } })
+  host(on, { discussion: EMPTY, state: { ...PROJECTS, runner: 'running', plugin: { version: '0.1.4', latest: null } } })
   const ui = await onProjects($)
-  expect(await ui.find({ text: /out of date/ })).toBeUndefined()
+  expect(await ui.find({ text: /^v0\.1\.4$/ })).toBeDefined()
+  expect(await ui.find({ text: /out of date|is available/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Code' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a newer release shows the version and the update commands', async ($, on) => {
+  host(on, { discussion: EMPTY, state: { ...PROJECTS, runner: 'running', plugin: { version: '0.1.2', latest: '0.1.5' } } }, 'zh')
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await onProjects($, surface)
+    expect(await ui.find({ text: /^v0\.1\.2$/ })).toBeDefined()
+    expect(await ui.find({ text: /插件有新版本 0\.1\.5/ })).toBeDefined()
+    expect(await ui.find({ type: 'Code', text: /claude plugin update wildcrane@wildcrane/ })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+test('an outdated plugin shows only the outdated notice', async ($, on) => {
+  host(on, { discussion: EMPTY, state: { ...PROJECTS, runner: 'outdated', plugin: { version: '0.1.2', latest: '0.1.5' } } })
+  const ui = await onProjects($)
+  expect(await ui.find({ text: /out of date/ })).toBeDefined()
+  expect(await ui.find({ text: /is available/ })).toBeUndefined()
   await ui.unmount()
 })
 

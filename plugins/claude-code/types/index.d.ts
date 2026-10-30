@@ -39,6 +39,8 @@ export type Status = {
   refused?: string | null
   projects?: Folder[]
   elsewhere?: Bindable[]
+  /** `latest` only when newer than `version`; null when unknown. */
+  plugin?: { version: string | null; latest: string | null }
   error?: string
 }
 

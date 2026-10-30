@@ -22,6 +22,7 @@ import { startRunner, type Runner } from './connect'
 import { WEB_URL, taskUrl } from './desktop'
 import { allow, disallow, refusal } from './folders'
 import { machineId, machineName, runnerHome, useRunnerHome } from './home'
+import { checkReleased, pluginInfo } from './plugin-version'
 import { VERSION } from './protocol'
 import { LABELS, detectRuntimes, hints } from './runtimes'
 import { signIn } from './signin'
@@ -162,7 +163,13 @@ const UPDATE = {
 }
 
 async function state(cwd: string) {
-  const base = { dir: home(cwd), runner: runnerState, web: WEB_URL(), ...(runnerState === 'outdated' ? { next: UPDATE[host] } : {}) }
+  const base = {
+    dir: home(cwd),
+    runner: runnerState,
+    web: WEB_URL(),
+    ...(runnerState === 'outdated' ? { next: UPDATE[host] } : {}),
+    ...(host === 'claude-code' ? { plugin: pluginInfo() } : {}),
+  }
   const session = readSession()
   if (!session) return { ...base, signedIn: false, signing }
   const account = { name: session.name ?? session.handle, email: session.email }
@@ -510,4 +517,5 @@ export async function main(as: Host = 'claude-code'): Promise<void> {
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => void end())
   await server().connect(transport)
   run()
+  if (host === 'claude-code' && !process.env.WILDCRANE_JOB) void checkReleased()
 }

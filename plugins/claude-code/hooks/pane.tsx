@@ -96,6 +96,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
       {logo}
       <Text bold>WildCrane</Text>
       <Text dimColor>{c.pluginName}</Text>
+      {status?.plugin?.version ? <Text dimColor>{`v${status.plugin.version}`}</Text> : null}
       <Box flexGrow={1} />
       {status?.signedIn && !v.synced ? <Text color="warning">{c.unsynced}</Text> : null}
       {account ? <Text>{account}</Text> : null}
@@ -107,10 +108,15 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
 
   if (!status) return <Box>{header}</Box>
 
-  const outdated =
+  const upgrade =
     status.runner === 'outdated' ? (
       <Box flexDirection="column" paddingX={1} borderStyle="round" borderColor="warning">
         <Text color="warning">{c.outdated}</Text>
+        <ui.Code source={UPDATE_COMMANDS} language="sh" />
+      </Box>
+    ) : status.plugin?.latest ? (
+      <Box flexDirection="column" paddingX={1} borderStyle="round" borderDimColor>
+        <Text>{c.update(status.plugin.latest)}</Text>
         <ui.Code source={UPDATE_COMMANDS} language="sh" />
       </Box>
     ) : null
@@ -120,7 +126,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     return (
       <Box flexDirection="column" gap={1}>
         {header}
-        {outdated}
+        {upgrade}
         <Text>{c.welcome}</Text>
         {status.error === 'offline' ? <Text color="warning">{c.offline}</Text> : null}
         {signing?.failed ? <Text color="warning">{c.signInFailed}</Text> : null}
@@ -419,7 +425,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
   return (
     <Box flexDirection="column" gap={1}>
       {header}
-      {outdated}
+      {upgrade}
       {confirm}
       {nav}
       {body}

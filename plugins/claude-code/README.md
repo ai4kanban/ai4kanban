@@ -19,7 +19,8 @@ claude plugin install wildcrane@wildcrane
 
 ## Update
 
-The plugin carries its own Runner, so an outdated plugin stops running tasks until it is updated:
+The panel shows the installed version and offers these commands when a newer one is released. The
+plugin carries its own Runner, so an outdated plugin stops running tasks until it is updated:
 
 ```sh
 claude plugin marketplace update wildcrane

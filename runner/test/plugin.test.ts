@@ -74,7 +74,7 @@ describe('one Runner per computer', () => {
 function component(host: 'claude-code' | 'codex', cloud = 'http://127.0.0.1:9') {
   const server = path.join(process.env.RUNNER_DIST!, '..', '..', 'plugins', host, 'server', 'dist', 'index.mjs')
   const child = spawn(process.execPath, [server, ...(host === 'codex' ? ['codex'] : [])], {
-    stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, AI4KANBAN_CLOUD_URL: cloud },
+    stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, AI4KANBAN_CLOUD_URL: cloud, HTTPS_PROXY: 'http://127.0.0.1:9' },
   })
   const answers = new Map<number, Record<string, unknown>>()
   let buffer = ''
@@ -301,6 +301,8 @@ describe('the plugin component', () => {
     try {
       const panel = await status('claude-code')
       assert.match(String(panel.next), /claude plugin update wildcrane@wildcrane/)
+      const own = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_DIST!, '..', '..', 'plugins', 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8')) as { version: string }
+      assert.deepEqual(panel.plugin, { version: own.version, latest: null })
       children[0]!.stdin.end()
       await new Promise((r) => children[0]!.on('exit', r))
       assert.match(String((await status('codex')).next), /codex plugin add wildcrane@wildcrane/)
