@@ -32,10 +32,13 @@ describe('plugin version', () => {
 
   it("reads the plugin's own version, null without one", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wc-plugin-'))
-    assert.equal(pluginVersion(root), null)
+    assert.equal(pluginVersion('claude-code', root), null)
     fs.mkdirSync(path.join(root, '.claude-plugin'))
     fs.writeFileSync(path.join(root, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'wildcrane', version: '0.1.2' }))
-    assert.equal(pluginVersion(root), '0.1.2')
+    assert.equal(pluginVersion('claude-code', root), '0.1.2')
+    assert.equal(pluginVersion('codex', root), null)
+    fs.writeFileSync(path.join(root, 'plugin.json'), JSON.stringify({ name: 'wildcrane', version: '0.1.3' }))
+    assert.equal(pluginVersion('codex', root), '0.1.3')
   })
 })
 

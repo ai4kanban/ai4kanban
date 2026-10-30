@@ -11,6 +11,8 @@ open.
   the web: Codex never starts a task.
 - **Ask Codex**: to sign in, to add this folder as a new or existing project, or for your projects, recent
   discussions and agent connections.
+- **Updates**: when a newer plugin is released, Codex mentions it with the update steps the
+  first time you ask for your WildCrane status in a conversation.
 - **Approvals**: Codex asks before each WildCrane tool call unless you approve it for the session.
 
 ## Install

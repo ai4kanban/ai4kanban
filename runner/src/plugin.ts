@@ -162,14 +162,20 @@ const UPDATE = {
   codex: 'The WildCrane plugin is out of date, so tasks no longer run on this computer. Tell the user to download `wildcrane-codex.zip` from the latest `plugin-v*` release at https://github.com/ai4kanban/ai4kanban/releases, unzip it over the old copy, then run `codex plugin remove wildcrane@wildcrane` and `codex plugin add wildcrane@wildcrane`.',
 }
 
+/** Codex has no panel, so a newer release reaches the user through `next`. */
+const NEWER = (version: string, latest: string) =>
+  `WildCrane plugin ${latest} is out; this computer has ${version}, and tasks still run. Tell the user once in this conversation, with the steps: download \`wildcrane-codex.zip\` from https://github.com/ai4kanban/ai4kanban/releases/tag/plugin-v${latest}, unzip it over the old copy, then run \`codex plugin remove wildcrane@wildcrane\` and \`codex plugin add wildcrane@wildcrane\`.`
+
+/** An outdated Runner comes first; Claude Code's panel shows a newer release itself. */
+export function nextOf(as: Host, state: typeof runnerState, plugin: { version: string | null; latest: string | null }): string | null {
+  if (state === 'outdated') return UPDATE[as]
+  return as === 'codex' && plugin.version && plugin.latest ? NEWER(plugin.version, plugin.latest) : null
+}
+
 async function state(cwd: string) {
-  const base = {
-    dir: home(cwd),
-    runner: runnerState,
-    web: WEB_URL(),
-    ...(runnerState === 'outdated' ? { next: UPDATE[host] } : {}),
-    ...(host === 'claude-code' ? { plugin: pluginInfo() } : {}),
-  }
+  const plugin = pluginInfo(host)
+  const next = nextOf(host, runnerState, plugin)
+  const base = { dir: home(cwd), runner: runnerState, web: WEB_URL(), ...(next ? { next } : {}), plugin }
   const session = readSession()
   if (!session) return { ...base, signedIn: false, signing }
   const account = { name: session.name ?? session.handle, email: session.email }
@@ -442,7 +448,7 @@ export function server(): McpServer {
     })
     mcp.registerTool('wildcrane_draft_save', { description: saveWhat, inputSchema: saveSchema }, save)
     mcp.registerTool('wildcrane_status', {
-      description: "WildCrane on this computer: whether the user is signed in, the projects added here with their boards (the one for `path` marked), this computer's recent discussions, which agent CLIs are ready, and `next` when the plugin needs an update.",
+      description: "WildCrane on this computer: whether the user is signed in, the projects added here with their boards (the one for `path` marked), this computer's recent discussions, which agent CLIs are ready, and `next` when the plugin needs an update or a newer one is out.",
       inputSchema: { path: z.string().optional().describe('The current working directory.') },
     }, async ({ path: given }, extra) => {
       const dir = pathOf(given, extra._meta as Meta)
@@ -517,5 +523,5 @@ export async function main(as: Host = 'claude-code'): Promise<void> {
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => void end())
   await server().connect(transport)
   run()
-  if (host === 'claude-code' && !process.env.WILDCRANE_JOB) void checkReleased()
+  if (!process.env.WILDCRANE_JOB) void checkReleased()
 }

@@ -9,6 +9,7 @@ import { describe, it } from 'node:test'
 import { markUnsent } from '../src/cache'
 import { runnerHome, useRunnerHome } from '../src/home'
 import { linesFor } from '../src/i18n'
+import { nextOf } from '../src/plugin'
 import { holdMachine, lockPath } from '../src/lock'
 import { FakeCloud, writeFakeSession } from './fake-cloud'
 
@@ -93,6 +94,18 @@ function component(host: 'claude-code' | 'codex', cloud = 'http://127.0.0.1:9') 
   })()
   return { child, answers, send, ready }
 }
+
+describe('the plugin update notice', () => {
+  it('tells Codex about a newer release, the outdated Runner first, and leaves Claude Code to its panel', () => {
+    const newer = { version: '0.1.4', latest: '0.1.5' }
+    const next = nextOf('codex', 'running', newer)
+    assert.match(String(next), /0\.1\.5 is out; this computer has 0\.1\.4, and tasks still run/)
+    assert.match(String(next), /releases\/tag\/plugin-v0\.1\.5/)
+    assert.equal(nextOf('codex', 'running', { version: '0.1.4', latest: null }), null)
+    assert.match(String(nextOf('codex', 'outdated', newer)), /tasks no longer run/)
+    assert.equal(nextOf('claude-code', 'running', newer), null)
+  })
+})
 
 describe('the plugin component', () => {
   it('answers MCP on stdout, keeps the panel tool behind its key, and ends with its host', async () => {
@@ -305,7 +318,10 @@ describe('the plugin component', () => {
       assert.deepEqual(panel.plugin, { version: own.version, latest: null })
       children[0]!.stdin.end()
       await new Promise((r) => children[0]!.on('exit', r))
-      assert.match(String((await status('codex')).next), /codex plugin add wildcrane@wildcrane/)
+      const codex = await status('codex')
+      assert.match(String(codex.next), /codex plugin add wildcrane@wildcrane/)
+      const ownCodex = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_DIST!, '..', '..', 'plugins', 'codex', 'plugin.json'), 'utf8')) as { version: string }
+      assert.deepEqual(codex.plugin, { version: ownCodex.version, latest: null })
     } finally {
       for (const child of children) {
         if (child.exitCode !== null) continue

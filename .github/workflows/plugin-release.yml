@@ -1,7 +1,7 @@
 # Builds the plugins' local component (runner/ writes plugins/<host>/server/dist/) and attaches the
 # Claude Code plugin as wildcrane-plugin.zip, and the Codex marketplace with its plugin as
 # wildcrane-codex.zip (#2160), to the release of the tag
-# `plugin-v<version>` (plugins/claude-code/.claude-plugin/plugin.json's version). Then put the
+# `plugin-v<version>` (both plugins' plugin.json version). Then put the
 # printed sha256 and the versioned URL in .claude-plugin/marketplace.json.
 #
 # Never the latest release: the desktop updater reads releases/latest/download/latest.json.
@@ -22,10 +22,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Check the tag matches plugin.json
+      - name: Check the tag matches both plugin.json
         run: |
-          version=$(node -p "require('./plugins/claude-code/.claude-plugin/plugin.json').version")
-          [ "plugin-v$version" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME, plugin.json $version"; exit 1; }
+          for file in plugins/claude-code/.claude-plugin/plugin.json plugins/codex/plugin.json; do
+            version=$(node -p "require('./$file').version")
+            [ "plugin-v$version" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME, $file $version"; exit 1; }
+          done
       - run: npm ci
         working-directory: cli
       - run: npm install --include=dev

@@ -92,8 +92,8 @@ is not set up, so publish by hand.
 
 Each one ships by pushing a tag that matches its version; the workflow refuses a mismatch.
 
-- **Plugins**: raise `plugins/claude-code/.claude-plugin/plugin.json`'s version, push
-  `plugin-v<version>`. Then put the release's versioned zip URL and the sha256 the workflow
+- **Plugins**: raise the version in `plugins/claude-code/.claude-plugin/plugin.json` and
+  `plugins/codex/plugin.json` together, push `plugin-v<version>`. Then put the release's versioned zip URL and the sha256 the workflow
   printed into `.claude-plugin/marketplace.json` and commit it.
 - **Desktop**: raise `runner/desktop/package.json`'s version, push `desktop-v<version>`. The
   release carries the updater's `latest.json`; installed apps update on restart.
