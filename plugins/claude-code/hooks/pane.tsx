@@ -372,6 +372,7 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
                 {icon(x.name, x.label)}
                 <Box flexGrow={1}>
                   <Text bold>{x.label}</Text>
+                  {x.version ? <Text dimColor> {x.version}</Text> : null}
                 </Box>
                 <Text color={x.state === 'ready' ? 'success' : 'warning'}>{c[x.state]}</Text>
               </Box>

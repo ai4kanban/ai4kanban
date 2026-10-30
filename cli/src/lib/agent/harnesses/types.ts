@@ -73,23 +73,18 @@ export interface TransientFailure {
 }
 
 export interface Harness
-  extends Omit<HarnessOption, 'binary' | 'installed' | 'gaps' | 'runs' | 'values' | 'secretsSet' | 'ignored'> {
+  extends Omit<HarnessOption, 'binary' | 'installed' | 'version' | 'gaps' | 'runs' | 'values' | 'secretsSet' | 'ignored'> {
   /** The flags to append to the configured argv. `argv` is what the user's command
    *  already carries, so a harness never overrides a flag the user set by hand.
    *  `sessionId` is the id we generated up front — a harness that can't pin an id
    *  ignores it. `cwd` is the project this run belongs to (see WORKING FOLDER). */
   extraArgs(argv: string[], sessionId: string, cwd: string): string[]
-  /** Where this CLI sits when a desktop app shipped it and installed no shim on the PATH.
-   *  Tried in order, and only when the command's bare name isn't on the PATH — an install of
-   *  the CLI proper always wins, because it is the one the user chose and can update.
-   *
-   *  The first path that exists REPLACES the binary in the command line, so the badge and
-   *  the spawn read the same answer. A path holding spaces is fine: it goes back in quoted,
-   *  and every reader of the command splits it quote-aware (`agent/argv.ts`).
-   *
-   *  Called rather than declared, because the answer depends on the environment and on this
-   *  machine's home folder at the moment it is asked. */
-  bundled?(): string[]
+  /** Where this CLI's own installer or a desktop app keeps it, beyond the PATH and the
+   *  common folders `agent/locate.ts` looks in. Called rather than declared: the answer
+   *  depends on the environment and home folder at the moment it is asked. */
+  installs?(): string[]
+  /** A file the user named outside the board, which stands in for every other copy. */
+  pinned?(): string | undefined
   /** Past defaults of `command`. A saved `command` equal to one reads as the default. */
   formerCommands?: string[]
   /** True when this harness's CLI can pick an earlier conversation back up. A failed

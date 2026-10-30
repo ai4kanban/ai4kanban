@@ -1948,6 +1948,33 @@ describe('the real runtimes', () => {
     assert.ok(found.every((r) => r.settings?.some((s) => s.key === 'args')))
   })
 
+  it('reports, signs in and spawns the newest copy, wherever it was installed (#131)', async () => {
+    const { detectRuntimes } = await import('../src/runtimes')
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'runner-locate-'))
+    const held = { PATH: process.env.PATH, HOME: process.env.HOME, NVM_DIR: process.env.NVM_DIR, AI4KANBAN_PATH_ONLY: process.env.AI4KANBAN_PATH_ONLY }
+    const claude = path.join(home, '.nvm', 'versions', 'node', 'v24.0.0', 'bin', 'claude')
+    fs.mkdirSync(path.dirname(claude), { recursive: true })
+    fs.writeFileSync(claude, '#!/bin/sh\n[ "$1" = --version ] && echo "2.1.0 (Claude Code)"\n[ "$1" = auth ] && echo "{\\"loggedIn\\": false}"\nexit 0\n', { mode: 0o755 })
+    Object.assign(process.env, { PATH: path.join(home, 'bin'), HOME: home })
+    delete process.env.NVM_DIR
+    delete process.env.AI4KANBAN_PATH_ONLY
+    try {
+      const report = (await detectRuntimes(true)).find((r) => r.name === 'claude-code')!
+      assert.equal(report.installed, true)
+      assert.equal(report.version, '2.1.0')
+      assert.equal(report.loggedIn, false)
+      const run = plan('claude-code', 'x', os.tmpdir())
+      assert.equal(run.command, claude)
+      assert.ok(run.env.PATH!.startsWith(path.dirname(claude)))
+    } finally {
+      for (const [key, value] of Object.entries(held)) {
+        if (value === undefined) delete process.env[key]
+        else process.env[key] = value
+      }
+      fs.rmSync(home, { recursive: true, force: true })
+    }
+  })
+
   it('hands Codex its prompt last and Claude Code its prompt on stdin', () => {
     const codex = plan('codex', 'Build it', os.tmpdir())
     assert.equal(codex.command, 'codex')

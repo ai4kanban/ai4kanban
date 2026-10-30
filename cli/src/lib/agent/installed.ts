@@ -42,8 +42,7 @@ export function commandBinary(command: string): string {
 }
 
 /** Whether ONE bare name is on the PATH, without reading a single directory: a stat per PATH
- *  entry, which is cheaper than `pathLookup` when only one name is in question. What the
- *  bundled-path fallback asks before it looks anywhere else (`bundled` in harnesses/types.ts). */
+ *  entry, which is cheaper than `pathLookup` when only one name is in question. */
 export function binaryOnPath(binary: string): boolean {
   if (!binary) return false
   const extensions = WINDOWS ? ['', ...windowsExtensions()] : ['']

@@ -1,3 +1,6 @@
+import path from 'node:path'
+
+import { folders, latestIn } from '../locate'
 import { createStreamRenderer } from '../wire'
 import { arr, home, modelsIn, obj, str } from './models'
 import { providerBlip } from './transient'
@@ -296,5 +299,15 @@ export const CLAUDE_CODE: Harness = {
     login: 'claude auth login',
   },
 
+  installs: () => [
+    home('.claude', 'local', 'claude'),
+    home('.claude', 'local', 'node_modules', '.bin', 'claude'),
+    // The native installer's versions, each one a file.
+    ...latestIn(home('.local', 'share', 'claude', 'versions')),
+    // The copy Claude Desktop carries.
+    ...latestIn(home('Library', 'Application Support', 'Claude', 'claude-code')).flatMap((version) =>
+      folders(version).map((build) => path.join(version, build, 'claude.app', 'Contents', 'MacOS', 'claude')),
+    ),
+  ],
   install: 'npm install -g @anthropic-ai/claude-code',
 }

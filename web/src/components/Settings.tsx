@@ -604,6 +604,7 @@ function SettingList({ row, list, runner, onChange }: { row: api.Runtime; list: 
           <Setting label={c.connector} onClick={onClick}>
             <AgentMark harness={MARK[row.connector]} size={15} />
             <span className="text-nb-ink">{LABEL[row.connector]}</span>
+            {list.connector_versions?.[row.connector] && <span className="text-nb-ink-soft">{list.connector_versions[row.connector]}</span>}
           </Setting>
         )}
         items={connectorItems(list, row.connector, (connector) => void onChange({ connector, model: null, settings: {} }))}

@@ -3,6 +3,8 @@
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { insideRun, SESSION_VARS } from './env'
+import { OPENCODE } from './harnesses/opencode'
+import { chooseCopy, copyEnv, spawnName } from './locate'
 import { readStore } from './store'
 import type { ChatHandoff } from './types'
 
@@ -52,8 +54,10 @@ function processChain(): string[] {
 
 /** OpenCode's latest session in this folder. */
 function recentOpencode(cwd: string): string | undefined {
-  const out = spawnSync('opencode', ['session', 'list', '-n', '1', '--format', 'json'], {
+  const copy = chooseCopy(OPENCODE)
+  const out = spawnSync(spawnName(copy, 'opencode'), ['session', 'list', '-n', '1', '--format', 'json'], {
     cwd,
+    env: copyEnv(spawnName(copy, 'opencode')),
     encoding: 'utf8',
     timeout: 10_000,
   })

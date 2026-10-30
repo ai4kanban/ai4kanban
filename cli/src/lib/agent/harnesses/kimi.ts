@@ -1,3 +1,4 @@
+import { home } from './models'
 import { createKimiStreamRenderer } from '../wire'
 import { machineFile, namesFlag, SKILL_SENTENCE, type Harness } from './types'
 
@@ -249,5 +250,6 @@ export const KIMI: Harness = {
   // PROBE: on a machine that has `kimi`, run its login command's status form under a
   // throwaway HOME and under the real one. If it says which state it is in, declare it here.
 
+  installs: () => [home('.kimi-code', 'bin', 'kimi')],
   install: 'curl -LsSf https://code.kimi.com/install.sh | bash',
 }

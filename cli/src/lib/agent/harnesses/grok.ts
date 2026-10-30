@@ -148,5 +148,6 @@ export const GROK: Harness = {
   // way, grok found `.agents/skills/kanban/SKILL.md` in the project and read it.
   skillCall: SKILL_SENTENCE,
 
+  installs: () => [home('.grok', 'bin', 'grok')],
   install: 'curl -fsSL https://x.ai/cli/install.sh | bash',
 }

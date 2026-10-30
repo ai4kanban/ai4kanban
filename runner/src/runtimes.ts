@@ -12,7 +12,7 @@ import path from 'node:path'
 import { splitCommand } from '../../cli/src/lib/agent/argv'
 import { HARNESSES as ALL } from '../../cli/src/lib/agent/harnesses'
 import { MODEL_KEY, type Harness } from '../../cli/src/lib/agent/harnesses/types'
-import { binaryOnPath } from '../../cli/src/lib/agent/installed'
+import { chooseCopy, copyEnv, locate, shellName, spawnName, SPAWN_MS, warm } from '../../cli/src/lib/agent/locate'
 import { effectiveValues, providerFor, settingArgs, settingEnv, withSystemLanguage, type SettingValues } from '../../cli/src/lib/agent/run-settings'
 import type { HarnessSetting } from '../../cli/src/lib/agent/types'
 import type { RunEvent, StreamRenderer, TurnEnd } from '../../cli/src/lib/agent/wire'
@@ -80,19 +80,26 @@ export const hints = (runtime: Job['runtime']) => ({ install: HARNESSES[runtime]
 /** True when the runtime can open a copy of an earlier session (#2146). */
 export const forks = (runtime: Job['runtime']) => !!HARNESSES[runtime].forkArgs
 
+/** The harness's command on the copy `locate` chooses for a spawn. */
+function commandOf(harness: Harness): [string, ...string[]] {
+  const [binary, ...flags] = splitCommand(harness.command)
+  return [spawnName(chooseCopy(harness, SPAWN_MS), binary!), ...flags]
+}
+
 /** `resume` continues that session instead of opening a new one; with `fork`, a copy of it. `line`
  *  is Cloud's language line, which also goes into the runtime's own system prompt (#104). */
 export function plan(runtime: Job['runtime'], prompt: string, cwd: string, resume?: string | null, model?: string | null, given: Settings = {}, fork = false, line = ''): Plan {
   const harness = HARNESSES[runtime]
   const values = held(runtime, model, given)
-  const base = [...splitCommand(harness.command), ...settingArgs(harness, values)]
+  const [binary, ...flags] = commandOf(harness)
+  const base = [binary, ...flags, ...settingArgs(harness, values)]
   const id = randomUUID()
   const copied = fork && resume && harness.forkArgs ? harness.forkArgs(base, resume, id, cwd) : null
   if (fork) resume = null
   const extra = copied ?? (resume ? harness.resumeArgs(base, resume, cwd) : harness.extraArgs(base, id, cwd))
   const quiet = (line: string) => harness.quietStderr?.(line) ?? false
   // WILDCRANE_JOB keeps the Claude Code plugin a job's own session loads from serving it (#2161).
-  const { argv, env } = withSystemLanguage(harness, [...base, ...extra], { ...process.env, ...settingEnv(harness, values, given.secrets ?? {}, cwd), WILDCRANE_JOB: '1' }, line)
+  const { argv, env } = withSystemLanguage(harness, [...base, ...extra], copyEnv(binary, { ...process.env, ...settingEnv(harness, values, given.secrets ?? {}, cwd), WILDCRANE_JOB: '1' }), line)
   if (harness.client) {
     const client = harness.client(effectiveValues(harness, values))
     let session: string | undefined
@@ -151,12 +158,13 @@ export async function detectRuntimes(quick = false): Promise<RuntimeReport[]> {
   return Promise.all(
     (Object.keys(HARNESSES) as Job['runtime'][]).map(async (name) => {
       const harness = HARNESSES[name]
-      const binary = splitCommand(harness.command)[0]!
       const settings = harness.settings.map(declOf)
-      if (!binaryOnPath(binary)) return { name, installed: false, settings }
-      const loggedIn = harness.login ? await probeLogin(binary, harness) : undefined
+      await warm(harness)
+      const copy = locate(harness)
+      if (!copy) return { name, installed: false, settings }
+      const loggedIn = harness.login ? await probeLogin(spawnName(copy, splitCommand(harness.command)[0]!), harness) : undefined
       const models = loggedIn === false || (quick && SLOW.has(name)) ? [] : await readModels(name)
-      return { name, installed: true, ...(loggedIn === undefined ? {} : { loggedIn }), ...(models.length ? { models } : {}), settings }
+      return { name, installed: true, ...(copy.version ? { version: copy.version } : {}), ...(loggedIn === undefined ? {} : { loggedIn }), ...(models.length ? { models } : {}), settings }
     }),
   )
 }
@@ -193,7 +201,7 @@ const MODELS: Partial<Record<Job['runtime'], () => Promise<Model[]>>> = {
     ]
   },
   codex: async () => codexModels(path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'models_cache.json')),
-  opencode: async () => opencodeModels(await output('opencode', ['models'])),
+  opencode: async () => opencodeModels(await output(commandOf(HARNESSES.opencode)[0], ['models'])),
   cursor: () => cursorModels(),
 }
 
@@ -206,11 +214,11 @@ export function opencodeModels(out: string): Model[] {
  *  they are read off a session opened for the purpose and closed without a prompt. Auto is the
  *  menu's own default and is left out. */
 function cursorModels(): Promise<Model[]> {
-  const argv = splitCommand(HARNESSES.cursor.command)
+  const argv = commandOf(HARNESSES.cursor)
   return new Promise((resolve) => {
     let child: ChildProcess
     try {
-      child = spawn(argv[0]!, argv.slice(1), { cwd: os.tmpdir(), stdio: ['pipe', 'pipe', 'ignore'], env: { ...process.env, ...HARNESSES.cursor.env() } })
+      child = spawn(argv[0]!, argv.slice(1), { cwd: os.tmpdir(), stdio: ['pipe', 'pipe', 'ignore'], env: copyEnv(argv[0], { ...process.env, ...HARNESSES.cursor.env() }) })
     } catch {
       return resolve([])
     }
@@ -245,7 +253,7 @@ function output(command: string, args: string[]): Promise<string> {
     let out = ''
     let child: ChildProcess
     try {
-      child = spawn(command, args, { stdio: ['ignore', 'pipe', 'ignore'], shell: process.platform === 'win32' })
+      child = spawn(shellName(command), args, { stdio: ['ignore', 'pipe', 'ignore'], env: copyEnv(command), shell: process.platform === 'win32' })
     } catch {
       return resolve('')
     }
@@ -313,7 +321,7 @@ function probeLogin(binary: string, harness: Harness): Promise<boolean | undefin
     let output = ''
     let child
     try {
-      child = spawn(binary, probe.args, { stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' })
+      child = spawn(shellName(binary), probe.args, { stdio: ['ignore', 'pipe', 'pipe'], env: copyEnv(binary), shell: process.platform === 'win32' })
     } catch {
       return resolve(undefined)
     }

@@ -6,7 +6,6 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
-import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 
@@ -32,7 +31,8 @@ import { effectiveValues as valuesOf, isFilled, providerFor, settingArgs as args
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
 import { DISCUSSION_ROLE, hiddenRole, PLANNING_ROLE, roleForFlow } from './roles'
-import { binaryOnPath, commandBinary, pathLookup } from './installed'
+import { commandBinary, pathLookup } from './installed'
+import { brokenEntryNote, chooseCopy, copyEnv, isCopy, locate, spawnName, SPAWN_MS } from './locate'
 import { languageNote } from './language'
 import {
   missingRequired,
@@ -107,65 +107,42 @@ export function activeProviderOf({
 }
 
 /** The command one runtime runs: the hand-written `command` override in its settings, or the
- *  harness's own — with a bare binary nothing on the PATH answers swapped for the copy a
- *  desktop app shipped, when the harness says where that is.
- *
- *  The swap happens HERE rather than in the installed check because this one string is what
- *  every reader takes: the badge a pane draws, the line it shows under it, and the argv a run
- *  spawns. Teaching only the check would light the badge for a run that still dies on
- *  `spawn codex ENOENT`. */
+ *  harness's own. One that names another binary or a path is the user's pick and stays exactly
+ *  as written; otherwise its first word becomes the copy `locate` chose. This one string is what
+ *  every reader takes, so the badge and the spawn read the same answer. */
 export function commandOf(block: Record<string, string>, harness: Harness): string {
+  const command = ownCommand(block, harness)
+  return pinnedBy(block, harness) ? command : locatedCommand(command, harness)
+}
+
+function ownCommand(block: Record<string, string>, harness: Harness): string {
   const saved = block.command?.trim()
-  const command = saved && !harness.formerCommands?.includes(saved) ? saved : harness.command
-  return bundledBinary(command, harness)
+  return saved && !harness.formerCommands?.includes(saved) ? saved : harness.command
 }
 
-// The command with its first word made absolute, or exactly what it was. Untouched when the
-// harness names no bundled copy, when the command already says where its binary lives, or
-// when the PATH answers the bare name — an install of the CLI proper always wins.
-//
-// The resolved path goes back in QUOTED: on Windows the places a desktop app keeps its CLI are
-// all under a folder with a space in the name, and the command string is re-split by every
-// reader of it (agent/argv.ts). Only that first word is rewritten — the rest is the command
-// exactly as it was written, so a hand-written argument is never re-spelt.
-function bundledBinary(command: string, harness: Harness): string {
-  if (!harness.bundled) return command
+const pinnedBy = (block: Record<string, string>, harness: Harness) =>
+  commandBinary(ownCommand(block, harness)) !== commandBinary(harness.command)
+
+// The resolved path goes back QUOTED, because the command string is re-split by every reader
+// (agent/argv.ts). Only the first word is rewritten: a hand-written argument is never re-spelt.
+function locatedCommand(command: string, harness: Harness): string {
   const binary = commandBinary(command)
-  if (!binary || binary.includes('/') || binary.includes('\\')) return command
-  if (binaryOnPath(binary)) return command
-  const found = harness.bundled().find((p) => p && fs.existsSync(p))
-  if (!found) return command
-  return `${quoteArg(found)}${command.slice(command.indexOf(binary) + binary.length)}`
+  const spawns = spawnName(chooseCopy(harness), binary)
+  if (spawns === binary) return command
+  return `${quoteArg(spawns)}${command.slice(command.indexOf(binary) + binary.length)}`
 }
 
-/** The binary a spawn should use: `binary` itself, or — when the PATH answers that bare name
- *  with something that cannot start, such as a wrapper left pointing at an app's old layout —
- *  the copy a desktop app shipped, with the line the run owes its log. Asked at every spawn and
- *  never cached: a remembered answer is exactly what goes stale when the app updates. */
-export function startableBinary(binary: string, harness: Harness): { binary: string; note?: string } {
-  if (!harness.bundled || !binary || binary.includes('/') || binary.includes('\\')) return { binary }
-  if (!binaryOnPath(binary)) return { binary }
-  const found = harness.bundled().find((p) => p && fs.existsSync(p))
-  if (!found || starts(binary)) return { binary }
-  const app = /([^/\\]+)\.app[/\\]/.exec(found)?.[1]
-  return {
-    binary: found,
-    note: `The ${binary} on your PATH can't start, so this run uses the one inside ${app ?? 'your desktop app'}.`,
-  }
-}
-
-// Started the way a run starts it (no shell), so "it starts" means the run's spawn will too.
-// Only a clear never-started counts; a timeout or any other answer is a binary that runs.
-function starts(binary: string): boolean {
-  const probe = spawnSync(binary, ['--version'], {
-    stdio: ['ignore', 'pipe', 'ignore'],
-    timeout: 3000,
-    windowsHide: true,
-    shell: false,
-  })
-  const code = (probe.error as NodeJS.ErrnoException | undefined)?.code
-  if (code === 'ENOENT' || code === 'EACCES' || code === 'EPERM' || code === 'ENOEXEC') return false
-  return !((probe.status === 126 || probe.status === 127) && !probe.stdout?.toString().trim())
+/** The binary a spawn should use: the copy `locate` chooses at this moment, with the line the
+ *  run owes its log if the PATH's copy couldn't start. A plan keeps the path it was written
+ *  with, so this is what catches a copy replaced since. Anything but a copy of this CLI is left
+ *  alone, and so is a pinned command. */
+export function startableBinary(binary: string, harness: Harness, pinned = false): { binary: string; note?: string } {
+  const own = commandBinary(harness.command)
+  if (pinned || !binary || (binary !== own && !isCopy(harness, binary))) return { binary }
+  const copy = chooseCopy(harness, SPAWN_MS)
+  if (!copy) return { binary }
+  const note = brokenEntryNote(copy, own, harness)
+  return { binary: spawnName(copy, own), ...(note ? { note } : {}) }
 }
 
 /** What one runtime is set to: each declared setting's value, which of its keys
@@ -526,9 +503,10 @@ export function planFork(
 export function openPlan(plan: RunPlan): ActiveRun {
   const resolved = resolveHarness({ agent: plan.agent, pin: plan.runtime, harness: plan.harness })
   const { harness } = resolved
-  const start = startableBinary(plan.argv[0] ?? '', harness)
-  const started = start.note ? [start.binary, ...plan.argv.slice(1)] : plan.argv
-  const { argv, env } = withSystemLanguage(harness, started, runEnv(resolved, plan.cwd ?? REPO_ROOT), languageNote())
+  const start = startableBinary(plan.argv[0] ?? '', harness, pinnedBy(resolved.runtime.settings, harness))
+  const started = [start.binary, ...plan.argv.slice(1)]
+  const { argv, env: planned } = withSystemLanguage(harness, started, runEnv(resolved, plan.cwd ?? REPO_ROOT), languageNote())
+  const env = copyEnv(start.binary, planned)
   return {
     ...plan,
     argv,
@@ -698,7 +676,7 @@ export function agentInfo(): AgentInfo {
       // The binary this card is answered on is the RESOLVED one, the same as every other
       // reader's: the connector grid is where "not installed" is drawn, and a CLI that ships
       // inside a desktop app would read as missing on the one screen that offers it.
-      const spawns = bundledBinary(cmd, option)
+      const spawns = locatedCommand(cmd, option)
       return {
         name,
         label,
@@ -707,6 +685,7 @@ export function agentInfo(): AgentInfo {
         settings: withModels(option, settings, ran.get(name) ?? []),
         binary: commandBinary(spawns),
         installed: onPath(spawns),
+        version: locate(option)?.version ?? null,
         install,
         gaps: harnessGaps(option),
         runs: first.command,

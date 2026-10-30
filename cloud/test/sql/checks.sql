@@ -3741,6 +3741,15 @@ begin
   assert api.v1_list_runtimes(A) -> 'models' = '{"claude-code": [{"id": "opus", "name": "Opus"}], "codex": [{"id": "gpt-a", "name": "GPT-A"}]}',
     format('the models misread: %s', api.v1_list_runtimes(A));
 
+  -- The version of the copy each connector runs, where it could be read (#131).
+  assert api.v1_list_runtimes(A) -> 'connector_versions' = '{}', 'a version appeared that nobody reported';
+  perform api.register_runner(A, HOME, 'home-mac', 3, '0.4.0',
+    '[{"name": "claude-code", "installed": true, "version": "2.1.0", "loggedIn": false, "models": [{"id": "opus", "name": "Opus"}]},
+      {"name": "codex", "installed": true, "models": [{"id": "gpt-a", "name": "GPT-A"}]},
+      {"name": "kimi", "installed": false, "version": "1.0.0"}]', false, 900, BUDGET);
+  assert api.v1_list_runtimes(A) -> 'connector_versions' = '{"claude-code": "2.1.0"}',
+    format('the versions misread: %s', api.v1_list_runtimes(A));
+
   -- Add, change, and the rules on names.
   v_light := api.v1_create_runtime(A, '{"name": "Light", "connector": "claude-code", "model": "claude-haiku-4-5"}', BUDGET) ->> 'id';
   perform pg_temp.refuses(format('select api.v1_create_runtime(%L, %L, %s)', A, '{"name": "light", "connector": "codex"}', BUDGET),

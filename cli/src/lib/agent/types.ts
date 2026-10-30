@@ -1056,6 +1056,8 @@ export interface HarnessOption {
    *  every read, never cached, and it starts nothing: it says the CLI is there, not that
    *  it is logged in or that a run would pass. That is `testConnection`'s answer. */
   installed: boolean
+  /** The version of the copy a run would use; null when it can't be read. */
+  version: string | null
   /** The command that installs this agent's CLI. Handed over wherever the CLI turns out
    *  not to be on the machine — a picker offering it, a run that can't spawn, a failed
    *  test — so the user reads what to do instead of a raw spawn error. */

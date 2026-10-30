@@ -61,7 +61,7 @@ function onPath(...binaries: string[]): void {
 
 /** What a lookup would actually offer: the scan's candidates, minus the ones that aren't
  *  there. The scan names every layout whether or not this machine has it, and the existence
- *  check is `bundledBinary`'s — the same read a lookup makes, taken fresh every time. */
+ *  check is `locate`'s — the same read a lookup makes, taken fresh every time. */
 function discovered(): string[] {
   return codexOnWindows().filter((one) => fs.existsSync(one))
 }
@@ -189,7 +189,7 @@ describe('the macOS layouts', { skip: process.platform === 'win32' }, () => {
   function found(): string | undefined {
     const home = path.join(root, 'mac')
     process.env.HOME = home
-    return CODEX.bundled!().find((one) => one.startsWith(home) && fs.existsSync(one))
+    return CODEX.installs!().find((one) => one.startsWith(home) && fs.existsSync(one))
   }
   const resources = (app: string) => path.join(root, 'mac', 'Applications', app, 'Contents', 'Resources')
 
@@ -234,10 +234,11 @@ describe('what the command ends up being', () => {
     assert.equal(planRun('s1', root).argv[0], bundled)
   })
 
-  it('leaves a PATH install alone, however much is on disk beside it', () => {
+  it('leaves a PATH install alone when nothing beside it reads as newer', () => {
     board()
     onPath('codex')
-    process.env.CODEX_CLI_PATH = file(path.join(root, 'elsewhere', 'codex'))
+    process.env.HOME = path.join(root, 'mac')
+    file(path.join(root, 'mac', 'Applications', 'ChatGPT.app', 'Contents', 'Resources', 'codex'))
     assert.equal(commandOf({}, CODEX), CODEX.command)
   })
 

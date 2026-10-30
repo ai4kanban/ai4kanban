@@ -105,5 +105,6 @@ export const OPENCODE: Harness = {
   // No login probe: OpenCode's free models need no sign-in, so a machine with no saved
   // credential is not logged out.
 
+  installs: () => [...(process.env.OPENCODE_INSTALL_DIR ? [join(process.env.OPENCODE_INSTALL_DIR, 'opencode')] : []), home('.opencode', 'bin', 'opencode')],
   install: 'curl -fsSL https://opencode.ai/install | bash',
 }

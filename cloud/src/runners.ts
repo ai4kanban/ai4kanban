@@ -49,6 +49,7 @@ const MAX_OPTION = 200
 const MAX_MODELS = 40
 const MAX_MODEL_ID = 200
 const MAX_MODEL_NAME = 80
+const MAX_VERSION = 64
 const MAX_RUNTIMES = 100
 /** A discussion's ideas (#2073): the whole state the agent left, dropped and started included. */
 const MAX_IDEAS = 30
@@ -62,6 +63,7 @@ const AGENT = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export interface RunnerRuntime {
   name: (typeof RUNTIMES)[number]
   installed: boolean
+  version?: string
   loggedIn?: boolean
   models?: { id: string; name: string }[]
   /** What the connector takes, as the Runner's harness declares it (#2135). */
@@ -475,6 +477,7 @@ export function runtimes(value: unknown): RunnerRuntime[] {
     out.push({
       name,
       installed: held.installed === true,
+      ...(typeof held.version === 'string' && held.version ? { version: held.version.slice(0, MAX_VERSION) } : {}),
       ...(typeof held.loggedIn === 'boolean' ? { loggedIn: held.loggedIn } : {}),
       ...modelsOf(held.models),
       ...settingsOf(held.settings),

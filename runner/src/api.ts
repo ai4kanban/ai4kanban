@@ -107,6 +107,8 @@ export interface Idea {
 export interface RuntimeReport {
   name: Job['runtime']
   installed: boolean
+  /** The version of the copy runs use here. */
+  version?: string
   loggedIn?: boolean
   /** The models this connector offers here, for the model menu (#2087). */
   models?: { id: string; name: string }[]

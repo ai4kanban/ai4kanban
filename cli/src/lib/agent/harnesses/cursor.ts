@@ -1,3 +1,5 @@
+import { latestIn } from '../locate'
+import { home } from './models'
 import { createAcpClient } from '../wire'
 import { MCP_CONFIG, SKILL_SENTENCE, type Harness } from './types'
 
@@ -80,5 +82,6 @@ export const CURSOR: Harness = {
     login: 'cursor-agent login',
   },
 
+  installs: () => [home('.cursor', 'bin', 'cursor-agent'), ...latestIn(home('.local', 'share', 'cursor-agent', 'versions'), 'cursor-agent')],
   install: 'curl https://cursor.com/install -fsS | bash',
 }

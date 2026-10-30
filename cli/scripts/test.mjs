@@ -53,7 +53,7 @@ const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-test-home-'))
 const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(AI4KANBAN_|KANBAN_|WILDCRANE_)/.test(k)))
 const run = spawnSync(process.execPath, ['--test', ...bundles], {
   stdio: 'inherit',
-  env: { ...env, AI4KANBAN_HOME: HOME, DO_NOT_TRACK: '1', CLAUDE_CODE_SESSION_ID: '', CODEX_THREAD_ID: '' },
+  env: { ...env, AI4KANBAN_HOME: HOME, AI4KANBAN_PATH_ONLY: '1', DO_NOT_TRACK: '1', CLAUDE_CODE_SESSION_ID: '', CODEX_THREAD_ID: '' },
 })
 fs.rmSync(OUT_DIR, { recursive: true, force: true })
 fs.rmSync(HOME, { recursive: true, force: true })

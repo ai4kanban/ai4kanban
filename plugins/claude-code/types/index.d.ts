@@ -44,7 +44,7 @@ export type Status = {
   error?: string
 }
 
-export type Connection = { name: string; label: string; state: 'ready' | 'signedOut' | 'notInstalled'; command: string | null }
+export type Connection = { name: string; label: string; state: 'ready' | 'signedOut' | 'notInstalled'; version: string | null; command: string | null }
 
 /** A task this computer runs or holds queued; `stop` the route that stops it, null while queued. */
 export type TaskRow = {

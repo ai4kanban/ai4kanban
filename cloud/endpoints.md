@@ -367,6 +367,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   when the Runner is not connected and `runner_outdated` when it is too old to keep one. `GET /v1/runtimes`
   lists Global default first (`default: true`, made on first read by the old pick: Claude Code
   installed and signed in, else Codex), with `connectors` as the Runner last reported them,
+  `connector_versions` (`{ "<connector>": "<version>" }`, the copy runs use, when readable),
   `models` (`{ "<connector>": [{ id, name }] }`, what each offers there), `connector_settings`
   (`{ "<connector>": [{ key, label, kind, help?, placeholder?, choices?, providers?, defaultProvider? }] }`),
   `runners` (`[{ id, name, online }]`) and `runner_connected`. `POST` adds one (`runner` required), `PATCH …/{id}` changes it (`model: null` clears it),
@@ -617,7 +618,7 @@ The account's one Runner (`runner/`). Every job route takes `machineId`, the com
 - `GET /v1/runner/version?machine=<id>` — the version a launcher starts. **No sign-in.**
   `version` is null until `npm run runner-release` sets one.
 - `POST /v1/runner` — register or renew: `{ machineId, machineName, protocol (5 or later), version, runtimes:
-  [{ name: <one of the eight connectors>, installed, loggedIn?, models?: [{ id, name }], settings?: [<as connector_settings>] }],
+  [{ name: <one of the eight connectors>, installed, version?, loggedIn?, models?: [{ id, name }], settings?: [<as connector_settings>] }],
   secrets?: { "<runtime id>": ["apiKey"] }, notify? }`. `secrets` says which keys it holds; `notify` says this
   computer shows notifications (the desktop app, switched on and allowed). Renew inside 15 minutes or the
   computer stops counting as connected. `GET` reads it, with `name`, this computer's name.

@@ -338,6 +338,8 @@ export interface RuntimeList {
   /** What each connector offers on the Runner's computer, as it last reported them. */
   models: Partial<Record<Connector, { id: string; name: string }[]>>;
   connector_settings: Partial<Record<Connector, SettingDecl[]>>;
+  /** The version of the copy runs use; absent when unread or from a Runner too old to say. */
+  connector_versions?: Partial<Record<Connector, string>>;
   runners: RunnerInfo[];
   runner_connected: boolean;
 }

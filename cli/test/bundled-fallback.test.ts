@@ -17,7 +17,7 @@ import { writeSetupChecklist } from '../src/lib/setup.ts'
 import { forgetMachineState } from './helpers/board.ts'
 
 const CODEX = harnessByName('codex')!
-const held = { PATH: process.env.PATH, CODEX_CLI_PATH: process.env.CODEX_CLI_PATH }
+const held = { PATH: process.env.PATH, HOME: process.env.HOME, AI4KANBAN_HOME: process.env.AI4KANBAN_HOME, CODEX_CLI_PATH: process.env.CODEX_CLI_PATH }
 let root = ''
 
 function script(at: string, body: string): string {
@@ -32,8 +32,7 @@ function codexes(onPath: string): { bundled: string; ran: string } {
   script(path.join(bin, 'codex'), onPath)
   process.env.PATH = `${bin}${path.delimiter}/usr/bin${path.delimiter}/bin`
   const ran = path.join(root, 'ran')
-  const bundled = script(path.join(root, 'ChatGPT.app', 'Contents', 'codex'), `touch "${ran}"\necho codex-cli 1.0`)
-  process.env.CODEX_CLI_PATH = bundled
+  const bundled = script(path.join(root, 'Applications', 'ChatGPT.app', 'Contents', 'Resources', 'codex'), `touch "${ran}"\necho codex-cli 1.0`)
   return { bundled, ran }
 }
 
@@ -43,6 +42,10 @@ const STARTS = '[ "$1" = --version ] && { echo codex-cli 1.0; exit 0; }\necho "b
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-bundled-fallback-'))
   forgetMachineState(root)
+  process.env.HOME = root
+  process.env.AI4KANBAN_HOME = path.join(root, 'home')
+  delete process.env.CODEX_CLI_PATH
+  delete process.env.AI4KANBAN_PATH_ONLY
   setBoardRoot(root)
   setBoardProvider(null)
   fs.mkdirSync(path.join(root, 'docs/kanban/todo'), { recursive: true })
@@ -55,6 +58,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  process.env.AI4KANBAN_PATH_ONLY = '1'
   for (const [key, value] of Object.entries(held)) {
     if (value === undefined) delete process.env[key]
     else process.env[key] = value
@@ -65,11 +69,11 @@ afterEach(() => {
 
 describe('a PATH copy that cannot start', { skip: process.platform === 'win32' }, () => {
   it('runs the bundled copy instead, and says so once in the log', async () => {
-    const { ran } = codexes(BROKEN)
+    const { bundled, ran } = codexes(BROKEN)
     writeSetupChecklist()
     const opened = openRun({ action: 'setup' }, 'Set up this board.', [])
     if ('error' in opened) throw new Error(opened.error)
-    assert.equal(opened.spec.plan.argv[0], 'codex')
+    assert.equal(opened.spec.plan.argv[0], bundled)
     fs.writeFileSync(path.join(SESSIONS_DIR, `${opened.run.sessionId}.plan.json`), JSON.stringify(opened.spec))
     patch(opened.run.sessionId, (r) => {
       r.pid = process.pid
@@ -99,9 +103,7 @@ describe('a PATH copy that cannot start', { skip: process.platform === 'win32' }
 
   it('changes nothing when there is no bundled copy', () => {
     codexes(BROKEN)
-    process.env.CODEX_CLI_PATH = path.join(root, 'gone', 'codex')
-    const none = { ...CODEX, bundled: () => [path.join(root, 'gone', 'codex')] }
-    assert.deepEqual(startableBinary('codex', none), { binary: 'codex' })
-    assert.deepEqual(startableBinary('codex', { ...CODEX, bundled: undefined }), { binary: 'codex' })
+    process.env.AI4KANBAN_PATH_ONLY = '1'
+    assert.deepEqual(startableBinary('codex', CODEX), { binary: 'codex' })
   })
 })

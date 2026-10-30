@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { AKB_DIR, KANBAN, REPO_ROOT } from '../../paths'
 import { createCodexStreamRenderer } from '../wire'
+import { byVersion, folders } from '../locate'
 import { arr, home, modelsIn, num, obj, str } from './models'
 import { git } from '../worktree'
 import { providerBlip } from './transient'
@@ -89,11 +90,9 @@ function codexProvider(id: string, name: string, baseUrl?: string): string[] {
 // installs no shim. So a user who has Codex — and runs it every day in that app — reads as
 // "not installed" on a board that only looks at the PATH.
 //
-// `CODEX_CLI_PATH` comes first and is OpenAI's own variable for this: the app reads it to
-// find the binary it failed to locate, so anyone with an unusual install has already set it
-// and we inherit the answer instead of asking for it again.
+// `CODEX_CLI_PATH` is OpenAI's own variable for an unusual install: set, it is the copy used.
 //
-// After it, only paths that were READ OFF a real install, and only this platform's. The Linux
+// The rest are only paths READ OFF a real install, and only this platform's. The Linux
 // .deb/.rpm bundles `resources/bin/codex` under a prefix OpenAI doesn't document, so that one
 // is still left to `CODEX_CLI_PATH`: a wrong path that never matches is dead code that reads
 // like coverage.
@@ -102,22 +101,6 @@ function codexProvider(id: string, name: string, baseUrl?: string): string[] {
  *  nothing to look in and is not a failed lookup. */
 function envRoot(name: string): string {
   return process.env[name]?.trim() ?? ''
-}
-
-/** The immediate subfolder NAMES of one folder — the single variable level each Windows
- *  layout below has, and the whole of what is enumerated. Empty when the folder isn't there
- *  or can't be read, so a missing root, a locked one, or one that disappears mid-scan costs
- *  the lookup nothing. */
-function folders(parent: string): string[] {
-  if (!parent) return []
-  try {
-    return fs
-      .readdirSync(parent, { withFileTypes: true })
-      .filter((one) => one.isDirectory())
-      .map((one) => one.name)
-  } catch {
-    return []
-  }
 }
 
 /** A file's modification time, or 0 for one that isn't there. */
@@ -143,26 +126,6 @@ function byNewest(files: string[]): string[] {
     .map((file) => ({ file, at: modified(file) }))
     .sort((a, b) => b.at - a.at || byPath(a.file, b.file))
     .map((one) => one.file)
-}
-
-/** The version a folder name carries, as numbers: `OpenAI.Codex_1.2.3_x64__abc` reads as
- *  [1,2,3], and so does `1.2.3-x86_64-pc-windows-msvc`. A name carrying none sorts last. */
-function versionOf(name: string): number[] {
-  const found = /(\d+(?:\.\d+)+)/.exec(name)
-  return found ? found[1]!.split('.').map(Number) : []
-}
-
-/** Highest version first, ties on the name. Never a spawn and never a string compare of the
- *  whole name: `0.9.0` has to beat `0.10.0` on the numbers, not on the alphabet. */
-function byVersion(names: string[]): string[] {
-  return [...names].sort((a, b) => {
-    const [x, y] = [versionOf(a), versionOf(b)]
-    for (let i = 0; i < Math.max(x.length, y.length); i++) {
-      const step = (y[i] ?? -1) - (x[i] ?? -1)
-      if (step) return step
-    }
-    return byPath(a, b)
-  })
 }
 
 /** Every architecture these folder names are known to be spelt with — Windows' own package
@@ -218,23 +181,19 @@ export function codexOnWindows(): string[] {
   ]
 }
 
-function codexBundled(): string[] {
-  const override = process.env.CODEX_CLI_PATH?.trim()
-  return [
-    ...(override ? [override] : []),
-    ...(process.platform === 'win32'
-      ? codexOnWindows()
-      : [
-          // macOS, where Codex now lives in the merged app — `codex-cli/bin/` since 26.928…
-          '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex',
-          home('Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex'),
-          '/Applications/ChatGPT.app/Contents/Resources/codex',
-          home('Applications/ChatGPT.app/Contents/Resources/codex'),
-          // …and where it lived before the merge, for an install that hasn't moved yet.
-          '/Applications/Codex.app/Contents/Resources/codex',
-          home('Applications/Codex.app/Contents/Resources/codex'),
-        ]),
-  ]
+function codexInstalls(): string[] {
+  return process.platform === 'win32'
+    ? codexOnWindows()
+    : [
+        // macOS, where Codex now lives in the merged app — `codex-cli/bin/` since 26.928…
+        '/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex',
+        home('Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex'),
+        '/Applications/ChatGPT.app/Contents/Resources/codex',
+        home('Applications/ChatGPT.app/Contents/Resources/codex'),
+        // …and where it lived before the merge, for an install that hasn't moved yet.
+        '/Applications/Codex.app/Contents/Resources/codex',
+        home('Applications/Codex.app/Contents/Resources/codex'),
+      ]
 }
 
 export const CODEX: Harness = {
@@ -248,7 +207,8 @@ export const CODEX: Harness = {
     'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true',
   ],
 
-  bundled: codexBundled,
+  installs: codexInstalls,
+  pinned: () => process.env.CODEX_CLI_PATH?.trim() || undefined,
 
   // Nothing to pin: Codex mints its own thread id and takes none from us, so the generated
   // session id is ignored here and the id arrives on the run's first event instead.

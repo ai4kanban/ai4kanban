@@ -285,7 +285,7 @@ async function connections() {
     connections: found.map((r) => {
       const hint = hints(r.name)
       const state = !r.installed ? 'notInstalled' : r.loggedIn === false ? 'signedOut' : 'ready'
-      return { name: r.name, label: LABELS[r.name], state, command: state === 'notInstalled' ? hint.install : state === 'signedOut' ? hint.login : null }
+      return { name: r.name, label: LABELS[r.name], state, version: r.version ?? null, command: state === 'notInstalled' ? hint.install : state === 'signedOut' ? hint.login : null }
     }),
   }
 }
