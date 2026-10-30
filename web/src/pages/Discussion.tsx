@@ -1,7 +1,7 @@
 // `/discussions/<id>` (#2073), after legacy kanban-ui's CreateSheet: the conversation on the left,
 // the ideas a cream card standing beside it (tabs when several), its next steps straight after the
 // idea (#2202). At phone width the ideas are rows over the box, and one opened lies over the
-// thread. The thread and the box are the card page's chat (review/'s AiChat), drawn as a page. A
+// thread. The thread and the box are the card page's chat (AiChat), drawn as a page. A
 // discussion held in a Claude Code or Codex session (#2160) has no thread here: a note sends the
 // user back to it.
 

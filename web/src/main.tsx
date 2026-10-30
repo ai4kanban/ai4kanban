@@ -1,14 +1,16 @@
-// The WildCrane Web app at app.wildcrane.ai: sign in first (review/'s flow), then the boards.
+// The WildCrane Web app at app.wildcrane.ai: sign in first, then the boards. `/s/<token>` is the
+// review page, before any of that.
 
 import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { FiAlertCircle } from "react-icons/fi";
 import { finishGitHub, onSession, pendingGitHubBack, readSession, signOut } from "@review/auth";
-import { Failed, Loading, SIGN_IN_FAILED, SignIn } from "@review/components/Notice";
+import { Failed, Gone, Loading, SIGN_IN_FAILED, SignIn } from "@review/components/Notice";
 import { Logo } from "@review/components/Logo";
+import { Review } from "@review/Review";
 import * as api from "./api";
 import { forgetAll } from "./lib/chat-images";
-import { LANG, T } from "./i18n";
+import { LANG, REVIEW, T } from "./i18n";
 import { navigate, useLocation } from "./router";
 import { StoreProvider, useStore } from "./store";
 import { AlertsProvider } from "./alerts";
@@ -153,9 +155,18 @@ function Callback() {
     );
     finishing.catch(() => setFailed(true));
   }, []);
-  return failed ? <App /> : <Loading />;
+  return failed ? <Page /> : <Loading />;
 }
 
 document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
 
-createRoot(document.getElementById("root")!).render(<StrictMode>{location.pathname === "/auth/callback" ? <Callback /> : <App />}</StrictMode>);
+/** `/s/<token>`, answered without an account, admission or workspace. */
+function Page() {
+  const { path } = useLocation();
+  if (path !== "/s" && !path.startsWith("/s/")) return <App />;
+  const token = decodeURIComponent(path.slice(2).replace(/^\/+|\/+$/g, ""));
+  if (!token || token.includes("/")) return <Gone title={REVIEW.noLink.title} body={REVIEW.noLink.body} />;
+  return <Review key={token} token={token} />;
+}
+
+createRoot(document.getElementById("root")!).render(<StrictMode>{location.pathname === "/auth/callback" ? <Callback /> : <Page />}</StrictMode>);

@@ -150,17 +150,6 @@ export const readShared = (token: string) => json<Shared>(call(path(token)));
 export const postComment = (token: string, body: string) =>
   json<Comment>(call(`${path(token)}/comments`, { method: "POST", body: JSON.stringify({ body }) }));
 
-export const postDecision = (token: string, answer: { picked?: number; text?: string; review_revision: number }) =>
-  json<Decision>(call(`${path(token)}/decisions`, { method: "POST", body: JSON.stringify(answer) }));
-
-/** A member's view of the approval the card is on, `round` of `rounds`. */
-export const readTaskWorkflow = (task: string) =>
-  json<{ round: number; rounds: number }>(call(`/v1/tasks/${encodeURIComponent(task)}/workflow`));
-
-/** A member's 移除: the task ends and frees its place on the plan. */
-export const cancelTask = (task: string, reason?: string) =>
-  call(`/v1/tasks/${encodeURIComponent(task)}/cancel`, { method: "POST", ...(reason ? { body: JSON.stringify({ reason }) } : {}) });
-
 export const updateLink = (id: string, patch: { access: Link["access"] }) =>
   json<Link & { active: boolean }>(call(`/v1/share-links/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(patch) }));
 

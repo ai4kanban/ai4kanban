@@ -4,7 +4,7 @@
  */
 
 import { bearerToken, verifyAccessToken } from '../auth.ts'
-import { REVIEW_URL, RUNTIME_TEST_SECONDS } from '../config.ts'
+import { APP_URL, RUNTIME_TEST_SECONDS } from '../config.ts'
 import { call, mutate } from '../db.ts'
 import type { Env } from '../env.ts'
 import {
@@ -704,10 +704,10 @@ async function createShareLink(c: Call): Promise<Response> {
     p_fields: fields,
     p_hash: await sha256(token),
   }) as Record<string, unknown>
-  return json({ ...link, url: `${reviewSite(c.env)}/${token}` }, 201)
+  return json({ ...link, url: `${appSite(c.env)}/s/${token}` }, 201)
 }
 
-const reviewSite = (env: Env) => (env.REVIEW_URL || REVIEW_URL).replace(/\/+$/, '')
+const appSite = (env: Env) => (env.APP_URL || APP_URL).replace(/\/+$/, '')
 
 /** A guest new to the task is emailed the link the owner is sharing, there and then; a failed
  *  send is reported, not retried. */
@@ -721,9 +721,9 @@ async function addGuest(c: Call): Promise<Response> {
     p_share_hash: share_token ? await sha256(share_token) : null,
   }) as { guest: Record<string, unknown>; invite: Invite | null }
   if (!done.invite || !share_token) return json({ ...done.guest, mail: null })
-  const site = reviewSite(c.env)
+  const site = appSite(c.env)
   try {
-    await sendMail(c.env, guestInvite(email, done.invite, `${site}/${share_token}`, site, lang))
+    await sendMail(c.env, guestInvite(email, done.invite, `${site}/s/${share_token}`, site, lang))
     return json({ ...done.guest, mail: 'sent' })
   } catch (e) {
     console.error('cloud: guest invite not sent', { task: done.guest.task, error: e instanceof Error ? e.message : String(e) })

@@ -1,7 +1,7 @@
 // `/tasks/<key>`, after legacy kanban-ui/components/CardPage.tsx, drawn with the review page's
-// sheet (review/'s card-sheet.tsx, #2062): the title, a row with the status pill and 评论 / 分享 /
+// sheet (card-sheet.tsx, #2062): the title, a row with the status pill and 评论 / 分享 /
 // 移除 / 执行, the run log, the meta strip and the body. The comments rail is the card's, every
-// phase's, the one its share link shows; the AI bubble sits in the corner (review/'s ai-corner.tsx, its
+// phase's, the one its share link shows; the AI bubble sits in the corner (ai-corner.tsx, its
 // chat on `/v1/tasks/{id}/chat`), revises the card and asks its open questions (#2101). A done
 // Workflow builder task names the workflow it saved and starts a task with it (#2004); a done
 // build names its commit and shows its diff (#2109). At desktop width 文档 / 画布 lays the preview
@@ -275,7 +275,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     if (saved) api.readWorkflow(saved).then(setBuilt, () => {});
   }, [saved]);
 
-  // The previews the body names, read as review/ reads them.
+  // The previews the body names, read as the review page reads them.
   const readFor = card ? `${card.task}:${card.version}` : null;
   useEffect(() => {
     if (!card || !readFor) return;
@@ -349,8 +349,8 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const previews = useMemo(
     () => new Previews({ card: card ? { ...card, metadata: {} } : null, artifacts } as unknown as Shared, {
         component: (art, v) => api.readArtifactComponent(art.id, v.version),
-        canSave: false,
-        saved: () => {},
+        canSave: store.ws.role === "owner",
+        saved: () => loadCard(),
         status: (id) => (!settled ? "loading" : settled.failed.has(id) ? "failed" : undefined),
       }),
     [card, artifacts, settled],
@@ -722,7 +722,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   );
 }
 
-/** review/'s Share, its link made the first time it is opened. */
+/** The Share panel, its link made the first time it is opened. */
 function ShareSlot({ task }: { task: string }) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<{ link: api.ShareLink; url: string; guests: { email: string; created_at: string }[] } | null>(null);
@@ -741,7 +741,7 @@ function ShareSlot({ task }: { task: string }) {
   };
   return (
     <div ref={box} className="relative">
-      <ShareButton quiet label={REVIEW.share.button} open={open} onClick={() => void toggle()} />
+      <ShareButton label={REVIEW.share.button} open={open} onClick={() => void toggle()} />
       {open && (
         <div className="nb-pop origin-top-right absolute right-0 top-[calc(100%+8px)] z-[60] max-md:fixed max-md:inset-x-3 max-md:top-[calc(3.5rem+env(safe-area-inset-top))]">
           {state ? (

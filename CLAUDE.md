@@ -29,7 +29,6 @@ We discourage over-design.
     which is a build product and not in git: `npm install` in `cli/` makes it, and there is
     nothing to commit or keep in sync.
   - `cd cloud && npm run lint && npm test`
-  - `cd review && npm run lint`
   - `cd artifact-sdk && npm run lint`
   - `cd runner && npm run lint && npm test`
   - `cd web && npm run lint && npm run build`

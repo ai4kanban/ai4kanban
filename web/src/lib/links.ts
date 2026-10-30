@@ -14,7 +14,7 @@ export async function reviewLink(task: string): Promise<{ link: api.ShareLink; u
   }
   if (saved) {
     const live = (await api.listShareLinks(task).catch(() => [])).find((l) => l.id === saved!.id && l.active !== false && !l.revoked);
-    if (live) return { link: live, url: saved.url };
+    if (live) return { link: live, url: `${location.origin}/s/${saved.url.split("/").pop()}` };
   }
   const made = await api.createShareLink(task);
   remember(task, made);

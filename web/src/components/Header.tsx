@@ -1,6 +1,6 @@
 // Copied from legacy kanban-ui/components/Header.tsx and desktop.tsx: the top bar's path,
 // logo / workspace / project as on Vercel, each segment's menu switching in place. The
-// avatar is review/'s TopBar: 24px, the account on hover; its menu holds the account,
+// avatar is the review page's: 24px, the account on hover; its menu holds the account,
 // 账单, 语言 and 退出登录, all from what the page already has.
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";

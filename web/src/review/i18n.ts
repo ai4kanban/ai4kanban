@@ -38,7 +38,6 @@ const zh = {
     Todo: "待办",
     "Decided by the agent": "Agent 的决定",
   } as Record<string, string>,
-  pill: { waiting: "待审核", approved: "已确认", changes: "已打回", pending: "尚未提交", removed: "已移除" },
   agentHalf: "Agent 的分析",
   previews: "预览",
   date: (iso: string) => {
@@ -287,7 +286,6 @@ const en: Copy = {
   act: { implement: "Implement", refine: "Refine", remove: "Remove", removeAsk: "Remove this task?", removeWhy: "Reason (optional)…", removeHint: "Add a reason so future planning avoids tasks like this.", keep: "Keep" },
   level: { high: "high", med: "med", low: "low" },
   headings: {},
-  pill: { waiting: "To review", approved: "Approved", changes: "Changes requested", pending: "Not submitted", removed: "Removed" },
   agentHalf: "what the agent worked out",
   previews: "Previews",
   date: (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }),

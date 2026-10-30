@@ -144,10 +144,7 @@ export const LARK_TOKEN_SKEW_SECONDS = 5 * 60
 export const LARK_ELEMENT_LIMIT = 40
 export const LARK_TEXT_LIMIT = 3000
 
-/** Where a task's share links open (#2019): `review/`, a static site. */
-export const REVIEW_URL = 'https://review.wildcrane.ai'
-
-/** WildCrane Web (#2082): its card page frames components as the review page does. */
+/** WildCrane Web (#2082): its card and review pages frame components; share links open at `/s/`. */
 export const APP_URL = 'https://app.wildcrane.ai'
 
 /** Artifact components' bundles (#2006): each version on its own subdomain, a site apart. */

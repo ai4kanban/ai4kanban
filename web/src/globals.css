@@ -1,6 +1,5 @@
-/* review/'s tokens and classes, plus what the board adds. */
-@import "../../review/src/globals.css";
-@source "../../review/src";
+/* The review page's tokens and classes, plus what the board adds. */
+@import "./review/globals.css";
 
 /* A task that appeared since you last looked, until it is opened (legacy .nb-new). */
 .nb-new {

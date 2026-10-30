@@ -4,7 +4,7 @@
  * The review page frames it and talks to it over postMessage; the bundle host only serves files.
  */
 
-import { APP_URL, COMPONENT_HOST, REVIEW_URL } from '../config.ts'
+import { APP_URL, COMPONENT_HOST } from '../config.ts'
 import { call, mutate } from '../db.ts'
 import type { Env } from '../env.ts'
 import { Refusal, artifactsUnavailable, badRequest, payloadTooLarge } from '../errors.ts'
@@ -216,7 +216,7 @@ export const componentCsp = (env: Env) =>
     "connect-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
-    `frame-ancestors ${new URL(env.REVIEW_URL || REVIEW_URL).origin} ${new URL(env.APP_URL || APP_URL).origin}`,
+    `frame-ancestors ${new URL(env.APP_URL || APP_URL).origin}`,
   ].join('; ')
 
 const missing = () => new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } })

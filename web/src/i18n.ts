@@ -1,4 +1,4 @@
-// The web app's words, in the reader's language (review/'s choice of it). Board, rail and
+// The web app's words, in the reader's language (`@review/i18n`'s choice of it). Board, rail and
 // notification words are legacy kanban-ui/i18n's; the rest is new.
 
 import { COPY as REVIEW, LANG, type Lang } from "@review/i18n";

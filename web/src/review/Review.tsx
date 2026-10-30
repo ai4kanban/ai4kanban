@@ -1,12 +1,12 @@
-import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
-import { createRoot } from "react-dom/client";
+// The review page at `/s/<token>`: read only by the link, comments for an invited guest. A
+// workspace member goes to the task page instead.
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { navigate } from "../router";
 import { ApiError, readShared, type Shared } from "./api";
-import { finishGitHub, onSession, pendingGitHubBack, readSession, signOut } from "./auth";
+import { onSession, readSession, signOut } from "./auth";
 import { CardPage } from "./components/CardPage";
-import { Failed, Gone, Loading, NotInvited, SIGN_IN_FAILED, SignIn } from "./components/Notice";
-import { COPY, LANG } from "./i18n";
-import "./globals.css";
-import "./markdown.css";
+import { Failed, Gone, Loading, NotInvited, SignIn } from "./components/Notice";
 
 const POLL_MS = 20_000;
 
@@ -29,13 +29,14 @@ function signedInEmail(): string {
   }
 }
 
-function Review({ token }: { token: string }) {
+export function Review({ token }: { token: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const shown = useRef(false);
 
   const load = useCallback(async () => {
     try {
       const shared = await readShared(token);
+      if (shared.role === "owner" || shared.role === "member") return navigate(`/tasks/${encodeURIComponent(shared.task.id)}`, true);
       shown.current = true;
       setState({ kind: "ok", shared });
     } catch (e) {
@@ -98,39 +99,3 @@ function Review({ token }: { token: string }) {
       );
   }
 }
-
-/** `/auth/callback`: finish the GitHub sign-in, then back to the link it started from. */
-let finishing: Promise<void> | null = null;
-
-function Callback() {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const back = pendingGitHubBack() ?? "/";
-    finishing ??= finishGitHub().then(
-      (to) => location.replace(to),
-      () => {
-        sessionStorage.setItem(SIGN_IN_FAILED, "1");
-        history.replaceState(null, "", back);
-        throw new Error("sign-in failed");
-      },
-    );
-    finishing.catch(() => setFailed(true));
-  }, []);
-  return failed ? <App /> : <Loading label={COPY.signIn.signingIn} />;
-}
-
-function App() {
-  const path = location.pathname;
-  if (path === "/auth/callback") return <Callback />;
-  const token = decodeURIComponent(path.replace(/^\/+|\/+$/g, ""));
-  if (!token || token.includes("/")) return <Gone title={COPY.noLink.title} body={COPY.noLink.body} />;
-  return <Review key={token} token={token} />;
-}
-
-document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);

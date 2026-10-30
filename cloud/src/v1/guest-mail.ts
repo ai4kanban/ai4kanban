@@ -36,7 +36,7 @@ const COPY = {
   },
 }
 
-/** `site` is the review site the link opens on; its logo is served from there too. */
+/** `site` is WildCrane Web, where the link opens; its logo is served from there too. */
 export function guestInvite(to: string, invite: Invite, url: string, site: string, lang: Lang): Message {
   const t = COPY[lang]
   const heading = t.heading(invite.inviter, invite.title)

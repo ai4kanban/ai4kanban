@@ -5,7 +5,7 @@ publish it to your WildCrane account. When an agent submits an artifact of that 
 page draws it with your component.
 
 ```
-review.wildcrane.ai ──postMessage──▶ <hash>.wildcraneusercontent.com (your bundle)
+app.wildcrane.ai ──postMessage──▶ <hash>.wildcraneusercontent.com (your bundle)
   holds the sign-in,                   sandboxed iframe, no network,
   validates and saves                  sees only the artifact it is handed
 ```

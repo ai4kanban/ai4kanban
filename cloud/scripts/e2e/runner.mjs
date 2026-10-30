@@ -12,7 +12,7 @@ import { git } from '../commit.mjs'
 import { SUPABASE_URL } from './prod.mjs'
 
 const NPM = 'https://registry.npmjs.org'
-const BUILD_DIRS = ['runner', 'cli', 'review', 'artifact-sdk', 'skill', 'cloud/src']
+const BUILD_DIRS = ['runner', 'cli', 'web/src/review', 'artifact-sdk', 'skill', 'cloud/src']
 
 const sh = (cmd, args, cwd) =>
   execFileSync(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NODE_ENV: '' }, maxBuffer: 64 << 20 }).toString()

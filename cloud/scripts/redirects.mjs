@@ -12,12 +12,11 @@
 
 import { loadEnv, requireEnv, staging } from './env.mjs'
 
-/** Every sign-in: the desktop app (#326), the browser (#322), the review page, WildCrane Web,
+/** Every sign-in: the desktop app (#326), the browser (#322), WildCrane Web,
  *  the Runner's loopback and the pricing page's checkout. */
 const PRODUCTION = [
   'ai4kanban://cloud/signed-in',
   'https://cloud.ai4kanban.dev/signin/callback',
-  'https://review.wildcrane.ai/auth/callback',
   'https://app.wildcrane.ai/auth/callback',
   'http://127.0.0.1:*/**',
   'https://api.ai4kanban.dev/',

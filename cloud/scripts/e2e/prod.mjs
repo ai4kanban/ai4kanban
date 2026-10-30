@@ -8,7 +8,6 @@ import { loadEnv } from '../env.mjs'
 
 export const API = 'https://api.ai4kanban.dev'
 export const WEB = 'https://app.wildcrane.ai'
-export const REVIEW = 'https://review.wildcrane.ai'
 export const SUPABASE_URL = 'https://yajrbpprmdvtkvjjfpbk.supabase.co'
 // The publishable key every browser already holds.
 export const SUPABASE_KEY = 'sb_publishable_ioUQ23BTtoj8NKqndp0Jrw_omVR3m4n'

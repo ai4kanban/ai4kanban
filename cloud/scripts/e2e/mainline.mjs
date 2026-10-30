@@ -6,7 +6,6 @@ import { execFileSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { codeForm } from './account.mjs'
 import { launchBrowser, waitFor } from './browser.mjs'
 import { MIN, api, harness } from './harness.mjs'
 import { WEB, literal } from './prod.mjs'
@@ -58,24 +57,17 @@ await h.run(async () => {
         return t.includes('--version') ? t : undefined
       }, 30_000, 'the review page did not show the task to a visitor')
       if (/\b(Implement|Refine)\b/.test(text)) h.notes.push('A visitor who is not signed in is offered the button that approves the plan.')
-      if (!/Send code|Sign in/.test(text)) h.notes.push('A public share link opens the review page with no way to sign in: a member who is not signed in there can only read, not decide.')
     } finally {
       await visitor.close()
     }
     return link.url.replace(/[^/]+$/, '…')
   })
 
-  await h.step('approve', 'The owner signs in on the review page and approves', async () => {
-    // A public link's page offers no sign-in, so the owner opens the invite-only link the web
-    // app makes, which asks for one. The review page is its own site: no sign-in carries over.
+  await h.step('approve', 'The signed-in owner opens the share link, lands on the task page and approves', async () => {
     const invited = await api(await h.token(), 'POST', `/v1/tasks/${task.id}/share-links`, { access: 'invited' })
     await page.goto(invited.url)
-    await codeForm(page, account.email, env.RESEND_API_KEY).catch(async (error) => {
-      throw new Error(`${error.message}; the review page says: ${(await page.text()).replace(/\s+/g, ' ').slice(0, 300)}`)
-    })
-    await page.goto(invited.url)
     // The approve button names what approving starts: Implement, or Refine.
-    await waitFor(async () => /\b(Implement|Refine)\b/.test(await page.text()), 30_000, 'the signed-in owner has no Implement on the review page')
+    await waitFor(async () => /\b(Implement|Refine)\b/.test(await page.text()), 30_000, 'the signed-in owner has no Implement after opening the share link')
     await page.click(/^(Implement|Refine)$/)
     await waitFor(async () => (await api(await h.token(), 'GET', `/v1/tasks/${task.id}`)).status !== 'waiting_review', 60_000, 'Implement did not move the task on')
   })

@@ -6,7 +6,6 @@ How each WildCrane component goes live, and how far each one can go back.
 | --- | --- | --- |
 | Cloud | Worker `api.ai4kanban.dev` + Supabase | `cloud/`: `npm run migrate`, `npm run deploy` |
 | Web | Pages `wildcrane-app` → `app.wildcrane.ai` | `wrangler pages deploy` |
-| Review | Pages `wildcrane-review` → `review.wildcrane.ai` | `wrangler pages deploy` |
 | Runner | npm `wildcrane-runner` | `npm publish`, then `npm run runner-release` |
 | Plugins | GitHub release `plugin-v*` | tag → `.github/workflows/plugin-release.yml` |
 | Desktop | GitHub release `desktop-v*` | tag → `.github/workflows/desktop-release.yml` |
@@ -18,7 +17,7 @@ How each WildCrane component goes live, and how far each one can go back.
    staging passes.
 2. **Migrations before the Worker**: the Worker always finds the tables it expects. Every
    migration must keep the deployed Worker working; if it cannot, ship it in two deploys.
-3. **Cloud before Web and Review**: both sites call the Worker's `/v1` API.
+3. **Cloud before Web**: the site calls the Worker's `/v1` API.
 4. **Runner before `RUNNER_MIN_PROTOCOL`**: raise it in `cloud/src/config.ts` only after the
    new Runner is `stable` and the plugin is released, or older Runners are refused.
 
@@ -65,14 +64,6 @@ From `web/`. `public/_redirects` is the SPA fallback.
 4. **Verify production**: the entry JS named in `https://app.wildcrane.ai/` matches
    `dist/index.html`.
 
-## Review
-
-From `review/`. No staging; it is deployed by hand only, so it lags main until someone does.
-
-1. **Production**: `npm run build`, then
-   `wrangler pages deploy dist --project-name wildcrane-review --branch main`.
-2. **Verify**: the entry JS named in `https://review.wildcrane.ai/` matches `dist/index.html`.
-
 ## Runner
 
 The `runner-v*` workflow and `runner/scripts/publish.mjs` expect npm trusted publishing, which
@@ -106,7 +97,7 @@ Each one ships by pushing a tag that matches its version; the workflow refuses a
 | --- | --- |
 | Cloud Worker | an earlier version: `npm run rollback` in `cloud/` |
 | Cloud schema | **nothing**: migrations are forward only; fix forward with a new migration |
-| Web, Review | an earlier deployment: roll back in the Pages project's Deployments |
+| Web | an earlier deployment: roll back in the Pages project's Deployments |
 | Runner | `npm run runner-release rollback` (candidate to 0%) or `stable <older version>` |
 | Plugins | point `.claude-plugin/marketplace.json` back at the earlier release |
 | Desktop, artifact-sdk | nothing; release a higher version |

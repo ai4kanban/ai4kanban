@@ -490,7 +490,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
 - **Comments**: `GET`/`POST /v1/tasks/{id}/comments` `{ body }`, every phase's, a sign-in only
   (`session_required` for a key). `comment.created` reaches sign-ins only, never a key's feed.
 - **Share links**: `POST /v1/tasks/{id}/share-links` `{ access?, expires_in_days? }`
-  answers `{ id, url, access, expires_at }`; the `url` is shown only here. `access` is
+  answers `{ id, url, access, expires_at }`; the `url`, `https://app.wildcrane.ai/s/<token>`, is shown only here. `access` is
   `invited` (default: the workspace's members and the task's guests) or `link` (anyone holding
   it, read only, made by owners only); 7 days by default, 30 at most. `PATCH
   /v1/share-links/{id}` `{ access }` and `DELETE /v1/share-links/{id}`, which revokes, are
@@ -517,7 +517,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   added to it; no `picked` is "other" and needs `text`. With no options set, the one option is to approve. Authors are
   `{ kind: "reviewer", email, handle? }` for a guest, or `{ kind: "user", handle }` for a member.
 - **Chat**: each workspace member's own conversation with an agent on a task: `GET`, `POST`,
-  `DELETE /v1/tasks/{id}/chat`, or `/v1/shared/{token}/chat` on the review page (`owner_only`
+  `DELETE /v1/tasks/{id}/chat`, or `/v1/shared/{token}/chat` (`owner_only`
   for a guest or a visitor). Nobody reads another's. `GET /v1/chats?workspace=` lists the
   ones the caller wrote in (#113; clearing one drops it until they write again), newest message first: `{ task, key, title, project, last_message_at, state:
   "replying" | "waiting_you" | "idle" }`; a change raises `chat.updated` `{ task, state }` to the
@@ -602,8 +602,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   on a task the publisher started (`component`, `null` for none). The review page reads it with
   `GET /v1/shared/{token}/components/{name}/{version}` — only a version an artifact under review
   uses, a removed one `not_found` — and frames its `url`, `https://<hash>.wildcraneusercontent.com/`,
-  served with no network (`connect-src 'none'`) and framed only by the review page and WildCrane
-  Web (`APP_URL`). A member reads the one an artifact version pinned with `GET
+  served with no network (`connect-src 'none'`) and framed only by WildCrane Web (`APP_URL`). A member reads the one an artifact version pinned with `GET
   /v1/artifacts/{id}/versions/{version}/component` (#2082), `not_found` for none. A save from
   the component is `POST /v1/artifacts/{id}/versions` `{ content, pin: true }`, an owner's only
   (`owner_only`): the card's assets pinned to the artifact move to the new version with it.

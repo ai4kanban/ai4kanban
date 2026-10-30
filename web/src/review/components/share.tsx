@@ -1,9 +1,9 @@
-// The owner's Share button and the panel it opens, in legacy ui/popover.tsx's POPUP_PANEL and
+// The task page's Share button and the panel it opens, in legacy ui/popover.tsx's POPUP_PANEL and
 // POPUP_ROW. One link per task: copy it, pick who can open it, revoke it. The people
 // invited belong to the task (#2027): every link of it admits them, to comment, so a row has no
 // permission, only a remove. Revoking asks in the panel's own footer.
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { FiCheck, FiChevronDown, FiCopy, FiGlobe, FiLock, FiShare2, FiX } from "react-icons/fi";
 import { addGuest, createLink, removeGuest, revokeLink, updateLink, type Guest, type Link } from "../api";
 import { LANG, type Copy } from "../i18n";
@@ -17,30 +17,26 @@ import { Menu, POPUP_PANEL } from "./menu";
 const CAP = "text-[11px] font-[700] text-nb-ink-soft";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** A link's token is its last path segment, on the review page and in WildCrane Web alike. */
+/** A link's token is its last path segment. */
 const tokenOf = (url: string) => decodeURIComponent(new URL(url, location.origin).pathname.replace(/^\/+|\/+$/g, "").split("/").pop() ?? "") || null;
 
-/** `quiet`: borderless, as in the card page's title row. */
-export function ShareButton({ label, open, onClick, quiet }: { label: string; open?: boolean; onClick: () => void; quiet?: boolean }) {
-  const inner = (
-    <>
+export function ShareButton({ label, open, onClick }: { label: string; open?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={label}
+      title={label}
+      className={cn(QUIET, "max-md:w-7 max-md:px-0")}
+      style={open ? { background: "var(--color-nb-accent-soft)" } : undefined}
+    >
       <FiShare2 className="text-[13px]" aria-hidden />
       <span className="max-md:hidden">{label}</span>
-    </>
-  );
-  const lit = open ? { background: "var(--color-nb-accent-soft)" } : undefined;
-  return quiet ? (
-    <button type="button" onClick={onClick} aria-expanded={open} aria-label={label} title={label} className={cn(QUIET, "max-md:w-7 max-md:px-0")} style={lit}>
-      {inner}
     </button>
-  ) : (
-    <Button variant="ghost" size="xs" onClick={onClick} aria-expanded={open} aria-label={label} className="max-md:h-9 max-md:w-9 max-md:px-0" style={lit}>
-      {inner}
-    </Button>
   );
 }
 
-/** The button and its panel; the panel closes on Esc or a click outside. */
 type PanelProps = {
   c: Copy["share"];
   link: Link;
@@ -48,40 +44,12 @@ type PanelProps = {
   guests: Guest[];
   expires: string;
   onChanged: () => void;
-  /** The link's address; this page's own when left out. */
-  url?: string;
-  /** A new link replaced a revoked one; this page goes to it when left out. */
-  onRenewed?: (link: Link & { url: string }) => void;
+  url: string;
+  /** A new link replaced a revoked one. */
+  onRenewed: (link: Link & { url: string }) => void;
 };
 
-export function Share(props: PanelProps) {
-  const { c } = props;
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: PointerEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("pointerdown", away);
-    window.addEventListener("keydown", key);
-    return () => {
-      window.removeEventListener("pointerdown", away);
-      window.removeEventListener("keydown", key);
-    };
-  }, [open]);
-  return (
-    <div ref={box} className="relative">
-      <ShareButton label={c.button} open={open} onClick={() => setOpen((v) => !v)} />
-      {open && (
-        <div className="nb-pop origin-top-right absolute right-0 top-[calc(100%+8px)] z-[60] max-md:fixed max-md:inset-x-3 max-md:top-14">
-          <SharePanel {...props} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function SharePanel({ c, link: initial, task, guests, expires, onChanged, url: address, onRenewed }: PanelProps) {
+export function SharePanel({ c, link: initial, task, guests, expires, onChanged, url, onRenewed }: PanelProps) {
   const [link, setLink] = useState(initial);
   const [confirm, setConfirm] = useState(false);
   const [revoked, setRevoked] = useState(false);
@@ -91,7 +59,6 @@ export function SharePanel({ c, link: initial, task, guests, expires, onChanged,
   const { copied, copy } = useCopyText();
   const [emails, setEmails] = useState(() => guests.map((g) => g.email));
   const [unsent, setUnsent] = useState<string | null>(null);
-  const url = address ?? location.href.replace(/[?#].*$/, "");
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -142,9 +109,7 @@ export function SharePanel({ c, link: initial, task, guests, expires, onChanged,
           disabled={busy}
           onClick={() =>
             run(async () => {
-              const next = await createLink(task, { access: link.access });
-              if (onRenewed) onRenewed(next);
-              else location.assign(new URL(next.url, location.origin).pathname);
+              onRenewed(await createLink(task, { access: link.access }));
             })
           }
         >

@@ -20,7 +20,7 @@ import { join } from 'node:path'
 
 import { codeSignIn, removeTestAccounts, signUp, tokenSource } from './account.mjs'
 import { launchBrowser, waitFor } from './browser.mjs'
-import { API, REVIEW, WEB, credentials, sqlClient } from './prod.mjs'
+import { API, WEB, credentials, sqlClient } from './prod.mjs'
 import { prepareRunner, seedHome, startRunner } from './runner.mjs'
 
 export const MIN = 60_000
@@ -153,7 +153,7 @@ export async function harness({ name, title, watch }) {
     await h.step('versions', 'Record live versions', async () => {
       const v = await liveVersions(tag)
       if (v.runnerNamed !== v.runnerNpm) h.notes.push(`Cloud names Runner ${v.runnerNamed}; npm latest is ${v.runnerNpm}.`)
-      return `Worker ${v.worker}, Runner named ${v.runnerNamed} / npm ${v.runnerNpm}, web ${v.web}, review ${v.review}`
+      return `Worker ${v.worker}, Runner named ${v.runnerNamed} / npm ${v.runnerNpm}, web ${v.web}`
     })
 
     await h.step('signup', 'Sign up on the web with an emailed code', async () => {
@@ -292,7 +292,6 @@ async function liveVersions(tag) {
     runnerNamed: named.version,
     runnerNpm: npm['dist-tags']?.latest,
     web: await bundle(WEB),
-    review: await bundle(REVIEW),
   }
 }
 

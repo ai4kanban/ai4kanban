@@ -35,7 +35,7 @@ const COPY = {
 const langOf = (accept: string | undefined): 'zh' | 'en' =>
   /^\s*zh\b/i.test(accept ?? '') ? 'zh' : 'en'
 
-// Colors and type follow review/src/globals.css; icons are Feather's check and x.
+// Colors and type follow web/src/review/globals.css; icons are Feather's check and x.
 const PAGE = (outcome: Outcome, lang: 'zh' | 'en') => {
   const [title, body] = COPY[lang][outcome]
   const ok = outcome === 'ok'

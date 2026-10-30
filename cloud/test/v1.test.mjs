@@ -1469,17 +1469,17 @@ describe('card review (#2019, #2103)', () => {
     const res = await send('/v1/tasks/task_1/share-links', { method: 'POST', body: {} })
     assert.equal(res.status, 201)
     const link = await res.json()
-    const token = link.url.replace('https://review.wildcrane.ai/', '')
+    const token = link.url.replace('https://app.wildcrane.ai/s/', '')
     assert.match(token, /^[\w-]{43}$/)
     const [{ body }] = callsTo('v1_create_share_link')
     assert.equal(body.p_hash, await sha256(token))
     assert.ok(!JSON.stringify(body).includes(token))
     assert.deepEqual(body.p_fields, {})
 
-    env.REVIEW_URL = 'https://review.staging.test/'
+    env.APP_URL = 'https://staging.test/'
     const staged = await (await send('/v1/tasks/task_1/share-links', { method: 'POST', body: { access: 'link' } }, KEY)).json()
-    assert.ok(staged.url.startsWith('https://review.staging.test/'))
-    delete env.REVIEW_URL
+    assert.ok(staged.url.startsWith('https://staging.test/s/'))
+    delete env.APP_URL
 
     for (const bad of [{ access: 'anyone' }, { access: 'link', expires_in_days: 31 }]) {
       assert.equal((await send('/v1/tasks/task_1/share-links', { method: 'POST', body: bad })).status, 400, JSON.stringify(bad))
@@ -1519,9 +1519,9 @@ describe('card review (#2019, #2103)', () => {
     assert.equal(mails.length, 1)
     assert.deepEqual(mails[0].to, ['ana@studio.co'])
     assert.equal(mails[0].subject, '陈雪 邀请你审核「官网首页改版」')
-    assert.ok(mails[0].text.includes(`打开审核 https://review.wildcrane.ai/${SHARE}`))
+    assert.ok(mails[0].text.includes(`打开审核 https://app.wildcrane.ai/s/${SHARE}`))
     assert.ok(mails[0].text.includes('链接 11 月 1 日前有效'))
-    assert.ok(mails[0].html.includes(`href="https://review.wildcrane.ai/${SHARE}"`) && mails[0].html.includes('lang="zh"'))
+    assert.ok(mails[0].html.includes(`href="https://app.wildcrane.ai/s/${SHARE}"`) && mails[0].html.includes('lang="zh"'))
 
     answer = { guest, invite: { ...invite, inviter: 'Alex <Chen>' } }
     await put({ share_token: SHARE })
@@ -1845,7 +1845,7 @@ describe('artifact components (#2006)', () => {
     const csp = res.headers.get('content-security-policy')
     assert.match(csp, /default-src 'self'/)
     assert.match(csp, /connect-src 'none'/)
-    assert.match(csp, /frame-ancestors https:\/\/review\.wildcrane\.ai https:\/\/app\.wildcrane\.ai$/)
+    assert.match(csp, /frame-ancestors https:\/\/app\.wildcrane\.ai$/)
     assert.equal(await res.text(), '<p>hi</p>')
     assert.equal((await worker.fetch(new Request(`https://${HASH}.wildcraneusercontent.com/../x`), env, ctx)).status, 404)
     assert.equal((await worker.fetch(new Request(`https://nothex.wildcraneusercontent.com/`), env, ctx)).status, 404)

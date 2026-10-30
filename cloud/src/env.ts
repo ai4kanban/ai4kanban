@@ -70,9 +70,7 @@ export interface Env {
   RUNNER_PRESENCE?: DurableObjectNamespace
   /** One `DiffCall` per diff a page asks for, holding the Runner's answer in memory (#2109). */
   DIFF_CALLS?: DurableObjectNamespace
-  /** Where share links open, when not `REVIEW_URL` — a staging review site. */
-  REVIEW_URL?: string
-  /** WildCrane Web, when not `APP_URL` — staging or local; its card page frames components. */
+  /** WildCrane Web, when not `APP_URL` — staging or local; share links open there. */
   APP_URL?: string
   /** The commit this build was deployed from, set by `npm run deploy`; `+dirty` when the
    *  Worker files had uncommitted changes. */

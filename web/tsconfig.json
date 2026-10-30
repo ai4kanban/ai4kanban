@@ -15,7 +15,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "paths": {
-      "@review/*": ["../review/src/*"],
+      "@review/*": ["./src/review/*"],
       "*": ["./node_modules/@types/*", "./node_modules/*"]
     }
   },
