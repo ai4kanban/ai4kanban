@@ -16,6 +16,7 @@ import { numberOf } from "../lib/card";
 import { useNarrow } from "../lib/narrow";
 import { Link, navigate } from "../router";
 import { useStore } from "../store";
+import { AgentName, titleOf } from "../components/Agents";
 import { Skeleton } from "../components/Skeleton";
 import { Window } from "../components/Window";
 import { Gone } from "./Gone";
@@ -58,6 +59,10 @@ export function TriagePage({ projectId }: { projectId: string }) {
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<Toast | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
+  const [titles, setTitles] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    api.readProjectAgents(projectId).then((d) => setTitles(new Map(d.data.map((a) => [a.agent, titleOf(a)]))), () => {});
+  }, [projectId]);
   const [starting, setStarting] = useState<string | null>(null);
   const [history, setHistory] = useState<"idle" | "loading" | "failed" | "ok">("idle");
   const [more, setMore] = useState<"idle" | "loading" | "failed">("idle");
@@ -233,6 +238,7 @@ export function TriagePage({ projectId }: { projectId: string }) {
       item={detail}
       source={sourceOf(detail)}
       task={detail.task ? (tasks.get(detail.task) ?? null) : null}
+      proposer={detail.agent ? (titles.get(detail.agent) ?? titleOf({ agent: detail.agent, title: {} })) : null}
       onClose={() => setSelected(null)}
       onMake={() => makeTask(detail)}
       onBuild={detail.workflow ? () => void buildNow(detail) : undefined}
@@ -586,6 +592,7 @@ function Detail({
   item,
   source,
   task,
+  proposer,
   onClose,
   onMake,
   onBuild,
@@ -597,6 +604,7 @@ function Detail({
   item: api.TriageItem;
   source: api.Task | null;
   task: api.Task | null;
+  proposer: string | null;
   onClose: () => void;
   onMake: () => void;
   onBuild?: () => void;
@@ -621,6 +629,12 @@ function Detail({
       </div>
       <div className="shrink-0 px-3 pb-2">
         <h2 className="line-clamp-3 text-[17px] font-[700] leading-[26px]">{item.title}</h2>
+        {proposer && (
+          <div className="mt-1 flex items-center gap-1.5 text-[12px] leading-[18px] text-nb-ink-soft">
+            <span className="font-[700]">{C.proposedBy}</span>
+            <AgentName name={proposer} className="text-nb-ink" />
+          </div>
+        )}
         <span className="relative mt-3 flex flex-wrap items-center gap-2">
           {open ? (
             <>

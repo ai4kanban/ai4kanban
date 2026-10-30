@@ -5,7 +5,7 @@
 
 import { Fragment, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { FaHammer } from "react-icons/fa";
-import { FiAlertCircle, FiArchive, FiArrowDown, FiCheck, FiChevronDown, FiClock, FiEye, FiFileText, FiPlay, FiRotateCcw, FiScissors, FiSearch } from "react-icons/fi";
+import { FiAlertCircle, FiArchive, FiArrowDown, FiCheck, FiChevronDown, FiClock, FiCpu, FiEye, FiFileText, FiPlay, FiRotateCcw, FiScissors, FiSearch } from "react-icons/fi";
 import { POPUP_PANEL } from "@review/components/menu";
 import { cn } from "@review/lib/utils";
 import * as api from "../api";
@@ -35,6 +35,17 @@ const role = (id: string) => (Object.hasOwn(T.agents.roles, id) ? T.agents.roles
 const humanise = (id: string) => id.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
 const whenOf = (a: Item) => a.when?.[LANG] || a.when?.en;
 export const titleOf = (a: Pick<Item, "agent" | "title">) => a.title[LANG] || role(a.agent)?.title || humanise(a.agent);
+/** An agent's name with its small chip, as a task's 创建者 or a triage item's 提出者. */
+export function AgentName({ name, className }: { name: string; className?: string }) {
+  return (
+    <span className={cn("inline-flex min-w-0 items-center gap-1", className)}>
+      <span aria-hidden className="inline-flex size-[15px] shrink-0 items-center justify-center rounded-full" style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}>
+        <FiCpu style={{ width: 9, height: 9 }} />
+      </span>
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
 const placeholderOf = (a: Item) => {
   const r = role(a.agent);
   return r?.placeholder ?? (r?.helper ? T.agents.helperPlaceholder(titleOf(a)) : T.agents.placeholder(titleOf(a)));

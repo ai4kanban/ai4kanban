@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
-import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiCpu, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiTrash2, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
+import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiTrash2, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
 import type { Artifact, Chat, Comment, Decision, Shared } from "@review/api";
 import { AiChat, EarlierChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
@@ -40,7 +40,7 @@ import { ConfirmButton } from "../components/Confirm";
 import { restore, RestoreButton, takeRestoreFailure } from "../components/Restore";
 import { RunLog, watchDoing } from "../components/RunLog";
 import { StageBand, type StageState } from "../components/StageBand";
-import { titleOf } from "../components/Agents";
+import { AgentName, titleOf } from "../components/Agents";
 import { Subtasks } from "../components/Subtasks";
 import { openSettings, RUNTIMES_CHANGED, useGoneRuntimes } from "../components/Settings";
 import { Skeleton } from "../components/Skeleton";
@@ -600,12 +600,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const person = byPerson && task.created_by ? members.find((m) => m.handle === task.created_by)?.name || `@${task.created_by}` : null;
   const creatorValue = creator?.agent ? (
     <>
-      <span className="inline-flex items-center gap-1">
-        <span aria-hidden className="inline-flex size-[15px] items-center justify-center rounded-full" style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}>
-          <FiCpu style={{ width: 9, height: 9 }} />
-        </span>
-        {creator.agent === "triage-sort" ? T.triageSort : (titles.get(creator.agent) ?? titleOf({ agent: creator.agent, title: {} }))}
-      </span>
+      <AgentName name={creator.agent === "triage-sort" ? T.triageSort : (titles.get(creator.agent) ?? titleOf({ agent: creator.agent, title: {} }))} />
       {sourceKey && (
         <Link href={`/tasks/${encodeURIComponent(sourceKey)}`} className="nb-chip no-underline underline-offset-2 hover:underline" style={GREY}>
           {numberOf(sourceKey)}

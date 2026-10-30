@@ -68,6 +68,8 @@ export interface TriageItem {
   title: string;
   text: string;
   source_task: string | null;
+  /** The agent that filed it; null when added straight through the API. */
+  agent: string | null;
   /** The workflow that does its work; null on an item filed before it was asked for. */
   workflow: string | null;
   state: "open" | "dismissed" | "carded";
