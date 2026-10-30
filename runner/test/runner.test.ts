@@ -1782,6 +1782,30 @@ describe('the real runtimes', () => {
     assert.deepEqual(claudeModels(path.join(dir, 'missing')), [])
   })
 
+  it('reads the cached model lists again on every heartbeat, keeping the sign-in (#86)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-config-'))
+    const was = process.env.CLAUDE_CONFIG_DIR
+    process.env.CLAUDE_CONFIG_DIR = dir
+    try {
+      installed = [{ name: 'claude-code', installed: true, loggedIn: true }, { name: 'cursor', installed: true, loggedIn: true, models: [{ id: 'c1', name: 'C1' }] }]
+      start()
+      const report = (name: string) => ((cloud.runtimes ?? []) as RuntimeReport[]).find((r) => r.name === name)
+      const claude = () => report('claude-code')
+      await until(() => claude()?.models?.[0]?.id === 'opus')
+      fs.mkdirSync(path.join(dir, 'cache', 'model-catalog'), { recursive: true })
+      fs.writeFileSync(path.join(dir, 'cache', 'model-catalog', 'cc.json'), JSON.stringify({
+        fetchedAt: 1,
+        catalog: { surface: 'cc', config: { models: [{ id: 'claude-new-1', short_name: 'New', section: 'main' }] } },
+      }))
+      await until(() => claude()?.models?.[0]?.id === 'claude-new-1')
+      assert.equal(claude()!.loggedIn, true)
+      assert.deepEqual(report('cursor')!.models, [{ id: 'c1', name: 'C1' }])
+    } finally {
+      if (was === undefined) delete process.env.CLAUDE_CONFIG_DIR
+      else process.env.CLAUDE_CONFIG_DIR = was
+    }
+  })
+
   it('lists the models OpenCode and Cursor offer (#2084)', () => {
     assert.deepEqual(opencodeModels('opencode/big-pickle\nanthropic/claude-opus-5\n\nWarning: x\n'), [
       { id: 'opencode/big-pickle', name: 'opencode/big-pickle' },

@@ -18,6 +18,7 @@ import { status, t } from './i18n'
 import { holdMachine, type Holder } from './lock'
 import { STOP_MS, defaultDeps, folderFor, runJob, type Deps } from './jobs'
 import { keepPresence, type Presence } from './presence'
+import { refreshModels } from './runtimes'
 import { akbCardOf, openTaskFolder } from './task-folder'
 
 /** Re-register this often: it is what keeps the computer counted as connected. */
@@ -131,7 +132,12 @@ export function startRunner(options: Options): Runner {
   }
 
   const tick = async () => {
-    registration ??= await options.registration()
+    if (!registration) registration = await options.registration()
+    else {
+      const was = registration.runtimes
+      const runtimes = await refreshModels(was)
+      if (registration.runtimes === was) registration = { ...registration, runtimes }
+    }
     if (!swept) {
       swept = true
       void sweep()

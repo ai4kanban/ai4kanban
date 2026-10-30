@@ -154,8 +154,21 @@ export async function detectRuntimes(quick = false): Promise<RuntimeReport[]> {
       const settings = harness.settings.map(declOf)
       if (!binaryOnPath(binary)) return { name, installed: false, settings }
       const loggedIn = harness.login ? await probeLogin(binary, harness) : undefined
-      const models = loggedIn === false || (quick && SLOW.has(name)) ? [] : await (MODELS[name] ?? listed(harness))().catch(() => [])
+      const models = loggedIn === false || (quick && SLOW.has(name)) ? [] : await readModels(name)
       return { name, installed: true, ...(loggedIn === undefined ? {} : { loggedIn }), ...(models.length ? { models } : {}), settings }
+    }),
+  )
+}
+
+/** The reports with the model lists read without starting a CLI read again; sign-in and the
+ *  slow lists stay as the last full look found them (#86). */
+export function refreshModels(found: RuntimeReport[]): Promise<RuntimeReport[]> {
+  return Promise.all(
+    found.map(async (report) => {
+      if (!report.installed || report.loggedIn === false || SLOW.has(report.name)) return report
+      const { models: _, settings, ...rest } = report
+      const models = await readModels(report.name)
+      return { ...rest, ...(models.length ? { models } : {}), ...(settings ? { settings } : {}) }
     }),
   )
 }
@@ -166,6 +179,8 @@ const SLOW = new Set<Job['runtime']>(['opencode', 'cursor'])
 
 /** The ids a CLI caches for its own picker (harness `models()`), for the ones read no other way. */
 const listed = (harness: Harness) => async (): Promise<Model[]> => (harness.models?.() ?? []).map((id) => ({ id, name: id }))
+
+const readModels = (name: Job['runtime']) => (MODELS[name] ?? listed(HARNESSES[name]))().catch((): Model[] => [])
 
 const MODELS: Partial<Record<Job['runtime'], () => Promise<Model[]>>> = {
   'claude-code': async () => {
