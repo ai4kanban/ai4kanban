@@ -5,6 +5,9 @@ set -u
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 entry="$here/../dist/index.mjs"
 
+# Node's fetch ignores https_proxy without this.
+export NODE_USE_ENV_PROXY=1
+
 ok() {
   [ -x "$1" ] || return 1
   major=$("$1" -p 'process.versions.node.split(".")[0]' 2>/dev/null) || return 1

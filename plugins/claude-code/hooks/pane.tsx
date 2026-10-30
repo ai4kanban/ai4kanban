@@ -95,14 +95,9 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     <Box flexDirection="row" gap={1}>
       {logo}
       <Text bold>WildCrane</Text>
-      <Text dimColor>{c.pluginName}</Text>
       {status?.plugin?.version ? <Text dimColor>{`v${status.plugin.version}`}</Text> : null}
       <Box flexGrow={1} />
       {status?.signedIn && !v.synced ? <Text color="warning">{c.unsynced}</Text> : null}
-      {account ? <Text>{account}</Text> : null}
-      {status?.signedIn ? (
-        <Button key="sign-out" plain dimColor={!v.signingOut} label={c.signOut} onPress={() => act.askSignOut(!v.signingOut)} />
-      ) : null}
     </Box>
   )
 
@@ -153,6 +148,13 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
       </Box>
     </Box>
   ) : null
+
+  const footer = (
+    <Box flexDirection="row" gap={2}>
+      <Box flexGrow={1}>{account ? <Text dimColor>{account}</Text> : null}</Box>
+      <Button key="sign-out" plain dimColor={!v.signingOut} label={c.signOut} onPress={() => act.askSignOut(!v.signingOut)} />
+    </Box>
+  )
 
   const nav = (
     <Box flexDirection="row" gap={desk ? 2 : 3}>
@@ -426,9 +428,10 @@ export function Pane(at: Surface, v: View, act: Handlers | null): RenderElement 
     <Box flexDirection="column" gap={1}>
       {header}
       {upgrade}
-      {confirm}
       {nav}
       {body}
+      {confirm}
+      {footer}
     </Box>
   )
 }

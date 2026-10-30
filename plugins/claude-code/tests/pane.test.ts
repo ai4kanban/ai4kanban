@@ -50,12 +50,13 @@ test('signed out, the panel says what it is and Sign in only signs in', async ($
   expect(fake.calls.some((c) => c.action === 'addFolder')).toBe(false)
 })
 
-test('signed in, the account stays in the header; Sign out asks first and goes back to the first open', async ($, on) => {
+test('signed in, the account sits at the foot; Sign out asks first and goes back to the first open', async ($, on) => {
   const fake = host(on, { state: SIGNED_IN, discussion: EMPTY, signOut: { dir: '~/git/ai4kanban', signedIn: false, signing: null } }, 'zh')
   await $.command.run({ command: 'wildcrane', args: '' } as never)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect(await ui.find({ text: /^Lin Chen$/ })).toBeDefined()
   expect(await ui.find({ text: /已同步|未同步/ })).toBeUndefined()
+  expect(await ui.find({ text: /Claude Code 插件/ })).toBeUndefined()
   await ui.press({ key: 'sign-out' })
   expect(await ui.find({ text: /正在运行的任务会停止/ })).toBeDefined()
   await ui.press({ key: 'sign-out-cancel' })
@@ -226,7 +227,6 @@ test('Projects is one list: the current project marked, the ones not here say so
   host(on, { discussion: EMPTY, state: PROJECTS }, 'zh')
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await onProjects($, surface)
-    expect(await ui.find({ text: /Claude Code 插件/ })).toBeDefined()
     expect(await ui.find({ text: /^当前$/ })).toBeDefined()
     expect((await ui.find({ key: 'remove-prj_site' }))?.text).toContain('解绑')
     expect((await ui.find({ key: 'new-project' }))?.text).toContain('新建项目')
