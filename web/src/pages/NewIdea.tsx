@@ -18,6 +18,7 @@ import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { keepImages } from "../lib/chat-images";
 import { REVIEW, T, workflowName } from "../i18n";
+import { openHref } from "../lib/card";
 import { navigate, useLocation } from "../router";
 import { useStore } from "../store";
 import { useDismiss } from "../components/Header";
@@ -134,7 +135,7 @@ export function NewIdea({ home, first }: { home?: boolean; first?: boolean }) {
       store.patchTask(task);
       store.markSeen(task.id);
       setText("");
-      navigate(`/tasks/${encodeURIComponent(task.key)}?chat=1`);
+      navigate(openHref(task, "?chat=1"));
     } catch (e) {
       setTrouble((await quotaTrouble(e)) ?? { text: refusal(e) ?? T.idea.sendFailed });
       setBusy(false);

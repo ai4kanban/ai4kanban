@@ -315,7 +315,7 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   on the card's question asks it the same way, and the answer carries the build on. A decision
   while a step is waiting or running is `conflict`. A task reads `run: { state: "queued" |
   "running", runner_connected, machine, runtime_name, stopping, runner_removed, job, step } | null` — `step` is
-  `refine`, `implement`, `revise` or `resolve` (#79) — `result` once done, `failure` once failed, and
+  `create` (the card is still being written; the task reads `creating: true` until a create ends done, #98), `refine`, `implement`, `revise` or `resolve` (#79) — `result` once done, `failure` once failed, and
   `last_job`, whose log `GET /v1/runner/jobs/{id}/stream` streams and `GET /v1/runner/jobs/{id}` reads once ended. Nothing is retried; a step whose
   Runner went away fails the task. Cancelling a running task stops its step first.
 - **Stop and resume** (#2128): `POST /v1/tasks/{id}/stop` stops a running step, keeping its work:

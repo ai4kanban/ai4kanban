@@ -1,14 +1,14 @@
 // Copied from legacy kanban-ui/components/BoardCard.tsx: the number, one status mark, the
 // blocked and question marks, todo progress, the title, priority and stale days. An unread dot
 // before the number, and the avatars of whoever left unread comments at the foot. A task with
-// no card yet shows its title and status alone.
+// no card yet, or one still being written, shows its title and status alone.
 
 import { FiClock, FiHelpCircle } from "react-icons/fi";
 import { Avatar } from "@review/components/chat";
 import type { Task } from "../api";
 import { useAlerts } from "../alerts";
 import { T, workflowName } from "../i18n";
-import { numberOf, statusOf } from "../lib/card";
+import { creating, numberOf, statusOf } from "../lib/card";
 import { cn } from "@review/lib/utils";
 import { Link } from "../router";
 import { useStore } from "../store";
@@ -18,14 +18,12 @@ export function BoardCard({ task, staleDays }: { task: Task; staleDays?: number 
   const store = useStore();
   const unread = useAlerts().of(task.id);
   const who = unread?.commenters ?? [];
-  const info = store.cardOf(task);
+  const info = task.creating ? undefined : store.cardOf(task);
   const status = statusOf(task) ?? "failed";
   const userQs = info?.questions.filter((q) => q.user).length ?? 0;
-  return (
-    <Link
-      href={`/tasks/${encodeURIComponent(task.key)}`}
-      className={cn("nb-panel-sm nb-press flex cursor-pointer flex-col p-3 text-left text-nb-ink no-underline", store.isNew(task) && "nb-new")}
-    >
+  const box = cn("nb-panel-sm flex flex-col p-3 text-left text-nb-ink no-underline", store.isNew(task) && "nb-new");
+  const face = (
+    <>
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <span className="flex shrink-0 items-center gap-1.5 text-[11.5px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
           {unread && <span role="img" aria-label={T.unread} className="nb-tip size-[6px] shrink-0 rounded-full bg-nb-accent" data-tip={T.unread} />}
@@ -63,6 +61,13 @@ export function BoardCard({ task, staleDays }: { task: Task; staleDays?: number 
           </span>
         )}
       </div>
+    </>
+  );
+  // Its card is still being written (#98): on the board, but not open yet.
+  if (creating(task)) return <div className={box}>{face}</div>;
+  return (
+    <Link href={`/tasks/${encodeURIComponent(task.key)}`} className={cn(box, "nb-press cursor-pointer")}>
+      {face}
     </Link>
   );
 }

@@ -7831,6 +7831,10 @@
             "type": "boolean",
             "description": "True while a queued `run` task waits only because its plan's running tasks are all in use. It starts on its own once one stops running."
           },
+          "creating": {
+            "type": "boolean",
+            "description": "True until a planned task's card is first written: no `create` step of it has ended done."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -7897,12 +7901,13 @@
               "step": {
                 "type": "string",
                 "enum": [
+                  "create",
                   "refine",
                   "implement",
                   "revise",
                   "resolve"
                 ],
-                "description": "What the step does: `refine` plans the card or makes the previews an approval starts, `implement` builds it, from the start when the task skips planning."
+                "description": "What the step does: `create` writes a new task's card, which is not yet open to read; `refine` plans the card again or makes the previews an approval starts; `implement` builds it, from the start when the task skips planning."
               }
             },
             "required": [

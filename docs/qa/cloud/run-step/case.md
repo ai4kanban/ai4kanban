@@ -8,7 +8,7 @@
 ## Steps
 
 1. 建一个要运行的任务（`POST /v1/tasks`，`run: true`），再让 Runner 领走这一步，每次 `GET /v1/tasks/{id}`。
-   预期：排队和运行中 `run.step` 都是 `refine`。
+   预期：排队和运行中 `run.step` 都是 `create`（卡片还在创建中）。
    证据：[01-refine.log](01-refine.log)
 2. 细化结束、任务等审核时批准。
    预期：新的一步排队，`run.step` 是 `implement`。

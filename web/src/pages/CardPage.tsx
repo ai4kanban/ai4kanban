@@ -27,7 +27,7 @@ import { cn } from "@review/lib/utils";
 import * as api from "../api";
 import { useAlerts } from "../alerts";
 import { REVIEW, T, workflowName } from "../i18n";
-import { numberOf } from "../lib/card";
+import { creating, numberOf, openHref } from "../lib/card";
 import { remember, reviewLink } from "../lib/links";
 import { useNarrow } from "../lib/narrow";
 import { Link, navigate, useLocation } from "../router";
@@ -132,8 +132,8 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const [railOpen, setRailOpen] = useState(false);
   // The card as last read, and for which task: another task's never shows, and none read yet is loading.
   const [read, setRead] = useState<{ task: string; card: api.Card | null } | null>(null);
-  const card = read && read.task === task?.id ? read.card : null;
-  const loadingBody = task?.card_version != null && read?.task !== task.id;
+  const card = read && read.task === task?.id && !task.creating ? read.card : null;
+  const loadingBody = task?.card_version != null && !task.creating && read?.task !== task.id;
   const shownId = useRef(task?.id);
   shownId.current = task?.id;
   // A decision or a revision moves the review without the task's `updated_at`, so the list's
@@ -190,13 +190,16 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     };
   }, [taskKey]);
 
+  // Its card is still being written (#98): back to its board.
+  const shut = !!task && creating(task);
   useEffect(() => {
     if (!task) return;
     if (task.workspace !== store.ws.id && store.workspaces.some((w) => w.id === task.workspace)) store.setWorkspace(task.workspace);
+    if (shut) return void navigate(openHref(task), true);
     if (task.key !== taskKey) navigate(`/tasks/${encodeURIComponent(task.key)}${location.search}`, true);
     store.markSeen(task.id);
     document.title = `${task.title} · WildCrane`;
-  }, [task?.id, task?.key]);
+  }, [task?.id, task?.key, shut]);
 
   // Opening a task reads its alerts.
   useEffect(() => {
@@ -336,7 +339,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
   const computers = useComputers(task?.project);
 
   if (missing && !task) return <Gone text={T.notFound} />;
-  if (!task)
+  if (!task || shut)
     return (
       <Window>
         <Skeleton className="max-w-[420px] p-6" />
@@ -428,7 +431,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
     act(async () => {
       const t = await api.createTask({ title: task.title, request: task.request, project: task.project, workspace: task.workspace, workflow: task.workflow.id });
       store.patchTask(t);
-      navigate(`/tasks/${encodeURIComponent(t.key)}?chat=1`);
+      navigate(openHref(t, "?chat=1"));
     });
   const comment = async (body: string) => {
     setTrouble(null);

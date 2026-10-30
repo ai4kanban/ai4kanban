@@ -19,7 +19,7 @@ import { ComputerMenu, useComputers } from "../components/ComputerMenu";
 import { Notice, quotaTrouble, type Trouble } from "../components/Notice";
 import { REVIEW, T, workflowName } from "../i18n";
 import { useNarrow } from "../lib/narrow";
-import { numberOf } from "../lib/card";
+import { numberOf, openHref } from "../lib/card";
 import { Link, navigate } from "../router";
 import { useStore } from "../store";
 import { watchDoing } from "../components/RunLog";
@@ -130,7 +130,7 @@ export function DiscussionPage({ id }: { id: string }) {
       const task = await api.startIdea(id, i.id, store.current?.id, d?.external ? d.version : undefined, build, machine ?? undefined);
       store.patchTask(task);
       setD((was) => was && { ...was, ideas: was.ideas.map((x) => (x.id === i.id ? { ...x, task: { id: task.id, key: task.key } } : x)) });
-      navigate(`/tasks/${encodeURIComponent(task.key)}`);
+      navigate(openHref(task));
     });
   const pick = (i: api.Idea, workflow: string) => act(async () => setD(await api.setIdeaWorkflow(id, i.id, workflow)));
   const discard = (i: api.Idea) => act(async () => setD(await api.deleteIdea(id, i.id)));

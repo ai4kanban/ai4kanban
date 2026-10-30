@@ -25,7 +25,7 @@ export interface Task {
   created_by?: string;
   /** `machine` is the computer the step runs on; `stopping` once asked to stop (#2128); `runner_removed` when
    *  a queued step's computer was removed from the workspace (#2143). */
-  run?: { state: "queued" | "running"; runner_connected: boolean; machine?: string | null; runtime_name?: string | null; stopping?: boolean; runner_removed?: boolean; job: string; step?: "refine" | "implement" | "revise" | "resolve" } | null;
+  run?: { state: "queued" | "running"; runner_connected: boolean; machine?: string | null; runtime_name?: string | null; stopping?: boolean; runner_removed?: boolean; job: string; step?: "create" | "refine" | "implement" | "revise" | "resolve" } | null;
   result?: string | null;
   failure?: string | null;
   last_job?: string | null;
@@ -42,6 +42,8 @@ export interface Task {
   resume?: { machine: string; available: boolean } | null;
   /** Queued only because the plan's running tasks are all in use (#2209). */
   waiting_for_slot?: boolean;
+  /** Its card has never been written (#98): a planned create has not yet ended done. */
+  creating?: boolean;
 }
 
 /** A landed commit's changes, read from the computer it landed on; `truncated` leaves out every `patch`. */

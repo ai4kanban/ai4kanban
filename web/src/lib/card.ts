@@ -96,6 +96,14 @@ export const statusOf = (t: Task): Status | null =>
 
 export const isOpen = (t: Task) => statusOf(t) !== null;
 
+/** Its card is being written right now (#98): shown on the board, never opened. A create that ended
+ *  unwritten opens for its reason, with no card. */
+export const creating = (t: Task) => t.run?.step === "create";
+
+/** Where opening a task goes: its page, or its board while it is creating. */
+export const openHref = (t: Task, query = "") =>
+  creating(t) ? `/projects/${encodeURIComponent(t.project)}` : `/tasks/${encodeURIComponent(t.key)}${query}`;
+
 const RANK: Record<Status, number> = { review: 0, running: 1, queued: 2, stopped: 3, failed: 4 };
 const LV: Record<Level, number> = { high: 0, med: 1, low: 2 };
 

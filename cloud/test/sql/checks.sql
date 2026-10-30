@@ -3190,7 +3190,8 @@ begin
   assert v_json ->> 'status' = 'queued' and v_json -> 'run' ->> 'state' = 'queued'
     and (v_json -> 'run' ->> 'runner_connected')::boolean and v_json ->> 'last_job' = v_json -> 'run' ->> 'job'
     and v_json -> 'result' = 'null' and v_json -> 'failure' = 'null', 'a run task did not wait for its first step';
-  assert v_json -> 'run' ->> 'step' = 'refine', format('a planned create was not refining: %s', v_json);
+  assert v_json -> 'run' ->> 'step' = 'create', format('a planned create was not creating: %s', v_json);
+  assert (v_json -> 'creating')::boolean, 'a task whose card is unwritten was not creating';
   v_job := cloud.v1_flow_job(v_task);
   assert v_job.flow = '{"verb": "create", "workflow": "wf_builtin_coding", "text": "Build a pricing page.", "title": "Pricing"}'
     and v_job.runtime = 'claude-code' and v_job.owner_id = A, 'the first step misread';
@@ -3212,6 +3213,7 @@ begin
   v_json := api.v1_task(A, v_task);
   assert v_json ->> 'status' = 'waiting_review' and v_json -> 'run' = 'null' and v_json ->> 'last_job' = v_job.id::text,
     'a finished step did not submit its draft';
+  assert not (v_json -> 'creating')::boolean, 'a written card was still creating';
   v_json := api.v1_task(A, v_task) -> 'review';
   assert v_json ->> 'status' = 'ready' and v_json ->> 'question' = 'Approve this plan?' and v_json -> 'options' =
     '[{"label": "Approve", "approve": true}, {"label": "Request changes", "approve": false}]'
@@ -4465,6 +4467,7 @@ begin
   assert (select (flow ->> 'skip_plan')::boolean from cloud.runner_jobs where task_id = v_gone and flow ->> 'verb' = 'create'),
     'the create step did not carry skip_plan';
   assert api.v1_task(A, v_gone) -> 'run' ->> 'step' = 'implement', 'an unplanned create was not building';
+  assert not (api.v1_task(A, v_gone) -> 'creating')::boolean, 'an unplanned create was creating';
   perform cloud.v1_finish_flow(j, '{"card": 5}') from cloud.runner_jobs j where j.task_id = v_gone;
   assert (select status = 'done' from cloud.tasks where id = v_gone), 'an unplanned create was not ended as a build';
 
