@@ -60,6 +60,13 @@ const SEND_TIMEOUT_MS = 3_000
  *  overridden — a build made for development must never post into the real numbers. */
 const endpoint = (): string => process.env.AI4KANBAN_USAGE_URL || ENDPOINT.production
 
+/** The `DO_NOT_TRACK` convention: set and not `0`, nothing is queued, counted or sent. The
+ *  setting itself is left as it is. */
+const doNotTrack = (): boolean => {
+  const held = process.env.DO_NOT_TRACK
+  return !!held && held !== '0'
+}
+
 // ---- the surface, the day, and the fields every event carries ---------------
 
 /** Which surface this process is. The app starts the board server with `KANBAN_DESKTOP=1`
@@ -107,6 +114,7 @@ function operatingSystem(): string {
  */
 export function reportUsage(name: EventName, fields: Record<string, Field> = {}, surface: Surface = usageSurface()): void {
   try {
+    if (doNotTrack()) return
     const held = readUsageReporting()
     if (!held.on) return
     if (surface === 'app' && !held.disclosed) return
@@ -143,7 +151,7 @@ export function reportUsage(name: EventName, fields: Record<string, Field> = {},
  */
 export function reportAppOpen(surface: Surface = usageSurface()): void {
   try {
-    if (insideRun()) return
+    if (insideRun() || doNotTrack()) return
     // Asked before anything is written down, so a machine that said no leaves no trace of
     // this file either.
     const held = readUsageReporting()
@@ -256,7 +264,7 @@ const countOf = (counts: BoardCounts | undefined, name: BoardCount): number => {
  *  reporting is off. Never throws. */
 export function countBoardEvent(name: BoardCount, n = 1): void {
   try {
-    if (!BOARD_STATE || n <= 0 || !readUsageReporting().on) return
+    if (!BOARD_STATE || n <= 0 || doNotTrack() || !readUsageReporting().on) return
     const held = readBoard()
     writeBoard({ ...held, counts: { ...held.counts, [name]: countOf(held.counts, name) + n } })
   } catch {
@@ -269,7 +277,7 @@ export function countBoardEvent(name: BoardCount, n = 1): void {
  *  Its id is random and kept in the board's machine state, made only once reporting is on. */
 export function reportBoardNumbers(customAgentsOn: () => number): void {
   try {
-    if (!BOARD_STATE) return
+    if (!BOARD_STATE || doNotTrack()) return
     const reporting = readUsageReporting()
     if (!reporting.on) return
     // The event would not be queued, so the counts wait rather than vanish.
@@ -436,6 +444,7 @@ export async function sendUsage(now: Date = new Date()): Promise<void> {
 }
 
 async function attempt(now: Date): Promise<void> {
+  if (doNotTrack()) return
   const held = readUsageReporting()
   if (!held.on || !held.installId) return
 

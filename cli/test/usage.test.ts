@@ -37,6 +37,7 @@ import {
 
 let home = ''
 let project = ''
+const doNotTrack = process.env.DO_NOT_TRACK
 
 /** A board of this suite's own, for the command lines below to find.
  *
@@ -61,6 +62,7 @@ beforeEach(() => {
   delete process.env.KANBAN_RUN
   delete process.env.KANBAN_DESKTOP
   delete process.env.AI4KANBAN_USAGE_URL
+  delete process.env.DO_NOT_TRACK
 })
 
 afterEach(() => {
@@ -69,6 +71,8 @@ afterEach(() => {
   restoreMachineHome()
   delete process.env.AI4KANBAN_USAGE_URL
   delete process.env.KANBAN_DESKTOP
+  if (doNotTrack === undefined) delete process.env.DO_NOT_TRACK
+  else process.env.DO_NOT_TRACK = doNotTrack
 })
 
 /** The queue as the sender would read it. */
@@ -511,6 +515,31 @@ describe('the sender', () => {
       putState({ sendMinute: 0 })
       await sendUsage()
       assert.equal(at.batches.length, 0)
+    } finally {
+      await at.close()
+    }
+  })
+
+  it('queues and sends nothing under DO_NOT_TRACK, and leaves the setting alone', async () => {
+    const at = await endpoint()
+    process.env.AI4KANBAN_USAGE_URL = at.url
+    try {
+      putState({ sendMinute: PARKED })
+      reportRun('finished', 'codex', false)
+      await settle()
+      putState({ sendMinute: 0 })
+      process.env.DO_NOT_TRACK = '1'
+      const before = { queue: fs.readFileSync(usageQueueFile(), 'utf8'), state: state() }
+      reportAppOpen('command')
+      reportRun('started', 'codex', false)
+      await sendUsage()
+      assert.equal(at.batches.length, 0)
+      assert.equal(fs.readFileSync(usageQueueFile(), 'utf8'), before.queue)
+      assert.deepEqual(state(), before.state)
+      assert.equal(readUsageReporting().on, true)
+      process.env.DO_NOT_TRACK = '0'
+      await sendUsage()
+      assert.equal(at.batches.length, 1)
     } finally {
       await at.close()
     }

@@ -47,6 +47,8 @@ const queued = (): SentEvent[] =>
     ? fs.readFileSync(usageQueueFile(), 'utf8').trim().split('\n').map((line) => JSON.parse(line) as SentEvent)
     : []
 
+const doNotTrack = process.env.DO_NOT_TRACK
+
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-custom-agents-'))
   fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
@@ -55,6 +57,7 @@ beforeEach(() => {
   process.env.AI4KANBAN_HOME = path.join(root, 'home')
   delete process.env.KANBAN_RUN
   delete process.env.KANBAN_DESKTOP
+  delete process.env.DO_NOT_TRACK
   setBoardRoot(root)
   // Today's batch is already out, so nothing here reaches the network.
   fs.mkdirSync(process.env.AI4KANBAN_HOME, { recursive: true })
@@ -64,6 +67,8 @@ beforeEach(() => {
 afterEach(() => {
   restoreMachineHome()
   fs.rmSync(root, { recursive: true, force: true })
+  if (doNotTrack === undefined) delete process.env.DO_NOT_TRACK
+  else process.env.DO_NOT_TRACK = doNotTrack
 })
 
 describe("a project's own agents", () => {
