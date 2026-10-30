@@ -6,7 +6,8 @@ import { navigate } from "../router";
 import { ApiError, readShared, type Shared } from "./api";
 import { onSession, readSession, signOut } from "./auth";
 import { CardPage } from "./components/CardPage";
-import { Failed, Gone, Loading, NotInvited, SignIn } from "./components/Notice";
+import { Failed, Gone, Loading, NotInvited, SIGN_IN_FAILED, SignIn } from "./components/Notice";
+import { COPY } from "./i18n";
 
 const POLL_MS = 20_000;
 
@@ -14,6 +15,7 @@ type State =
   | { kind: "loading" }
   | { kind: "ok"; shared: Shared }
   | { kind: "sign-in" }
+  | { kind: "sign-in-from-link"; shared: Shared }
   | { kind: "not-invited"; email: string }
   | { kind: "gone" }
   | { kind: "failed"; offline: boolean };
@@ -37,13 +39,13 @@ export function Review({ token }: { token: string }) {
     try {
       const shared = await readShared(token);
       if (shared.role === "owner" || shared.role === "member") return navigate(`/tasks/${encodeURIComponent(shared.task.id)}`, true);
-      shown.current = true;
-      setState({ kind: "ok", shared });
+      const failed = !shared.me && sessionStorage.getItem(SIGN_IN_FAILED) !== null;
+      // A read from before signing in must not close the sign-in page that overtook it.
+      setState((s) => (!shared.me && (failed || s.kind === "sign-in-from-link") ? { kind: "sign-in-from-link", shared } : { kind: "ok", shared }));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : "error";
       // A poll that fails keeps the page; the next one tries again.
       if (shown.current && (code === "offline" || code === "error" || (e instanceof ApiError && e.status >= 500))) return;
-      shown.current = false;
       if (code === "link_invalid" || code === "link_expired" || code === "link_revoked" || code === "not_found") setState({ kind: "gone" });
       else if (code === "sign_in_required") setState({ kind: "sign-in" });
       else if (code === "unauthenticated") {
@@ -60,6 +62,7 @@ export function Review({ token }: { token: string }) {
   }, [load]);
 
   useEffect(() => {
+    shown.current = state.kind === "ok";
     if (state.kind !== "ok") return;
     const tick = () => document.visibilityState === "visible" && void load();
     const timer = setInterval(tick, POLL_MS);
@@ -80,9 +83,11 @@ export function Review({ token }: { token: string }) {
     case "loading":
       return <Loading />;
     case "ok":
-      return <CardPage shared={state.shared} token={token} reload={load} />;
+      return <CardPage shared={state.shared} token={token} reload={load} onSignIn={() => setState({ kind: "sign-in-from-link", shared: state.shared })} />;
     case "sign-in":
       return <SignIn back={location.pathname} />;
+    case "sign-in-from-link":
+      return <SignIn back={location.pathname} title={COPY.signIn.fromLink.title} body={COPY.signIn.fromLink.body} onLeave={() => setState({ kind: "ok", shared: state.shared })} />;
     case "not-invited":
       return <NotInvited email={state.email} />;
     case "gone":

@@ -142,8 +142,8 @@ const say = (e: unknown) => {
   return { bad_code: c.badCode, rate_limited: c.tooMany, offline: COPY.errors.offline, failed: c.failed }[e.kind];
 };
 
-/** GitHub, or email and a 6-digit code; `back` is where GitHub returns to. */
-export function SignIn({ back, title, body }: { back: string; title?: string; body?: string }) {
+/** GitHub, or email and a 6-digit code; `back` is where GitHub returns to, `onLeave` gives up on signing in. */
+export function SignIn({ back, title, body, onLeave }: { back: string; title?: string; body?: string; onLeave?: () => void }) {
   const c = COPY.signIn;
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
@@ -273,6 +273,13 @@ export function SignIn({ back, title, body }: { back: string; title?: string; bo
         <button type="submit" disabled={busy} className={SECONDARY}>
           {busy ? c.sending : c.sendCode}
         </button>
+        {onLeave && (
+          <div className="flex justify-center pt-2 text-[13.5px] font-[550] text-nb-ink-soft">
+            <button type="button" onClick={onLeave} className={LINK}>
+              {c.fromLink.back}
+            </button>
+          </div>
+        )}
       </form>
     </Ground>
   );

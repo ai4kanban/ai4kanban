@@ -255,6 +255,7 @@ const zh = {
     tooMany: "请求太频繁，请稍后再试。",
     failed: "登录没有完成，请重试。",
     signingIn: "正在登录…",
+    fromLink: { open: "登录", title: "登录 WildCrane", body: "工作空间成员登录后直接进入任务页。", back: "返回审核页" },
     terms: ["继续即表示你同意", "服务条款", "和", "隐私政策", "。"],
   },
   notInvited: {
@@ -500,6 +501,7 @@ const en: Copy = {
     tooMany: "Too many attempts. Try again in a moment.",
     failed: "Sign-in didn't finish. Try again.",
     signingIn: "Signing in…",
+    fromLink: { open: "Sign in", title: "Sign in to WildCrane", body: "Workspace members go straight to the task.", back: "Back to review" },
     terms: ["By continuing, you agree to the", "Terms of Service", "and", "Privacy Policy", "."],
   },
   notInvited: {

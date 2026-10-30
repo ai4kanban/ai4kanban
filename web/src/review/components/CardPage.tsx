@@ -12,6 +12,7 @@ import { LANG, useCopy } from "../i18n";
 import { Previews } from "../lib/artifacts";
 import { cardMeta, withoutTitle } from "../lib/card-info";
 import { cn } from "../lib/utils";
+import { Button } from "./button";
 import { humanise } from "./CardBody";
 import { CardSheet, type Info } from "./card-sheet";
 import { Avatar, ChatButton, ChatPane, useEscape } from "./chat";
@@ -36,7 +37,7 @@ const useNarrow = () => {
 /** A failed write, said once over the page with what to do about it. */
 type Trouble = { text: string; reload?: boolean } | null;
 
-export function CardPage({ shared, token, reload }: { shared: Shared; token: string; reload: () => Promise<void> }) {
+export function CardPage({ shared, token, reload, onSignIn }: { shared: Shared; token: string; reload: () => Promise<void>; onSignIn: () => void }) {
   const c = useCopy();
   const card = shared.card;
   const viewer = shared.role === null;
@@ -140,7 +141,12 @@ export function CardPage({ shared, token, reload }: { shared: Shared; token: str
               ]}
             />
           ) : (
-            <LangSelect phone={narrow} />
+            <>
+              <LangSelect phone={narrow} />
+              <Button variant="ghost" size="xs" onClick={onSignIn} className="max-md:h-9">
+                {c.signIn.fromLink.open}
+              </Button>
+            </>
           )}
         </span>
       </header>
