@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FaRegLightbulb } from "react-icons/fa";
-import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiTrash2, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
+import { FiAlertCircle, FiArrowUpRight, FiCheckCircle, FiFileText, FiGrid, FiPauseCircle, FiPlay, FiRotateCw, FiWifiOff, FiX, FiXCircle } from "react-icons/fi";
 import type { Artifact, Chat, Comment, Decision, Shared } from "@review/api";
 import { AiChat, EarlierChat, preloadChat } from "@review/components/ai-chat";
 import { AiBackButton, AiCorner, useAiOpen } from "@review/components/ai-corner";
@@ -36,7 +36,6 @@ import { useStore } from "../store";
 import { pillLabel, StatusPill, type PillStatus } from "../components/chips";
 import { useDismiss } from "../components/Header";
 import { LandedCommit, LandedDiff } from "../components/Landed";
-import { ConfirmButton } from "../components/Confirm";
 import { restore, RestoreButton, takeRestoreFailure } from "../components/Restore";
 import { RunLog, watchDoing } from "../components/RunLog";
 import { StageBand, type StageState } from "../components/StageBand";
@@ -594,11 +593,6 @@ export function CardPage({ taskKey }: { taskKey: string }) {
           {T.resume}
         </Button>
       )}
-      {task.discardable && (
-        <span className="ml-2 flex">
-          <ConfirmButton icon={<FiTrash2 className="text-[13px]" aria-hidden />} label={T.discard.label} ask={T.discard.ask} hint={T.discard.hint} busy={busy} onConfirm={() => void discard()} />
-        </span>
-      )}
     </>
   );
   const person = byPerson && task.created_by ? members.find((m) => m.handle === task.created_by)?.name || `@${task.created_by}` : null;
@@ -695,7 +689,7 @@ export function CardPage({ taskKey }: { taskKey: string }) {
                   {built && <Line tone="mint" icon={<FiCheckCircle size={14} aria-hidden />}>{task.context?.created ? T.builder.created(built.name) : T.builder.updated(built.name)}</Line>}
                   {task.run?.runner_removed && <Line tone="peach" icon={<FiAlertCircle size={14} aria-hidden />}>{T.removedLine(task.run.machine ?? "")}</Line>}
                   {slot && plan && <Notice trouble={{ text: T.slotsFull(plan.quota.limits.tasks), upgrade: plan.billing.plan !== "pro" }} />}
-                  <RunLog task={task} failure={task.status === "failed" && !reason ? task.failure : null} />
+                  <RunLog task={task} failure={task.status === "failed" && !reason ? task.failure : null} discard={task.discardable ? { busy, onConfirm: () => void discard() } : undefined} />
                 </>
               }
               below={

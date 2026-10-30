@@ -4,11 +4,13 @@
 // A log with no typed events stays the mono tail it always was.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiClock } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiChevronRight, FiClock, FiTrash2 } from "react-icons/fi";
 import { ContextRing } from "@review/components/context-ring";
+import { HAIRLINE } from "@review/components/chrome";
 import { Markdown } from "@review/components/Markdown";
 import * as api from "../api";
 import { T, type ToolKind } from "../i18n";
+import { ConfirmButton } from "./Confirm";
 
 const RECONNECT_MS = [1000, 2000, 5000, 10000];
 const TAIL_CHARS = 64 * 1024;
@@ -249,11 +251,11 @@ function Errors({ errors }: { errors: string[] }) {
   );
 }
 
-function Facts({ items }: { items: { text: string; title?: string; dim?: boolean }[] }) {
+function Facts({ items, terse }: { items: { text: string; title?: string; dim?: boolean }[]; terse?: boolean }) {
   return (
     <>
       {items.map((f, i) => (
-        <span key={i} className={f.dim ? "tabular-nums opacity-80" : undefined} title={f.title}>
+        <span key={i} className={f.dim ? `tabular-nums opacity-80${terse ? " max-md:hidden" : ""}` : undefined} title={f.title}>
           {i > 0 && (
             <span className="mx-1.5" aria-hidden>
               ·
@@ -319,8 +321,8 @@ export function watchDoing(job: string, show: (doing: string | null) => void): (
   });
 }
 
-/** `failure`: why the run failed, shown where its own output names no error. */
-export function RunLog({ task, failure }: { task: api.Task; failure?: string | null }) {
+/** `failure`: why the run failed, shown where its own output names no error. `discard`: clears this run, keeping the task (#118). */
+export function RunLog({ task, failure, discard }: { task: api.Task; failure?: string | null; discard?: { busy: boolean; onConfirm: () => void } }) {
   const job = task.run?.job ?? task.last_job ?? null;
   const live = task.run?.state === "running";
   const queued = task.run?.state === "queued";
@@ -385,7 +387,7 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
     if (open && live && el && pinned.current) el.scrollTop = el.scrollHeight;
   }, [events, open, live]);
 
-  if (!job && !queued) return null;
+  if (!job && !queued && !discard) return null;
   const failed = task.status === "failed";
   const stopped = task.status === "stopped";
   const started = info?.createdAt ? Date.parse(info.createdAt) : null;
@@ -419,42 +421,64 @@ export function RunLog({ task, failure }: { task: api.Task; failure?: string | n
   return (
     <div className="nb-section bg-nb-sheet">
       {p.structured && <style>{MOTION}</style>}
-      <button type="button" onClick={() => job && setOpen((v) => !v)} aria-expanded={open} className="flex h-10 w-full cursor-pointer items-center gap-3 px-4 text-left">
-        <span className="text-[12px] font-[700]">{T.runLog}</span>
-        <span className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 text-[11px] text-nb-ink-soft">
-          {queued ? (
-            <>
-              <FiClock size={11} aria-hidden />
-              <span>{task.run?.runner_connected === false ? T.queuedOffline : T.queued}</span>
-            </>
-          ) : live ? (
-            <>
-              <span className={PULSE_DOT} aria-hidden />
-              <span>
-                {task.run?.step ? T.step[task.run.step] : T.running}
-                {started ? ` · ${clock(now - started)}` : ""}
-              </span>
-            </>
-          ) : (
-            <>
-              <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>
-                {failed ? "✕" : stopped ? "■" : "✓"}
-              </span>
-              <span>
-                <Facts
-                  items={[
-                    { text: failed ? T.failedRun : stopped ? T.stoppedRun : T.done },
-                    ...(took ? [{ text: took, dim: true }] : []),
-                    ...(typeof info?.costUsd === "number" ? [{ text: formatCost(info.costUsd), dim: true, title: T.log.costHint }] : []),
-                  ]}
-                />
-              </span>
-            </>
-          )}
-          <ContextRing context={info?.context ?? p.context} tip={T.log.context} className="nb-tip-end" />
-          {job && <FiChevronDown size={13} aria-hidden className={open ? "rotate-180" : ""} />}
-        </span>
-      </button>
+      <div className={discard ? "flex h-10 items-center pr-2" : "flex h-10"}>
+        <button
+          type="button"
+          onClick={() => job && setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`flex h-10 min-w-0 flex-1 cursor-pointer items-center gap-3 pl-4 text-left ${discard ? "pr-2" : "pr-4"}`}
+        >
+          <span className="shrink-0 text-[12px] font-[700]">{T.runLog}</span>
+          <span className={`ml-auto flex min-w-0 items-center gap-1.5 text-[11px] text-nb-ink-soft ${discard ? "" : "shrink-0"}`}>
+            {queued ? (
+              <>
+                <FiClock size={11} aria-hidden />
+                <span>{task.run?.runner_connected === false ? T.queuedOffline : T.queued}</span>
+              </>
+            ) : live ? (
+              <>
+                <span className={PULSE_DOT} aria-hidden />
+                <span>
+                  {task.run?.step ? T.step[task.run.step] : T.running}
+                  {started ? ` · ${clock(now - started)}` : ""}
+                </span>
+              </>
+            ) : (
+              <>
+                <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>
+                  {failed ? "✕" : stopped ? "■" : "✓"}
+                </span>
+                <span className="truncate">
+                  <Facts
+                    terse={!!discard}
+                    items={[
+                      { text: failed ? T.failedRun : stopped ? T.stoppedRun : T.done },
+                      ...(took ? [{ text: took, dim: true }] : []),
+                      ...(typeof info?.costUsd === "number" ? [{ text: formatCost(info.costUsd), dim: true, title: T.log.costHint }] : []),
+                    ]}
+                  />
+                </span>
+              </>
+            )}
+            <ContextRing context={info?.context ?? p.context} tip={T.log.context} className="nb-tip-end" />
+            {job && <FiChevronDown size={13} aria-hidden className={`shrink-0 ${open ? "rotate-180" : ""}`} />}
+          </span>
+        </button>
+        {discard && (
+          <>
+            <span aria-hidden className="mx-1 h-4 w-px shrink-0" style={{ background: HAIRLINE }} />
+            <ConfirmButton
+              icon={<FiTrash2 className="text-[13px]" aria-hidden />}
+              label={T.discard.label}
+              confirm={T.discard.confirm}
+              ask={T.discard.ask}
+              hint={T.discard.hint}
+              busy={discard.busy}
+              onConfirm={discard.onConfirm}
+            />
+          </>
+        )}
+      </div>
       {open && job && (
         <div className="flex max-h-[50vh] flex-col rounded-b-[14px] border-t border-nb-ink/12 bg-nb-canvas shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]">
           {livePlan && (

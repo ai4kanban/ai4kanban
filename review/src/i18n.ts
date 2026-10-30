@@ -27,7 +27,7 @@ export const pickLang = (lang: Lang) => {
 
 const zh = {
   meta: { workflow: "工作流", project: "项目", modules: "模块", priority: "优先级", todos: "待办", source: "来源", blockedBy: "阻塞", related: "相关", started: "发起", starter: "发起人", expires: "链接到期" },
-  act: { implement: "执行", refine: "细化", remove: "移除", removeAsk: "移除这个任务？", removeWhy: "原因（可选）…", removeHint: "直接丢弃，或写下原因，以后规划时会避开这类任务。", discard: "丢弃", keep: "不移除" },
+  act: { implement: "执行", refine: "细化", remove: "移除", removeAsk: "移除这个任务？", removeWhy: "原因（可选）…", removeHint: "可以写下原因，以后规划时会避开这类任务。", keep: "不移除" },
   level: { high: "高", med: "中", low: "低" } as Record<string, string>,
   headings: {
     "Worth noting": "重要事项",
@@ -284,7 +284,7 @@ export type Copy = typeof zh;
 
 const en: Copy = {
   meta: { workflow: "Workflow", project: "Project", modules: "Modules", priority: "Priority", todos: "Todos", source: "Source", blockedBy: "Blocked by", related: "Related", started: "Started", starter: "Started by", expires: "Link expires" },
-  act: { implement: "Implement", refine: "Refine", remove: "Remove", removeAsk: "Remove this task?", removeWhy: "Reason (optional)…", removeHint: "Discard it, or add a reason so future planning avoids tasks like this.", discard: "Discard", keep: "Keep" },
+  act: { implement: "Implement", refine: "Refine", remove: "Remove", removeAsk: "Remove this task?", removeWhy: "Reason (optional)…", removeHint: "Add a reason so future planning avoids tasks like this.", keep: "Keep" },
   level: { high: "high", med: "med", low: "low" },
   headings: {},
   pill: { waiting: "To review", approved: "Approved", changes: "Changes requested", pending: "Not submitted", removed: "Removed" },

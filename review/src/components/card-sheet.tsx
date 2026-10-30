@@ -294,7 +294,7 @@ export function RemoveButton({ busy, onRemove, draftKey }: { busy: boolean; onRe
                 if (await onRemove(reason.trim() || undefined)) setReason("");
               }}
             >
-              {reason.trim() ? a.remove : a.discard}
+              {a.remove}
             </Button>
           </div>
         </div>

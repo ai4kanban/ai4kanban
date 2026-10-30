@@ -6,7 +6,23 @@ import { QUIET } from "@review/components/chrome";
 import { cn } from "@review/lib/utils";
 import { T } from "../i18n";
 
-export function ConfirmButton({ icon, label, ask, hint, busy, onConfirm }: { icon: ReactNode; label: string; ask: string; hint: string; busy?: boolean; onConfirm: () => void }) {
+export function ConfirmButton({
+  icon,
+  label,
+  confirm = label,
+  ask,
+  hint,
+  busy,
+  onConfirm,
+}: {
+  icon: ReactNode;
+  label: string;
+  confirm?: string;
+  ask: string;
+  hint: string;
+  busy?: boolean;
+  onConfirm: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -41,7 +57,7 @@ export function ConfirmButton({ icon, label, ask, hint, busy, onConfirm }: { ico
                 onConfirm();
               }}
             >
-              {label}
+              {confirm}
             </Button>
           </div>
         </div>
