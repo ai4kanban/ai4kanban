@@ -56,10 +56,10 @@ Nothing to record when no delivery is in flight.
 
 ## Curate the human half
 
-Classify each answer with `akb guide update-questions`. Put answers classified as `Worth noting`
-in that section; put other necessary lasting decisions below the boundary.
+Put each answer `akb guide writing` places in `Worth noting` in that section; put other
+necessary lasting decisions below the boundary.
 
-Re-read the whole human half against the same classification. Remove or move down entries that
+Re-read the whole human half against the same rule. Remove or move down entries that
 fail it, repeat scope, or overlap another entry. Merge entries governed by one decision. One to
 three independent items is normal; every additional item needs distinct user-facing stakes.
 
@@ -70,9 +70,6 @@ in the planner's `decisions.md` for the card's module, as that guide places it. 
 `**<key>**: <call>` line under the topic that fits, without its rationale. Replace a
 contradicted call instead of keeping both. If the user's answer is unclear, leave memory
 unchanged and keep the question open.
-
-Where the answer lands on a preview agent's section, also record it in that agent's memory —
-"An agent's memory" in `akb guide update-questions`.
 
 ## Refine
 

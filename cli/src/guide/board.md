@@ -128,7 +128,7 @@ move the files into the group's folder:
 - **`memory/<name>/`**: a global memory, kept by every agent listing it under `akb.memory`
   by the rules each run is given. Only the user changes its `MEMORY.md`, from the board UI.
 - **`memory/agents/<agent>/`**: an agent keeps only the files and split paths its own AGENT.md
-  declares (`akb guide update-questions`). An agent whose instructions name none keeps none.
+  declares. An agent whose instructions name none keeps none.
 
 File a planning note about one module in that module's folder,
 `memory/agents/planner/<module>/`, under the same file name, creating it if missing. A note

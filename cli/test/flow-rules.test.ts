@@ -278,7 +278,7 @@ describe('the prompt', () => {
     assert.match(guide, /Preserve settled decisions and unrelated questions/)
     assert.match(guide, /akb guide update-questions/)
     assert.match(guide, /Stop only dependent work; resume it/)
-    assert.match(findGuide('update-questions')!.text, /### Implementation blockers/)
+    assert.match(findGuide('update-questions')!.text, /An obstacle only the user can clear is a question too/)
     const build = buildPrompt({ action: 'implement', description: 'Build a widget' })
     assert.match(build, /blockers needing user action[\s\S]*akb guide update-questions/)
     // Nothing reviews the build, so the build records what it decided (#1203).
@@ -315,7 +315,7 @@ describe('the prompt', () => {
     for (const name of ['implement', 'update-questions']) {
       assert.match(findGuide(name)!.text, /`akb guide follow-up`/)
     }
-    assert.match(findGuide('update-questions')!.text, /Never ask whether to fix work here or create a card/)
+    assert.match(findGuide('update-questions')!.text, /Not a question\*\*: where a fix goes/)
     const followUp = findGuide('follow-up')!.text
     assert.match(followUp, /without asking permission or blocking\s+the original/)
     assert.match(followUp, /never defer a required fix/)

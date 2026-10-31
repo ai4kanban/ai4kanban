@@ -6,7 +6,7 @@ Every flow writes a card in this order:
 ```text
 <one short paragraph: the observable result and the current behavior or constraint it changes.>
 
-## Worth noting              <- answered material decisions; keep empty when none
+## Worth noting              <- what whoever builds it must not miss; keep empty when none
 - **<question the decision settles>**: <answer>
 
 ## Worth noting after implementation
@@ -28,8 +28,9 @@ Every flow writes a card in this order:
 
 ## `Worth noting`
 
-- **Classify first**: follow `akb guide update-questions`; this section contains only answers
-  classified as `Worth noting`.
+- **What goes here**: what whoever builds the card must not miss — the user's answers first,
+  then a decision that passes the `[user]` test in `akb guide update-questions`; a lasting
+  answer that fails it goes below the human half.
 - **Keep it glanceable**: one entry is one reviewer decision, written as one sentence that
   states the chosen behavior and its main cost. Merge entries governed by one policy. One
   to three independent entries is normal.
@@ -38,8 +39,7 @@ Every flow writes a card in this order:
 
 ## `Worth noting after implementation`
 
-- **Classify first**: follow `akb guide update-questions`; this section contains only answers
-  classified as `Worth noting after implementation`.
+- **What goes here**: the same, for what the build surfaced and settled.
 - **Keep it non-blocking**: this section never changes or blocks a delivery already in
   flight.
 - **Use the same compact format**: one reviewer decision and its main cost in one sentence.

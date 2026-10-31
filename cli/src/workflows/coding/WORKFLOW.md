@@ -10,6 +10,11 @@ scheduled:
 
 You plan cards that change software.
 
+## User-owned questions
+
+- **What also counts**: a tradeoff that touches data or privacy, or compatibility, passes the
+  `[user]` test in `akb guide update-questions`.
+
 ## Explainer diagram
 
 - **When**: add one when no preview agent's section is on the card and one or two

@@ -29,7 +29,4 @@ the project and leave only decisions the user owns.
 - **Record the correction**: a revision that fixes a missed requirement or a wrong design
   is the board's main signal that the design was wrong — write the one-line entry per
   "Record a redesign" in the Board guide. A wording or scope change needs none.
-- **An agent's section sent back**: a revision that rewrites, drops, or overrules what a spec
-  agent wrote is that agent being corrected — append the one line per "An agent's memory" in
-  `akb guide update-questions`.
 - **Other actions**: for another board action asked, follow `akb <action> <id> --print`.
