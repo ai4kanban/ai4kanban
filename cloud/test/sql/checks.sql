@@ -6145,4 +6145,71 @@ begin
 end
 $scheduled_refine$;
 
+-- #149: a write taking a blocker off a marked card starts a task that has run, once.
+do $released_refine$
+declare
+  A constant uuid := 'a0a0a0a0-0149-4149-8149-000000000001';
+  HOME constant uuid := 'cccccccc-0149-4149-8149-000000000003';
+  BUDGET constant integer := 100000;
+  CODING constant jsonb := '{"id": "wf_builtin_coding", "builtin": true, "name": "Coding", "lands": true,
+    "hash": "c1", "files": {"WORKFLOW.md": "coding"}}';
+  MARK constant jsonb := '{"action": "refine", "notes": "Notes"}';
+  v_prj text;
+  v_id text;
+  v_one cloud.tasks;
+  v_two cloud.tasks;
+  v_ran cloud.tasks;
+  v_never cloud.tasks;
+  v_task cloud.tasks;
+  v_job cloud.runner_jobs;
+begin
+  insert into cloud.accounts (id, handle) values (A, 'released-a');
+  perform api.register_runner(A, HOME, 'home-mac', 3, '0.4.0', '[{"name": "codex", "installed": true}]', false, 900, BUDGET);
+  v_prj := api.v1_create_project(A, '{"name": "Released"}', BUDGET) ->> 'id';
+  insert into cloud.project_folders (project_id, machine_id, account_id, path) values (v_prj, HOME, A, '/work/released');
+
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'One', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_one from cloud.tasks where id = v_id;
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'Two', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_two from cloud.tasks where id = v_id;
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'Ran', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_ran from cloud.tasks where id = v_id;
+  v_id := api.v1_create_task(A, jsonb_build_object('title', 'Never', 'project', v_prj), CODING, BUDGET) ->> 'id';
+  select * into v_never from cloud.tasks where id = v_id;
+  update cloud.tasks set run = true, run_card = number, machine_id = HOME where id = v_ran.id;
+  perform api.v1_index_cards(A, v_prj, jsonb_build_array(jsonb_build_object('task', v_ran.id,
+    'path', format('todo/%s-ran.md', v_ran.number), 'seq', 1, 'front', '{}'::jsonb,
+    'links', jsonb_build_object('blocked_by', jsonb_build_array(v_one.number, v_two.number), 'related', '[]'::jsonb, 'schedule', MARK))), BUDGET);
+  perform api.v1_index_cards(A, v_prj, jsonb_build_array(jsonb_build_object('task', v_never.id,
+    'path', format('todo/%s-never.md', v_never.number), 'seq', 1, 'front', '{}'::jsonb,
+    'links', jsonb_build_object('blocked_by', '[]'::jsonb, 'related', '[]'::jsonb, 'schedule', MARK))), BUDGET);
+
+  -- One blocker off, another still open: nothing starts.
+  perform api.v1_index_cards(A, v_prj, jsonb_build_array(jsonb_build_object('task', v_ran.id,
+    'path', format('todo/%s-ran.md', v_ran.number), 'seq', 2, 'front', '{}'::jsonb,
+    'links', jsonb_build_object('blocked_by', jsonb_build_array(v_two.number), 'related', '[]'::jsonb, 'schedule', MARK))), BUDGET);
+  assert not (api.v1_release_scheduled_refine(v_prj, v_ran.number, 'Notes') ->> 'started')::boolean, 'a blocked card started';
+  assert cloud.v1_flow_job(v_ran.id) is null, 'a blocked card took a step';
+
+  -- The last off: the task that has run starts, once, on either path.
+  perform api.v1_index_cards(A, v_prj, jsonb_build_array(jsonb_build_object('task', v_ran.id,
+    'path', format('todo/%s-ran.md', v_ran.number), 'seq', 3, 'front', '{}'::jsonb,
+    'links', jsonb_build_object('blocked_by', '[]'::jsonb, 'related', '[]'::jsonb, 'schedule', MARK))), BUDGET);
+  assert (api.v1_release_scheduled_refine(v_prj, v_ran.number, 'Notes') ->> 'started')::boolean, 'a freed card did not start';
+  v_job := cloud.v1_flow_job(v_ran.id);
+  assert v_job.flow ->> 'verb' = 'refine' and v_job.flow ->> 'text' = 'Notes', format('the step misread: %s', v_job.flow);
+  assert not (api.v1_release_scheduled_refine(v_prj, v_ran.number, 'Notes') ->> 'started')::boolean, 'a running card started again';
+  assert not (api.v1_release_task(v_ran.id, 'refine', 'Notes') ->> 'started')::boolean, 'release started a running card';
+  assert (select count(*) from cloud.runner_jobs where task_id = v_ran.id) = 1, 'a card started twice';
+
+  -- A task that never ran stays as it was, and a number with no task starts nothing.
+  assert not (api.v1_release_scheduled_refine(v_prj, v_never.number, 'Notes') ->> 'started')::boolean, 'a task that never ran started';
+  select * into v_task from cloud.tasks where id = v_never.id;
+  assert not v_task.run and cloud.v1_flow_job(v_never.id) is null, 'a task that never ran was touched';
+  assert not (api.v1_release_scheduled_refine(v_prj, 9999, null) ->> 'started')::boolean, 'a number with no task started';
+
+  raise notice 'sql checks: #149 released refine checks passed';
+end
+$released_refine$;
+
 rollback;

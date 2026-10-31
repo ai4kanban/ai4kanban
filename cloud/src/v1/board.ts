@@ -187,25 +187,31 @@ const refineOf = (f: CardFile) => {
 const replaced = async (board: BoardClient, writes: CardFile[]): Promise<CardFile[]> =>
   writes.some(refineOf) ? board.read(writes.map((w) => w.path)) : []
 
-/** The open cards a write newly scheduled for a refine (#124), by number: a card moved in the
- *  write keeps the mark it had. */
-function newRefines(before: CardFile[], after: CardFile[]) {
-  const had = new Set(before.filter((f) => refineOf(f)).map((f) => numberOfCard(f.path)))
+const blockersOf = (f: CardFile) => parseFrontmatter(f.content ?? '').meta?.blocked_by ?? []
+
+/** The open cards a write gave a refine to start, by number: newly marked (#124), or marked before
+ *  and open before with a blocker taken off (#149). A card moved in the write keeps the mark it had. */
+function refinesToStart(before: CardFile[], after: CardFile[]) {
+  const had = new Map(before.filter((f) => refineOf(f)).map((f) => [numberOfCard(f.path), f]))
   return after.flatMap((f) => {
     const schedule = refineOf(f)
     const number = numberOfCard(f.path)!
-    return schedule && f.path.startsWith('todo/') && !had.has(number) ? [{ path: f.path, number, notes: schedule.notes ?? null }] : []
+    if (!schedule || !f.path.startsWith('todo/')) return []
+    const was = had.get(number)
+    const freed = !!was && was.path.startsWith('todo/') && blockersOf(was).some((n) => !blockersOf(f).includes(n))
+    return !was || freed ? [{ path: f.path, number, notes: schedule.notes ?? null, freed }] : []
   })
 }
 
-/** Each such card starts now, unless a blocker or a step is in its way. A card not started keeps
- *  its mark; a failure is logged, never the write's. */
-async function startRefines(env: Env, account: string, project: string, board: BoardClient, cards: ReturnType<typeof newRefines>, machine: string | null) {
+/** Each such card starts now, unless a blocker or a step is in its way; a freed one only if its
+ *  task has started before. A card not started keeps its mark; a failure is logged, never the write's. */
+async function startRefines(env: Env, account: string, project: string, board: BoardClient, cards: ReturnType<typeof refinesToStart>, machine: string | null) {
   for (const c of cards) {
     try {
-      const { started } = await call<{ started: boolean }>(env, 'v1_start_scheduled_refine', {
-        p_project: project, p_number: c.number, p_notes: c.notes, p_machine: machine,
-      })
+      const card = { p_project: project, p_number: c.number, p_notes: c.notes }
+      const { started } = c.freed
+        ? await call<{ started: boolean }>(env, 'v1_release_scheduled_refine', card)
+        : await call<{ started: boolean }>(env, 'v1_start_scheduled_refine', { ...card, p_machine: machine })
       if (started) await clearSchedule(env, account, project, board, c.path)
     } catch (e) {
       console.error('cloud: scheduled refine not started', { project, card: c.number, error: e instanceof Error ? e.message : String(e) })
@@ -240,7 +246,7 @@ export async function commitBoard(env: Env, ctx: ExecutionContext, account: stri
   const changed = written(project, files, done.files)
   await index(env, account, project, indexEntries(changed))
   await follow(env, ctx, account, project, followEntries(changed))
-  await startRefines(env, account, project, own, newRefines(before, changed), machine)
+  await startRefines(env, account, project, own, refinesToStart(before, changed), machine)
   ctx.waitUntil(triageWritten(env, ctx, workspace, files, done.files))
   return json({ head_seq: done.head_seq, files: done.files })
 }
@@ -301,7 +307,7 @@ export async function saveCard(env: Env, account: string, task: string, input: {
     metadata: fields.metadata ? metadata : cardMetadata(body),
     ...(fields.assets !== undefined ? { assets: fields.assets } : {}),
   }])
-  await startRefines(env, account, place.project, board, newRefines(before, card), null)
+  await startRefines(env, account, place.project, board, refinesToStart(before, card), null)
   return withBody(env, await call<CardIndex>(env, 'v1_card', { p_account: account, p_task: task }))
 }
 

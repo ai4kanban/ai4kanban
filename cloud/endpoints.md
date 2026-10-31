@@ -438,7 +438,9 @@ route, body and response is in [`openapi.json`](openapi.json) (OpenAPI 3.1), als
   waited with, else its `schedule`, which comes off the card. Each card changed is a new version
   with `task.updated`. A write that gives a card with no open blocker and no step in progress a
   new `schedule` of `refine` (#124), through `PUT /v1/tasks/{id}/card` or a board commit, starts
-  that refine at once on the same terms; a mark the card already had waits for a blocker to leave.
+  that refine at once on the same terms. A write that takes a blocker off a card under `todo/`
+  that already had a `schedule` of `refine` (#149) starts it as a blocker that ends does: not if
+  its task never started, and the step it held goes first.
 - **Board files** (#2081, #2114): one board per workspace. A project's cards (`todo/`, `.archive/`,
   named `<n>-<task id with ->.md`), memory (`memory/`), the workflow versions its tasks run on
   (`workflows/<id>/`), `triage/`, each task's assets list (`assets/<task>.json`) and its settings

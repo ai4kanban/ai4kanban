@@ -805,6 +805,81 @@ describe('board files (#2081, #2114)', () => {
     })
   })
 
+  describe('a blocker taken off a card marked for a refine (#149)', () => {
+    const front = ({ blockedBy = '', schedule = 'refine' } = {}) => [
+      '---', 'title: Pricing', 'status: todo', `blocked_by: [${blockedBy}]`,
+      'schedule:', `  action: ${schedule}`, '  notes: Be brief', '---', 'Body', '',
+    ].join('\n')
+    const released = () => callsTo('v1_release_scheduled_refine')
+    const held = (path = CARD) => boards.project('prj_1').read([path])[0].content
+    const seed = async (blockedBy = '2, 3') => {
+      await commit([{ path: P1 + CARD, content: front({ blockedBy }), base_seq: 0 }])
+      calls.length = 0
+    }
+
+    beforeEach(() => {
+      db.v1_start_scheduled_refine = () => ({ started: false })
+      db.v1_release_scheduled_refine = () => ({ started: true, verb: 'refine' })
+      db.v1_card_place = ({ p_task }) => ({ task: p_task, project: 'prj_1', path: CARD, version: 0, metadata: {}, assets: {} })
+      db.v1_card = ({ p_task }) => ({ object: 'card', task: p_task, project: 'prj_1', path: CARD, version: 2, metadata: {}, assets: {} })
+    })
+
+    it('starts the card once as the push lands, and takes the mark off and reindexes', async () => {
+      await seed('2')
+      assert.equal((await commit([{ path: P1 + CARD, content: front(), base_seq: 1 }])).status, 200)
+      assert.deepEqual(released().map((c) => c.body), [{ p_project: 'prj_1', p_number: 1, p_notes: 'Be brief' }])
+      assert.equal(callsTo('v1_start_scheduled_refine').length, 0)
+      assert.doesNotMatch(held(), /schedule:/)
+      assert.equal(callsTo('v1_index_cards').at(-1).body.p_cards[0].links.schedule, null)
+    })
+
+    it('starts the card a PUT took a blocker off', async () => {
+      await seed('2')
+      const saved = await send('/v1/tasks/task_aa/card', { method: 'PUT', body: { body: front(), base_version: 1 } })
+      assert.equal(saved.status, 200)
+      assert.equal(released().length, 1)
+      assert.doesNotMatch((await saved.json()).body, /schedule:/)
+    })
+
+    it('leaves the deciding to the database when other blockers stay', async () => {
+      db.v1_release_scheduled_refine = () => ({ started: false })
+      await seed()
+      const left = front({ blockedBy: '3' })
+      await commit([{ path: P1 + CARD, content: left, base_seq: 1 }])
+      assert.equal(released().length, 1)
+      assert.equal(held(), left)
+    })
+
+    it('keeps the mark and the write when the start fails', async () => {
+      db.v1_release_scheduled_refine = () => json({ message: 'boom' }, 500)
+      await seed('2')
+      const freed = front()
+      assert.equal((await commit([{ path: P1 + CARD, content: freed, base_seq: 1 }])).status, 200)
+      assert.equal(held(), freed)
+    })
+
+    it('starts nothing when blocked_by lost nothing, the card moved or the action is not refine', async () => {
+      await seed('2')
+      const same = front({ blockedBy: '2' })
+      await commit([{ path: P1 + CARD, content: same + 'More', base_seq: 1 }])
+      assert.equal(released().length, 0, 'an unchanged list started')
+      const grown = front({ blockedBy: '2, 3' })
+      await commit([{ path: P1 + CARD, content: grown, base_seq: 2 }])
+      assert.equal(released().length, 0, 'a list that grew started')
+      await commit([{ path: P1 + CARD, content: null, base_seq: 3 }, { path: P1 + 'todo/1-group/1-pricing.md', content: grown, base_seq: 0 }])
+      assert.equal(released().length, 0, 'a moved card started')
+      await commit([{ path: P1 + '.archive/5-gone.md', content: same, base_seq: 0 }])
+      await commit([{ path: P1 + '.archive/5-gone.md', content: null, base_seq: 1 }, { path: P1 + 'todo/5-gone.md', content: front(), base_seq: 0 }])
+      assert.equal(released().length, 0, 'a card back from the archive started')
+      await commit([{ path: P1 + 'todo/6-open.md', content: same, base_seq: 0 }])
+      await commit([{ path: P1 + 'todo/6-open.md', content: null, base_seq: 1 }, { path: P1 + '.archive/6-open.md', content: front(), base_seq: 0 }])
+      assert.equal(released().length, 0, 'a card leaving the board started')
+      await commit([{ path: P1 + 'todo/7-next.md', content: front({ blockedBy: '2', schedule: 'implement' }), base_seq: 0 }])
+      await commit([{ path: P1 + 'todo/7-next.md', content: front({ schedule: 'implement' }), base_seq: 1 }])
+      assert.equal(released().length, 0, 'another action started')
+    })
+  })
+
   it('hints the Runners of the projects a change touched, naming the computer that pushed it (#103)', async () => {
     db.v1_card_place = ({ p_task }) => ({ task: p_task, project: 'prj_1', path: CARD, version: 0, metadata: {}, assets: {} })
     db.v1_card = ({ p_task }) => ({ object: 'card', task: p_task, project: 'prj_1', path: CARD, version: 1, metadata: {}, assets: {} })
