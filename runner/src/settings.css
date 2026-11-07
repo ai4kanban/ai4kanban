@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "./ui/theme.css";
+
+body {
+  margin: 0;
+  background: var(--color-nb-cream);
+  color: var(--color-nb-ink);
+  -webkit-font-smoothing: antialiased;
+}
+/* The web app's focus ring (web/src/review/globals.css). */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-nb-accent) 55%, transparent);
+  outline-offset: -2px;
+}
+[data-pointer] :focus-visible:not(input, textarea, select, [contenteditable]) {
+  outline: none;
+}

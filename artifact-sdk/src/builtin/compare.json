@@ -1,0 +1,15 @@
+{
+  "name": "compare",
+  "title": { "en": "Compare", "zh": "对比" },
+  "types": ["compare"],
+  "schema": {
+    "type": "object",
+    "required": ["a", "b"],
+    "properties": { "a": { "type": "string" }, "b": { "type": "string" } }
+  },
+  "references": [
+    { "json": "/a", "types": ["storyboard", "compare"] },
+    { "json": "/b", "types": ["storyboard", "compare"] },
+    { "json": "/shots", "types": ["storyboard", "compare"] }
+  ]
+}

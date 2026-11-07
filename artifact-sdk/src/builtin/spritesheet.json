@@ -1,0 +1,23 @@
+{
+  "name": "spritesheet",
+  "title": { "en": "Sprite animation", "zh": "精灵动画" },
+  "types": ["spritesheet"],
+  "schema": {
+    "type": "object",
+    "required": ["frames", "meta"],
+    "properties": {
+      "frames": {
+        "anyOf": [
+          { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["frame"] } },
+          { "type": "object", "additionalProperties": { "type": "object", "required": ["frame"] } }
+        ]
+      },
+      "meta": {
+        "type": "object",
+        "required": ["app", "image"],
+        "properties": { "app": { "type": "string", "pattern": "codeandweb\\.com/texturepacker" }, "image": { "type": "string" } }
+      }
+    }
+  },
+  "references": [{ "json": "/meta/image" }]
+}

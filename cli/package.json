@@ -1,0 +1,62 @@
+{
+  "name": "wildcrane",
+  "version": "0.11.28",
+  "akbContract": 7,
+  "description": "WildCrane's `akb` command — scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
+  "keywords": [
+    "kanban",
+    "claude",
+    "claude-code",
+    "codex",
+    "agent",
+    "skill",
+    "markdown",
+    "board"
+  ],
+  "license": "FSL-1.1-ALv2",
+  "homepage": "https://wildcrane.ai/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wildcrane-ai/wildcrane.git",
+    "directory": "cli"
+  },
+  "type": "module",
+  "bin": {
+    "akb": "bin/ai4kanban.mjs",
+    "wildcrane": "bin/ai4kanban.mjs"
+  },
+  "files": [
+    "bin/",
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepare": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/test.mjs",
+    "lint": "npm run typecheck",
+    "prepublishOnly": "npm run build",
+    "eval:qa": "node scripts/qa-eval.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "esbuild": "^0.28.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.7.0",
+    "sucrase": "^3.35.0",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  }
+}

@@ -1,0 +1,41 @@
+/* The design tokens, shared with the Runner's local settings page (runner/scripts/settings-client.mjs). */
+@theme {
+  --color-nb-ink: #24231f; /* charcoal — borders + body text */
+  --color-nb-ink-soft: #565550; /* muted ink for captions/meta */
+  --color-nb-cream: #f7f7f4; /* page canvas */
+  --color-nb-canvas: #efeeeb; /* the ground under a board of cards */
+  --color-nb-paper: #ffffff; /* card surface */
+  --color-nb-sheet: #fbfaf7; /* a card page's sections — the cream family, a rung lighter */
+  --color-nb-wash: #f4f3ef; /* faint neutral fill (headers, media, insets) */
+
+  --color-nb-accent: #dd4f1e; /* ember — primary accent */
+  --color-nb-accent-deep: #b83a12; /* deeper ember — hover / press */
+  --color-nb-accent-soft: #f7ddce; /* ember wash — underline band, tints */
+  --color-nb-crimson: #c41e3a; /* triage waiting — cool enough to tell from ember */
+
+  --color-nb-mint: #7fca9c; /* positive / done */
+  --color-nb-mint-soft: #e4f3ea;
+  --color-nb-sky: #7fb4e0; /* neutral signal */
+  --color-nb-sky-soft: #e6f1fb;
+  --color-nb-lilac: #b199e0;
+  --color-nb-lilac-soft: #efe9fb;
+  --color-nb-peach: #ec9a72; /* attention / blocker */
+  --color-nb-peach-soft: #fbe9dd;
+
+  /* Section grounds — a signal thinned until a whole block of one can carry body
+     text, a rung below `-soft` so a tall band never shouts over the control that
+     answers it. A card page spends colour on two sections and no more: mint where
+     the work is already done, ember where an answer is wanted. Everything else on
+     it, the body included, is `--color-nb-sheet` — prose is read THROUGH its
+     ground, and a tint under it colours every line. */
+  --color-nb-accent-wash: #fbf0e9;
+
+  --color-nb-mint-ink: #2f6b46;
+  --color-nb-sky-ink: #2c5c86;
+  --color-nb-lilac-ink: #5a3f92;
+  --color-nb-peach-ink: #8a4a28;
+
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}

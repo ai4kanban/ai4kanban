@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "size": { "width": 1920, "height": 1080 },
+  "slides": [
+    {
+      "id": "cover",
+      "title": "用看板交付 AI 工作",
+      "notes": "开场只说一件事：需求怎样不在对话里丢失。",
+      "layout": "封面",
+      "assets": [".assets/969/logo.svg"],
+      "preview": { "src": ".assets/969/pages/cover.html", "alt": "封面：标题与副标题居中" }
+    },
+    {
+      "id": "results",
+      "title": "三个月交付 212 张卡片",
+      "layout": "大数字",
+      "assets": [],
+      "preview": { "src": ".assets/969/pages/results.tsx", "alt": "大数字 212，下方一行说明" }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "storyboard",
+  "title": { "en": "Storyboard", "zh": "分镜" },
+  "types": ["storyboard"],
+  "schema": {
+    "type": "object",
+    "anyOf": [{ "required": ["shots"] }, { "required": ["slides"] }],
+    "properties": {
+      "shots": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": { "frames": { "type": "array", "items": { "type": "object", "properties": { "src": { "type": "string" } } } } }
+        }
+      },
+      "slides": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "preview": { "type": "object", "properties": { "src": { "type": "string" } } },
+            "assets": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    }
+  },
+  "references": [
+    { "json": "/shots/*/frames/*/src" },
+    { "json": "/slides/*/preview/src" },
+    { "json": "/slides/*/assets/*" }
+  ]
+}

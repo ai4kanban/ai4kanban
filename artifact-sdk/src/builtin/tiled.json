@@ -1,0 +1,11 @@
+{
+  "name": "tiled",
+  "title": { "en": "Tiled map", "zh": "Tiled 地图" },
+  "types": ["tiled"],
+  "references": [
+    { "text": "<tileset\\b[^<>]*?\\ssource\\s*=\\s*[\"']([^\"']+)[\"']", "types": ["tiled"] },
+    { "text": "<image\\b[^<>]*?\\ssource\\s*=\\s*[\"']([^\"']+)[\"']" },
+    { "text": "\"source\"\\s*:\\s*\"([^\"]+)\"", "types": ["tiled"] },
+    { "text": "\"image\"\\s*:\\s*\"([^\"]+)\"" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "wildcrane",
+  "version": "0.1.14",
+  "description": "在 Claude 中整理目标，从网页开始任务，在本机运行。",
+  "author": { "name": "WildCrane" },
+  "homepage": "https://wildcrane.ai/",
+  "types": "./types/index.d.ts"
+}
